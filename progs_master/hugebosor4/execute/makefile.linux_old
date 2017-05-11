@@ -1,0 +1,222 @@
+# Makefile for bigbosor4 on an Intel 386/486/586 running Linux
+#
+SHELL      = /bin/csh
+FC         = g77
+MACHINE    = linux
+FFLAGS     = -D$(MACHINE) -g -fno-automatic -fno-globals -O
+OPTFFLAGS  = -D$(MACHINE) -g -fno-automatic -fno-globals -O
+CC         = gcc
+CFLAGS     = -D$(MACHINE) -g -O3
+#HOME       = /home/bush
+HOME       = /home/progs
+
+BIGBOSOR4 = $(HOME)/bigbosor4
+UTIL      = $(BIGBOSOR4)/sources
+LIB       = $(BIGBOSOR4)/libraries.$(MACHINE)
+SRC       = $(BIGBOSOR4)/sources
+#BIN       = $(BIGBOSOR4)/sources
+BIN       = $(HOME)/bin
+OBJ       = $(BIGBOSOR4)/objects.$(MACHINE)
+EXE       = $(BIGBOSOR4)/execute
+
+.PRECIOUS:  $(EXE)/assemble.$(MACHINE)\
+	    $(EXE)/bigbosor4.$(MACHINE)\
+            $(EXE)/bigrestart.$(MACHINE)\
+	    $(EXE)/getsegs.$(MACHINE)\
+	    $(EXE)/help4.$(MACHINE)\
+	    $(EXE)/input.$(MACHINE)\
+	    $(EXE)/modify.$(MACHINE)\
+	    $(EXE)/resetup.$(MACHINE)
+
+bigbosor4: $(EXE)/assemble.$(MACHINE)\
+           $(EXE)/bigbosor4.$(MACHINE)\
+           $(EXE)/bigrestart.$(MACHINE)\
+           $(EXE)/getsegs.$(MACHINE)\
+           $(EXE)/help4.$(MACHINE)\
+           $(EXE)/input.$(MACHINE)\
+           $(EXE)/modify.$(MACHINE)\
+           $(EXE)/resetup.$(MACHINE)
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# rules for building executables ( ******.linux)
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+$(EXE)/assemble.$(MACHINE): $(LIB)/assemble.a
+	ar xv $(LIB)/assemble.a assmbl.o
+	$(FC) $(FFLAGS) -o $@ assmbl.o $(LIB)/assemble.a
+	/bin/rm assmbl.o
+
+$(EXE)/bigbosor4.$(MACHINE): $(LIB)/bigbosor4.a $(UTIL)/ieeexx_linux.o
+	ar xv $(LIB)/bigbosor4.a mainb4.o
+	$(FC) $(FFLAGS) -o $@ mainb4.o $(LIB)/bigbosor4.a \
+                                     $(UTIL)/ieeexx_linux.o
+	/bin/rm mainb4.o
+
+$(EXE)/bigrestart.$(MACHINE): $(LIB)/bigrestart.a $(UTIL)/ieeexx_linux.o
+	ar xv $(LIB)/bigrestart.a restart.o
+	$(FC) $(FFLAGS) -o $@ restart.o $(LIB)/bigrestart.a \
+                                     $(UTIL)/ieeexx_linux.o
+	/bin/rm restart.o
+
+$(EXE)/getsegs.$(MACHINE): $(LIB)/getsegs.a
+	ar xv $(LIB)/getsegs.a getseg.o
+	$(FC) $(FFLAGS) -o $@ getseg.o $(LIB)/getsegs.a
+	/bin/rm getseg.o
+
+$(EXE)/help4.$(MACHINE): $(LIB)/help4.a
+	ar xv $(LIB)/help4.a help4.o
+	$(FC) $(FFLAGS) -o $@ help4.o $(LIB)/help4.a
+	/bin/rm help4.o
+
+$(EXE)/input.$(MACHINE): $(LIB)/input.a $(UTIL)/sig_linux.o
+	ar xv $(LIB)/input.a input.o
+	$(FC) $(FFLAGS) -o $@ input.o $(LIB)/input.a \
+                                    $(UTIL)/sig_linux.o
+	/bin/rm input.o
+
+$(EXE)/modify.$(MACHINE): $(LIB)/modify.a $(UTIL)/sig_linux.o
+	ar xv $(LIB)/modify.a modify.o
+	$(FC) $(FFLAGS) -o $@ modify.o $(LIB)/modify.a \
+                                     $(UTIL)/sig_linux.o
+	/bin/rm modify.o
+
+$(EXE)/resetup.$(MACHINE): $(LIB)/resetup.a $(UTIL)/sig_linux.o
+	ar xv $(LIB)/resetup.a reset.o
+	$(FC) $(FFLAGS) -s -o $@ reset.o $(LIB)/resetup.a \
+                                    $(UTIL)/sig_linux.o
+	/bin/rm reset.o
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# rules for building libraries ( ******.a )
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Update $(LIB)/assemble.a
+$(LIB)/assemble.a: $(OBJ)/assemble.a
+	cp $(OBJ)/assemble.a $@
+#	ranlib $@
+
+# Update $(LIB)/bigbosor4.a
+$(LIB)/bigbosor4.a: $(OBJ)/opngen.a $(OBJ)/mainb4.a $(OBJ)/addbosor4.a\
+                    $(OBJ)/gasp.a   $(OBJ)/b4plot.a   $(OBJ)/b4util.a\
+                    $(OBJ)/prompter.a
+	csh $(BIN)/updatelib $@ $?
+
+# Update $(LIB)/bigrestart.a
+$(LIB)/bigrestart.a: $(OBJ)/opngen.a $(OBJ)/restart.a $(OBJ)/addbosor4.a\
+                    $(OBJ)/gasp.a   $(OBJ)/b4plot.a   $(OBJ)/b4util.a\
+                    $(OBJ)/prompter.a
+	csh $(BIN)/updatelib $@ $?
+
+# Update $(LIB)/getsegs.a
+$(LIB)/getsegs.a: $(OBJ)/getsegs.a
+	cp $(OBJ)/getsegs.a $@
+#	ranlib $@
+
+# Update $(LIB)/help4.a 
+$(LIB)/help4.a: $(OBJ)/help4.a $(OBJ)/felippa.a
+	csh $(BIN)/updatelib $@ $?
+
+# Update $(LIB)/input.a
+$(LIB)/input.a: $(OBJ)/input.a $(OBJ)/questions.a $(OBJ)/prompter.a\
+                $(OBJ)/b4util.a
+	csh $(BIN)/updatelib $@ $?
+
+# Update $(LIB)/modify.a
+$(LIB)/modify.a: $(OBJ)/modify.a    $(OBJ)/input.a $(OBJ)/prompter.a\
+                 $(OBJ)/questions.a $(OBJ)/b4util.a
+	csh $(BIN)/updatelib $@ $?
+	-ar dv $@ input.o
+#	ranlib $@
+
+# Update $(LIB)/resetup.a
+$(LIB)/resetup.a: $(OBJ)/prompter.a $(OBJ)/resetup.a $(OBJ)/addbosor4.a\
+                  $(OBJ)/b4util.a   $(OBJ)/gasp.a
+	csh $(BIN)/updatelib $@ $?
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# # rules for building objects ( ******.a )
+# # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#
+
+# Update $(OBJ)/opngen.a
+$(OBJ)/opngen.a: $(SRC)/opngen.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/opngen.src $@
+
+# Update $(OBJ)/assemble.a
+$(OBJ)/assemble.a: $(SRC)/assemble.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/assemble.src $@
+
+# Update $(OBJ)/mainb4.a
+$(OBJ)/mainb4.a: $(SRC)/mainb4.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/mainb4.src $@
+
+# Update $(OBJ)/restart.a
+$(OBJ)/restart.a: $(SRC)/restart.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/restart.src $@
+
+# Update $(OBJ)/addbosor4.a
+$(OBJ)/addbosor4.a: $(SRC)/addbosor4.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/addbosor4.src $@
+
+# Update $(OBJ)/felippa.a
+$(OBJ)/felippa.a: $(SRC)/felippa.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/felippa.src $@
+
+$(OBJ)/gasp.a: $(UTIL)/gasp.F $(UTIL)/bio_$(MACHINE).c
+	cd $(UTIL) &&\
+	fpp -P -D${MACHINE} gasp.F gasp.f &&\
+	$(FC) $(FFLAGS) -c  gasp.f &&\
+	mv gasp.o gasp_$(MACHINE).o &&\
+	/bin/rm -f gasp.f &&\
+	$(CC) $(CFLAGS) -c bio_$(MACHINE).c &&\
+	ar rv $@ gasp_$(MACHINE).o bio_$(MACHINE).o
+
+# Update $(OBJ)/getsegs.a
+$(OBJ)/getsegs.a: $(SRC)/getsegs.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/getsegs.src $@
+
+# Update $(OBJ)/help4.a
+$(OBJ)/help4.a: $(SRC)/help4.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/help4.src $@
+
+# Update $(OBJ)/input.a
+$(OBJ)/input.a: $(SRC)/input.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/input.src $@
+
+# Update $(OBJ)/b4plot.a
+$(OBJ)/b4plot.a: $(SRC)/b4plot.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/b4plot.src $@
+
+# Update $(OBJ)/modify.a
+$(OBJ)/modify.a: $(SRC)/modify.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/modify.src $@
+
+# Update $(OBJ)/b4util.a
+$(OBJ)/b4util.a: $(SRC)/b4util.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/b4util.src $@
+
+# Update $(OBJ)/prompter.a
+$(OBJ)/prompter.a: $(SRC)/prompter.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/prompter.src $@
+
+# Update $(OBJ)/questions.a
+$(OBJ)/questions.a: $(SRC)/questions.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/questions.src $@
+
+# Update $(OBJ)/resetup.a
+$(OBJ)/resetup.a: $(SRC)/resetup.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $(SRC)/resetup.src $@
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# rules for building object files ( ******.o )
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+$(UTIL)/ieeexx_linux.o: $(UTIL)/ieeexx.c
+	cd $(UTIL) && \
+	$(CC) $(CFLAGS) -c ieeexx.c && \
+	mv ieeexx.o ieeexx_linux.o
+
+$(UTIL)/sig_linux.o: $(UTIL)/sig.f
+	cd $(UTIL) && \
+	$(FC) $(FFLAGS) -c sig.f && \
+	mv sig.o sig_linux.o

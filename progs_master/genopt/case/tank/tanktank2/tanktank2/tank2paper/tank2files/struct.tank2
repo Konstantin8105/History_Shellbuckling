@@ -1,0 +1,700 @@
+C=DECK      STRUCT
+      SUBROUTINE STRUCT(IMODX,CONSTX,OBJGEN,CONMAX,NCONSX,IPOINC,
+     1 PCWORD,CPLOTX,ILOADX,ISTARX,NUSERC,IBEHV,IDV,IFAST,JJJ1)
+C
+C  PURPOSE IS TO PERFORM THE ANALYSIS FOR A GIVEN DESIGN AND LOADING.
+C  CONSTRAINT CONDITIONS ARE ALSO GENERATED.
+C
+C  Common blocks already present in the struct.tmpl file, that is,
+C  in the "skeletal" file possibly to be augmented by the user:
+      COMMON/PRMFIL/IFILEX,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/INDAT/INFILE
+      COMMON/LWRUPR/VLBX(98),VUBX(98),CLINKX(98,45),VLINKX(98),VBVX(99)
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/PARAMS/PARX(99),VARX(98),ALLOWX(99),CONSXX(99),DECX(98),
+     1              ESCX(98)
+      COMMON/WORDS1/WORDPX(99),WORDVX(98),WORDAX(99),WORDCC(99),
+     1              WORDDX(98)
+      COMMON/WORDS2/WORDLX(98),WORDEX(98),WORDIQ(45)
+      COMMON/OPTVAR/IDVX(98),ILVX(98),IDLINK(98,45),IEVX(98),JTERMS(45)
+      COMMON/NUMPR2/ILARX,ICARX,IOARX,IFLATX,NCASES,NPRINX
+      COMMON/PARAM2/FLARX(98),CARX(99),OARX(98),FSAFEX(99),CPWRX(98,45)
+      COMMON/PARAM3/CINEQX(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQX,JINEQX(45),IEQTYP(45)
+      COMMON/WORDS3/WORDFX(98),WORDBX(99),WORDOB(98),WORDSX(99)
+      COMMON/WORDS4/WORDMX(99)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/ISKIPX/ISKIP(30)
+      DIMENSION IBEHV(99)
+C
+C==========================================================================
+C  Start of first part of STRUCT written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      REAL GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      COMMON/FV09/DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      REAL DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      COMMON/FV24/ZTANK(2 ),IZTANK
+      REAL ZTANK
+      COMMON/IV02/RNGTYP(2 )
+      INTEGER RNGTYP
+      COMMON/FV25/ZGRND(2 )
+      REAL ZGRND
+      COMMON/FV26/DUBAXL(2 ),IDUBAXL
+      REAL DUBAXL
+      COMMON/FV27/DUBTHK(2 ),TRNGTH(2 ),TRNGHI(2 ),TRNGE(2 ),ALRNGT(2 )
+      REAL DUBTHK,TRNGTH,TRNGHI,TRNGE,ALRNGT
+      COMMON/IV03/SKRTYP(2 ),ISKRTYP
+      INTEGER SKRTYP
+      COMMON/FV32/LNGTNK1(2 ),THKTNK1(2 ),LNGTNK2(2 ),THKTNK2(2 )
+      REAL LNGTNK1,THKTNK1,LNGTNK2,THKTNK2
+      COMMON/FV36/LNGVEH1(2 ),THKVEH1(2 ),LNGVEH2(2 ),THKVEH2(2 )
+      REAL LNGVEH1,THKVEH1,LNGVEH2,THKVEH2
+      COMMON/IV04/WALTYP(2 )
+      INTEGER WALTYP
+      COMMON/FV40/THICK(15),ITHICK
+      REAL THICK
+      COMMON/IV05/MATTYP(15)
+      INTEGER MATTYP
+      COMMON/IV06/LAYTYP(90,2 ),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/FV41/ANGLE(15)
+      REAL ANGLE
+      COMMON/FV42/E1(2 ),IE1
+      REAL E1
+      COMMON/FV43/E2(2 ),G12(2 ),NU(2 ),G13(2 ),G23(2 ),ALPHA1(2 )
+      REAL E2,G12,NU,G13,G23,ALPHA1
+      COMMON/FV49/ALPHA2(2 ),TEMTUR(2 ),COND1(2 ),COND2(2 ),DENSTY(2 )
+      REAL ALPHA2,TEMTUR,COND1,COND2,DENSTY
+      COMMON/FV17/STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      REAL STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      COMMON/FV57/PRESS(20)
+      REAL PRESS
+      COMMON/FV63/FREQ(20,4 ),JFREQ  ,FREQA(20,4 ),FREQF(20,4 )
+      REAL FREQ,FREQA,FREQF
+      COMMON/FV66/STRES1(20,6 ),JSTRES1,STRES1A(20,6 ),STRES1F(20,6 )
+      REAL STRES1,STRES1A,STRES1F
+      COMMON/FV69/STRES2(20,6 ),STRES2A(20,6 ),STRES2F(20,6 )
+      REAL STRES2,STRES2A,STRES2F
+      COMMON/FV72/SHLBUK(20,2 ),JSHLBUK,SHLBUKA(20,2 ),SHLBUKF(20,2 )
+      REAL SHLBUK,SHLBUKA,SHLBUKF
+      COMMON/FV75/FORCE(20,2 ),FORCEA(20,2 ),FORCEF(20,2 )
+      REAL FORCE,FORCEA,FORCEF
+      COMMON/FV78/TNKSTR(20,2 ),TNKSTRA(20,2 ),TNKSTRF(20,2 )
+      REAL TNKSTR,TNKSTRA,TNKSTRF
+      COMMON/FV81/TNKBUK(20,2 ),TNKBUKA(20,2 ),TNKBUKF(20,2 )
+      REAL TNKBUK,TNKBUKA,TNKBUKF
+      COMMON/IV01/IAXIS,IPHASE
+      INTEGER IAXIS,IPHASE
+      COMMON/FV55/TNKNRM,CONNRM,CONDCT
+      REAL TNKNRM,CONNRM,CONDCT
+      COMMON/FV58/GAXIAL(20),GLATRL(20),TNKCOOL(20)
+      REAL GAXIAL,GLATRL,TNKCOOL
+C
+C
+      CHARACTER*80 PHRASE,CODPHR,PCWORD
+      CHARACTER*80 WORDPX,WORDVX,WORDAX,WORDCX,WORDDX,WORDLX,WORDEX
+      CHARACTER*80 WORDFX,WORDBX,WORDOB,WORDSX,WORDMX,WORDCC,WORDIQ
+c     CHARACTER*4 ANSOUT,CHARAC,ANSWER
+      CHARACTER*2 CIX
+      character*2 CJX
+      CHARACTER*13 CODNAM
+c     DIMENSION ISUBX(100)
+c     LOGICAL ANSL1
+C
+      DIMENSION CONSTX(*),IPOINC(*),PCWORD(*),CPLOTX(*)
+C  End of first part of STRUCT written by "GENTEXT"
+C==========================================================================
+C
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE PERSUING.  MAKE SURE THAT YOU DO NOT
+C  INTRODUCE NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS
+C  LISTED ABOVE.
+C
+C  Please note that you do not have to modify STRUCT.NEW if you would
+C  rather provide all of your algorithms via the BEHAVIOR.NEW library.
+C  (See instructions in BEHAVIOR.NEW).
+C
+C  If you are using a lot of software previously written either by
+C  yourself or others, or if there are a lot of behavioral constraints
+C  that are best generated by looping over array indices (such as
+C  occurs, for example, with stress constraints in laminates of
+C  composite materials), then it may be best to insert your common
+C  blocks and dimension statements here, your subroutine calls
+C  below (where indicated), and your subroutines in any of the libraries
+C  called ADDCODEn.NEW, n = 1,2,...,5.  Please note that you
+C  may also have to add statements to SUBROUTINE TRANFR, the
+C  purpose of which is described below (in TRANFR).
+C
+C  The several test cases provided with GENOPT demonstrate different
+C  methods:
+C
+C  PLATE  : leave STRUCT.NEW unchanged and modify BEHAVIOR.NEW
+C  SPHERE : leave STRUCT.NEW unchanged and modify BEHAVIOR.NEW
+C  TORISPH: leave BEHAVIOR.NEW unchanged except possibly for the objective
+C           function (SUBROUTINE OBJECT), modify STRUCT.NEW,
+C           possibly add a subroutine library called ADDCODE1.NEW, and
+C           possibly augment the usermake.linux file to collect object
+C           libraries from other directories. In the "TORISPH" case
+C           BEHAVIOR.NEW remains unchanged, no ADDCODE1.NEW library is
+C           added, and usermake.linux is not changed.  Instead, the
+C           BIGBOSOR4 code is added and SUBROUTINE BOSDEC is written
+C           by the genopt user. The BIGBOSOR4 code and SUBROUTINE
+C           BOSDEC must be stored in /home/progs/bosdec/sources, as
+C           follows:
+C    BIGBOSOR4 code:
+C     -rw-r--r--  1 bush bush 579671 Feb 29 07:19 addbosor4.src
+C     -rw-r--r--  1 bush bush  83175 Feb 22 09:13 b4plot.src
+C     -rw-r--r--  1 bush bush  89671 Feb 28 16:20 b4util.src
+C     -rw-r--r--  1 bush bush  22723 Feb 10 14:27 bio.c
+C     -rw-r--r--  1 bush bush  31175 Feb 10 14:27 bio_linux.c
+C     -rw-r--r--  1 bush bush  37152 Feb 10 14:27 bio_linux.o
+C     -rw-r--r--  1 bush bush  15650 Feb 10 14:26 gasp.F
+C     -rw-r--r--  1 bush bush  18364 Feb 10 14:26 gasp_linux.o
+C     -rw-r--r--  1 bush bush   6310 Feb 13 10:12 opngen.src
+C     -rw-r--r--  1 bush bush  22440 Feb 10 14:25 prompter.src
+C     -rw-r--r--  1 bush bush  13426 Feb 22 09:14 resetup.src
+C    BOSDEC.src code:
+C     -rw-r--r--  1 bush bush  33851 Mar  1 08:34 bosdec.src
+C
+C  WAVYCYL: both BEHAVIOR.NEW and STRUCT.NEW are both changed. Otherwise
+C           the activity is the same as that described for TORISPH,
+C           except, of course, that struct.new is different from
+C           that used in connection with TORISPH.
+C
+C  CYLINDER:same as the description for WAVYCYL.
+C
+C
+C  INSERT YOUR ADDITIONAL COMMON BLOCKS FOR THIS GENERIC CASE HERE:
+C
+C
+C  THE FOLLOWING CODE WAS WRITTEN BY "GENTEXT":
+C
+C================================================================
+C  Start the second portion of STRUCT written by "GENTEXT":
+C
+      ICARX   = ISTARX
+      INUMTT = 0
+      ICONSX = 0
+      KCONX   = 0
+      IF (IMODX.EQ.0) THEN
+         CALL MOVERX(0.,0,CONSTX,1,99)
+         CALL MOVERX(0, 0,IPOINC,1,1500)
+      ENDIF
+C
+      IF (ILOADX.EQ.1) THEN
+C
+C  ESTABLISH FIRST ANY CONSTRAINTS THAT ARE INEQUALITY RELATIONSHIPS
+C  AMONG THE VARIABLES IN THE ARRAY VARX(*) (THAT IS, VARIABLES THAT
+C  ARE EITHER DECISION VARIABLES, LINKED VARIABLES, ESCAPE VARIABLES,
+C  OR CANDIDATES FOR ANY OF THESE TYPES OF VARIABLES.
+C
+         IF (NINEQX.GT.0)
+     1        CALL VARCON(WORDIQ,WORDMX,CINEQX,DPWREQ,IDINEQ,
+     1        NINEQX,JINEQX,IEQTYP,INUMTT,IMODX,CONMAX,IPOINC,
+     1        ICONSX,CONSTX,VARX,PCWORD,CPLOTX,ICARX)
+C
+C  NEXT, ESTABLISH USER-WRITTEN CONSTRAINTS. AT PRESENT, THE PROGRAM
+C  ALLOWS ONLY ONE USER-WRITTEN CONSTRAINT. HOWEVER, THE USER CAN
+C  EASILY EXPAND THIS CAPABILITY SIMPLY BY ADDING SUBROUTINES THAT
+C  ARE ANALOGOUS TO USRCON (WITH NAMES SUCH AS USRCN2, USRCN3, ETC.
+C  TO THE  BEHAVIOR.NEW LIBRARY, AND ADD CALLS TO THESE ADDITIONAL
+C  SUBROUTINES FOLLOWING THE CALL TO USRCON IMMEDIATELY BELOW.
+C
+         CALL USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1            WORDMX,PCWORD,CPLOTX,ICARX,IFILE8)
+C
+         NUSERC = ICARX - NINEQX
+      ENDIF
+C
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A,I2,A)')
+     1 ' BEHAVIOR FOR ',ILOADX,' ENVIRONMENT (LOAD SET)'
+         WRITE(IFILE8,'(A)')'  '
+         WRITE(IFILE8,'(A)')
+     1 ' CONSTRAINT  BEHAVIOR              DEFINITION'
+         WRITE(IFILE8,'(A)')
+     1 '   NUMBER     VALUE'
+      ENDIF
+C
+      CALL CONVR2(ILOADX,CIX)
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A)')'  '
+         WRITE(IFILE8,'(1X,A,I2)')
+     1 ' BEHAVIOR FOR LOAD SET NUMBER, ILOADX=',ILOADX
+      ENDIF
+C
+C  End of the second portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+      CALL OPNGEN
+      CALL RWDGEN
+C
+C=======================================================================
+C  Start of the final portion of STRUCT written by "GENTEXT"
+C
+C  INSERT THE PROGRAM FILE HERE:
+C
+C  Behavior and constraints generated next for FREQ:
+C  FREQ = free vibration frequency (cps)
+C
+      IF (JFREQ  .EQ.0) GO TO 501
+      IF (NPRINX.GT.0) THEN
+         IF (JFREQ  .GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'vibration mode type'
+         ENDIF
+      ENDIF
+      DO 500  J=1,JFREQ
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'free vibration frequency (cps)'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (J.EQ.1) JXX = 0
+      JXX = JXX + 1
+      FREQ(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX1
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'free vibration frequency (cps)')
+      IF (FREQ(ILOADX,J).EQ.0.)  FREQ(ILOADX,J) = 1.E+10
+      IF (FREQA(ILOADX,J).EQ.0.)  FREQA(ILOADX,J) = 1.0
+      IF (FREQF(ILOADX,J).EQ.0.)  FREQF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =FREQ(ILOADX,J)
+      WORDCX= '(FREQ('//CIX//','//CJX//')/FREQA('//CIX//','//CJX//
+     1  ')) / FREQF('//CIX//','//CJX//')'
+      CALL CONX(FREQ(ILOADX,J),FREQA(ILOADX,J),FREQF(ILOADX,J)
+     1,'free vibration frequency (cps)',
+     1 'minimum allowable frequency (cps)',
+     1 'factor of safety for freqency',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  free vibration frequency (cps): '
+         IENDP4 =34
+         CODNAM ='FREQ('//CIX//','//CJX//')'
+         MLET4 =4 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  500 CONTINUE
+  501 CONTINUE
+C
+C  Behavior and constraints generated next for STRES1:
+C  STRES1 = maximum stress in material 1
+C
+      IF (JSTRES1.EQ.0) GO TO 526
+      IF (NPRINX.GT.0) THEN
+         IF (JSTRES1.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'stress component number'
+         ENDIF
+      ENDIF
+      DO 525  J=1,JSTRES1
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in material 1'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      STRES1(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX2
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in material 1')
+      IF (STRES1(ILOADX,J).EQ.0.)  STRES1(ILOADX,J) = 1.E-10
+      IF (STRES1A(ILOADX,J).EQ.0.)  STRES1A(ILOADX,J) = 1.0
+      IF (STRES1F(ILOADX,J).EQ.0.)  STRES1F(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRES1(ILOADX,J)
+      WORDCX= '(STRES1A('//CIX//','//CJX//')/STRES1('//CIX//','//CJX//
+     1  ')) / STRES1F('//CIX//','//CJX//')'
+      CALL CONX(STRES1(ILOADX,J),STRES1A(ILOADX,J),STRES1F(ILOADX,J)
+     1,'maximum stress in material 1',
+     1 'maximum allowable stress in material 1',
+     1 'factor of safety for stress, matl 1',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in material 1: '
+         IENDP4 =32
+         CODNAM ='STRES1('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  525 CONTINUE
+  526 CONTINUE
+C
+C  Behavior and constraints generated next for STRES2:
+C  STRES2 = maximum stress in material 2
+C
+      IF (JSTRES1.EQ.0) GO TO 541
+      IF (NPRINX.GT.0) THEN
+         IF (JSTRES1.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'stress component number'
+         ENDIF
+      ENDIF
+      DO 540  J=1,JSTRES1
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in material 2'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      STRES2(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX3
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in material 2')
+      IF (STRES2(ILOADX,J).EQ.0.)  STRES2(ILOADX,J) = 1.E-10
+      IF (STRES2A(ILOADX,J).EQ.0.)  STRES2A(ILOADX,J) = 1.0
+      IF (STRES2F(ILOADX,J).EQ.0.)  STRES2F(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRES2(ILOADX,J)
+      WORDCX= '(STRES2A('//CIX//','//CJX//')/STRES2('//CIX//','//CJX//
+     1  ')) / STRES2F('//CIX//','//CJX//')'
+      CALL CONX(STRES2(ILOADX,J),STRES2A(ILOADX,J),STRES2F(ILOADX,J)
+     1,'maximum stress in material 2',
+     1 'maximum allowable stress in material 2',
+     1 'factor of safety for stress, matl 2',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in material 2: '
+         IENDP4 =32
+         CODNAM ='STRES2('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  540 CONTINUE
+  541 CONTINUE
+C
+C  Behavior and constraints generated next for SHLBUK:
+C  SHLBUK = buckling of skirt as a shell
+C
+      IF (JSHLBUK.EQ.0) GO TO 566
+      IF (NPRINX.GT.0) THEN
+         IF (JSHLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'skirt number (1 for aft skirt)'
+         ENDIF
+      ENDIF
+      DO 565  J=1,JSHLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'buckling of skirt as a shell'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      SHLBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX4
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'buckling of skirt as a shell')
+      IF (SHLBUK(ILOADX,J).EQ.0.)  SHLBUK(ILOADX,J) = 1.E+10
+      IF (SHLBUKA(ILOADX,J).EQ.0.)  SHLBUKA(ILOADX,J) = 1.0
+      IF (SHLBUKF(ILOADX,J).EQ.0.)  SHLBUKF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =SHLBUK(ILOADX,J)
+      WORDCX= '(SHLBUK('//CIX//','//CJX//')/SHLBUKA('//CIX//','//CJX//
+     1  ')) / SHLBUKF('//CIX//','//CJX//')'
+      CALL CONX(SHLBUK(ILOADX,J),SHLBUKA(ILOADX,J),SHLBUKF(ILOADX,J)
+     1,'buckling of skirt as a shell',
+     1 'allowable for shell buckling of skirt',
+     1 'factor of safety for shell buckling of skirt',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling of skirt as a shell: '
+         IENDP4 =32
+         CODNAM ='SHLBUK('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  565 CONTINUE
+  566 CONTINUE
+C
+C  Behavior and constraints generated next for FORCE:
+C  FORCE = launch-hold force in a skirt
+C
+      IF (JSHLBUK.EQ.0) GO TO 581
+      IF (NPRINX.GT.0) THEN
+         IF (JSHLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'skirt number (1 for aft skirt)'
+         ENDIF
+      ENDIF
+      DO 580  J=1,JSHLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'launch-hold force in a skirt'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      FORCE(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX5
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'launch-hold force in a skirt')
+      IF (FORCE(ILOADX,J).EQ.0.)  FORCE(ILOADX,J) = 1.E-10
+      IF (FORCEA(ILOADX,J).EQ.0.)  FORCEA(ILOADX,J) = 1.0
+      IF (FORCEF(ILOADX,J).EQ.0.)  FORCEF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =FORCE(ILOADX,J)
+      WORDCX= '(FORCEA('//CIX//','//CJX//')/FORCE('//CIX//','//CJX//
+     1  ')) / FORCEF('//CIX//','//CJX//')'
+      CALL CONX(FORCE(ILOADX,J),FORCEA(ILOADX,J),FORCEF(ILOADX,J)
+     1,'launch-hold force in a skirt',
+     1 'maximum allowable launch-hold force in skirt',
+     1 'factor of safety for launch-hold force',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  launch-hold force in a skirt: '
+         IENDP4 =32
+         CODNAM ='FORCE('//CIX//','//CJX//')'
+         MLET4 =5 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  580 CONTINUE
+  581 CONTINUE
+C
+C  Behavior and constraints generated next for TNKSTR:
+C  TNKSTR = maximum stress in the propellant tank
+C
+      IF (JSHLBUK.EQ.0) GO TO 596
+      IF (NPRINX.GT.0) THEN
+         IF (JSHLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'skirt number (1 for aft skirt)'
+         ENDIF
+      ENDIF
+      DO 595  J=1,JSHLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in the propellant tank'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      TNKSTR(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX6
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in the propellant tank')
+      IF (TNKSTR(ILOADX,J).EQ.0.)  TNKSTR(ILOADX,J) = 1.E-10
+      IF (TNKSTRA(ILOADX,J).EQ.0.)  TNKSTRA(ILOADX,J) = 1.0
+      IF (TNKSTRF(ILOADX,J).EQ.0.)  TNKSTRF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =TNKSTR(ILOADX,J)
+      WORDCX= '(TNKSTRA('//CIX//','//CJX//')/TNKSTR('//CIX//','//CJX//
+     1  ')) / TNKSTRF('//CIX//','//CJX//')'
+      CALL CONX(TNKSTR(ILOADX,J),TNKSTRA(ILOADX,J),TNKSTRF(ILOADX,J)
+     1,'maximum stress in the propellant tank',
+     1 'allowable for propellant tank stress',
+     1 'factor of safety for tank stress',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in the propellant tank: '
+         IENDP4 =41
+         CODNAM ='TNKSTR('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  595 CONTINUE
+  596 CONTINUE
+C
+C  Behavior and constraints generated next for TNKBUK:
+C  TNKBUK = propellant tank buckling load factor
+C
+      IF (JSHLBUK.EQ.0) GO TO 611
+      IF (NPRINX.GT.0) THEN
+         IF (JSHLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'skirt number (1 for aft skirt)'
+         ENDIF
+      ENDIF
+      DO 610  J=1,JSHLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'propellant tank buckling load factor'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      TNKBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX7
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'propellant tank buckling load factor')
+      IF (TNKBUK(ILOADX,J).EQ.0.)  TNKBUK(ILOADX,J) = 1.E+10
+      IF (TNKBUKA(ILOADX,J).EQ.0.)  TNKBUKA(ILOADX,J) = 1.0
+      IF (TNKBUKF(ILOADX,J).EQ.0.)  TNKBUKF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =TNKBUK(ILOADX,J)
+      WORDCX= '(TNKBUK('//CIX//','//CJX//')/TNKBUKA('//CIX//','//CJX//
+     1  ')) / TNKBUKF('//CIX//','//CJX//')'
+      CALL CONX(TNKBUK(ILOADX,J),TNKBUKA(ILOADX,J),TNKBUKF(ILOADX,J)
+     1,'propellant tank buckling load factor',
+     1 'allowable for propellant tank buckling',
+     1 'factor of safety for tank buckling',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  propellant tank buckling load factor: '
+         IENDP4 =40
+         CODNAM ='TNKBUK('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  610 CONTINUE
+  611 CONTINUE
+C
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN
+C
+      RETURN
+      END
+C
+C
+C
+C
+C
+C  End of the final portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C=DECK      TRANFR
+      SUBROUTINE TRANFR(ARG1,ARG2,ARG3,ARG4,ARG5)
+C
+C  USER:  DO NOT FORGET TO MODIFY THE ARGUMENT LIST OF TRANFR AS
+C         APPROPRIATE FOR YOUR CASE!
+C
+C  PURPOSE IS TO TRANSFER DATA FROM THE LABELLED COMMON BLOCKS
+C  SET UP BY THE GENOPT CODE TO LABELLED COMMON OR ARGUMENTS IN
+C  THE SUBROUTINE ARGUMENT LIST THAT MATCH PREVIOUSLY WRITTEN CODE
+C  BY YOURSELF OR OTHER PROGRAM DEVELOPERS.  THE USER SHOULD ESTABLISH
+C  THE ARGUMENT LIST AND/OR LABELLED COMMON BLOCKS THAT MATCH VARIABLES
+C  IN THE PREVIOUSLY WRITTEN CODE.  FOR AN EXAMPLE, SEE THE DISCUSSION
+C  OF THE CASE CALLED "PANEL".
+C
+C==========================================================================
+C  Start of part of TRANFR written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      REAL GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      COMMON/FV09/DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      REAL DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      COMMON/FV24/ZTANK(2 ),IZTANK
+      REAL ZTANK
+      COMMON/IV02/RNGTYP(2 )
+      INTEGER RNGTYP
+      COMMON/FV25/ZGRND(2 )
+      REAL ZGRND
+      COMMON/FV26/DUBAXL(2 ),IDUBAXL
+      REAL DUBAXL
+      COMMON/FV27/DUBTHK(2 ),TRNGTH(2 ),TRNGHI(2 ),TRNGE(2 ),ALRNGT(2 )
+      REAL DUBTHK,TRNGTH,TRNGHI,TRNGE,ALRNGT
+      COMMON/IV03/SKRTYP(2 ),ISKRTYP
+      INTEGER SKRTYP
+      COMMON/FV32/LNGTNK1(2 ),THKTNK1(2 ),LNGTNK2(2 ),THKTNK2(2 )
+      REAL LNGTNK1,THKTNK1,LNGTNK2,THKTNK2
+      COMMON/FV36/LNGVEH1(2 ),THKVEH1(2 ),LNGVEH2(2 ),THKVEH2(2 )
+      REAL LNGVEH1,THKVEH1,LNGVEH2,THKVEH2
+      COMMON/IV04/WALTYP(2 )
+      INTEGER WALTYP
+      COMMON/FV40/THICK(15),ITHICK
+      REAL THICK
+      COMMON/IV05/MATTYP(15)
+      INTEGER MATTYP
+      COMMON/IV06/LAYTYP(90,2 ),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/FV41/ANGLE(15)
+      REAL ANGLE
+      COMMON/FV42/E1(2 ),IE1
+      REAL E1
+      COMMON/FV43/E2(2 ),G12(2 ),NU(2 ),G13(2 ),G23(2 ),ALPHA1(2 )
+      REAL E2,G12,NU,G13,G23,ALPHA1
+      COMMON/FV49/ALPHA2(2 ),TEMTUR(2 ),COND1(2 ),COND2(2 ),DENSTY(2 )
+      REAL ALPHA2,TEMTUR,COND1,COND2,DENSTY
+      COMMON/FV17/STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      REAL STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      COMMON/FV57/PRESS(20)
+      REAL PRESS
+      COMMON/FV63/FREQ(20,4 ),JFREQ  ,FREQA(20,4 ),FREQF(20,4 )
+      REAL FREQ,FREQA,FREQF
+      COMMON/FV66/STRES1(20,6 ),JSTRES1,STRES1A(20,6 ),STRES1F(20,6 )
+      REAL STRES1,STRES1A,STRES1F
+      COMMON/FV69/STRES2(20,6 ),STRES2A(20,6 ),STRES2F(20,6 )
+      REAL STRES2,STRES2A,STRES2F
+      COMMON/FV72/SHLBUK(20,2 ),JSHLBUK,SHLBUKA(20,2 ),SHLBUKF(20,2 )
+      REAL SHLBUK,SHLBUKA,SHLBUKF
+      COMMON/FV75/FORCE(20,2 ),FORCEA(20,2 ),FORCEF(20,2 )
+      REAL FORCE,FORCEA,FORCEF
+      COMMON/FV78/TNKSTR(20,2 ),TNKSTRA(20,2 ),TNKSTRF(20,2 )
+      REAL TNKSTR,TNKSTRA,TNKSTRF
+      COMMON/FV81/TNKBUK(20,2 ),TNKBUKA(20,2 ),TNKBUKF(20,2 )
+      REAL TNKBUK,TNKBUKA,TNKBUKF
+      COMMON/IV01/IAXIS,IPHASE
+      INTEGER IAXIS,IPHASE
+      COMMON/FV55/TNKNRM,CONNRM,CONDCT
+      REAL TNKNRM,CONNRM,CONDCT
+      COMMON/FV58/GAXIAL(20),GLATRL(20),TNKCOOL(20)
+      REAL GAXIAL,GLATRL,TNKCOOL
+C
+C
+C  End of part of TRANFR written by "GENTEXT"
+C==========================================================================
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE NOW PERSUING.  MAKE SURE THERE ARE
+C  NO NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS.
+C
+C
+C  INSERT APPROPRIATE FORTRAN STATEMENTS HERE (DON'T FORGET TO CORRECT
+C  THE ARGUMENT LIST OF SUBROUTINE TRANFR!)
+C  PROGRAM FILE:
+C
+C
+      RETURN
+      END
+C
+C
+C

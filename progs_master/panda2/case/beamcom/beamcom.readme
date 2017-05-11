@@ -1,0 +1,47 @@
+beamcom.readme
+This case was run on 17 January, 2007
+(Assume that we are in the directory /home/progs/work3)
+Run again, April 16, 2007, but without any optimization.
+The beamcom.opm1 file was updated 16 April, 2007
+
+One run made on 19 July, 2007. Results same as for
+April 2007 run. The new file is:
+beamcom.opm1
+
+RUNSTREAM:
+
+begin
+setup
+decide
+mainsetup (ICONSV=1, Donnell shell equations)
+SUPEROPT (7 PANDAOPTs per AUTOCHANGE)
+CHOOSEPLOT (choose only the objective function to plot)
+DIPLOT (answer no)
+(The plot is stored in beamcom.5.ps)
+(edit the truss3.OPT file to analyze the fixed optimum design (ITYPE=2))
+PANDAOPT
+cp truss3.OPM truss3.opm1
+
+Next, get predictions from BIGBOSOR4.
+
+panel (use beamcom.PAN as input to PANEL. beamcom.ALL is the BIGBOSOR4 input file)
+cp beamcom.ALL /home/progs/bigbosor4/work/.
+cd /home/prog/bigbosor4/work
+bigbosorall
+(Edit the beamcom.OUT file to retain only the list of eigenvalues)
+cp beamcom.OUT /home/progs/work3/truss3.bigbosor4.OUT
+bosorplot (choose first eigenvalue for n=1000)
+cp metafile.ps /home/progs/work3/beamcom.bigbosor4.n=1.eig1.ps 
+bosorplot (choose second eigenvalue for n=1000)
+cp metafile.ps /home/progs/work3/beamcom.bigbosor4.n=1.eig2.ps
+bosorplot (choose third eigenvalue for n=1000)
+cp metafile.ps /home/progs/work3/beamcom.bigbosor4.n=1.eig3.ps
+cleanup
+
+NOTE: In the BIGBOSOR4 models the eigenvalues look ok but the radius of the
+huge "torus" is so large that the modes don't plot properly. I suppose that
+the three modes with eigenvalues near unity are twisting, bending in one
+direction, and bending in the other direction. I tried to change BOSPAN to
+make the radius of the huge torus an order of magnitude less, but when I
+did this the eigenvalues were not correct. I don't want to change BIGBOSOR4,
+so I'm afraid we have to live with this.

@@ -1,0 +1,181 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BOSOR4 INPUT FILE FOR "cylinder" (cyl)
+C
+C BEG FEB 2008
+C     SUBROUTINE BOSDEC(INDX,ILOADX,INDIC)
+      SUBROUTINE BOSDEC(INDX,IFIL14,ILOADX,INDIC)
+C END FEB 2008
+C  Insert labelled common blocks: cylinder.COM
+      COMMON/FV07/NX(20)
+      REAL NX
+      COMMON/FV11/STRESS(20),STRSSA(20),STRSSF(20)
+      REAL STRESS,STRSSA,STRSSF
+      COMMON/FV14/BSYM(20),BSYMA(20),BSYMF(20)
+      REAL BSYM,BSYMA,BSYMF
+      COMMON/FV17/BANTI(20),BANTIA(20),BANTIF(20) 
+      REAL BANTI,BANTIA,BANTIF
+      COMMON/FV20/FREQ(20),FREQA(20),FREQF(20)
+      REAL FREQ,FREQA,FREQF
+      COMMON/IV01/IBOUND
+      INTEGER IBOUND
+      COMMON/FV01/LENGTH,RADIUS,THICK,ESTIFF,NU,DENS,WEIGHT
+      REAL LENGTH,RADIUS,THICK,ESTIFF,NU,DENS,WEIGHT
+      COMMON/FV08/PRESS(20)
+      REAL PRESS
+C  end of cylinder.COM
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+C BEG FEB 2008 (comment out next line)
+C     IFIL14 = 24
+C END FEB 2008
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a cylindrical shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+      IF (INDIC.EQ.0) WRITE(IFIL14,'(A)')
+     1' Nonlinear axisymmetric stress analysis (INDIC=0)'
+      IF (INDIC.EQ.1) WRITE(IFIL14,'(A)')
+     1' Bifurcation buckling analysis (INDIC=1)'
+      IF (INDIC.EQ.2) WRITE(IFIL14,'(A)')
+     1' Modal vibration of prestressed shell'
+      WRITE(IFIL14,'(I3,A)') INDIC,  ' $ INDIC'
+      WRITE(IFIL14,'(A)')'  1      $ NPRT'
+      ISTRES = 0
+      IF (INDIC.EQ.0) ISTRES = 1
+      WRITE(IFIL14,'(I3,A)') ISTRES,  ' $ ISTRES'
+      WRITE(IFIL14,'(A)')'  1      $ NSEG'
+      WRITE(IFIL14,'(A)')' 97      $ NMESH'
+      WRITE(IFIL14,'(A)')'  3      $ NTYPEH'
+      WRITE(IFIL14,'(A)')'  1      $ NSHAPE'
+      WRITE(IFIL14,'(1P,E14.6,A)') RADIUS, ' $ R1'
+      WRITE(IFIL14,'(A)')' 0.      $ Z1'
+      WRITE(IFIL14,'(1P,E14.6,A)') RADIUS, ' $ R2'
+      AXIAL = 0.5*LENGTH
+      IF (INDIC.EQ.0.AND.INDX.EQ.1) THEN
+         BLL = 2.73*SQRT(RADIUS*THICK)
+         AXIAL = MIN(0.5*LENGTH,BLL)
+      ENDIF
+      WRITE(IFIL14,'(1P,E14.6,A)') AXIAL, ' $ Z2'
+      WRITE(IFIL14,'(A)')'  0      $ IMP'
+      WRITE(IFIL14,'(A)')'  3      $ NTYPEZ'
+      WRITE(IFIL14,'(1P,E14.6,A)') 0.5*THICK, ' $ THICK'
+      WRITE(IFIL14,'(A)')'  N      $ print r(s)...?'
+      WRITE(IFIL14,'(A)')'  1      $ NRINGS'
+      WRITE(IFIL14,'(A)')'  2      $ NTYPE'
+      WRITE(IFIL14,'(A)')'  0      $ Z(I)'
+      WRITE(IFIL14,'(A)')'  0      $ NTYPER'
+      WRITE(IFIL14,'(A)')'  0      $ K'
+      WRITE(IFIL14,'(A)')'  1      $ LINTYP'
+      WRITE(IFIL14,'(A)')'  1      $ NLOAD(1)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(2)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(3)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(4)'
+      IF (INDIC.EQ.0.OR.INDIC.EQ.2)
+     1WRITE(IFIL14,'(1P,E14.6,A)') NX(ILOADX),  ' $ V(1)' 
+      IF (INDIC.EQ.1) WRITE(IFIL14,'(A)')'  0.     $ V(1)'
+      WRITE(IFIL14,'(A)')'  1      $ NLOAD(1)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(2)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(3)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(4)'
+      IF (INDIC.EQ.0)
+     1WRITE(IFIL14,'(1P,E14.6,A)') NX(ILOADX),  ' $ DV(1)'
+      IF (INDIC.EQ.2) WRITE(IFIL14,'(A)')'  0.   $ DV(1)'
+      IF (INDIC.EQ.1)
+     1WRITE(IFIL14,'(1P,E14.6,A)') NX(ILOADX)/1000.,  ' $ DV(1)'
+      WRITE(IFIL14,'(A)')'  1      $ IDISAB'
+      WRITE(IFIL14,'(A)')'  1      $ NLTYPE'
+      WRITE(IFIL14,'(A)')'  2      $ NPSTAT'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(1)'
+      WRITE(IFIL14,'(A)')'  0      $ NLOAD(2)'
+      WRITE(IFIL14,'(A)')'  1      $ NLOAD(3)'
+      WRITE(IFIL14,'(A)')'  1.     $ PN(1)'
+      WRITE(IFIL14,'(A)')'  1.     $ PN(2)'
+      WRITE(IFIL14,'(A)')'  2      $ NTYPE'
+      WRITE(IFIL14,'(A)')'  0.     $ Z(1)'
+      WRITE(IFIL14,'(1P,E14.6,A)')  AXIAL,  ' $ Z(2)'
+      WRITE(IFIL14,'(A)')'  2      $ NWALL'
+      WRITE(IFIL14,'(1P,E14.6,A)') ESTIFF,   ' $ E'
+      WRITE(IFIL14,'(1P,E14.6,A)') NU,       ' $ U'
+      WRITE(IFIL14,'(1P,E14.6,A)') DENS,     ' $ SM'
+      WRITE(IFIL14,'(A)')'  0.     $ ALPHA'
+      WRITE(IFIL14,'(A)')'  0      $ NRS'
+      WRITE(IFIL14,'(A)')'  0      $ NSUR'
+C
+      WRITE(IFIL14,'(A)')'  N      $ print refsurf...?'
+      WRITE(IFIL14,'(A)')'  N      $ print Cij?'
+      WRITE(IFIL14,'(A)')'  N      $ print loads?'
+      WRITE(IFIL14,'(A)')'  0      $ NLAST'
+      WRITE(IFIL14,'(A)')'  N      $ expanded plots?'
+      IF (INDIC.NE.0) THEN
+         WRITE(IFIL14,'(A)')'  2      $ N0B'
+         WRITE(IFIL14,'(A)')'  2      $ NMINB'
+         IF (INDX.NE.3) WRITE(IFIL14,'(A)')' 10      $ NMAXB'
+         IF (INDX.EQ.3) WRITE(IFIL14,'(A)')' 15      $ NMAXB'
+         WRITE(IFIL14,'(A)')'  1      $ INCRB'
+         WRITE(IFIL14,'(A)')'  1      $ NVEC'
+      ENDIF
+      IF (INDIC.EQ.0.OR.INDIC.EQ.2)
+     1WRITE(IFIL14,'(1P,E14.6,A)') PRESS(ILOADX),  ' $ P'
+      IF (INDIC.EQ.1) WRITE(IFIL14,'(A)')'  0.   $ P'
+      IF (INDIC.EQ.0.OR.INDIC.EQ.1)
+     1WRITE(IFIL14,'(1P,E14.6,A)') PRESS(ILOADX)/1000.,  ' $ DP'
+      WRITE(IFIL14,'(A)')'  0.     $ TEMP'
+      IF (INDIC.EQ.0.OR.INDIC.EQ.1)
+     1WRITE(IFIL14,'(A)')'  0.     $ DTEMP'
+      IF (INDIC.EQ.0) WRITE(IFIL14,'(A)')'  1     $ NSTEPS'
+      WRITE(IFIL14,'(A)')'  0.     $ OMEGA'
+      IF (INDIC.EQ.0.OR.INDIC.EQ.1)
+     1WRITE(IFIL14,'(A)')'  0.     $ DOMEGA' 
+C
+      WRITE(IFIL14,'(A)')'  1      $ how many segs?'
+C
+      WRITE(IFIL14,'(A)')'  0      $ number of poles'
+      WRITE(IFIL14,'(A)')'  2      $ how many stations?'
+      WRITE(IFIL14,'(A)')'  1      $ INODE'
+      WRITE(IFIL14,'(A)')'  0      $ IUSTAR'
+      WRITE(IFIL14,'(A)')'  1      $ IVSTAR'
+      WRITE(IFIL14,'(A)')'  1      $ IWSTAR'
+      ICHI = 0
+      IF (IBOUND.EQ.2) ICHI = 1
+      WRITE(IFIL14,'(I3,A)')  ICHI,  ' $ ICHI'
+      WRITE(IFIL14,'(A)')'  0.     $ D1'
+      WRITE(IFIL14,'(A)')'  0.     $ D2'
+      WRITE(IFIL14,'(A)')'  N      $ bc same for pre,bif?'
+      IUSTARB = 0
+      IF (IBOUND.EQ.2) IUSTARB = 1
+      WRITE(IFIL14,'(I3,A)') IUSTARB,  ' $ IUSTARB'
+      WRITE(IFIL14,'(A)')'  1      $ IVSTARB'
+      WRITE(IFIL14,'(A)')'  1      $ IWSTARB'
+      ICHIB = 0
+      IF (IBOUND.EQ.2) ICHIB = 1
+      WRITE(IFIL14,'(I3,A)')  ICHIB,  ' $ ICHIB'
+C
+      WRITE(IFIL14,'(A)')' 97      $ INODE'
+      WRITE(IFIL14,'(A)')'  1      $ IUSTAR'
+      WRITE(IFIL14,'(A)')'  0      $ IVSTAR'
+      WRITE(IFIL14,'(A)')'  0      $ IWSTAR'
+      WRITE(IFIL14,'(A)')'  1      $ ICHI'
+      WRITE(IFIL14,'(A)')'  0.     $ D1'
+      WRITE(IFIL14,'(A)')'  0.     $ D2'
+      IF (INDX.NE.3) THEN
+         WRITE(IFIL14,'(A)')'  Y      $ bc same for pre,bif?'
+      ELSE
+         WRITE(IFIL14,'(A)')'  N      $ bc same for pre,bif?'
+         WRITE(IFIL14,'(A)')'  0      $ IUSTARB'
+         WRITE(IFIL14,'(A)')'  1      $ IVSTARB'
+         WRITE(IFIL14,'(A)')'  1      $ IWSTARB'
+         WRITE(IFIL14,'(A)')'  0      $ ICHIB'
+      ENDIF
+      WRITE(IFIL14,'(A)')'  N      $ joined to lower segs?'
+      WRITE(IFIL14,'(A)')'  N      $ rigid body possible?'
+      WRITE(IFIL14,'(A)')'  Y      $ output for seg. 1?'
+      WRITE(IFIL14,'(A)')'  Y      $ output for rings?'
+C
+      RETURN
+      END

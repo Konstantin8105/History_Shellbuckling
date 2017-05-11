@@ -1,0 +1,347 @@
+
+9 February, 2010
+
+HOW TO SET UP A COMPOUND STAGS MODEL INVOLVING A SINGLE WELD LAND
+
+David Bushnell
+
+The directions are very similar to those one follows
+for a compound STAGS model without a weld land. Please see the
+file, ...panda2/doc/compound.news for how to set up a
+compound STAGS model for a closed cylindrical shell without
+a weld land. The discussion here is based on the assumption
+that you have read ...panda2/doc/compound.news.
+
+In the discussion here we assume that the T-stiffened weld land
+has been optimized by GENOPT/BIGBOSOR4, with BIGBOSOR4 running
+in the IPRISM = 1 mode (true prismatic shell). The optimum
+design in this case is as follows:
+------------------------------------------------------------
+ DIMENSIONS OF  CURRENT  DESIGN...
+ VARIABLE   CURRENT
+  NUMBER     VALUE            DEFINITION
+    1    4.0000E+00        B(STR):stiffener spacing, b: STR seg=NA, layer=NA
+    2    1.3330E+00       B2(STR):width of stringer base, b2 (must be > 0, see
+    3    1.6560E+00        H(STR):height of stiffener (type H for sketch), h: S
+    4    9.2740E-01        W(STR):width of outstanding flange of stiffener, w:
+    5    1.0510E-01    T(1 )(SKN):thickness for layer index no.(1 ): SKN seg=1
+    6    4.2830E-02    T(2 )(STR):thickness for layer index no.(2 ): STR seg=3
+    7    3.8860E-02    T(3 )(STR):thickness for layer index no.(3 ): STR seg=4
+------------------------------------------------------------------------------
+
+
+The presence of the weld land introduces certain complications:
+
+1. The "part 1" part of the compound STAGS model is to
+represent the weld land, that is, the weld land curved plate
+plus the T-shaped (or rectangular) stringers that run
+along the two longitudinal edges of the weld land curved plate.
+The geometry of this "part 1" (part1.inp) differs from that of the
+remainder of the shell, that is, the weld land curved plate has
+a different thickness from the skin of the remainder of the
+shell, and the T-shaped (or other) edge stringers have a different
+cross section from the cross section of the stringers in
+the remainder of the shell, that is, in "part 2" (part2.inp)
+of the STAGS compound model. Also, in general there are no
+rings in the weld land region ("part 1"), whereas rings might
+well exist in the remainder of the shell ("part 2"). These
+characteristics, unique to the weld land problem, differ
+from the usual application described in the file,
+...panda2/doc/compound.news, for which the stiffened
+shell in "part 1" (part1.inp) has the same properties and
+dimensions as the stiffened shell in "part 2" (part2.inp). 
+
+2. The weld land curved plate is located eccentrically with
+respect to its middle surface. For example, if the outer
+surface of the weld land curved plate is flush with the outer
+surface of the remainder of the shell, then the eccentricity
+of the weld land curved plate relative to its middle surface
+is equal to:
+
+ ECLAND = TLAND/2 - TSKIN/2
+
+in which TLAND is the thickness of the weld land curved plate
+and TSKIN is the thickness of the skin of the remainder
+of the shell ("part 2"). There is no such eccentricity
+in the types of models described in the file,
+...panda2/doc/compound.news. Here, in the "part1.inp" file
+the relevant record pertains to Shell Unit No. 1 and
+is the following:
+
+ -1  0 0.0 -0.023440 1 0 0 $ m-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,IRAMP
+
+In this particular case ECZ is equal to -ECLAND, where
+ECLAND = 0.023440 inch.
+
+3. In order to get "part 1" of the compound model that
+involves a T-stiffened weld land, we have to pretend
+that the weld land curved plate and its two longitudinal
+T-shaped edge stringers are a complete axially stiffened
+cylindrical shell, and we have to use several of the
+PANDA2 processors. The PANDA2 run stream to do this is
+as follows (we call the PANDA2 case "weldshell"):
+
+panda2log	(activate the PANDA2 command set)
+begin		(the input file is weldshell.BEG.
+                 NOTE: the dimensions in weldshell.BEG
+                 are those of the optimized weld land.)
+setup		(no input required)
+decide		(the input file is weldshell.DEC)
+mainsetup	(the input file is weldshell.OPT)
+pandaopt	(the output file is weldshell.OPM.
+                 We don't need to see weldshell.OPM.)
+stagsunit	(the input file is weldshell.STG; the 2
+                 output files are weldshell.bin and weldshell.inp.
+                 The file, weldshell.inp is our "part 1" of
+                 the compound model with a weld land.)
+
+Notice in the weldshell.OPT file that there occurs the
+record:
+
+  -3070.6081    $ Resultant (e.g. lb/in) normal to the plane of screen, Nx( 1)
+
+Why did we choose that axially compressive resultant, Nx = -3070.6081 lb/in?
+We inspected a properly annotated *.ALL file that corresponds to the
+optimized T-stiffened weld land design. In this study the name of the
+weld land optimization case is "wcold". Therefore, we inspect the
+properly annotated wcold.ALL file corresponding to the optimized weld
+land design. How do we obtain the properly annotated wcold.ALL file?
+We must copy the wcold.BEHX1 file to a directory where we wish to run
+BIGBOSOR4 and do the following:
+
+cd /home/progs/work1
+cp /home.progs/genoptcase/wcold.BEHX1 wcold.ALL
+bigbosor4log	(activate the BIGBOSOR4 set of commands)
+bigbosorall	(input file is wcold.ALL)
+cleanup		(case name is "wcold")
+
+The BIGBOSOR4 command, "cleanup" generates the properly
+annotated wcold.ALL file. In the above sequence of commands we
+have assumed that wcold.BEHX1 pertains to the optimized design.
+The wcold.BEHX1 file is generated when the GENOPT command,
+"optimize" is run with use of ITYPE = 2 in the wcold.OPT file.
+
+In this partcular case the properly annotated wcold.ALL file
+contains the following lines:
+
+For Segment No. 1 (The weld land plate):
+
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 1)
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 2)
+  -2447.798     $ FN20  = circumferential prestress at Ith callout, FN20( 1)
+  -2447.798     $ FN20  = circumferential prestress at Ith callout, FN20( 2)
+
+
+For Segment No. 2 (The web of the T-stringer at the edge of the weld land plate):
+
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 1)
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 2)
+  -997.5186     $ FN20  = circumferential prestress at Ith callout, FN20( 1)
+  -997.5186     $ FN20  = circumferential prestress at Ith callout, FN20( 2)
+
+
+For Segment No. 3 (The outstanding flange of the T-stringer at the edge
+                   of the weld land plate):
+
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 1)
+   0.000000     $ FN10  = meridional prestress at Ith callout, FN10( 2)
+  -905.0566     $ FN20  = circumferential prestress at Ith callout, FN20( 1)
+  -905.0566     $ FN20  = circumferential prestress at Ith callout, FN20( 2)
+
+The overall axial compression to be applied in the file, weldshell.OPT,
+is computed as follows:
+
+  Nx(applied) = Nx(skin) + Nx(web)    x (web height)/(width of weld land plate)
+                         + Nx(flange) x (flange width/(width of weld land plate)
+
+in which Nx(skin) = -2447.798,    Nx(web) = -997.5186,    Nx(flange) = -905.0566
+lb/in, and:
+
+web height, HWLAND = 1.656 inches; width of weld land plate, WLAND = 4.0 inches,
+and flange width, WFLAND = 0.9274 inches.
+
+
+4. In order to get "part 2" (part2.inp) of the compound
+model that involves a T-stiffened weld land, we have to
+use PANDA2 to run the case called "nasacoldbend", which
+pertains to the "acreage" of the remainder of the
+shell away from the weld land and its two longitudinal
+T-shaped edge stringers. In previous work this part
+of the shell had been optimized. The optimum design of
+the shell "acreage" in this case is as follows:
+-----------------------------------------------------------------------
+ DIMENSIONS OF  CURRENT  DESIGN...
+ VARIABLE   CURRENT
+  NUMBER     VALUE            DEFINITION
+    1    2.2676E+00        B(STR):stiffener spacing, b: STR seg=NA, layer=NA
+    2    7.5902E-01       B2(STR):width of stringer base, b2 (must be > 0, see
+    3    9.8977E-01        H(STR):height of stiffener (type H for sketch), h: S
+    4    5.8191E-02    T(1 )(SKN):thickness for layer index no.(1 ): SKN seg=1
+    5    8.6462E-02    T(2 )(STR):thickness for layer index no.(2 ): STR seg=3
+    6    1.3750E+01        B(RNG):stiffener spacing, b: RNG seg=NA, layer=NA
+    7    0.0000E+00       B2(RNG):width of ring base, b2 (zero is allowed): RNG
+    8    9.7173E-01        H(RNG):height of stiffener (type H for sketch), h: R
+    9    1.8576E-01    T(3 )(RNG):thickness for layer index no.(3 ): RNG seg=3
+----------------------------------------------------------------------- 
+
+The stringer and ring spacings in the acreage design just listed
+were changed from their optimum values [B(STR) = 2.2776 inches and
+B(RNG) = 13.974 inches] to the closest values that correspond to an
+integral number of acreage stringers over 360 degrees and an integral
+number of rings over the length, 68.75 inches, of the cylindrical shell.
+
+We now have to use several of the PANDA2 processors
+in order to obtain the "part2.inp" file. The PANDA2
+run stream to do this is as follows (we call the PANDA2
+case "nasacoldbend"):
+
+panda2log       (activate the PANDA2 command set)
+begin           (the input file is nasacoldbend.BEG)
+change          (the input file is nasacoldbend.CHG.
+                 This is done to restore the optimum
+                 "acreage" `design that is listed above)
+setup           (no input required)
+decide          (the input file is nasacoldbend.DEC)
+mainsetup       (the input file is nasacoldbend.OPT)
+pandaopt        (the output file is nasacoldbend.OPM.
+                 We do not need to see this file.)
+stagsunit       (the input file is nasacoldbend.STG; the two 
+                 output files are nasacoldbend.bin and nasacoldbend.inp.
+                 The file, nasacoldbend.inp is our "part 2" of
+                 the compound model with a weld land (part2.inp).)
+
+
+5. In the usual "compound.inp" case, to which the instructions in the file,
+..panda2/doc/compound.news apply, all the "beam" types, identified by the
+index, ITAB (STAGS "J" input-records), are contained in the "part1.inp" file.
+In the "weldland" case the "part2.inp" file contains "J" records that must be
+added to those in the "compound.inp" file contributed by the "part1.inp" file.
+This addition of sets of "J" records from "part2.inp" is necessary because
+"part2.inp", which represents the remainder of the shell, is for a shell with
+rings and stringers that are different from the T-shaped stringers that
+reinforce the weld land. (In the usual "compound" case the "part1.inp" and
+"part2.inp" files represent the same stiffener geometry.)
+
+In the present case, the "part2.inp" file has the following "J" records:
+
+C Not edge; stringer;   web    (beam cross section props)
+  1, $ ITAB is beam cross-section number.               BEGIN J-1
+ 3, $ KCROSS=3 means cross-section composed of rect. subsegs.
+  7, $ MATB = material number of beam
+ 1, $ NSUB = means number of rectangular subelements
+ 2.132E-04, $ TORJ = torsional constant, h*t**3/3 J
+ 0., $ SCY = local ybar coordinate of beam shear center.
+ 0., $ SCZ = local zbar coordinate of beam shear center.
+ 0,  $ NSOYZ =0 means no stress output.
+ 0., $ KAPY = transverse shear shape factor, bend about zbar
+ 0.8333 $ KAPZ=trans. shear factor, bend about ybar.   END J-1
+ -4.323100E-02, $ Y1(1)= ybar(1) for the first rect. subelement.  BEGIN J-3b
+  4.323100E-02, $ Y2(1)= ybar(2) for the first rect. subelement.
+ -4.948850E-01, $ Z1(1)= zbar(1) for the first rect. subelement.
+  4.948850E-01, $ Z2(1)= zbar(2) for the first rect. subelement.
+ 0 $ ISOC(I) =0 means no stress output,ith subelement.END J-3b
+C
+C Not edge;   ring  ;   web    (beam cross section props)
+  2, $ ITAB is beam cross-section number.               BEGIN J-1
+ 3, $ KCROSS=3 means cross-section composed of rect. subsegs.
+  8, $ MATB = material number of beam
+ 1, $ NSUB = means number of rectangular subelements
+ 2.076E-03, $ TORJ = torsional constant, h*t**3/3 J
+ 0., $ SCY = local ybar coordinate of beam shear center.
+ 0., $ SCZ = local zbar coordinate of beam shear center.
+ 0,  $ NSOYZ =0 means no stress output.
+ 0., $ KAPY = transverse shear shape factor, bend about zbar
+ 0.8333 $ KAPZ=trans. shear factor, bend about ybar.   END J-1
+ -9.288000E-02, $ Y1(1)= ybar(1) for the first rect. subelement.  BEGIN J-3b
+  9.288000E-02, $ Y2(1)= ybar(2) for the first rect. subelement.
+ -4.858650E-01, $ Z1(1)= zbar(1) for the first rect. subelement.
+  4.858650E-01, $ Z2(1)= zbar(2) for the first rect. subelement.
+ 0 $ ISOC(I) =0 means no stress output,ith subelement.END J-3b
+
+These "J" entries from the "part2.inp" file must be suitably edited
+and then added after the last "ITAB" entry contributed by "part1.inp"
+to the "compound.inp" file. The index, "ITAB", from the first set
+of "J" records just listed must be changed from 1 to one higher than
+the highest value of ITAB contributed by the "part1.inp" file, and
+the index, "ITAB", from the second set of "J" records just listed
+must be changed from 2 to one higher yet. In the present case, we
+must change ITAB in the first set of "j" records from 1 to 5 and
+we must change ITAB in the second set of "J" records from 2 to 6.
+The "material number of beam", "MATB",  in the first set of "J"
+records listed above is changed from 7 to 3 and "MATB" in the second
+set of "J" records listed above is changed from 8 to 3 before
+adding these two thus modified sets of "J" records to the "compound.inp"
+file.
+
+NOTE: Don't forget to increase the index, NTAB, in the B-3 records
+near the top of the "compound.inp" file by the number of ITAB
+sets of "J" records contributed by the "part2.inp" file and
+added to the "J" records in the "compound.inp" file contributed
+by the "part1.inp" file.
+
+ANOTHER NOTE: The index, "ITAB", is identified with the index, "ICROSM",
+in the "K" records for shell wall configuration. For example, in
+the present case, the "compound.inp" file has the following set
+of "K" records:
+
+C Not edge; cyl.skin;   skin   (shell unit wall props   )
+ 6, $ ITAW = wall configuration number.        BEGIN K-1 rec.
+ 1, $ KWALL = 1 means general layered wall (composite layup)
+  1,$ NLAY = number of layers thru the thickness
+ 0, $ NLIP = 0 means properties are uniform within each layer
+  2 $ NSMRS=no. of sets of smeared stiffeners.      END K-1 rec.
+ 1, $ MATL=layer matl no.   Wall type: 1, Layer:  1   BEGIN K-2 rec.
+ 5.819E-02, $ TL  =layer thickness. Wall type: 1, Layer:  1
+ 0.000E+00, $ ZETL=fiber angle.     Wall type: 1, Layer:  1
+ 1  $ LSO = 1 means print stresses this layer.   END K-2 rec.
+ 6  1.375E+01 90. 0.  -5.150E-01 $ k-6 (rings) ICROSM,SPASM,ZETSM,XSISM,ECZSM
+ 5  2.268E+00 0. 0.  -5.240E-01 $ k-6(strngers)ICROSM,SPASM,ZETSM,XSISM,ECZSM
+
+In the "K" records just listed, ICROSM = 6 points to the "J" records for
+ITAB = 6, and ICROSM = 5 points to the "J" records for ITAB = 5.
+
+YET ANOTHER NOTE: In the present case the "part2.inp" file has the
+following "K" records corresponding to wall type, ITAW = 1:
+
+C Not edge; cyl.skin;   skin   (shell unit wall props   )
+ 1, $ ITAW = wall configuration number.        BEGIN K-1 rec.
+ 1, $ KWALL = 1 means general layered wall (composite layup)
+  1,$ NLAY = number of layers thru the thickness
+ 0, $ NLIP = 0 means properties are uniform within each layer
+  2 $ NSMRS=no. of sets of smeared stiffeners.      END K-1 rec.
+ 1, $ MATL=layer matl no.   Wall type: 1, Layer:  1   BEGIN K-2 rec.
+ 5.819E-02, $ TL  =layer thickness. Wall type: 1, Layer:  1
+ 0.000E+00, $ ZETL=fiber angle.     Wall type: 1, Layer:  1
+ 1  $ LSO = 1 means print stresses this layer.   END K-2 rec.
+ 2  1.375E+01 90. 0.  -5.150E-01 $ k-6 (rings) ICROSM,SPASM,ZETSM,XSISM,ECZSM
+ 1  2.268E+00 0. 0.  -5.240E-01 $ k-6(strngers)ICROSM,SPASM,ZETSM,XSISM,ECZSM
+
+This ITAW corresponds to the shell acreage with internal rings and stringers
+with rectangular cross sections. The rings are spaced at intervals of 13.75
+inches and the stringers are spaced at intervals of 2.268 inches. The thickness
+of the shell wall is 0.05819 inches. Both rings and stringers are smeared out
+(NSMRS = 2). This set of "K" records from the "part2.inp" file is added as
+a new ITAW (ITAW = 6 in this particular case) at the end of the "K" records
+in the "compound.inp" file. Before adding it, ITAW must be changed from 1
+to 6 (in this particular case). The two records,
+
+ 2  1.375E+01 90. 0.  -5.150E-01 $ k-6 (rings) ICROSM,SPASM,ZETSM,XSISM,ECZSM
+ 1  2.268E+00 0. 0.  -5.240E-01 $ k-6(strngers)ICROSM,SPASM,ZETSM,XSISM,ECZSM
+
+must be change to the following,
+
+ 6  1.375E+01 90. 0.  -5.150E-01 $ k-6 (rings) ICROSM,SPASM,ZETSM,XSISM,ECZSM
+ 5  2.268E+00 0. 0.  -5.240E-01 $ k-6(strngers)ICROSM,SPASM,ZETSM,XSISM,ECZSM
+
+as described above.
+
+
+6. In the usual compound model some of the material (that pertaining to
+stiffeners that run along edges of the STAGS model) has half the stiffness
+and half the density of the material pertaining to the interior of the domain
+to be included in the STAGS model. In the case of the compound model with
+the stringer-stiffened weld land, ALL of the material should have the full
+stiffness and density, unless there are discrete rings in "part 2" (part2.inp)
+of the compound model. The discrete (not smeared) rings in "part 2" of the
+compound model that run along the curved ends of the cylindrical shell should
+have half the stiffness and density of the "regular" material.

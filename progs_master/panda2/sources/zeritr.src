@@ -1,0 +1,76 @@
+C=DECK     ZERITR
+C
+C  PURPOSE IS TO RESET ITRTOT EQUAL TO ZERO
+C
+      PROGRAM ZERITR
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADX,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C
+      WRITE(6,'(A,A)')' NAME OF CASE:', CASE
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPA'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPA'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 28 
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+      OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C
+      CALL GETCOM(IFILE7)
+C
+      ITRTOT = 0
+C
+      CALL STORCM(IFILE7)
+C
+      IF (IOUT.NE.0) CLOSE(UNIT=IOUT)
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+      END

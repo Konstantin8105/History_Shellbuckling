@@ -1,0 +1,1203 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: SPHERE
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called ADS, and was
+C written by G. Vanderplaats [1]. It is based on the method
+C of feasible directions [2].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although both example cases (See the files
+C        PLATE.CAS    and    PANEL.CAS)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "SPHERE".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "SPHERE" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [3 - 6]. That
+C        is, a typical runstream is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.
+ 
+C           CHANGE    (User changes certain parameters)
+ 
+C           CHOOSEPLOT (User selects which quantities to plot
+C                       vs. design iterations.)
+ 
+C           DIPLOT    (User generates plots)
+ 
+C           CLEANSPEC (User cleans out unwanted files.)
+ 
+C     A typical runstream is:
+C       GENOPTLOG   (activate command set)
+C       BEGIN       (provide starting design, loads, etc.)
+C       DECIDE      (choose decision variables and bounds)
+C       MAINSETUP   (choose print option and analysis type)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHANGE      (change some variables for new starting pt)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHOOSEPLOT  (choose which variables to plot)
+C       DIPLOT      (plot variables v. iterations)
+C       CHOOSEPLOT  (choose additional variables to plot)
+C       DIPLOT      (plot more variables v design iterations)
+C       CLEANSPEC   (delete extraneous files for specific case)
+
+C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"
+C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN
+C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO
+C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,
+C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,
+C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and
+C              Structures, Vol. 25, No. 4, pp 469-605 (1987).
+ 
+C                     REFERENCES
+ 
+C [1] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+ 
+C [2] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+ 
+C [3] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [4] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [5] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [6] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C [7] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", to appear, International
+C Journal of Solids and Structures, 1990. Also to appear in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in the memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology.
+
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+C     GETLIB       (GENOPT user generate a relocatable elemnt.)
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPTST.ORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (2 cases: PLATE.CAS, PANEL.CAS)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = SPHERE)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "SPHERE"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (SPHERE.PRO)
+C==============================================================
+C    n   (   0,   0)    2      10   RADIUS  = radius of the spherical shell
+C    n   (   0,   0)    1      15   TSKIN   = thickness of the skin
+C    n   (   0,   0)    1      20   TSTIFF  = thickness of a stiffener
+C    n   (   0,   0)    1      25   HEIGHT  = height of a stiffener
+C    n   (   0,   0)    1      30   SPACNG  = spacing of the stiffeners
+C    n   (   0,   0)    2      35   ESKIN   = modulus of the skin
+C    n   (   0,   0)    2      40   RHOSKN  = weight density of the skin materia
+C    n   (   0,   0)    2      45   NUSKIN  = Poisson ratio of the skin material
+C    n   (   0,   0)    2      50   ESTIFF  = modulus of the stiffener material
+C    n   (   0,   0)    2      55   NUSTIF  = Poisson ratio of the stiffener mat
+C    n   (   0,   0)    2      60   RHOSTF  = weight density of the stiffener ma
+C    n   (   0,   0)    2      65   IKLOC   = number of entries in the KLOC vs.
+C    y   (  30,   0)    2      70   KLOC    = knockdown factor from classical bu
+C    y   (  30,   0)    2      75   LAMBDA  = shallowness parameter of spherical
+C    n   (   0,   0)    2      80   LAMMOD  = factor for base-radius of spherica
+C    n   (   0,   0)    2      85   IKGEN   = number of entries in the table of
+C    y   (  30,   0)    2      90   KGEN    = knockdown factor for general insta
+C    y   (  30,   0)    2      95   DELBAR  = tabular values of normalized gener
+C    n   (   0,   0)    2     100   WGEN    = amplitude of general instability i
+C    n   (   0,   0)    2     105   EDGSTF  = rotational stiffness parameter for
+C    n   (   0,   0)    2     110   NCASES  = Number of load cases (number of en
+C    y   (  20,   0)    3     115   PRESS   = external pressure on the spherical
+C    y   (  20,   0)    4     125   BUCGEN  = general instability load factor
+C    y   (  20,   0)    5     130   ABUCG   = Allowable for general buckling (Us
+C    y   (  20,   0)    6     135   FSBUCG  = factor of safety for general insta
+C    y   (  20,   0)    4     140   BUCLOC  = local buckling load factor
+C    y   (  20,   0)    5     145   ABUCL   = Allowable for local buckling (Use
+C    y   (  20,   0)    6     150   FSBUCL  = factor of safety for local bucklin
+C    y   (  20,   0)    4     155   BUCSTF  = load factor for stiffener buckling
+C    y   (  20,   0)    5     160   ABUCST  = allowable for stiffener buckling (
+C    y   (  20,   0)    6     165   FSBUCC  = factor of safety for stiffener buc
+C    y   (  20,   0)    4     170   SIGSKN  = stress in the skin of the spherica
+C    y   (  20,   0)    5     175   ASIGSK  = Maximum allowable effective stress
+C    y   (  20,   0)    6     180   FSSIGA  = factor of safety for stress in the
+C    y   (  20,   0)    4     185   SIGSTF  = stress in the stiffeners
+C    y   (  20,   0)    5     190   ASIGST  = maximum allowable stress in the st
+C    y   (  20,   0)    6     195   FSSIGB  = factor of safety for stress in sti
+C    n   (   0,   0)    7     200   WEIGHT  = weight/area of the stiffened spher
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN general instability load factor
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCGEN(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = general instability load factor
+C
+C   OUTPUT:
+C
+C     BUCGEN(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  First, calculate the effective thickness and effective modulus
+C  of the stiffened spherical shell. These "effective" quantities
+C  are the thickness and modulus of a monocoque, isotropic wall
+C  that has the same extensional and bending stiffnesses as those
+C  of the stiffened wall with the "isogrid" pattern of blade
+C  stiffeners.  NOTE: This subroutine is valid ONLY for an isogrid
+C  of blade stiffeners.
+C
+C  The extensional stiffness is given by:
+C    Extensional stiffness = C11 = E(eff)*t(eff)/(1-nu(eff)**2)
+C
+C  The bending stiffness is given by:
+C    Bending stiffness = C44 = E(eff)*t(eff)**3/[12(1-nu(eff)**2]
+C
+C  In this analysis it will be assumed that the effective Poisson
+C  ratio is 1/3 (See "ISOGRID DESIGN HANDBOOK", MDC G4295, DEC. 1972,
+C  by McDonnell Douglas Astronautics, Huntington Beach, CA 92647, 
+C  p 2.0.004, Eq. (2.1.12).  It is assumed that the skin and the
+C  isogrid have the same effective Poisson's ratio.
+C
+C  First, calculate the extensional stiffness C11 of the stiffened
+C  shell wall...
+C
+      ALPHA = TSTIFF*HEIGHT/(TSKIN*SPACNG)
+      ALPHAS= (ESTIFF/ESKIN)*ALPHA
+      FNUEFF= 1./3.
+      C11SKN= ESKIN*TSKIN/(1.- FNUEFF**2)
+      C11   = C11SKN*(1. + ALPHAS)
+C
+C  Next, calculate the bending stiffness C44 of the stiffened shell
+C  wall.  The theory here is taken from D. Bushnell, "Dynamic
+C  response of two-layered cylindrical shells to time-dependent
+C  loads", AIAA Journal, Vol. 3, No. 9, pp 1698-1703 (1965),
+C  Eq. (2.36). The isogrid-stiffened shell wall is assumed to
+C  consist of two layers:  Layer No. 1 is the isotropic skin and
+C  Layer No. 2 is an isotropic, homogeneous skin of reduced
+C  effective modulus, E2, and thickness equal to the height of
+C  the stiffeners, HEIGHT.
+C
+C  (a) The effective modulus of the isogrid "layer" is given by
+C      (See Eq. 2.1.12 of MDC G4295):
+      E2 = ESTIFF*TSTIFF/SPACNG
+C  (b) The other quantities in Equation (2.36) of the old AIAA paper
+C      are:
+      E1 = ESKIN
+      D1 = TSKIN
+      D2 = HEIGHT
+C  (b) Calculate the bending rigidity C44:
+      C44 = (1./3.)*(1./(1.-FNUEFF**2))*( E1*D1**3 +E2*D2**3
+     1     -0.75*(E1*D1**2 -E2*D2**2)**2/(E1*D1 +E2*D2) )
+C
+C  Next, calculate the effective thickness and effective modulus...
+C
+      TEFF = SQRT(12.*C44/C11)
+      EEFF = (1.-FNUEFF**2)*SQRT(C11**3/(12.*C44))
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1)
+     1  WRITE(IFILE,10) ESKIN,TSKIN,
+     1  SPACNG,ESTIFF,TSTIFF,HEIGHT,C11,C44,EEFF,TEFF
+   10 FORMAT(/' WALL PROPERTIES OF STIFFENED SPHERICAL SHELL:'/
+     1' modulus of skin,                              ESKIN=',1PE12.4/
+     1' thickness of skin,                            TSKIN=',1PE12.4/
+     1' stiffener spacing,                           SPACNG=',1PE12.4/
+     1' modulus of stiffeners,                       ESTIFF=',1PE12.4/
+     1' thickness of stiffeners,                     TSTIFF=',1PE12.4/
+     1' height of stiffeners,                        HEIGHT=',1PE12.4/
+     1' extensional stiffness of the stiffened wall,    C11=',1PE12.4/
+     1' bending     stiffness of the stiffened wall,    C44=',1PE12.4/
+     1' effective modulus of stiffened shell wall,     EEFF=',1PE12.4/
+     1' effective thickness of stiffened shell wall,   TEFF=',1PE12.4)
+C
+C  Next, calculate the general instability load factor of the
+C  imperfect, stiffened spherical shell. The formula for the
+C  critical pressure of an imperfect, isotropic, monocoque
+C  spherical shell is:
+C
+C  p(critical) =COEF*2*EEFF*TEFF**2/[SQRT(3.*(1.-FNUEFF**2))*RADIUS**2]
+C
+C  (See p. 330 and p. 340 (Fig. 296) of COMPUTERIZED BUCKLING
+C  ANALYSIS OF SHELLS).  The quantity COEF is a knockdown factor
+C  for initial geometric imperfections.  COEF is calculated by
+C  linear interpolation (SUBROUTINE INTERP) of the tabular values
+C  (KGEN,DELBAR) for knockdown KGEN v normalized imperfection
+C  amplitude DELBAR. The tabular values (KGEN,DELBAR) might be
+C  taken, for example, from Fig. 296, p. 340 of COMPUTERIZED
+C  BUCKLING ANALYSIS OF SHELLS, or from some other suitable
+C  source known to the user.
+C
+C  Next, interpolate (linearly) to find the knockdown factor COEF...
+      CALL INTERP(IFILE,IKGEN,DELBAR,KGEN,WGEN/TEFF,COEF)
+C  The critical external pressure is...
+      PCRIT =COEF*2.*EEFF*TEFF**2/(SQRT(3.*(1.-FNUEFF**2))*RADIUS**2)
+C  The general instability load factor, BUCGEN, is given by:
+      BUCGEN(ILOADX) = PCRIT/ABS(PRESS(ILOADX))
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1)
+     1  WRITE(IFILE,20) WGEN/TEFF,COEF,RADIUS,PRESS(ILOADX),PCRIT,
+     1                  BUCGEN(ILOADX)
+   20 FORMAT(/' PARAMETERS FOR GENERAL BUCKLING OF STIFFENED SHELL:'/
+     1' normalized imperfection amplitude,        WGEN/TEFF=',1PE12.4/
+     1' knockdown factor for initial imperfections,    COEF=',1PE12.4/
+     1' radius of spherical shell,                   RADIUS=',1PE12.4/
+     1' applied pressure,                             PRESS=',1PE12.4/
+     1' critical pressure(Fig.296 of Bushnell book),  PCRIT=',1PE12.4/
+     1' general instability load factor,             BUCGEN=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN local buckling load factor
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCLOC(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = local buckling load factor
+C
+C   OUTPUT:
+C
+C     BUCLOC(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  The local buckling load factor is taken to be the lowest of
+C  either of two values:
+C
+C   1. buckling load factor of a shallow spherical cap with base radius
+C      greater than or equal to SPACNG/3 and less than or equal
+C      to 2*SPACNG/3 (inscribed cap or inscribed triangle, respectively).
+C
+C   2. buckling load factor of a flat plate with equilateral triangular
+C      planform simply supported along its three edges and subject to
+C      uniform biaxial compression.
+
+C  First, calculate the local instability load factor of the
+C  imperfect, monocoque, isotropic, shallow spherical cap
+C  that represents the portion of spherical shell between
+C  adjacent stiffeners. Although the actual local area has
+C  an equilateral triangular planform, the technology used
+C  here applies to shallow spherical caps with circular
+C  planform. The formula for the critical pressure of an
+C  imperfect, isotropic, monocoque, shallow spherical cap is:
+C
+C  p(critical) =
+C      FACT*COEF*2*ESKIN*TSKIN**2/[SQRT(3.*(1.-NUSKIN**2))*RADIUS**2]
+C
+C  (See p. 330 and p. 29 (Fig. 30) of COMPUTERIZED BUCKLING
+C  ANALYSIS OF SHELLS).  The quantity FACT accounts for the fact that
+C  only part of the total membrane force in the stiffened spherical
+C  shell is "seen" by the skin. The quantity COEF is a knockdown factor
+C  that accounts for three effects:
+C  (1) the shell is a shallow cap and not a complete spherical shell.
+C  (2) the shallow cap is imperfect.
+C  (3) the extent of the spherical cap (shallowness parameter EFFLAM)
+C      lies somewhere between the shallowness parameter for a circular
+C      cap incsribed within the equilateral triangle formed by three
+C      adjacent stiffeners (base radius r = SPACNG/3.) and the
+C      shallowness parameter for a circular cap in which is inscribed
+C      the equilateral triangle formed by three adjacent stiffeners
+C      (base radius r = 2.*SPACNG/3.)
+C
+C  COEF is calculated by
+C  linear interpolation (SUBROUTINE INTERP) of the tabular values
+C  (KLOC,LAMBDA) for knockdown KLOC v cap shallowness parameter
+C  LAMBDA. The tabular values (KLOC,LAMBDA) might be
+C  taken, for example, from Fig. 30, p. 29 of COMPUTERIZED
+C  BUCKLING ANALYSIS OF SHELLS, or from some other suitable
+C  source known to the user.
+C
+C  First, calculate FACT, which accounts for the proportion of
+C  the membrane force taken by the skin of the stiffened shell...
+      ALPHA = TSTIFF*HEIGHT/(TSKIN*SPACNG)
+      ALPHAS= (ESTIFF/ESKIN)*ALPHA
+      FACT  = 1. + ALPHAS
+C
+C  Next, calculate the effective shallowness parameter, EFFLAM, of
+C  the portion of skin between adjacent stiffeners. REFF is the
+C  radius of base plane of the "effective" cap.  HEFF is the height
+C  of the apex of the cap over its base plane. The formula for
+C  the shallowness parameter LAMBDA appears in Fig. 30, p. 29 of
+C  COMPUTERIZED BUCKLING ANALYSIS OF SHELLS.
+C
+      REFF = (1. + LAMMOD)*SPACNG/3.
+      HEFF = RADIUS - SQRT(RADIUS**2 - REFF**2)
+      EFFLAM = 2.*SQRT(SQRT(3.*(1.-NUSKIN**2)))*SQRT(HEFF/TSKIN)
+C
+C  Next, interpolate (linearly) to find the knockdown factor COEF...
+C   If the cap is shallow get knockdown factor from shallow cap
+C   results, such as shown in Fig. 30, p 29 of COMPUTERIZED BUCKLING
+C   ANALYSIS OF SHELLS...
+         CALL INTERP(IFILE,IKLOC,LAMBDA,KLOC,EFFLAM,COEF1)
+         FACT1 = FACT
+C   If the cap is "deep"  get knockdown factor from complete spherical
+C   shell results, such as shown in Fig. 296, p 340 of COMPUTERIZED...
+         CALL INTERP(IFILE,IKGEN,DELBAR,KGEN,WGEN/TSKIN,COEF2)
+         FACT2 = 1.0
+         IF (EFFLAM.LT.10.) THEN
+C         Shallow cap parameters...
+            FACT = FACT1
+            COEF = COEF1
+         ELSE
+            IF (EFFLAM.GT.14.) THEN
+C            Complete monocoque spherical shell parameters...
+               FACT = FACT2
+               COEF = COEF2
+            ELSE
+C            Mixture of shallow cap and complete shell parameters...
+               FACT = FACT1 + 0.25*(EFFLAM-10.)*(FACT2-FACT1)
+               COEF = COEF1 + 0.25*(EFFLAM-10.)*(COEF2-COEF1)
+            ENDIF
+         ENDIF
+C  The critical external pressure is...
+      PCRIT =
+     1 FACT*COEF*2.*ESKIN*TSKIN**2/(SQRT(3.*(1.-NUSKIN**2))*RADIUS**2)
+C  The local instability load factor, BCAP, is given by:
+      BCAP = PCRIT/ABS(PRESS(ILOADX))
+C
+C  Next, compute the local buckling load factor for a flat plate of
+C  triangular planform, simply supported along its three edges, and
+C  subjected to uniform biaxial compression. The theory is used in
+C  MDC G4295, Dec. 1972, and originates from NACA TN-3781, July 1957,
+C  by Gerard and Becker: "Handbook of Structural Stability, Part I -
+C  Buckling of Flat Plates". The length of each side of the
+C  equilateral triangle is A. The formula for critical stress SIGCR
+C  is given as Eq.(4.1.4) in MDC G4295.
+C
+      FCOEF = 5.0
+      A     = 2.*SPACNG/SQRT(3.)
+      PI    = 3.1415927
+C  The critical buckling stress is...
+      SIGCR = FCOEF*PI**2*ESKIN*(TSKIN/A)**2/(12.*(1.-NUSKIN**2))
+C  The stress in the skin of the stiffened wall is...
+      SIG   = PRESS(1)*RADIUS/(2.*TSKIN*(1.+ALPHAS))
+C  The buckling load factor is...
+      BPLATE= SIGCR/ABS(SIG)
+      BMIN  = MIN(BCAP,BPLATE)
+      IF (EFFLAM.LT.4.) THEN
+C      Choose the smallest of BCAP and BPLATE for the local buckling
+C      load factor...
+         BUCLOC(ILOADX) = BMIN
+      ELSE
+         IF (EFFLAM.GT.6.) THEN
+C         Choose the shallow cap model because there is too much curvature
+C         in the shallow region for the flat plate buckling formula to
+C         apply...
+            BUCLOC(ILOADX) = BCAP
+         ELSE
+C         Use mixture theory for (4.LE.EFFLAM.LE.6)...
+            BUCLOC(ILOADX) = BMIN + 0.5*(EFFLAM-4.)*(BCAP-BMIN)
+         ENDIF
+      ENDIF
+C  If the portion between stiffeners is very, very shallow, use the
+C  flat plate buckling formula...
+      IF (EFFLAM.LT.2.5) BUCLOC(ILOADX) = BPLATE
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1) WRITE(IFILE,10)
+     1   LAMMOD,REFF,HEFF,EFFLAM,1./FACT,COEF,PCRIT,BCAP,
+     1   SIGCR,SIG,BPLATE,BUCLOC(ILOADX)
+   10 FORMAT(/' PARAMETERS FOR LOCAL BUCKLING OF SPHERICAL CAP:'/
+     1' factor for determination of baseplane radius,LAMMOD=',1PE12.4/
+     1' "effective" radius of base plane of cap,       REFF=',1PE12.4/
+     1' height of apex of cap above its base plane,    HEFF=',1PE12.4/
+     1' shallowness parameter of spherical cap,      LAMBDA=',1PE12.4/
+     1' fraction of pressure absorbed by the skin,   1/FACT=',1PE12.4/
+     1' knockdown factor for initial imperfections,    COEF=',1PE12.4/
+     1' critical pressure (Fig. 30 of Bushnell book), PCRIT=',1PE12.4/
+     1' buckling load factor for shallow cap,          BCAP=',1PE12.4/
+     1' crit. stress for plate (MDC G4295, Eq(4.1.4), SIGCR=',1PE12.4/
+     1' stress in the skin of the spherical shell,      SIG=',1PE12.4/
+     1' buckling load factor for triangular plate,   BPLATE=',1PE12.4/
+     1' local buckling load factor,                  BUCLOC=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN load factor for stiffener buckling
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCSTF(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = load factor for stiffener buckling
+C
+C   OUTPUT:
+C
+C     BUCSTF(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  The blade stiffeners are assumed to be straight, long, flat
+C  plates with one edge elastically supported (where the blade
+C  intersects the skin) and the other edge free.  The formula
+C  for buckling is taken from Roark, FORMULAS FOR STRESS AND
+C  STRAIN, 3rd Edition, McGraw-Hill, 1954, Table XVI, p. 312, Formulas
+C  4 (simple-support, free) and 4 (clamped, free). Roark gives
+C  a formula for buckling stress:
+C    SIGMA(crit) = k*[ESTIFF/(1-NUSTIF**2)]*(TSTIFF/HEIGHT)**2
+C  in which k is a coefficient that depends on the aspect ratio
+C  of the plate. For long plates:
+C  (a) k = 0.375 if the plate is simply supported (MDC G4295, 4.1.7),
+C  (b) k = 1.1   if the plate is clamped (Roark Table XVI, Formula 5).
+C
+C  Here for k we use:
+C
+C  k = 0.375 + 0.7*EDGSTF
+C
+C  in which EDGSTF is a number between 0. and 1. provided by the
+C  user.  If EDGSTF = 0. the stiffeners are assumed to be hinged
+C  at their lines of intersection with the skin; if EDGSTF = 1.
+C  the stiffeners are assumed to be clamped at their lines of
+C  intersection with the skin. The number 0.375 comes from Eq.(4.1.7)
+C  of MDC G4295, p 4.1.004.  The number 0.7 comes from Roark.
+C
+C  Calculate critical stress in the stiffener:
+      SIGCR =
+     1 (0.375+0.7*EDGSTF)*(ESTIFF/(1.-NUSTIF**2))*(TSTIFF/HEIGHT)**2
+C
+C  Calculate current stress in the stiffener
+C  (See Eq.(4.1.8), p 4.1.005 of MDC G4295), except formula below
+C  is valid if there are different moduli in skin and stiffeners:
+      ALPHA = TSTIFF*HEIGHT/(TSKIN*SPACNG)
+      ALPHAS= (ESTIFF/ESKIN)*ALPHA
+      FNUEFF= 1./3.
+      SIG = ESTIFF*PRESS(1)*(RADIUS/2.)*(1.-FNUEFF)/
+     1                                     (ESKIN*TSKIN*(1.+ALPHAS))
+C  Calculate load factor for stiffener buckling:
+      BUCSTF(ILOADX) = SIGCR/ABS(SIG)
+C
+      IF (IMODX.EQ.0.AND.IPRINX.GT.1)
+     1 WRITE(IFILE,10) EDGSTF,SIG,SIGCR,BUCSTF(ILOADX)
+   10 FORMAT(/' PARAMETERS FOR BUCKLING OF STIFFENER:'/
+     1' parameter between 0 and 1 for edge support,  EDGSTF=',1PE12.4/
+     1' stress in the stiffener,                        SIG=',1PE12.4/
+     1' critical stress (Roark, Table XVI, nos. 4,5), SIGCR=',1PE12.4/
+     1' stiffener buckling load factor,              BUCSTF=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX4
+      SUBROUTINE BEHX4
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN stress in the skin of the spherical shell
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     SIGSKN(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = stress in the skin of the spherical shell
+C
+C   OUTPUT:
+C
+C     SIGSKN(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  Calculate stress in the skin.  The formula used is for
+C  membrane stress. It is analogous to the formula given in
+C  Eq. (4.1.5), p 4.1.004 of MDC G4295, except that it is valid
+C  if skin and stiffeners have different moduli:
+C
+C     SIGMA = PRESS*RADIUS/(2.*TSKIN*(1.+ ALPHAS))
+C
+C  in which ALPHAS is a factor that accounts for the fact that
+C  only part of the internal membrane force, PRESS*RADIUS/2,
+C  generated by the pressure is carried by the skin.
+C
+      ALPHA = TSTIFF*HEIGHT/(TSKIN*SPACNG)
+      ALPHAS= (ESTIFF/ESKIN)*ALPHA
+      FACT = 1./(1.+ALPHAS)
+      SIGSKN(ILOADX) = PRESS(ILOADX)*RADIUS/(2.*TSKIN*(1.+ALPHAS))
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1)
+     1  WRITE(IFILE,10) FACT,SIGSKN(ILOADX),ASIGSK(1),FSSIGA(1)
+   10 FORMAT(/' PARAMETERS FOR STRESS IN THE SKIN:'/
+     1' fraction of pressure borne by the skin,        FACT=',1PE12.4/
+     1' stress in the skin (from pR/(2t)),           SIGSKN=',1PE12.4/
+     1' allowable stress in the skin,                ASIGSK=',1PE12.4/
+     1' factor of safety for stress in the skin,     FSSIGA=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX5
+      SUBROUTINE BEHX5
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN stress in the stiffeners
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     SIGSTF(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = stress in the stiffeners
+C
+C   OUTPUT:
+C
+C     SIGSTF(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  Calculate current stress in the stiffener. The formula used is
+C  analogous to that given in Eq.(4.1.8) of MDC G4295, except that
+C  the formula given here is valid when skin and stiffeners have
+C  different moduli.
+C
+      ALPHA = TSTIFF*HEIGHT/(TSKIN*SPACNG)
+      ALPHAS= (ESTIFF/ESKIN)*ALPHA
+      FNUEFF= 1./3.
+      SIGSTF(ILOADX) = ESTIFF*PRESS(1)*(RADIUS/2.)*(1.-FNUEFF)/
+     1                                       (ESKIN*TSKIN*(1.+ALPHAS))
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1)
+     1  WRITE(IFILE,10) SIGSTF(ILOADX),ASIGST(1),FSSIGB(1)
+   10 FORMAT(/' PARAMETERS FOR STRESS IN THE STIFFENERS:'/
+     1' stress in the stiffeners,                    SIGSTF=',1PE12.4/
+     1' allowable stress in the stiffeners,          ASIGST=',1PE12.4/
+     1' factor of safety for stress in the stiffener,FSSIGB=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C
+C
+C
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:weight/area of the stiffened spherical shell
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = weight/area of the stiffened spherical shell
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      REAL RADIUS,TSKIN,TSTIFF,HEIGHT,SPACNG,ESKIN,RHOSKN,NUSKIN
+      COMMON/FV12/KLOC(30),IKLOC 
+      REAL KLOC
+      COMMON/FV13/LAMBDA(30)
+      REAL LAMBDA
+      COMMON/FV15/KGEN(30),IKGEN 
+      REAL KGEN
+      COMMON/FV16/DELBAR(30)
+      REAL DELBAR
+      COMMON/FV19/PRESS(20)
+      REAL PRESS
+      COMMON/FV22/BUCGEN(20),ABUCG(20),FSBUCG(20)
+      REAL BUCGEN,ABUCG,FSBUCG
+      COMMON/FV25/BUCLOC(20),ABUCL(20),FSBUCL(20)
+      REAL BUCLOC,ABUCL,FSBUCL
+      COMMON/FV28/BUCSTF(20),ABUCST(20),FSBUCC(20)
+      REAL BUCSTF,ABUCST,FSBUCC
+      COMMON/FV31/SIGSKN(20),ASIGSK(20),FSSIGA(20)
+      REAL SIGSKN,ASIGSK,FSSIGA
+      COMMON/FV34/SIGSTF(20),ASIGST(20),FSSIGB(20)
+      REAL SIGSTF,ASIGST,FSSIGB
+      COMMON/FV09/ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+      REAL ESTIFF,NUSTIF,RHOSTF,LAMMOD,WGEN,EDGSTF,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  Calculate weight per unit surface area of the stiffened
+C  spherical shell...
+      WSKIN  = RHOSKN*TSKIN
+      WSTIFF = 3.*RHOSTF*TSTIFF*HEIGHT/SPACNG
+      WEIGHT = WSKIN + WSTIFF
+C
+      OBJGEN =WEIGHT 
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GT.1)
+     1  WRITE(IFILE,10) WSKIN,WSTIFF,WEIGHT
+   10 FORMAT(/' PARAMETERS FOR WEIGHT/AREA OF SHELL WALL:'/
+     1' weight of the skin,                           WSKIN=',1PE12.4/
+     1' weight of the stiffeners,                    WSTIFF=',1PE12.4/
+     1' total weight/surface area of the shell wall, WEIGHT=',1PE12.4)
+C
+      RETURN
+      END
+C
+C
+C

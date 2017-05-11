@@ -1,0 +1,1436 @@
+ 
+   5.0 
+       This is a computer program that uses GENOPT and BIGBOSOR4
+       to find the optimum arrangement of struts and the optimum
+       design of struts within that arrangement that support the
+       propellant tank. The tank is carried by a booster that
+       imparts a certain ultimate peak axial acceleration and a
+       certain ultimate peak lateral acceleration. The minimum free
+       vibration frequency must be greater than some specified
+       value. The tank is assumed to be either cylindrical with
+       domed ends or spherical. It is made of isotropic material.
+       It may have locally thickened regions and stiffening rings
+       to handle the concentrated loads applied by the struts.
+        
+       The three parts of the propellant tank (1. aft dome, 2.
+       cylindrical middle, 3. forward dome) have internal orthogrid
+       stiffening that is "smeared out" in all the BIGBOSOR4 models.
+       In the BIGBOSOR4 models the smeared orthogrid stiffeners are
+       treated as an orthotropic layer of constant thickness. The
+       tank wall is modeled as consisting of three layers:
+       Innermost layer: smeared orthogrid of thickness equal to
+       the height of the orthogrid stiffeners and stiffness and
+       density equal to the tank wall material "E" & "rho" multiplied
+       by (orthogrid stiffener thickness)/(stiffener spacing)
+       Middle layer: constant thickness that may differ in each
+       of the three parts of the propellant tank
+       Outer layer: variable thickness that represents tapered
+       doublers attached to the outer wall of the propellant tank
+       centered on axial locations where supporting struts are
+       attached to external rings that are part of the tank.
+       The BIGBOSOR4 shell wall type, NWALL = 9, is used in order
+       to simulate this three-layered construction. NWALL = 9 is
+       the BIGBOSOR4 option for a layered orthotropic wall in
+       which one or more of the layers may have thickness that
+       varies along the meridian.
+        
+       In the free vibration BIGBOSOR4 model the mass of the fluid
+       in the tank is "lumped" into the constant-thickness middle
+       layer of the three-layered orthotropic wall. For the
+       cylindrical part of the propellant tank the "effective"
+       wall skin density, rho(add), to be added to the material
+       density is obtained from the relationship:
+       (cylindrical tank volume)xrho(propellant) =
+       (volume occupied by shell wall skin)xrho(add)
+       or, for a cylindrical shell:
+       pi x r^2 x L x rho(propellant) = 2 x pi x r x L x t x rho(add)
+       which leads to rho(add) = 0.5 x r/t x rho(propellant)
+       For a spherical dome, we have:
+       (4/3) x pi x r^3 x rho(propellant) = 4 x pi x r^2 x t x rho(add)
+       which leads to rho(add) = 0.333 x r/t x rho(propellant)
+        
+       There may be struts attached to the tank at a number of axial
+       locations. At each of these axial locations there are n sets
+       of two struts each. In each pair of two struts, one strut has a
+       positive azimuthal angle and the other strut has an equal
+       negative azimuthal angle. These positive and negative azimuthal
+       angles are the same for each of the n sets of struts at that
+       particular axial coordinate of the tank wall.
+        
+       All the struts at a given axial coordinate are attached
+       to the same external ring, which is part of the propellant
+       tank. All the struts at a given axial coordinate are
+       attached to "ground" (the launch vehicle, assumed to be
+       rigid in this model) at the same (different) axial coordinate.
+       Therefore, all the struts at the given "ground" axial
+       coordinate have the same inclination or declination angle.
+        
+       There may be different numbers of strut pairs at different
+       axial locations. The plus and minus azimuthal angles and
+       inclination or declination angles in each group of struts,
+       that is, at each axial location may differ.
+        
+       For each strut at a given axial location one end of the
+       strut is attached to the propellant tank and the
+       other end of the strut is connected to "ground", in which
+       "ground" means the (rigid) launch vehicle that carries the
+       propellant tank. There is no launch vehicle model in this
+       study.
+        
+       To summarize:
+       1. There may be up to 3 axial locations at which structs
+       are attached to the propellant tank and to ground.
+       2. At each axial location all the attachment points of the
+       struts to the tank have the same axial coordinate; the struts
+       are attached to the propellant tank along a ring.
+       3. The other ends of these struts are attached to "ground"
+       at the same axial location (in general different from the
+       axial location of the tank-end of these struts).
+       4. There are n(i) strut pairs at each axial location
+       in which i corresponds to a particular axial location.
+       n(1), n(2), n(3)... may differ from eachother.
+        
+       The arrangement of struts that support a tank is analogous
+       to that described in the paper:
+       David Bushnell, "Improved optimum design of dewar supports",
+       Computers & Structures, Vol. 29, No. 1, pp. 1-56, 1988
+        
+       In that paper the quantity n = 3, that is, there are
+       three strut pairs at each of one or two axial locations.
+        
+       Much of the terminology in the present work is "borrowed"
+       from the "dewar" paper just cited.
+ 
+  10.1 acceleration of gravity: GRAV
+  10.2 
+       Example: 386.4 inches/sec^2
+ 
+ 
+  15.0 
+       There are many variables with role types 1 and 2 (role type 1
+       means a decision variable candidate; role type 2 means a
+       constant that is not an environmental variable such as a load
+       and that is not a behavioral variable, an allowable, or a
+       factor of safety.
+        
+       The role type 1 and role type 2 variables are organized
+       as follows:
+       1. The launch vehicle diameter: DIAVEH
+        
+       2. The propellant tank dimensions and properties:
+       AFTDIA = diameter of the aft dome of the tank
+       AFTHI  = height of the aft dome of the tank
+       FWDDIA = diameter of the forward dome of the tank
+       FWDHI  = height of the forward dome of the tank
+       FLTANK = axial distance from the aft dome apex to the
+       forward dome apex
+       ZAPEX  = global axial coordinate of the aft dome apex
+       DENPRP = weight density of the propellant
+       ZCG    = global axial coordinate of the tank center of gravity
+       THKAFT = thickness of the tank aft dome skin
+       THKMID = thickness of the tank cylinder skin
+       THKFWD = thickness of the forward tank dome skin
+       STRSPC = spacing of the internal tank orthogrid stringers
+       RNGSPC = spacing of the internal tank orthogrid rings
+       STRTHK = thickness of the tank orthogrid stringers
+       STRHI  = height of the tank orthogrid stringers
+       RNGTHK = thickness of the tank orthogrid rings
+       RNGHI  = height of the tank orthogrid rings
+       ETANK  = Young's modulus of the cold tank
+       NUTANK = Poisson's ratio of the tank material
+       DENTNK = mass density of the tank material
+       ALTNK  = coefficient of thermal expansion of the tank material
+        
+       3. Orientation of the propellant tank in the launch vehicle:
+       IAXIS  = 1 means tank is vertical; 2 means tank is horizontal
+        
+       4. Propellant tank support rings:
+       IZTANK = tank strut support ring number
+       ZTANK  = global axial coordinate of a tank support ring
+       ZGRND  = global axial coordinate of "ground" (launch vehicle)
+       for all the struts attached at ZTANK
+        
+       5. Dimensions of strut types:
+       STRTYP = index for type of strut arrangement and struts
+       INPAIRS= strut type number
+       NPAIRS = number of strut pairs for strut type INPAIRS
+       FITTNK = length of strut end fitting attached to tank
+       FEATNK = axial "EA" stiffness of strut end fitting at tank
+       ALFITT = coefficient of thermal expansion of strut end
+       fitting attached to the tank
+       FITVEH = length of strut end fitting attached to "ground"
+       FEAVEH = axial "EA" stiffeness of "ground" strut end fitting
+       ALFITV = coefficient of thermal expansion of strut end
+       fitting attached to "ground"
+       ATANK  = circumferential angle (degrees) to pinned end of
+       the first strut attached to the tank
+       AGRND  = circumferential angle (degrees) to pinned end of
+       the first strut attached to "ground" (launch vehicle)
+       IDTUBE = inner diameter of the strut support tube that is
+       active during the launch phase of the mission
+       ODINNR = outer diameter of the orbital tube assembly that
+       is located inside the strut support tube (PODS)
+       FLINNR = length of the "folded" orbital tube assembly
+       NTUBES = number of tubes in the PODS folded tube concept
+       ISTRUT = index for simple strut (1) or PODS strut (2)
+        
+       6. Properties of the propellant tank reinforcement
+       corresponding to each tank reinforcement type:
+       RNGTYP = propellant tank reinforcement type
+       IDUBAXL= reinforcement type number
+       DUBAXL = axial length of the propellant tank tapered doubler
+       that is centered on each propellant tank support ring
+       DUBTHK = maximum thickness of the tapered propellant tank doubler
+       TRNGTH = thickness of the propellant tank support ring
+       TRNGHI = height of the propellant tank support ring
+       TRNGE  = hoop modulus of the propellant tank support ring
+       ALRNGT = coefficient of thermal expansion of the tank ring
+        
+       7. Properties of the walls of the composite strut tubes:
+       JWALTYP= 1 means launch tube; 2 means orbital tube
+       IWALTYP= strut wall type number
+       WALTYP = type of laminated composite strut wall
+       ITHICK = index for type of unidirectional composite ply
+       THICK  = thickness of lamina of type ITHICK
+       ANGLE  = layup angle of lamina of type ITHICK
+       MATTYP = material type of lamina of type ITHICK
+       JLAYTYP= wall type number
+       ILAYTYP= layer number
+       LAYTYP = layer type index for layer number ILAYTYP and
+       wall type number JLAYTYP
+        
+       8. Properties of composite material of which the launch tubes
+       are fabricated:
+       IE1    = material type number
+       E1     = modulus in the fiber direction in material type IE1
+       E2     = modulus transverse to fibers in material type IE1
+       G12    = in-plane shear modulus of material type IE1
+       NU     = minor Poisson ratio of material type IE1
+       G13    = x-z out-of-plane shear modulus in material type IE1
+       G23    = y-z out-of-plane shear modulus in material type IE1
+       ALPHA1 = coefficient of thermal expansion along fibers
+       ALPHA2 = coefficient of thermal expansion transverse to fibers
+       TEMTUR = curing delta temperature in material type IE1
+       COND1  = conductivity along the fibers in material type IE1
+       COND2  = conductivity transverse to fibers in material IE1
+       DENSTY = weight density of material type IE1
+        
+       9. Elements that are used in the expression for the objective:
+       WGT    = weighting coefficient used in the expression for
+       the objective:
+       objective = WGTx(normalized empty tank mass)
+       + (1-WGT)x(normalized total strut conductance)
+       TNKNRM = normalizing empty tank mass
+       CONNRM = normalizing total strut conductance
+        
+       10. Mission phase index:
+       IPHASE = 1 means launch  phase of the mission
+       IPHASE = 2 means orbital phase of the mission
+ 
+  20.1 diameter of launch vehicle: DIAVEH
+  20.2 
+       Diameter of the launch vehicle
+       The launch vehicle must have a larger diameter than the
+       propellant tank, of course, because it carries the propellant
+       tank. The propellant tank end of the struts are located on
+       a ring the centroidal diameter of which is equal to the
+       diameter of the aft dome plus 2 x ECCR, in which ECCR is
+       the radial eccentricity of the strut support ring attached
+       to the propellant tank.
+ 
+ 
+  25.0 
+       The supported mass, what is called here "the tank", is assumed
+       to have domed ends with elliptical cross sections. You will be
+       asked to provide the height and diameter of each of the two domed
+       ends. This information is needed later to ascertain whether or
+       not the struts clear the domes and the diameters of the support
+       rings that are attached to the tank.
+       Next, you will be asked to provide the diameter of the aft
+       dome of the tank.
+ 
+  30.1 diameter of the aft dome of the tank: AFTDIA
+  30.2 
+       This is the length of the major axis of the ellipsoidal dome.
+ 
+  35.1 height of the aft dome of the tank: AFTHI
+  35.2 
+       This is the length of the semi-minor axis of the ellipsoidal dome.
+ 
+  40.1 diameter of the forward dome of the tank: FWDDIA
+  40.2 
+       This is the length of the major axis of the ellipsoidal dome.
+       In most cases FWDDIA will be equal to AFTDIA and the middle
+       part of the tank connecting the aft and forward domes will
+       be cylindrical.
+ 
+  45.1 height of the forward dome of the tank: FWDHI
+  45.2 
+       This is the length of the semi-minor axis of the ellipsoidal dome.
+ 
+  50.1 axial dist. from aft dome apex to fwd dome apex: FLTANK
+  50.2 
+       FLTANK is needed in order to determine if the attachment
+       points of the struts to the tank are located within the aft or
+       forward domes. NOTE: So far in this study it is assumed that
+       no struts are attached to either end dome of the propellant
+       tank. All sets of struts are attached to the cylindrical
+       part of the propellant tank.
+ 
+  55.1 global axial coordinate of the aft dome apex: ZAPEX
+  55.2 
+       This quantity is needed in order to determine if the attachment
+       points of the struts to the tank are located within the aft
+       or forward domes of the tank.
+ 
+  60.1 weight density of the propellant: DENPRP
+  60.2 
+       e.g. weight density of aluminum is 0.1 lb/in^3
+       Examples: LH2 = 4.43 lb/ft^3 = 0.00256366 lb/in^3
+       LOX = 71.3 lb/ft^3 = 0.0412616 lb/in^3
+ 
+  65.1 global axial coordinate of the tank cg: ZCG
+  65.2 
+       "cg" = center of gravity
+ 
+  70.1 thickness of the tank aft dome skin: THKAFT
+  70.2 
+       The thickness is assumed to be constant. It is the middle
+       layer of the BIGBOSOR4 three-layered NWALL=9 model of the
+       tank wall, in which the inner layer represents the smeared
+       orthogrid stiffeners and the outer layer represents the
+       tapered doublers. The middle layer of thickness THKAFT is
+       the layer into which is "lumped" the propellant mass.
+ 
+  75.1 thickness of the tank cylinder skin: THKMID
+  75.2 
+       This thickness is constant. This is the thickness into
+       which is "lumped" the propellant mass.
+ 
+  80.1 thickness of the forward tank dome skin: THKFWD
+  80.2 
+       This thickness is constant. This is the thickness into
+       which is "lumped" the propellant mass.
+ 
+ 
+  85.0 
+       All three parts of the tank wall (domes & cyl.) are stiffened
+       internally in what is called an "orthogrid" style. There are
+       internal rings and stringers of rectangular cross sections.
+       The orthogrid stiffeners are "smeared out" in all the models
+       used in this study. The "smeared" orthogrid is modeled as
+       the innermost layer of the tank wall in the BIGBOSOR4 model.
+       The decision variable candidates associated with this internal
+       smeared grid stiffening are:
+       1. STRSPC = spacing of the stringers (axial stiffeners)
+       2. RNGSPC = spacing of the rings
+       3. STRTHK = stringer thickness (dimension parallel to skin)
+       4. STRHI = stringer height (dimension normal to skin)
+       5. RNGTHK = ring thickness (dimension parallel to skin)
+       6. RNGHI = ring height (dimension normal to skin)
+       RNGHI should be equal to STRHI.
+        
+       This internal orthogrid is smeared out in models of the
+       propellant tank. The smeared orthogrid is treated as the
+       innermost layer (layer 1) of the propellant tank wall.
+       The properties of the propellant tank wall are formatted
+       in the NWALL = 9 option of BIGBOSOR4. NWALL = 9 means
+       "layered orthotropic wall in which one or more of the
+       layers has thickness that varies along the meridian".
+       The thickness of the smeared orthogrid layer is equal to
+       the height of the orthogrid stringers and rings, and the
+       "effective" moduli, E1 and E1, and density are equal to the
+       stiffness and density of the material muliplied by
+       (stiffener thickness)/(stiffener height).
+        
+       NOTE: There are two types of rings that enter this model:
+       1. The internal rings that are part of the orthogrid
+       stiffening, and
+       2. The external rings to which the support struts are
+       attached. Please don't get them confused!
+ 
+  90.1 spacing of the tank orthogrid stringers: STRSPC
+  90.2 
+       "Stringers" are meridionally oriented stiffeners. the
+       spacing is in the circumferential direction. The fact that
+       in the two domes the circumferential spacing of meridional
+       stiffeners varies from base to apex of a dome is ignored.
+       In the model the internal orthogrid is smeared and the
+       spacing at the equator of the dome is used for the entire
+       dome. A dome could possibly be fabricated in which this
+       is approximately true.
+ 
+  95.1 spacing of the tank orthogrid rings: RNGSPC
+  95.2 
+       The orthogrid is smeared out in all models and is treated
+       as if it were Layer No. 1 in a two-layered orthotropic
+       tank (NWALL = 9 in BIGBOSOR4 jargon).
+ 
+ 100.1 thickness of the tank orthogrid stringers: STRTHK
+ 100.2 
+       This is the dimension measured parallel to the tank skin.
+ 
+ 105.1 height of the tank orthogrid stringers: STRHI
+ 105.2 
+       This is the dimension measured normal to the tank skin. It
+       is the dimension from the inner surface of the tank skin to
+       the tip of the stringer
+ 
+ 110.1 thickness of the tank orthogrid rings: RNGTHK
+ 110.2 
+       This is the dimension of the internal ring stiffener measured
+       parallel to the tank skin. NOTE: the "tank ring" we are
+       referring to here is one of the regularly spaced internal
+       rings that form part of the internal orthogrid stiffening
+       on the cylindrical part of the propellant tank, not one
+       of the external rings to which the support struts are attached.
+ 
+ 115.1 height of the tank orthogrid rings: RNGHI
+ 115.2 
+       Note that here we are referring to part of the orthogrid
+       stiffening inside the wall of the propellant tank, not one
+       of the external rings to which the support struts are attached.
+       RNGHI should be equal to STRHI.
+ 
+ 
+ 120.0 
+       Next, you will be asked to provide the material properties
+       of the propellant tank. Use the material properties that
+       are appropriate when the tank is filled with cryogen.
+ 
+ 125.1 Young's modulus of the cold tank material: ETANK
+ 125.2 
+       Make sure to use the properties that hold for the propellant
+       tank in its cold condition, that is, after it has been
+       filled with cryogen.
+ 
+ 130.1 Poisson's ratio of the tank material: NUTANK
+ 130.2 
+       Example: 0.3 for aluminum.
+ 
+ 135.1 mass density of the tank material: DENTNK
+ 135.2 
+       For example, aluminum has DENTNK = 0.00025 lb/in^3
+ 
+ 140.1 coef.thermal expansion of tank material: ALTNK
+ 140.2 
+       What is wanted here is the average coefficient of thermal
+       axial expansion between the bottom & top propellant tank
+       support rings. The thermal axial contraction between these
+       rings is included in the stress and buckling analyses of the
+       supporting struts. Units of ALTNK are "per degree xxx". The
+       temperature difference between the portion of the propellant
+       tank between the two tank support rings must afterward be given
+       in units consistent with the coefficient of thermal axial
+       expansion, of course.
+ 
+ 
+ 145.0 
+       Next, you will be asked whether the propellant tank
+       is oriented axially or lying on its side in the launch
+       vehicle. This orientation is specified by the value of
+       an integer, IAXIS, being 1 or 2:
+       IAXIS = 1 means that the axis of the propellant tank is
+       aligned with the axis of the launch vehicle.
+       IAXIS = 2 means that the axis of the propellant tank is
+       oriented 90 degrees from the axis of the launch vehicle.
+ 
+ 150.1 tank is vertical (1) or horizontal (2): IAXIS
+ 150.2 
+       IAXIS = 1 means that the axis of the propellant tank is
+       aligned with the axis of the launch vehicle.
+       IAXIS = 2 means that the axis of the propellant tank is
+       oriented at 90 degrees with respect to the axis of the
+       launch vehicle.
+ 
+ 
+ 155.0 
+       The tank is assumed to be supported by up to 3 sets
+       of struts arrayed in a manner similar to that shown in Fig. 1
+       of the paper, "Improved Optimum Design of Dewar Supports",
+       Computers & Structures, Vol. 29, No. 1, pp. 1-56, 1988. Each
+       set of struts contains 2 x n(i) identical pin-ended members,
+       arranged in n(i) pairs spaced at 360/n(i) angles in the azimuthal
+       plane. One subset of n(i) is "clockwise slanting" and the other
+       subset of n(i) is "anticlockwise slanting" by the same
+       amount. The pin-ended member may be a simple tube or a tube
+       with a disconnect system (PODS). Each strut has end fittings
+       at each end of lengths, FITTNK and FITVEH. Each strut is
+       assumed to be pinned at each of its two ends.
+        
+       For each set of tank supports you will be asked to provide
+       the following input data:
+       1. The axial locations and properties of the structural
+       rings to which the propellant-tank-ends of the struts
+       are attached. These rings are part of the propellant tank.
+       2. The axial lengths of tapered doublers added to the
+       propellant tank wall that are centered on the line of attachment
+       of the propellant tank support ring to the tank shell.
+       3. The maximum thicknesses of these tapered reinforcing doublers.
+       4. Thermal expansion coefficients of the
+       tank and the tank support rings.
+       5. The locations (azimuthal angles) of both ends of one of the
+       n "anticlockwise slanting" struts. These angles are called
+       ADEWP and AVACP in Fig. 1 of the 1988 dewar paper cited above.
+       6. The lengths of end fittings by means of which the pin-ended
+       struts are attached to the support rings (FITTNK, FITVEH)
+       7. The axial stiffness, "EA", of the end fittings (FEATNK,
+       FEAVEH)
+       8. Diameters of the tubes in a strut (IDTUBE, ODINNR)
+       9. For each tube in a support strut:
+       9.1 number of layers through the tube thickness
+       9.2 layer type indicator for each layer
+       9.3 For each new layer type;
+       9.3.1 thickness
+       9.3.2 winding (layup) angle
+       9.3.3 material type indicator
+       10. Material properties for each material type. The strut
+       tubes are fabricated of laminated composite material.
+        
+       Next, you will see the prompt:
+       "Number IZTANK  of rows in the array  ZTANK: IZTANK"
+       Want is wanted is the number of axial locations at which
+       struts are to be attached to the propellant tank.
+       With long propellant tanks IZTANK should probably be 2
+       With spherical or ellipsoidal tanks a choice of IZTANK = 1
+       might be best.
+ 
+ 160.1 Number IZTANK  of rows in the array  ZTANK: IZTANK 
+ 165.1 global axial coordinate of tank support ring: ZTANK
+ 165.2 
+       Must be a positive number. Use the attachment line of the
+       tank support ring to the tank as the reference measure, not
+       the ring centroidal axis.
+       NOTE: IF THERE IS ONLY ONE SET OF 2 x n STRUTS, PUT ZTANK
+       AT AN AXIAL STATION NEAR THE LOCATION OF THE TANK C.G.
+       ANOTHER NOTE: Do not put the ring exactly at the apex of the
+       tank dome. If the ring is in the dome make sure that it is
+       some distance from the dome apex. If it is at the apex a
+       singularity will occur and the computations will be meaningless.
+ 
+ 170.1 global axial coordinate of "ground": ZGRND
+ 170.2 
+       This is the global axial coordinate of the end of a strut
+       that is connected to "ground", that is, the end of a strut
+       that is connected to the launch vehicle, which is assumed
+       to be rigid in this study..
+ 
+ 
+ 175.0 
+       Next, you will be asked to provide the strut types for
+       each set of struts. A set of struts is associated with
+       as axial location. You may, for example, have 10 sets of
+       struts located at 10 different axial locations, but some
+       of these sets of struts have strut types that are the same.
+       A "strut type" is associated with a bundle of variables.
+       Associated with a given "strut type" is the following
+       "bundle" of variables:
+       NPAIRS = number of strut pairs attached to the propellant
+       tank support ring
+       ATANK and AGRND = angles of the propellant tank end and the
+       launch vehicle end of the first strut in the set of struts
+       FITTNK, FEATNK, ALFITT, FITVEH, FEAVEH, ALFITV = lengths,
+       "EA" axial stiffnesses, and coefficients of thermal expansion
+       of the strut end fittings at the propellant tank end of the
+       strut (FITTNK, FEATNK and ALFITT) and at the "ground"
+       (launch vehicle) end of the strut (FITVEH, FEAVEH
+       and ALFITV)
+       IDTUBE, FACLEN, DTSUP, ODINNR, FLINNR, NTUBES, ISTRUT =
+       inner diameter of strut launch tube, factor by which to
+       reduce the length of strut tube used in the model for
+       buckling of the strut tube as a shell, average strut
+       temperature minus ambient (room) temperature,
+       Outer diameter of the inner orbital tube, length of the
+       orbital tube assembly, number of "folded" tubes in the
+       orbital tube assembly, and type of strut (simple or
+       compound (PODS).
+ 
+ 180.1 type of strut arrangement: STRTYP
+ 180.2 
+       You must provide STRTYP for each strut set axial location
+ 
+ 
+ 185.0 
+       Next, you will be asked to give the number of strut pairs
+       at each axial level. NPAIRS can differ at each axial level.
+       In the research that
+       led to the 1988 "dewar" paper cited above NPAIRS was fixed at 3.
+       Here we are allowed any number of strut pairs greater than or
+       equal to 3 (NPAIRS must be greater than or equal to 3).
+        
+       A "strut pair" consists of one strut with a clockwise slant
+       and the other strut with an equal anticlockwise slant. See
+       Fig. 1 of the 1988 "dewar" paper for an example in which
+       NPAIRS = 3, which means that there are six struts at each
+       of possibly two axial locations. Here we can have up to
+       10 axial locations and the number of strut pairs can differ
+       at each axial level.
+        
+       Next, you will see the prompt:
+       "Number INPAIRS of rows in the array  NPAIRS: INPAIRS"
+       What is wanted is the number of different strut types.
+       For large propellant tanks with a cylindrical part of
+       significant length, you will probably want INPAIRS = 2
+       INPAIRS = 2 means two strut types. These two different
+       strut types correspond respectively to the set of struts
+       attached nearer the aft end of the propellant tank (strut
+       type 1) and the set of struts attached nearer the forward
+       end of the propellant tank (strut type 2). In this work
+       all struts attached at a given propellant tank support
+       ring are always of the same type. With "aft" and "forward"
+       sets of struts the strut types are different at the two
+       axial locations mainly because each of the two sets of
+       struts is slanted differently. Even if the laminates in
+       all struts are the same, the strut types are different
+       because of the different slanting in each of the two sets.
+ 
+ 190.1 Number INPAIRS of rows in the array  NPAIRS: INPAIRS
+ 195.1 number of strut pairs: NPAIRS
+ 195.2 
+       Next, you will be asked to give the number of strut pairs
+       at each axial level. NPAIRS can differ at each axial level.
+       In the research that led to the 1988 "dewar" paper
+       cited above NPAIRS was fixed at 3. Here we are
+       allowed any number of strut pairs greater than or
+       equal to 3 (NPAIRS must be greater than or equal to 3).
+        
+       A "strut pair" consists of one strut with a clockwise slant
+       and the other strut with an equal anticlockwise slant. See
+       Fig. 1 of the 1988 "dewar" paper for an example in which
+       NPAIRS = 3, which means that there are six struts at each
+       of possibly two axial locations. Here we can have up to
+       10 axial locations and the number of strut pairs can differ
+       at each axial level.
+ 
+ 
+ 200.0 
+       Next, you will be asked to provide data relative to the
+       strut fittings at the propellant tank end of a strut
+       (length of end fitting = FITTNK, axial "EA" stiffness of
+       end fitting = FEATNK, coefficient of thermal expansion of end
+       fitting = ALFITT) and at the launch vehicle end of a strut
+       (length of end fitting = FITVEH, axial "EA" stiffness of
+       end fitting = FEAVEH, coefficient of thermal expansion of end
+       fitting = ALFITV).
+       For a sketch of a strut, see the upper right part
+       of Fig. 1 of the 1988 "dewar" paper cited above.
+ 
+ 205.1 length of end fitting attached to tank ring: FITTNK
+ 205.2 
+       This end fitting has axial stiffness "EA" and has infinite
+       conductivity. You should use as this length the distance
+       between the point at which the strut is pinned to the
+       propellant tank support ring and point along the strut where
+       the elastic composite strut tube begins.
+ 
+ 210.1 axial "EA" stiffness of tank-end strut fitting: FEATNK
+ 210.2 
+       This is the axial stiffness of the end fitting at the end
+       of the strut attached to the propellant tank support ring.
+       The fitting "spring" constant is K = EA/L, in which EA
+       is the axial stiffness of the end fitting and L is the
+       axial length of the end fitting, FITTNK.
+ 
+ 215.1 Coef.of thermal expansion of tank end fitting: ALFITT
+ 215.2 
+       What is wanted here is the coefficient of thermal expansion,
+       alpha = ALFITT, of the end fitting that is pinned to the
+       propellant tank support ring.
+ 
+ 220.1 length of strut end fitting attached to "ground": FITVEH
+ 220.2 
+       This end fitting has axial stiffness "EA" and has infinite
+       conductivity. You shuold use as this length the distance
+       between the point at which the strut is pinned to the
+       launch vehicle ("ground") and the point along the strut
+       where the composite strut tube begins.
+ 
+ 225.1 axial "EA" stiffness of "ground" end strut fitting: FEAVEH
+ 225.2 
+       This is the axial stiffness of the end fitting at the end
+       of the strut attached to the launch vehicle ("ground"). The
+       end fitting "spring" constant is K = EA/L, in which EA is
+       the axial stiffness of the end fitting and L is the axial
+       length of the end fitting, FITVEH.
+ 
+ 230.1 coef.of thermal expan. of "ground" end fitting: ALFITV
+ 230.2 
+       What is wanted here is the coefficient of thermal expansion,
+       alpha = ALFITV, for the strut end fitting that is pinned to
+       "ground" (pinned to the launch vehicle).
+ 
+ 
+ 235.0 
+       This set of 2 x NPAIRS support struts is arranged in two
+       subsets of NPAIRS each. The NPAIRS members of the first
+       subset are spaced at 360/NPAIRS-degree intervals and slant
+       anticlockwise between the propellant tank (called "dewar"
+       in Fig. 1 of the 1988 "dewar" paper) and the launch vehicle
+       (called "vacuum shell" in the "dewar" paper) as viewed from
+       the forward (fwd) end of the propellant tank. The first
+       strut in this subset of NPAIRS struts is pinned to the
+       propellant tank support ring at a circumferential angle
+       called ATANK (called ADEWP in the 1988 "dewar" paper). This
+       first strut is pinned to the launch vehicle (called "vacuum
+       shell support ring" at a circumferential angle called AGRND
+       (called AVACP in the "dewar" paper). See Fig. 1 of the 1988
+       "dewar" paper).
+        
+       The NPAIRS struts in the second subset are spaced at
+       360/NPAIRS degrees and slant clockwise by the same amount
+       (THETA in Fig. 1) that the first set slants anticlockwise.
+       The frst strut in this second subset of NPAIRS struts is
+       pinned to the propellant tank support ring at a circumferential
+       angle equal to -ATANK.
+        
+       In Fig. 1 of the "dewar" paper The first subset of NPAIRS = 3
+       "anticlockwise" slanting struts are labelled 1, 2, and 3 in
+       the top view in Fig. 1. The second subset of NPAIRS = 3
+       "clockwise" slanting struts are labelled 4, 5, and 6.
+        
+       NOTE: THE RECOMMENDED VALUE OF ATANK: 15.0 degrees.
+ 
+ 240.1 circ.angle (deg.) to pinned tank end of strut: ATANK
+ 240.2 
+       Must be positive and less than 60 degrees. This angle is
+       measured from the x-axis shown in Fig. 1 of the "dewar"
+       paper. You might try 15 deg.
+ 
+ 245.1 circ.angle to pinned "ground" end of strut: AGRND
+ 245.2 
+       Must be positive. If NPAIRS = 3 you might try a starting
+       value, AGRND = ATANK + 45 degrees
+ 
+ 
+ 250.0 
+       Next, you will be asked to provide input relating
+       to the strut tubes: IDTUBE, FACLEN, DTSUP, ODINNR, FLINNR,
+       NTUBES and ISTRUT:
+       IDTUBE = inner diameter of support tube active during launch
+       FACLEN = factor less than unity used to reduce the length
+       of the composite strut tube analyzed for shell buckling.
+       DTSUP  = average strut temperatue - ambient (room) temp.
+       ODINNR = outer diameter of tube assembly active during
+       launch hold and in orbit
+       FLINNR = length of the orbital tube assembly
+       NTUBES = number of "folded" tubes in orbital tube assembly
+       ISTRUT = index for type of strut: 1=simple; 2=PODS
+ 
+ 255.1 inner diam. of support tube active at launch: IDTUBE
+ 255.2 
+       This is the inner diameter of the outermost support tube,
+       the tube through which all loads pass during the launch
+       phase of the mission.
+ 
+ 
+ 260.0 
+       Next, you will be asked to provide a factor by which
+       the strut launch tube length is to be multiplied for the
+       analysis of buckling of the launch tube as a shell. This
+       factor, called FACLEN, should be less than unity, probably
+       something like 0.02 - 0.2. The purpose is to obtain shell
+       buckling load factors that have converged with respect to
+       nodal point density. Most strut launch tubes have a rather
+       high length/diameter, something like 5 - 50. Shell buckling
+       usually occurs with an axial wavelength that is smaller than
+       a shell diameter, sometimes much smaller than a shell diameter.
+       Therefore, in order to obtain a converged value for the critical
+       shell buckling load factor one needs to analyze a rather short
+       sub-length of the strut tube. The factor, FACLEN, accomplishes
+       this.
+ 
+ 265.1 length factor for strut buckling as a shell: FACLEN
+ 265.2 
+       Set  0.02 < FACLEN < 0.2
+ 
+ 270.1 Average strut temperature minus ambient: DTSUP
+ 270.2 
+       What is wanted is the difference, DTSUP, between the average
+       temperature of the support strut after the propellant tank
+       has been filled with cryogenic material, and the ambient
+       temperature. This will be a negative number. Use temperature
+       units consistent with the value of ALSUP just provided by
+       you.
+ 
+ 275.1 outer diam.of the orbital tube assembly: ODINNR
+ 275.2 
+       This is the outer diameter of the orbital tube assembly,
+       the "folded" tube assembly through which all loads pass
+       during the orbital and launch-hold phases of the mission.
+ 
+ 280.1 Length of the orbital tube assembly: FLINNR
+ 280.2 
+       This is the length of the orbital tube assembly,
+       the "folded" tube assembly through which all loads pass
+       during the orbital and launch-hold phases of the mission.
+       If there are two tubes in the orbital tube assembly
+       ("folded" orbital tube concept), FLINNR is the length
+       of one of the tubes. The length of the other orbital
+       tube is assumed to be the same. In the "folded" orbital
+       tube concept this computer program accounts for the
+       fact that there are two tubes through use of the input
+       datum, NTUBES, which you will next provide.
+ 
+ 285.1 Choose 1 or 2 tubes in the orbital tube assembly: NTUBES
+ 285.2 
+       You must choose NTUBES = 1 or 2 . With NTUBES = 2 the orbital
+       tube assembly is a "folded" tube concept, which may reduce
+       the conductivity of the support system in orbit by providing
+       a longer path from propellant tank to "ground" (launch vehicle)
+       than with NTUBES = 1. With NTUBES = 2 the strut is softer
+       because the effective spring length of the folded tube is
+       twice that of the single orbital tube. (NOTE: the two
+       "folded" tubes are assumed to be of the same length, FLINNR,
+       and to have the same wall construction. One of these
+       two orbital tubes fits inside the other.
+ 
+ 
+ 290.0 
+       Next, you will be asked what type of struts support the
+       propellant tank. You have two choices:
+       1. ISTRUT = 1 means the strut is a simple composite tube
+       with end fittings.
+       2. ISTRUT = 2 means the strut has an orbital disconnect
+       feature. The compound strut has the main composite tube
+       active during the launch phase plus a disconnect "folded"
+       tube active during launch-hold or in orbit. This smaller
+       "inner" tube or tube bundle is near the cold (propellant
+       tank) end of the strut. It has a much smaller conductance
+       than the main tube active during launch (the outer tube)
+       which has a larger cross section area and which is, on the
+       average, warmer than the "orbital" tube or tube bundle.
+ 
+ 295.1 index for simple strut (1), "PODS" strut (2): ISTRUT
+ 295.2 
+       ISTRUT = 1 means that the support strut is a simple laminated
+       composite tube with end fittings.
+       ISTRUT = 2 means that the support strut is a compound strut
+       with a laminated composite tube active during launch and
+       a much smaller composite laminated tube or tube bundle
+       ("folded tube") active during launch hold and in orbit.
+ 
+ 
+ 300.0 
+       Next, you will be asked to provide an index for
+       the type of wall construction (type of composite laminate)
+       associated with the struct type, STRTYP. All struts attached
+       to a given propellant tank ring have the same wall type.
+       Sets of struts at different propellant tank rings may have
+       different composite layups, that is, different wall types.
+ 
+ 305.1 type of wall constructions in strut type STRTYP: WALTYP
+ 305.2 
+       Probably the struts at different axial levels will have the
+       same wall type, but struts at different levels MAY have
+       different wall types, that is, different composite layups.
+ 
+ 
+ 310.0 
+       You will next be asked to provide the cross-section
+       dimensions of an external ring with tee-shaped cross section
+       to be attached to the cylindrical portion of the propellant
+       tank at its midlength. You will be asked to provide the
+       height and thickness of the web and the height and thickness
+       of the outstanding flange. These are decision variable
+       candidates.
+ 
+ 315.1 height of mid-tank T-ring web: WEBHI
+ 315.2 
+       This is the distance measured from the outer surface of
+       the wall of the propellant tank to the middle surface of
+       the outstanding flange of the T-shaped external ring.
+ 
+ 320.1 thickness of mid-tank T-ring web: WEBTHK
+ 325.1 width (height) of mid-tank T-ring flange: FLGHI
+ 330.1 thickness of mid-tank T-ring flange: FLGTHK
+ 
+ 335.0 
+       Next, you will be asked to provide the propellant tank
+       reinforcement type. A given propellant tank reinforcement
+       type is associated with the following "bundle" of properties:
+       1. the doubler length and max. thickness: DUBAXL and DUBTHK
+       2. the ring cross section properties: ring thickness (TRNGTH),
+       ring height (TRNGHI), ring elastic modulus (TRNGE), and
+       ring coefficient of thermal expansion (ALRNGT).
+ 
+ 340.1 propellant tank reinforcement type: RNGTYP
+ 340.2 
+       The propellant tank reinforcement type is associated with
+       the bundle of tapered doubler and discrete ring properties.
+ 
+ 
+ 345.0 
+       Next, you will be asked to provide the axial lengths of doublers
+       associated with each propellant tank support ring. The propellant
+       tank end of each strut is associated not only with a propellant
+       tank support ring but also with a region in the neighborhood
+       of this ring where the propellant tank is thicker than elswhere
+       because of a tapered doubler added to the outside of the
+       propellant tank skin.
+        
+       You will next see the following prompt:
+       "Number IDUBAXL of rows in the array  DUBAXL: IDUBAXL"
+       What is wanted is the number of different reinforcement types.
+       In most cases IDUBAXL should probably be 1
+ 
+ 350.1 Number IDUBAXL of rows in the array  DUBAXL: IDUBAXL
+ 355.1 axial length of the propellant tank doubler: DUBAXL
+ 355.2 
+       This is the axial length of the axisymmetric doubler
+ 
+ 360.1 max.thickness of the propellant tank doubler: DUBTHK
+ 360.2 
+       The tapered doubler is centered at the axial location of
+       the propellant tank support ring with which it is associated.
+       The maximum thickness, DUBTHK, of the tapered doubler occurs
+       at the same axial location as the external discrete ring.
+       This is the additional thickness to be added to the nominal
+       tank thickness that exists in regions remote from each
+       propellant tank support ring. In axial regions where
+       tapered doublers exist the BIGBOSOR4 tank wall model has
+       three layers: innermost layer = smeared orthogrid; middle
+       layer = tank skin of thickness, THKAFT or THKMID or THKFWD;
+       outermost layer = tapered doubler.
+ 
+ 
+ 365.0 
+       Next, you will be asked to provide properties of the
+       external rings to which the propellant tank end of the
+       support struts are attached. You will be asked for the
+       following:
+       TRNGTH = thickness of the propellant tank support ring
+       TRNGHI = height of the propellant tank support ring
+       You must provide these two properties of the propellant
+       tank support rings for each propellant tank reinforcement
+       type. The propellant tank support rings have rectangular
+       cross sections.
+       TRNGE = elastic modulus of the propellant tank support ring
+       ALRNGT = coefficient of thermal expansion of the ring
+ 
+ 370.1 thickness of the tank reinforcement ring: TRNGTH
+ 370.2 
+       This ring is part of the propellant tank reinforcement
+       The propellant tank end of the strut is attached to the
+       centroid of this ring, which has a rectangular cross section.
+       TRNGTH is the dimension of the ring measured parallel to the
+       tank skin. The ring is attached to the outer surface of the
+       tank skin. (Not the outer surface of the doubler, but the
+       outer surface of the part of the tank skin of thickness
+       THKMID.)
+ 
+ 375.1 height of the tank reinforcement ring: TRNGHI
+ 375.2 
+       TRNGHI is the dimension of the ring measured normal to the
+       tank skin.
+ 
+ 380.1 hoop modulus of the tank ring: TRNGE
+ 380.2 
+       The hoop modulus is the stiffness/area of the tank support
+       ring in units, for example, of lb/in**2.
+ 
+ 385.1 coef.of thermal expansion of the tank ring: ALRNGT
+ 385.2 
+       What is wanted here is the coefficient of thermal radial
+       expansion of the propellant tank support ring. The thermal
+       radial contraction of each propellant tank support ring is
+       included in the stress and buckling analyses of the supporting
+       struts. Units of ALRNGT are "per degree xxx". Use consistent
+       units for this quantity and the temperature difference you
+       will be asked for below.
+ 
+ 
+ 390.0 
+       Next, you will be asked to provide thickness types,
+       layup angle types, and material types. These quantities
+       are the "building blocks" of the laminated composite walls
+       that form the strut launch tubes and the strut orbital tubes.
+       THICK = thickness corresponding to a layer index
+       ANGLE = layup angle corresponding to a layer index
+       MATTYP = material type corresponding to a layer index.
+       THICK, ANGLE, and MATTYP form a triad that corresponds
+       to a given layer index.
+       The layer indices are stored in a matrix, LAYTYP(i,j),
+       in which i = the layer number in a laminate and j = a
+       wall type number.
+        
+       You will next see the prompt:
+       "Number ITHICK of rows in the array THICK: ITHICK"
+       What is wanted is the number of different layer indices
+       that point to a unique triad, (THICK,ANGLE,MATTYP). For
+       example, suppose you have a laminated composite wall with
+       ply layup given by [0,+45,-45,90,90,-45,+45,0]total. In
+       this example ITHICK = 4 (4 unique triads) because each of
+       the first four layers in the symmetric 8-layered laminate
+       has a different layup angle. You would provide the following:
+       ITHICK = 4
+       THICK(i), i=1,4 = 0.01, 0.01, 0.01, 0.01 (for example, and
+       to be provided by you one datum at a time)
+       ANGLE(i), i=1.4 = 0., 45., -45., 90. (one datum at a time)
+       MATTYP(i),i=1,4 = 1, 1, 1, 1 (one datum at a time)
+ 
+ 395.1 Number ITHICK  of rows in the array  THICK: ITHICK 
+ 400.1 thickness of a lamina: THICK
+ 400.2 
+       It is possible to have multiple adjacent plies of the same
+       thickness type (same thickness index).
+ 
+ 405.1 layup angle: ANGLE
+ 405.2 
+       Please provide the layup angle in degrees
+ 
+ 410.1 Material type: MATTYP
+ 410.2 
+       Thickness, Layup angle, and Material type form a triad that
+       corresponds to a layer type, or a layer index. Composite
+       laminated walls consist of a group of layer types. The
+       thickness and layup angle of the layer type can be selected
+       by the user as decision variables. They are called "decision
+       variable candidates".
+ 
+ 
+ 415.0 
+       Next, you will be asked to provide a matrix of layer types
+       corresponding to each wall type.
+       LAYTYP(ILAYTYP,JLAYTYP) = layer type(layer no., walltype no.)
+       Suppose you have the following laminate stacking sequence:
+       [0,+45,-45,90,90,-45,+45,0]total. Then, for wall type no. 1
+       you would want LAYTYP(i,1) to be as follows:
+       LAYTYP(i,1), i=1,8 = 1, 2, 3, 4, 4, 3, 2, 1
+        
+       You will next see the two prompts:
+       "Number JLAYTYP of columns in the array, LAYTYP: JLAYTYP"
+       "Number ILAYTYP of rows in this column of LAYTYP: ILAYTYP"
+       JLAYTYP is the number of wall types and ILAYTYP is the number
+       of layers in the laminate.
+       Following the prompts for JLAYTYP and ILAYTYP, you will be
+       prompted to provide the layer types, LAYTYP. Corresponding
+       to the example of the laminate with 8 layers, you would provide:
+       LAYTYP(i,1), i=1,8 = 1, 2, 3, 4, 4, 3, 2, 1
+       one datum at a time.
+ 
+ 420.1 Number JLAYTYP of columns in the array, LAYTYP: JLAYTYP
+ 425.1 Number ILAYTYP of rows in this column of LAYTYP: ILAYTYP
+ 430.1 layer type index: LAYTYP
+ 430.2 
+       For example, LAYTYP(7,3) is the layer index for layer number 7
+       wall type number 3. The integer, LAYTYP(i,j) points to a
+       specific triad: thickness, layup angle, material type.
+ 
+ 
+ 435.0 
+       Next, you will be asked to supply material properties for
+       an orthotropic ply of composite material. You will be asked
+       to provide the following for each material type:
+        
+       E1 = modulus in the fiber direction
+       E2 = modulus transverse to fibers in the plane of the layey
+       G12 = in-plane shear modulus
+       NU = Poisson's ratio: NU = NU12 = NU21 x E2/E1
+       NOTE: The NU you provide is the smallest of the two if
+       E1 > E2. This is a bit unusual, so BEWARE!
+       G13 = transverse shear modulus for shear in a plane normal
+       to the fibers
+       G23 = transverse shear modulus for shear in a plane parallel
+       to the fibers.
+        
+       For an isotropic material just use E1 = E2; G12 = E1/[2(1+NU)]
+       G13 = G23 = G12
+        
+       ALPHA1 = coefficient of thermal expansion along fibers
+       ALPHA2 = coefficient of thermal expansion transverse to fibers
+       TEMTUR = residual stress temperature (curing delta temperature)
+       COND1 = thermal conductivity along fibers
+       COND2 = thermal conductivity transverse to fibers
+        
+       You will next see the prompt:
+       "Number IE1     of rows in the array  E1: IE1"
+       What is wanted is the number of different material types.
+       In the example given above in which there is an 8-layered
+       symmetric laminate, there is only one material type, that is,
+       MATTYP(i), i=1,4 = 1, 1, 1, 1  In this example you would
+       provide IE1 = 1
+ 
+ 440.1 Number IE1     of rows in the array  E1: IE1    
+ 445.1 modulus in the fiber direction: E1
+ 450.1 modulus transverse to fibers: E2
+ 455.1 in-plane shear modulus: G12
+ 460.1 small Poisson's ratio: NU
+ 460.2 
+       This is unusual, so BEWARE! NU is the small Poisson's
+       ratio if E1 > E2, which is almost always the case.
+       NU = NU12 = NU21 x E2/E1
+ 
+ 465.1 x-z out-of-plane shear modulus: G13
+ 465.2 
+       Ths is the transverse shear modulus governing shear stiffness
+       normal to the laminate in a plane normal to the fibers. For
+       unidirectional tape you might use a value equal to or close
+       to the in-plane shear modulus, G12.
+ 
+ 470.1 y-z out-of-plane shear modulus: G23
+ 470.2 
+       This is the transverse shear modulus governing shear stiffness
+       normal to the laminate in a plane parallel to the fibers. For
+       unidirectional tape you might use a value equal or close to
+       the in-plane shear modulus, G12.
+ 
+ 475.1 coef.of thermal expansion along fibers: ALPHA1
+ 480.1 coef.of thermal expan.transverse to fibers: ALPHA2
+ 485.1 curing delta temperature (positive): TEMTUR
+ 485.2 
+       This is the temperature difference between the temperature
+       at which the material sets and the ambient (room) temperature,
+       that is, the temperature difference that gives rise to residual
+       stresses from curing the composite laminate. Use TEMTUR = 0
+       if you wish to neglect the effect of curing residual stresses.
+ 
+ 490.1 conductivity along the fibers: COND1
+ 490.2 
+       This is the conductivity along the fibers in a unidirectional
+       ply of a composite laminate.
+ 
+ 495.1 conductivity transverse to fibers: COND2
+ 495.2 
+       This is the conductivity transverse to the fibers in a unidirectional
+       ply that is a layer in a composite laminate.
+ 
+ 500.1 weight density of the material: DENSTY
+ 500.2 
+       e.g. aluminum = 0.1 lb/in^3
+       many composite materials have DENSTY = 0.057 lb/in^3
+ 
+ 
+ 505.0 
+       Next, you will be asked to provide a variable
+       called "WGT". This variable plays a role in the definition
+       of the objective:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       + (1.0 - WGT)*(normalized conductance of support system)
+       After you provite WGT you will be asked to provide the
+       normalizing values of empty tank mass and total
+       conductance of all the supporting struts.
+ 
+ 510.1 objective=WGT*(empty tank mass) +(1-WGT)*(conductance): WGT
+ 510.2 
+       WGT is a "weighting" variable by means of which the
+       objective is defined.
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total strut conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total strut conductance)
+       You will next be asked to provide two variables:
+       1. TNKNRM = the normalizing quantity for empty tank mass
+       2. CONNRM = the normalizing quantity for total strut conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total strut conductance)/CONNRM
+ 
+ 515.1 normalizing empty tank mass: TNKNRM
+ 515.2 
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total strut conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total strut conductance)
+       You will next be asked to provide two variables:
+       1. TNKNRM = the normalizing quantity for empty tank mass
+       2. CONNRM = the normalizing quantity for total strut conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total strut conductance)/CONNRM
+ 
+ 520.1 normalizing total strut conductance: CONNRM
+ 520.2 
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total strut conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total strut conductance)
+       You will next be asked to provide the variable:
+       CONNRM = the normalizing quantity for total strut conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total strut conductance)/CONNRM
+ 
+ 
+ 525.0 
+       Next, provide the index for mission phase:
+       IPHASE = 1 means launch phase
+       IPHASE = 2 means orbital phase
+       In the orbital phase the conductance is lower than in the
+       launch phase because the heat must flow through both the
+       launch tube and the inner orbital tube assembly in series.
+ 
+ 530.1 IPHASE=1=launch phase; IPHASE=2=orbital phase: IPHASE
+ 530.2 
+       help for IPHASE
+ 
+ 
+ 535.0 
+       Next, provide the environment seen by the filled propellant
+       tank. This environment has the following components:
+       1. ullage pressure, PRESS, in the propellant tank
+       2. quasi-static axial g-loading in gees, GAXIAL
+       3. quasi-static lateral g-loading in gees, GLATRL
+       4. propellant tank cool-down in the launch-hold condition
+       5. launch vehicle temperature in the launch-hold condition
+       6. average cool-down of each strut in the launch-hold condition
+       and during launch
+       7. propellant tank cool-down in the orbital condition
+       8. launch vehicle temperature in the orbital condition
+       9. average cool-down of each strut in the orbital condition
+        
+       You will next see the following prompt:
+       "Number NCASES  of load cases (environments): NCASES"
+       Each case corresponds to a "bundle" of loads: ullage
+       pressure, PRESS, axial g-loading, GAXIAL, lateral g-loading,
+       GLATRL, and propellant tank cool-down delta temperature,
+       TNKCOOL. It is probably best to optimize with NCASES = 2
+       For example, in Load Case 1 you might have:
+       PRESS = 24, GAXIAL = 10., GLATRL = 0., TNKCOOL = -200
+       In load Case 2 you might have:
+       PRESS = 24, GAXIAL = 0., GLATRL = 10., TNKCOOL = -200
+ 
+ 540.1 Number NCASES  of load cases (environments): NCASES 
+ 545.1 propellant tank ullage pressure: PRESS
+ 545.2 
+       The propellant tank is internally pressurized in addition
+       to the pressure head provided by the propellant.
+ 
+ 550.1 quasi-static axial g-loading: GAXIAL
+ 550.2 
+       Provide the ultimate axial g-loading to be seen by the
+       propellant tank.
+ 
+ 555.1 quasi-static lateral g-loading: GLATRL
+ 555.2 
+       Provide the ultimate resultant lateral g-loading to be seen
+       by the propellant tank.
+ 
+ 560.1 propellant tank cool-down from cryogen: TNKCOOL
+ 560.2 
+       This is the temperature decrease after the tank has been
+       filled with cryogen.
+ 
+ 
+ 565.0 
+       The responses (behaviors) include the following:
+       1. four vibration modes and frequencies:
+       a. axial vibration
+       b. rolling vibration
+       c. lateral-pitching vibration mode 1
+       d. lateral-pitching vibration mode 2
+        
+       2. maximum stress components in the composite laminates:
+       a. maximum tensile stress along the fibers of a ply
+       b. maximum compressive stress along the fibers of a ply
+       c. maximum tensile stress transverse to the fibers in a ply
+       d. maximum compressive stress transverse to the fibers in a ply
+       e. maximum in-plane shear stress in a ply
+       f. maximum vonMises effective stress if the material is isotropic
+        
+       3. column buckling of a strut
+       4. shell buckling of a strut launch tube
+       5. force in a strut in the launch-hold condition
+       6. maximum effective stress in the propellant tank
+       7. buckling of the propellant tank
+        
+       You will next see the prompt:
+       "Number JFREQ   of columns in the array, FREQ: JFREQ"
+       JFREQ is the number of free vibration frequencies to be
+       computed for the tank/strut system. In this study JFREQ is
+       must always be equal to 4   There are two free vibration
+       modes corresponding to n = 0 circumferential waves: one
+       corresponding to rolling and the other corresponding to
+       axial translation of the strut-supported propellant tank.
+       There are two free vibration modes corresponding to n = 1
+       circumferential wave: both corresponding to a combination
+       of lateral translation and pitching of the propellant tank.
+ 
+ 570.1 Number JFREQ   of columns in the array, FREQ: JFREQ  
+ 575.0 free vibration frequency (cps): FREQ
+ 575.2 
+       Four vibration modes are important:
+       1. axial vibration [axisymmetric (n=0) vibration mode]
+       2. rolling vibration [axisymmetric (n=0) vibration mode]
+       3. lateral-pitching mode 1 (vibration with n = 1 circ. wave)
+       4. lateral-pitching mode 2 (vibration with n = 1 circ. wave)
+ 
+ 580.1 minimum allowable frequency (cps): FREQA
+ 580.2 
+       Typically the minimum allowable frequency during the launch
+       phase of the mission is significantly higher than the minimum
+       allowable frequency in orbit.
+ 
+ 585.1 factor of safety for freqency: FREQF
+ 585.2 
+       One suggestion would be a factor of safety of something
+       like 1.2.
+ 
+ 
+ 590.0 
+       Next, you will be asked to provide behavioral variables
+       relating to stress in the laminated composite strut tubes.
+       For a unidirectional composite ply there are 5 stress
+       components that are important:
+       1. tensile stress along fibers
+       2. compressive stress along fibers
+       3. tensile stress transverse to fibers
+       4. compressive stress transverse to fibers
+       5. in-plane shear stress
+       The ply can fail if the allowable stress for any one
+       or more of these stress components is exceeded.
+        
+       You will next see the prompt:
+       "Number JSTRES1 of columns in the array, STRES1: JSTRES1"
+       What is wanted is the number of stress components, which
+       must always be 5 in this GENOPT application. Enter "5"
+       when you are presented with this prompting phrase.
+ 
+ 595.1 Number JSTRES1 of columns in the array, STRES1: JSTRES1
+ 600.0 maximum stress in material 1: STRES1
+ 600.2 
+       The six possible stress components are:
+       1. tensile stress along fibers
+       2. compressive stress along fibers
+       3. tensile stress transverse to fibers
+       4. compressive stress transverse to fibers
+       5. in-plane shear stress
+       6. vonMises effective stress (in isotropic material)
+ 
+ 605.1 maximum allowable stress in material 1: STRES1A
+ 610.1 factor of safety for stress, matl 1: STRES1F
+ 610.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 615.0 maximum stress in material 2: STRES2
+ 615.2 
+       In an analogous manner to the behavior, STRES1, there are
+       six component of stress in the array, STRES2. The only
+       difference here is that we are concerned with material type
+       2 instead of material type 1.
+ 
+ 620.1 maximum allowable stress in material 2: STRES2A
+ 625.1 factor of safety for stress, matl 2: STRES2F
+ 625.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 630.0 maximum stress in material 3: STRES3
+ 630.2 
+       In an analogous manner to the behaviors, STRES1 and STRES2,
+       there are six components of stress in the array, STRES3. The
+       only difference here is that we are concerned with material
+       type 3 instead of material type 1 or material type 2.
+       NOTE: Three different materials may be used as a device
+       in order to permit the computation of maximum stresses in
+       different parts of the structure. For example, we will want
+       to compute the maximum stress components in strut types
+       1 and 2 and also in the orbital tubes in a "pods" strut
+       application. The materials out of which these various
+       parts of the structure are made might all be the same
+       composite material. However, we pretend that different
+       parts of the structure are made of different materials
+       in order to compute stress margins for different parts
+       of the structure.
+ 
+ 635.1 maximum allowable stress in material 3: STRES3A
+ 640.1 factor of safety for stress, matl 3: STRES3F
+ 640.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 645.1 Number JCOLBUK of columns in the array, COLBUK: JCOLBUK
+ 650.0 buckling of a strut as a column: COLBUK
+ 650.2 
+       This is the Euler buckling phenomenon.
+ 
+ 655.1 allowable for column buckling of strut: COLBUKA
+ 655.2 
+       Always set COLBUKA = 1.0
+ 
+ 660.1 factor of safety for Euler strut buckling: COLBUKF
+ 660.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 665.0 buckling of strut as a shell: SHLBUK
+ 665.2 
+       The shell buckling mode is a short-axial-wavelength mode
+       compared to the axial wavelength of the column buckling mode.
+       The critical shell buckling mode usually has multiple wave
+       around the circumference of the launch tube part of the strut.
+ 
+ 670.1 allowable for shell buckling of strut: SHLBUKA
+ 670.2 
+       Always set SHLBUKA = 1.0
+ 
+ 675.1 factor of safety for shell buckling of strut: SHLBUKF
+ 675.2 
+       Generally use a factor of safety of about 2.0 in order to
+       account for the inevitable presence of initial imperfection
+       in the cylindrical tube portion of the strut active during
+       the launch phase of the mission.
+ 
+ 680.0 launch-hold force in a strut: FORCE
+ 680.2 
+       During lauch-hold a compound strut, that is, a strut that
+       has both a launch tube and a "folded" orbital tube, has a
+       "disconnect" feature (a gap) that must remain open during
+       the launch-hold phase and during the orbital phase of a
+       mission. If FORCE is less than the allowable force, then
+       this gap remains open, and the conductance of heat into the
+       propellant tank from the launch vehicle remains small.
+ 
+ 685.1 maximum allowable launch-hold force in strut: FORCEA
+ 685.2 
+       Consult the maker of "disconnect" struts for what the
+       maximum allowable launch-hold/orbital FORCE should be.
+ 
+ 690.1 factor of safety for launch-hold force: FORCEF
+ 690.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 695.0 maximum stress in the propellant tank: TNKSTR
+ 695.2 
+       It is assumed here that the propellant tank is made of
+       isotropic material with a single layer in the shell wall.
+ 
+ 700.1 allowable for propellant tank stress: TNKSTRA
+ 700.2 
+       Conult the experts for what this maximum allowable stress
+       should be.
+ 
+ 705.1 factor of safety for tank stress: TNKSTRF
+ 705.2 
+       Use a factor of safety between 1.0 and 2.0
+ 
+ 710.0 propellant tank buckling load factor: TNKBUK
+ 710.2 
+       The propellant tank can buckle in various ways:
+       1. Buckling of the internally pressurized ellipsoidal
+       dome at the bottom of the propellant tank
+       2. Buckling due to local compressive membrane stresses in
+       the neighborhoods of where the struts "poke at" the
+       propellant tank.
+ 
+ 715.1 allowable for propellant tank buckling: TNKBUKA
+ 715.2 
+       Always set TNKBUKA = 1.0
+ 
+ 720.1 factor of safety for tank buckling: TNKBUKF
+ 720.2 
+       Generally use a factor of safety between 1.0 and 1.2
+ 
+ 
+ 725.0 
+       In this study the objective is a weighted average of the
+       normalized empty tank mass and the normalized total conductance:
+       objective = WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM
+       in which TOTMAS is the empty tank mass, TNKNRM is a user-
+       provided normalizing empty tank mass, CONDCT is the total
+       conductance of heat into the propellant tank and CONNRM is
+       the normalizing total conductance.
+       This compound objective is to be minimized subject to the
+       responses (behaviors) identified previously.
+ 
+ 730.0 WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM: CONDCT
+ 999.0 DUMMY ENTRY TO MARK END OF FILE

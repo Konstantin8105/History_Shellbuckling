@@ -1,0 +1,1092 @@
+ 
+   5.0 
+       This is a computer program that uses GENOPT and BIGBOSOR4
+       to find the optimum design of advanced laminated composite
+       skirts that support the
+       propellant tank. The tank is carried by a booster that
+       imparts a certain ultimate peak axial acceleration and a
+       certain ultimate peak lateral acceleration. The minimum free
+       vibration frequency must be greater than some specified
+       value. The tank is assumed to be either cylindrical with
+       domed ends. It is made of isotropic material.
+       It may have locally thickened regions and stiffening rings
+       to handle the concentrated loads applied by the skirts.
+        
+       The three parts of the propellant tank (1. aft dome, 2.
+       cylindrical middle, 3. forward dome) have internal orthogrid
+       stiffening that is "smeared out" in all the BIGBOSOR4 models.
+       In the BIGBOSOR4 models the smeared orthogrid stiffeners are
+       treated as an orthotropic layer of constant thickness. The
+       tank wall is modeled as consisting of three layers:
+       Innermost layer: smeared orthogrid of thickness equal to
+       the height of the orthogrid stiffeners and stiffness and
+       density equal to the tank wall material "E" & "rho" multiplied
+       by (orthogrid stiffener thickness)/(stiffener spacing)
+       Middle layer: constant thickness that may differ in each
+       of the three parts of the propellant tank
+       Outer layer: variable thickness that represents tapered
+       doublers attached to the outer wall of the propellant tank
+       centered on axial locations where supporting skirts are
+       attached to external rings that are part of the tank.
+       The BIGBOSOR4 shell wall type, NWALL = 9, is used in order
+       to simulate this three-layered construction. NWALL = 9 is
+       the BIGBOSOR4 option for a laminated composite wall in
+       which one or more of the layers may have thickness that
+       varies along the meridian.
+        
+       In the free vibration BIGBOSOR4 model the mass of the fluid
+       in the tank is "lumped" into the constant-thickness middle
+       layer of the three-layered orthotropic wall. For the
+       cylindrical part of the propellant tank the "effective"
+       wall skin density, rho(add), to be added to the material
+       density is obtained from the relationship:
+       (cylindrical tank volume)xrho(propellant) =
+       (volume occupied by shell wall skin)xrho(add)
+       or, for a cylindrical shell:
+       pi x r^2 x L x rho(propellant) = 2 x pi x r x L x t x rho(add)
+       which leads to rho(add) = 0.5 x r/t x rho(propellant)
+       For a spherical dome, we have:
+       (4/3) x pi x r^3 x rho(propellant) = 4 x pi x r^2 x t x rho(add)
+       which leads to rho(add) = 0.333 x r/t x rho(propellant)
+        
+       There are laminated composite skirts attached to the tank
+       at one or two axial locations.
+ 
+  10.1 acceleration of gravity: GRAV
+  10.2 
+       Example: 386.4 inches/sec^2
+ 
+ 
+  15.0 
+       There are many variables with role types 1 and 2 (role type 1
+       means a decision variable candidate; role type 2 means a
+       constant that is not an environmental variable such as a load
+       and that is not a behavioral variable, an allowable, or a
+       factor of safety.
+        
+       The role type 1 and role type 2 variables are organized
+       as follows:
+       1. The launch vehicle diameter: DIAVEH
+        
+       2. The propellant tank dimensions and properties:
+       AFTDIA = diameter of the aft dome of the tank
+       AFTHI  = height of the aft dome of the tank
+       FWDDIA = diameter of the forward dome of the tank
+       FWDHI  = height of the forward dome of the tank
+       FLTANK = axial distance from the aft dome apex to the
+       forward dome apex
+       ZAPEX  = global axial coordinate of the aft dome apex
+       DENPRP = weight density of the propellant
+       ZCG    = global axial coordinate of the tank center of gravity
+       THKAFT = thickness of the tank aft dome skin
+       THKMID = thickness of the tank cylinder skin
+       THKFWD = thickness of the forward tank dome skin
+       STRSPC = spacing of the internal tank orthogrid stringers
+       RNGSPC = spacing of the internal tank orthogrid rings
+       STRTHK = thickness of the tank orthogrid stringers
+       STRHI  = height of the tank orthogrid stringers
+       RNGTHK = thickness of the tank orthogrid rings
+       RNGHI  = height of the tank orthogrid rings
+       ETANK  = Young's modulus of the cold tank
+       NUTANK = Poisson's ratio of the tank material
+       DENTNK = mass density of the tank material
+       ALTNK  = coefficient of thermal expansion of the tank material
+        
+       3. Orientation of the propellant tank in the launch vehicle:
+       IAXIS  = 1 means tank is vertical; 2 means tank is horizontal
+        
+       4. Propellant tank support rings:
+       IZTANK = tank skirt support ring number
+       ZTANK  = global axial coordinate of a tank support ring
+       ZGRND  = global axial coordinate of "ground" (launch vehicle)
+       for skirt attached at ZTANK
+        
+       5. Dimensions of skirt types:
+       SKRTYP = index for the type of skirt
+       LNGTNK1 = tank-end length of one-layered skirt part
+       THKTNK1  = tank-end thickness of tapered skirt part
+       LNGTNK2  = tank-end length of tapered prongs
+       THKTNK2  = tank-end thickness of one tapered prong
+       LNGVEH1  = "ground" end length of one-layered skirt part
+       THKVEH1  = "ground"-end thickness of tapered skirt part
+       LNGVEH2  = "ground"-end length of tapered prongs
+       THKVEH2  = "ground"-end thickness of one tapered prong
+        
+       6. Properties of the propellant tank reinforcement
+       corresponding to each tank reinforcement type:
+       RNGTYP = propellant tank reinforcement type
+       IDUBAXL= reinforcement type number
+       DUBAXL = axial length of the propellant tank tapered doubler
+       that is centered on each propellant tank support ring
+       DUBTHK = maximum thickness of the tapered propellant tank doubler
+       TRNGTH = thickness of the propellant tank support ring
+       TRNGHI = height of the propellant tank support ring
+       TRNGE  = hoop modulus of the propellant tank support ring
+       ALRNGT = coefficient of thermal expansion of the tank ring
+        
+       7. Properties of the walls of the composite skirts:
+       JWALTYP= 1 means launch skirt; 2 means orbital skirt
+       IWALTYP= skirt wall type number
+       WALTYP = type of laminated composite skirt wall
+       ITHICK = index for type of unidirectional composite ply
+       THICK  = thickness of lamina of type ITHICK
+       ANGLE  = layup angle of lamina of type ITHICK
+       MATTYP = material type of lamina of type ITHICK
+       JLAYTYP= wall type number
+       ILAYTYP= layer number
+       LAYTYP = layer type index for layer number ILAYTYP and
+       wall type number JLAYTYP
+        
+       8. Properties of composite material of which the launch skirts
+       are fabricated:
+       IE1    = material type number
+       E1     = modulus in the fiber direction in material type IE1
+       E2     = modulus transverse to fibers in material type IE1
+       G12    = in-plane shear modulus of material type IE1
+       NU     = minor Poisson ratio of material type IE1
+       G13    = x-z out-of-plane shear modulus in material type IE1
+       G23    = y-z out-of-plane shear modulus in material type IE1
+       ALPHA1 = coefficient of thermal expansion along fibers
+       ALPHA2 = coefficient of thermal expansion transverse to fibers
+       TEMTUR = curing delta temperature in material type IE1
+       COND1  = conductivity along the fibers in material type IE1
+       COND2  = conductivity transverse to fibers in material IE1
+       DENSTY = weight density of material type IE1
+        
+       9. Elements that are used in the expression for the objective:
+       WGT    = weighting coefficient used in the expression for
+       the objective:
+       objective = WGTx(normalized empty tank mass)
+       + (1-WGT)x(normalized total skirt conductance)
+       TNKNRM = normalizing empty tank mass
+       CONNRM = normalizing total skirt conductance
+        
+       10. Mission phase index:
+       IPHASE = 1 means launch  phase of the mission
+       IPHASE = 2 means orbital phase of the mission
+ 
+  20.1 diameter of launch vehicle: DIAVEH
+  20.2 
+       Diameter of the launch vehicle
+       The launch vehicle must have a larger diameter than the
+       propellant tank, of course, because it carries the propellant
+       tank. The propellant tank end of the skirts are located on
+       the tank reference surface at the axial attachment
+       point of a ring the centroidal diameter of which is
+       equal to the diameter of the aft dome plus 2 x ECCR,
+       in which ECCR is the radial eccentricity of the
+       support ring attached to the propellant tank.
+ 
+ 
+  25.0 
+       The supported mass, what is called here "the tank", is assumed
+       to have domed ends with elliptical cross sections. You will be
+       asked to provide the height and diameter of each of the two domed
+       ends.
+       Next, you will be asked to provide the diameter of the aft
+       dome of the tank.
+ 
+  30.1 diameter of the aft dome of the tank: AFTDIA
+  30.2 
+       This is the length of the major axis of the ellipsoidal dome.
+ 
+  35.1 height of the aft dome of the tank: AFTHI
+  35.2 
+       This is the length of the semi-minor axis of the ellipsoidal dome.
+ 
+  40.1 diameter of the forward dome of the tank: FWDDIA
+  40.2 
+       This is the length of the major axis of the ellipsoidal dome.
+       In most cases FWDDIA will be equal to AFTDIA and the middle
+       part of the tank connecting the aft and forward domes will
+       be cylindrical.
+ 
+  45.1 height of the forward dome of the tank: FWDHI
+  45.2 
+       This is the length of the semi-minor axis of the ellipsoidal dome.
+ 
+  50.1 axial dist. from aft dome apex to fwd dome apex: FLTANK
+  50.2 
+       FLTANK is needed in order to determine if the attachment
+       points of the skirts to the tank are located within the aft or
+       forward domes. NOTE: So far in this study it is assumed that
+       no skirts are attached to either end dome of the propellant
+       tank. All skirts are attached to the cylindrical part
+       of the propellant tank.
+ 
+  55.1 global axial coordinate of the aft dome apex: ZAPEX
+  55.2 
+       This quantity is needed in order to determine if the attachment
+       points of the skirts to the tank are located within the aft
+       or forward domes of the tank.
+ 
+  60.1 weight density of the propellant: DENPRP
+  60.2 
+       e.g. weight density of aluminum is 0.1 lb/in^3
+       Examples: LH2 = 4.43 lb/ft^3 = 0.00256366 lb/in^3
+       LOX = 71.3 lb/ft^3 = 0.0412616 lb/in^3
+ 
+  65.1 global axial coordinate of the tank cg: ZCG
+  65.2 
+       "cg" = center of gravity
+ 
+  70.1 thickness of the tank aft dome skin: THKAFT
+  70.2 
+       The thickness is assumed to be constant. It is the middle
+       layer of the BIGBOSOR4 three-layered NWALL=9 model of the
+       tank wall, in which the inner layer represents the smeared
+       orthogrid stiffeners and the outer layer represents the
+       tapered doublers. The middle layer of thickness THKAFT is
+       the layer into which is "lumped" the propellant mass.
+ 
+  75.1 thickness of the tank cylinder skin: THKMID
+  75.2 
+       This thickness is constant. This is the thickness into
+       which is "lumped" the propellant mass.
+ 
+  80.1 thickness of the forward tank dome skin: THKFWD
+  80.2 
+       This thickness is constant. This is the thickness into
+       which is "lumped" the propellant mass.
+ 
+ 
+  85.0 
+       All three parts of the tank wall (domes & cyl.) are stiffened
+       internally in what is called an "orthogrid" style. There are
+       internal rings and stringers of rectangular cross sections.
+       The orthogrid stiffeners are "smeared out" in all the models
+       used in this study. The "smeared" orthogrid is modeled as
+       the innermost layer of the tank wall in the BIGBOSOR4 model.
+       The decision variable candidates associated with this internal
+       smeared grid stiffening are:
+       1. STRSPC = spacing of the stringers (axial stiffeners)
+       2. RNGSPC = spacing of the rings
+       3. STRTHK = stringer thickness (dimension parallel to skin)
+       4. STRHI = stringer height (dimension normal to skin)
+       5. RNGTHK = ring thickness (dimension parallel to skin)
+       6. RNGHI = ring height (dimension normal to skin)
+       RNGHI should be equal to STRHI.
+        
+       This internal orthogrid is smeared out in models of the
+       propellant tank. The smeared orthogrid is treated as the
+       innermost layer (layer 1) of the propellant tank wall.
+       The properties of the propellant tank wall are formatted
+       in the NWALL = 9 option of BIGBOSOR4. NWALL = 9 means
+       "layered orthotropic wall in which one or more of the
+       layers has thickness that varies along the meridian".
+       The thickness of the smeared orthogrid layer is equal to
+       the height of the orthogrid stringers and rings, and the
+       "effective" moduli, E1 and E1, and density are equal to the
+       stiffness and density of the material muliplied by
+       (stiffener thickness)/(stiffener height).
+        
+       NOTE: There are two types of rings that enter this model:
+       1. The internal rings that are part of the orthogrid
+       stiffening, and
+       2. The external rings to which the support skirts are
+       attached. Please don't get them confused!
+ 
+  90.1 spacing of the tank orthogrid stringers: STRSPC
+  90.2 
+       "Stringers" are meridionally oriented stiffeners. the
+       spacing is in the circumferential direction. The fact that
+       in the two domes the circumferential spacing of meridional
+       stiffeners varies from base to apex of a dome is ignored.
+       In the model the internal orthogrid is smeared and the
+       spacing at the equator of the dome is used for the entire
+       dome. A dome could possibly be fabricated in which this
+       is approximately true.
+ 
+  95.1 spacing of the tank orthogrid rings: RNGSPC
+  95.2 
+       The orthogrid is smeared out in all models and is treated
+       as if it were Layer No. 1 in a two-layered orthotropic
+       tank (NWALL = 9 in BIGBOSOR4 jargon).
+ 
+ 100.1 thickness of the tank orthogrid stringers: STRTHK
+ 100.2 
+       This is the dimension measured parallel to the tank skin.
+ 
+ 105.1 height of the tank orthogrid stringers: STRHI
+ 105.2 
+       This is the dimension measured normal to the tank skin. It
+       is the dimension from the inner surface of the tank skin to
+       the tip of the stringer
+ 
+ 110.1 thickness of the tank orthogrid rings: RNGTHK
+ 110.2 
+       This is the dimension of the internal ring stiffener measured
+       parallel to the tank skin. NOTE: the "tank ring" we are
+       referring to here is one of the regularly spaced internal
+       rings that form part of the internal orthogrid stiffening
+       on the cylindrical part of the propellant tank, not one
+       of the external rings to which the support skirts are attached.
+ 
+ 115.1 height of the tank orthogrid rings: RNGHI
+ 115.2 
+       Note that here we are referring to part of the orthogrid
+       stiffening inside the wall of the propellant tank, not one
+       of the external rings to which the support skirts are attached.
+       RNGHI should be equal to STRHI.
+ 
+ 
+ 120.0 
+       Next, you will be asked to provide the material properties
+       of the propellant tank. Use the material properties that
+       are appropriate when the tank is filled with cryogen.
+ 
+ 125.1 Young's modulus of the cold tank material: ETANK
+ 125.2 
+       Make sure to use the properties that hold for the propellant
+       tank in its cold condition, that is, after it has been
+       filled with cryogen.
+ 
+ 130.1 Poisson's ratio of the tank material: NUTANK
+ 130.2 
+       Example: 0.3 for aluminum.
+ 
+ 135.1 mass density of the tank material: DENTNK
+ 135.2 
+       For example, aluminum has DENTNK = 0.00025 lb/in^3
+ 
+ 140.1 coef.thermal expansion of tank material: ALTNK
+ 140.2 
+       What is wanted here is the average coefficient of thermal
+       axial expansion between the bottom & top propellant tank
+       support rings. The thermal axial contraction between these
+       rings is included in the stress and buckling analyses of the
+       supporting skirts. Units of ALTNK are "per degree xxx". The
+       temperature difference between the portion of the propellant
+       tank between the two tank support rings must afterward be given
+       in units consistent with the coefficient of thermal axial
+       expansion, of course.
+ 
+ 
+ 145.0 
+       Next, you will be asked whether the propellant tank
+       is oriented axially or lying on its side in the launch
+       vehicle. This orientation is specified by the value of
+       an integer, IAXIS, being 1 or 2:
+       IAXIS = 1 means that the axis of the propellant tank is
+       aligned with the axis of the launch vehicle.
+       IAXIS = 2 means that the axis of the propellant tank is
+       oriented 90 degrees from the axis of the launch vehicle.
+ 
+ 150.1 tank is vertical (1) or horizontal (2): IAXIS
+ 150.2 
+       IAXIS = 1 means that the axis of the propellant tank is
+       aligned with the axis of the launch vehicle.
+       IAXIS = 2 means that the axis of the propellant tank is
+       oriented at 90 degrees with respect to the axis of the
+       launch vehicle.
+ 
+ 
+ 155.0 
+       The tank is assumed to be supported by up to 2 skirts,
+       one attached at the aft end of the cylindrical part of the
+       propellant tank and the other attached at the forward end
+       of the cylindrical part of the propellant tank.
+        
+       For each tank support skirts you will be asked to provide
+       the following input data:
+       1. The axial locations and properties of the structural
+       rings to which the propellant-tank-ends of the skirts
+       are attached. These rings are part of the propellant tank.
+       2. The axial lengths of tapered doublers added to the
+       propellant tank wall that are centered on the line of attachment
+       of the propellant tank support ring to the tank shell.
+       3. The maximum thicknesses of these tapered reinforcing doublers.
+       4. Thermal expansion coefficients of the
+       tank and the tank support rings.
+       5. Lengths and thicknesses pertaining to two short parts
+       of each skirt nearest the propellant tank.
+       6. Lengths and thicknesses pertaining to two short parts
+       of each skirt nearest the launch vehicle ("ground").
+       7. For each supporting skirt:
+       7.1 number of layers through the skirt thickness
+       7.2 layer type indicator for each layer
+       7.3 For each new layer type;
+       7.3.1 thickness
+       7.3.2 winding (layup) angle
+       7.3.3 material type indicator
+       8. Material properties for each material type. The skirts
+       are fabricated of laminated composite material.
+        
+       Next, you will see the prompt:
+       "Number IZTANK  of rows in the array  ZTANK: IZTANK"
+       Want is wanted is the number of axial locations at which
+       skirts are to be attached to the propellant tank.
+       With long propellant tanks IZTANK should probably be 2
+       With spherical or ellipsoidal tanks a choice of IZTANK = 1
+       is probably best.
+ 
+ 160.1 Number IZTANK  of rows in the array  ZTANK: IZTANK 
+ 165.1 global axial coordinate of tank support ring: ZTANK
+ 165.2 
+       Must be a positive number. Use the attachment line of the
+       tank support ring to the tank as the reference measure, not
+       the ring centroidal axis.
+       NOTE: IF THERE IS ONLY ONE SKIRT, PUT ZTANK
+       AT AN AXIAL STATION NEAR THE LOCATION OF THE TANK C.G.
+       ANOTHER NOTE: Do not put the ring exactly at the apex of the
+       tank dome. If the ring is in the dome make sure that it is
+       some distance from the dome apex. If it is at the apex a
+       singularity will occur and the computations will be meaningless.
+ 
+ 170.1 global axial coordinate of "ground": ZGRND
+ 170.2 
+       This is the global axial coordinate of the end of a skirt
+       that is connected to "ground", that is, the end of a skirt
+       that is connected to the launch vehicle, which is assumed
+       to be rigid in this study..
+ 
+ 
+ 175.0 
+       Next, you will be asked to provide the propellant tank
+       reinforcement type. A given propellant tank reinforcement
+       type is associated with the following "bundle" of properties:
+       1. the doubler length and max. thickness: DUBAXL and DUBTHK
+       2. the ring cross section properties: ring thickness (TRNGTH),
+       ring height (TRNGHI), ring elastic modulus (TRNGE), and
+       ring coefficient of thermal expansion (ALRNGT).
+ 
+ 180.1 propellant tank reinforcement type: RNGTYP
+ 180.2 
+       The propellant tank reinforcement type is associated with
+       the bundle of tapered doubler and discrete ring properties.
+ 
+ 
+ 185.0 
+       Next, you will be asked to provide the axial lengths of doublers
+       associated with each propellant tank support ring. The propellant
+       tank end of each skirtt is associated not only with a propellant
+       tank support ring but also with a region in the neighborhood
+       of this ring where the propellant tank is thicker than elswhere
+       because of a tapered doubler added to the outside of the
+       propellant tank skin.
+        
+       You will next see the following prompt:
+       "Number IDUBAXL of rows in the array  DUBAXL: IDUBAXL"
+       What is wanted is the number of different reinforcement types.
+       In most cases IDUBAXL should probably be 1
+ 
+ 190.1 Number IDUBAXL of rows in the array  DUBAXL: IDUBAXL
+ 195.1 axial length of the propellant tank doubler: DUBAXL
+ 195.2 
+       This is the axial length of the axisymmetric doubler
+ 
+ 200.1 max.thickness of the propellant tank doubler: DUBTHK
+ 200.2 
+       The tapered doubler is centered at the axial location of
+       the propellant tank support ring with which it is associated.
+       The maximum thickness, DUBTHK, of the tapered doubler occurs
+       at the same axial location as the external discrete ring.
+       This is the additional thickness to be added to the nominal
+       tank thickness that exists in regions remote from each
+       propellant tank support ring. In axial regions where
+       tapered doublers exist the BIGBOSOR4 tank wall model has
+       three layers: innermost layer = smeared orthogrid; middle
+       layer = tank skin of thickness, THKAFT or THKMID or THKFWD;
+       outermost layer = tapered doubler.
+ 
+ 
+ 205.0 
+       Next, you will be asked to provide properties of the
+       external rings near which the propellant tank end of the
+       support skirts are attached. You will be asked for the
+       following:
+       TRNGTH = thickness of the propellant tank support ring
+       TRNGHI = height of the propellant tank support ring
+       You must provide these two properties of the propellant
+       tank support rings for each propellant tank reinforcement
+       type. The propellant tank support rings have rectangular
+       cross sections.
+       TRNGE = elastic modulus of the propellant tank support ring
+       ALRNGT = coefficient of thermal expansion of the ring
+ 
+ 210.1 thickness of the tank reinforcement ring: TRNGTH
+ 210.2 
+       This ring is part of the propellant tank reinforcement
+       The propellant tank end of the skirt is attached to the
+       tank reference surface at the ring attachment point.
+       TRNGTH is the dimension of the ring measured parallel to the
+       tank skin. The ring is attached to the outer surface of the
+       tank skin. (Not the outer surface of the doubler, but the
+       outer surface of the part of the tank skin of thickness
+       THKMID.)
+ 
+ 215.1 height of the tank reinforcement ring: TRNGHI
+ 215.2 
+       TRNGHI is the dimension of the ring measured normal to the
+       tank skin.
+ 
+ 220.1 hoop modulus of the tank ring: TRNGE
+ 220.2 
+       The hoop modulus is the stiffness/area of the tank support
+       ring in units, for example, of lb/in**2.
+ 
+ 225.1 coef.of thermal expansion of the tank ring: ALRNGT
+ 225.2 
+       What is wanted here is the coefficient of thermal radial
+       expansion of the propellant tank support ring. The thermal
+       radial contraction of each propellant tank support ring is
+       included in the stress and buckling analyses of the supporting
+       skirts. Units of ALRNGT are "per degree xxx". Use consistent
+       units for this quantity and the temperature difference you
+       will be asked for below.
+ 
+ 
+ 230.0 
+       Next, you will be asked to provide some properties of
+       the skirts that support the propellant tank. etc.
+ 
+ 235.1 Number ISKRTYP of rows in the array  SKRTYP: ISKRTYP
+ 240.1 skirt type index: SKRTYP
+ 240.2 
+       There can be 1 or 2 skirt types. If there are 2 skirt types
+       skirt type 1 is the aft skirt and skirt type 2 is the
+       forward skirt.
+ 
+ 
+ 245.0 
+       Next, you will be asked to provide variables that pertain
+       to each type of skirt:
+       1. length of one-layered section of the end of the skirt
+       that is attached to the propellant tank.
+       2. thickness of the one-layered tank-end section where
+       the skirt is attached to the propellant tank
+       3. length of the multi-layed section of the tank-end of the
+       skirt in which there exist exterior metal "prongs" that
+       enclose the laminated composite skirt wall.
+       4. thickness of the tapered "prongs" at the tank-end junction
+       between the one-layered tank-end section and the multi-layered
+       tank-end section of the skirt.
+       5. length of the one-layered section of the end of the skirt
+       that is attached to "ground".
+       6. thickness of the one-layered "ground"-end section where
+       the skirt is attached to "ground".
+       7. length of the multi-layered section of the "ground"-end
+       of the skirt in which there exist exterior metal "prongs"
+       that enclose the "ground"-end laminated composite skirt wall.
+       8. thickness of the tapered "pprongs" at the "ground"-end
+       junction between the one-layered "ground"-end seciotn and
+       the multi-layered "ground"-end section of the skirt.
+ 
+ 250.1 tank-end length of one-layered skirt part: LNGTNK1
+ 250.2 
+       explain
+ 
+ 255.1 tank-end thickness of tapered skirt part: THKTNK1
+ 255.2 
+       explain
+ 
+ 260.1 tank-end length of tapered prongs: LNGTNK2
+ 260.2 
+       explain
+ 
+ 265.1 tank-end thickness of one tapered prong: THKTNK2
+ 265.2 
+       explain
+ 
+ 270.1 "ground" end length of one-layered skirt part: LNGVEH1
+ 270.2 
+       explain
+ 
+ 275.1 "ground"-end thickness of tapered skirt part: THKVEH1
+ 275.2 
+       explain
+ 
+ 280.1 "ground"-end length of tapered prongs: LNGVEH2
+ 280.2 
+       explain
+ 
+ 285.1 "ground"-end thickness of one tapered prong: THKVEH2
+ 285.2 
+       explain
+ 
+ 
+ 290.0 
+       Next, you will be asked to provide some properties of
+       the skirts that support the propellant tank. etc.
+ 
+ 
+ 295.0 
+       Next, you will be asked to provide an index for
+       the type of wall construction (type of composite laminate)
+       associated with the skirt type, SKRTYP.
+       Skirts at different propellant tank rings may have
+       different composite layups, that is, different wall types.
+ 
+ 300.1 type of wall constructions in skirt type SKRTYP: WALTYP
+ 300.2 
+       Probably the skirts at different axial levels will have
+       different wall types, that is, different composite layups.
+ 
+ 
+ 305.0 
+       Next, you will be asked to provide thickness types,
+       layup angle types, and material types. These quantities
+       are the "building blocks" of the laminated composite walls
+       that form the skirts.
+       THICK = thickness corresponding to a layer index
+       ANGLE = layup angle corresponding to a layer index
+       MATTYP = material type corresponding to a layer index.
+       THICK, ANGLE, and MATTYP form a triad that corresponds
+       to a given layer index.
+       The layer indices are stored in a matrix, LAYTYP(i,j),
+       in which i = the layer number in a laminate and j = a
+       wall type number.
+        
+       You will next see the prompt:
+       "Number ITHICK of rows in the array THICK: ITHICK"
+       What is wanted is the number of different layer indices
+       that point to a unique triad, (THICK,ANGLE,MATTYP). For
+       example, suppose you have a laminated composite wall with
+       ply layup given by [0,+45,-45,90,90,-45,+45,0]total. In
+       this example ITHICK = 4 (4 unique triads) because each of
+       the first four layers in the symmetric 8-layered laminate
+       has a different layup angle. You would provide the following:
+       ITHICK = 4
+       THICK(i), i=1,4 = 0.01, 0.01, 0.01, 0.01 (for example, and
+       to be provided by you one datum at a time)
+       ANGLE(i), i=1.4 = 0., 45., -45., 90. (one datum at a time)
+       MATTYP(i),i=1,4 = 1, 1, 1, 1 (one datum at a time)
+ 
+ 310.1 Number ITHICK  of rows in the array  THICK: ITHICK 
+ 315.1 thickness of a lamina: THICK
+ 315.2 
+       It is possible to have multiple adjacent plies of the same
+       thickness type (same thickness index).
+ 
+ 320.1 layup angle: ANGLE
+ 320.2 
+       Please provide the layup angle in degrees
+ 
+ 325.1 Material type: MATTYP
+ 325.2 
+       Thickness, Layup angle, and Material type form a triad that
+       corresponds to a layer type, or a layer index. Composite
+       laminated walls consist of a group of layer types. The
+       thickness and layup angle of the layer type can be selected
+       by the user as decision variables. They are called "decision
+       variable candidates".
+ 
+ 
+ 330.0 
+       Next, you will be asked to provide a matrix of layer types
+       corresponding to each wall type.
+       LAYTYP(ILAYTYP,JLAYTYP) = layer type(layer no., walltype no.)
+       Suppose you have the following laminate stacking sequence:
+       [0,+45,-45,90,90,-45,+45,0]total. Then, for wall type no. 1
+       you would want LAYTYP(i,1) to be as follows:
+       LAYTYP(i,1), i=1,8 = 1, 2, 3, 4, 4, 3, 2, 1
+        
+       You will next see the two prompts:
+       "Number JLAYTYP of columns in the array, LAYTYP: JLAYTYP"
+       "Number ILAYTYP of rows in this column of LAYTYP: ILAYTYP"
+       JLAYTYP is the number of wall types and ILAYTYP is the number
+       of layers in the laminate.
+       Following the prompts for JLAYTYP and ILAYTYP, you will be
+       prompted to provide the layer types, LAYTYP. Corresponding
+       to the example of the laminate with 8 layers, you would provide:
+       LAYTYP(i,1), i=1,8 = 1, 2, 3, 4, 4, 3, 2, 1
+       one datum at a time.
+ 
+ 335.1 Number JLAYTYP of columns in the array, LAYTYP: JLAYTYP
+ 340.1 Number ILAYTYP of rows in this column of LAYTYP: ILAYTYP
+ 345.1 layer type index: LAYTYP
+ 345.2 
+       For example, LAYTYP(7,3) is the layer index for layer number 7
+       wall type number 3. The integer, LAYTYP(i,j) points to a
+       specific triad: thickness, layup angle, material type.
+ 
+ 
+ 350.0 
+       Next, you will be asked to supply material properties for
+       an orthotropic ply of composite material. You will be asked
+       to provide the following for each material type:
+        
+       E1 = modulus in the fiber direction
+       E2 = modulus transverse to fibers in the plane of the layey
+       G12 = in-plane shear modulus
+       NU = Poisson's ratio: NU = NU12 = NU21 x E2/E1
+       NOTE: The NU you provide is the smallest of the two if
+       E1 > E2. This is a bit unusual, so BEWARE!
+       G13 = transverse shear modulus for shear in a plane normal
+       to the fibers
+       G23 = transverse shear modulus for shear in a plane parallel
+       to the fibers.
+        
+       For an isotropic material just use E1 = E2; G12 = E1/[2(1+NU)]
+       G13 = G23 = G12
+        
+       ALPHA1 = coefficient of thermal expansion along fibers
+       ALPHA2 = coefficient of thermal expansion transverse to fibers
+       TEMTUR = residual stress temperature (curing delta temperature)
+       COND1 = thermal conductivity along fibers
+       COND2 = thermal conductivity transverse to fibers
+        
+       You will next see the prompt:
+       "Number IE1     of rows in the array  E1: IE1"
+       What is wanted is the number of different material types.
+       In the example given above in which there is an 8-layered
+       symmetric laminate, there is only one material type, that is,
+       MATTYP(i), i=1,4 = 1, 1, 1, 1  In this example you would
+       provide IE1 = 1
+ 
+ 355.1 Number IE1     of rows in the array  E1: IE1    
+ 360.1 modulus in the fiber direction: E1
+ 365.1 modulus transverse to fibers: E2
+ 370.1 in-plane shear modulus: G12
+ 375.1 small Poisson's ratio: NU
+ 375.2 
+       This is unusual, so BEWARE! NU is the small Poisson's
+       ratio if E1 > E2, which is almost always the case.
+       NU = NU12 = NU21 x E2/E1
+ 
+ 380.1 x-z out-of-plane shear modulus: G13
+ 380.2 
+       Ths is the transverse shear modulus governing shear stiffness
+       normal to the laminate in a plane normal to the fibers. For
+       unidirectional tape you might use a value equal to or close
+       to the in-plane shear modulus, G12.
+ 
+ 385.1 y-z out-of-plane shear modulus: G23
+ 385.2 
+       This is the transverse shear modulus governing shear stiffness
+       normal to the laminate in a plane parallel to the fibers. For
+       unidirectional tape you might use a value equal or close to
+       the in-plane shear modulus, G12.
+ 
+ 390.1 coef.of thermal expansion along fibers: ALPHA1
+ 395.1 coef.of thermal expan.transverse to fibers: ALPHA2
+ 400.1 curing delta temperature (positive): TEMTUR
+ 400.2 
+       This is the temperature difference between the temperature
+       at which the material sets and the ambient (room) temperature,
+       that is, the temperature difference that gives rise to residual
+       stresses from curing the composite laminate. Use TEMTUR = 0
+       if you wish to neglect the effect of curing residual stresses.
+ 
+ 405.1 conductivity along the fibers: COND1
+ 405.2 
+       This is the conductivity along the fibers in a unidirectional
+       ply of a composite laminate.
+ 
+ 410.1 conductivity transverse to fibers: COND2
+ 410.2 
+       This is the conductivity transverse to the fibers in a unidirectional
+       ply that is a layer in a composite laminate.
+ 
+ 415.1 weight density of the material: DENSTY
+ 415.2 
+       e.g. aluminum = 0.1 lb/in^3
+       many composite materials have DENSTY = 0.057 lb/in^3
+ 
+ 
+ 420.0 
+       Next, you will be asked to provide a variable
+       called "WGT". This variable plays a role in the definition
+       of the objective:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       + (1.0 - WGT)*(normalized conductance of support system)
+       After you provite WGT you will be asked to provide the
+       normalizing values of empty tank mass and total
+       conductance of all the supporting skirts.
+ 
+ 425.1 objective=WGT*(empty tank mass) +(1-WGT)*(conductance): WGT
+ 425.2 
+       WGT is a "weighting" variable by means of which the
+       objective is defined.
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total skirt conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total skirt conductance)
+       You will next be asked to provide two variables:
+       1. TNKNRM = the normalizing quantity for empty tank mass
+       2. CONNRM = the normalizing quantity for total skirt conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total skirt conductance)/CONNRM
+ 
+ 430.1 normalizing empty tank mass: TNKNRM
+ 430.2 
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total skirt conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total skirt conductance)
+       You will next be asked to provide two variables:
+       1. TNKNRM = the normalizing quantity for empty tank mass
+       2. CONNRM = the normalizing quantity for total skirt conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total skirt conductance)/CONNRM
+ 
+ 435.1 normalizing total skirt conductance: CONNRM
+ 435.2 
+       In general, the objective is defined as:
+       OBJECTIVE = WGT*(normalized empty tank mass)
+       +(1.-WGT)*(normalized total skirt conductance)
+       If WGT = 0.0 the objective is given by:
+       OBJECTIVE = (total skirt conductance)
+       You will next be asked to provide the variable:
+       CONNRM = the normalizing quantity for total skirt conductance
+       With WGT > 0.0 the objective will be as follows:
+       OBJECTIVE = WGT*(empty tank mass)/TNKNRM
+       +(1.-WGT)*(total skirt conductance)/CONNRM
+ 
+ 
+ 440.0 
+       Next, provide the index for mission phase:
+       IPHASE = 1 means launch phase
+       IPHASE = 2 means orbital phase
+       In the orbital phase the conductance is lower than in the
+       launch phase because the heat must flow through both the
+       launch skirt and the inner orbital skirt assembly in series.
+ 
+ 445.1 IPHASE=1=launch phase; IPHASE=2=orbital phase: IPHASE
+ 445.2 
+       help for IPHASE
+ 
+ 
+ 450.0 
+       Next, provide the environment seen by the filled propellant
+       tank. This environment has the following components:
+       1. ullage pressure, PRESS, in the propellant tank
+       2. quasi-static axial g-loading in gees, GAXIAL
+       3. quasi-static lateral g-loading in gees, GLATRL
+       4. propellant tank cool-down in the launch-hold condition
+       5. launch vehicle temperature in the launch-hold condition
+       6. average cool-down of each skirt in the launch-hold condition
+       and during launch
+       7. propellant tank cool-down in the orbital condition
+       8. launch vehicle temperature in the orbital condition
+       9. average cool-down of each skirt in the orbital condition
+        
+       You will next see the following prompt:
+       "Number NCASES  of load cases (environments): NCASES"
+       Each case corresponds to a "bundle" of loads: ullage
+       pressure, PRESS, axial g-loading, GAXIAL, lateral g-loading,
+       GLATRL, and propellant tank cool-down delta temperature,
+       TNKCOOL. It is probably best to optimize with NCASES = 2
+       For example, in Load Case 1 you might have:
+       PRESS = 24, GAXIAL = 10., GLATRL = 0., TNKCOOL = -200
+       In load Case 2 you might have:
+       PRESS = 24, GAXIAL = 0., GLATRL = 10., TNKCOOL = -200
+ 
+ 455.1 Number NCASES  of load cases (environments): NCASES 
+ 460.1 propellant tank ullage pressure: PRESS
+ 460.2 
+       The propellant tank is internally pressurized in addition
+       to the pressure head provided by the propellant.
+ 
+ 465.1 quasi-static axial g-loading: GAXIAL
+ 465.2 
+       Provide the ultimate axial g-loading to be seen by the
+       propellant tank.
+ 
+ 470.1 quasi-static lateral g-loading: GLATRL
+ 470.2 
+       Provide the ultimate resultant lateral g-loading to be seen
+       by the propellant tank.
+ 
+ 475.1 propellant tank cool-down from cryogen: TNKCOOL
+ 475.2 
+       This is the temperature decrease after the tank has been
+       filled with cryogen.
+ 
+ 
+ 480.0 
+       The responses (behaviors) include the following:
+       1. four vibration modes and frequencies:
+       a. axial vibration
+       b. rolling vibration
+       c. lateral-pitching vibration mode 1
+       d. lateral-pitching vibration mode 2
+        
+       2. maximum stress components in the composite laminates:
+       a. maximum tensile stress along the fibers of a ply
+       b. maximum compressive stress along the fibers of a ply
+       c. maximum tensile stress transverse to the fibers in a ply
+       d. maximum compressive stress transverse to the fibers in a ply
+       e. maximum in-plane shear stress in a ply
+       f. maximum vonMises effective stress if the material is isotropic
+        
+       3. shell buckling of a skirt
+       4. force in a skirt in the launch-hold condition
+       5. maximum effective stress in the propellant tank
+       6. buckling of the propellant tank
+        
+       You will next see the prompt:
+       "Number JFREQ   of columns in the array, FREQ: JFREQ"
+       JFREQ is the number of free vibration frequencies to be
+       computed for the tank/skirt system. In this study JFREQ is
+       must always be equal to 4   There are two free vibration
+       modes corresponding to n = 0 circumferential waves: one
+       corresponding to rolling and the other corresponding to
+       axial translation of the skirt-supported propellant tank.
+       There are two free vibration modes corresponding to n = 1
+       circumferential wave: both corresponding to a combination
+       of lateral translation and pitching of the propellant tank.
+ 
+ 485.1 Number JFREQ   of columns in the array, FREQ: JFREQ  
+ 490.0 free vibration frequency (cps): FREQ
+ 490.2 
+       Four vibration modes are important:
+       1. axial vibration [axisymmetric (n=0) vibration mode]
+       2. rolling vibration [axisymmetric (n=0) vibration mode]
+       3. lateral-pitching mode 1 (vibration with n = 1 circ. wave)
+       4. lateral-pitching mode 2 (vibration with n = 1 circ. wave)
+ 
+ 495.1 minimum allowable frequency (cps): FREQA
+ 495.2 
+       Typically the minimum allowable frequency during the launch
+       phase of the mission is significantly higher than the minimum
+       allowable frequency in orbit.
+ 
+ 500.1 factor of safety for freqency: FREQF
+ 500.2 
+       One suggestion would be a factor of safety of something
+       like 1.2.
+ 
+ 
+ 505.0 
+       Next, you will be asked to provide behavioral variables
+       relating to stress in the laminated composite skirts.
+       For a unidirectional composite ply there are 5 stress
+       components that are important:
+       1. tensile stress along fibers
+       2. compressive stress along fibers
+       3. tensile stress transverse to fibers
+       4. compressive stress transverse to fibers
+       5. in-plane shear stress
+       The ply can fail if the allowable stress for any one
+       or more of these stress components is exceeded.
+        
+       You will next see the prompt:
+       "Number JSTRES1 of columns in the array, STRES1: JSTRES1"
+       What is wanted is the number of stress components, which
+       must always be 5 in this GENOPT application. Enter "5"
+       when you are presented with this prompting phrase.
+ 
+ 510.1 Number JSTRES1 of columns in the array, STRES1: JSTRES1
+ 515.0 maximum stress in material 1: STRES1
+ 515.2 
+       The six possible stress components are:
+       1. tensile stress along fibers
+       2. compressive stress along fibers
+       3. tensile stress transverse to fibers
+       4. compressive stress transverse to fibers
+       5. in-plane shear stress
+       6. vonMises effective stress (in isotropic material)
+ 
+ 520.1 maximum allowable stress in material 1: STRES1A
+ 525.1 factor of safety for stress, matl 1: STRES1F
+ 525.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 530.0 maximum stress in material 2: STRES2
+ 530.2 
+       In an analogous manner to the behavior, STRES1, there are
+       six component of stress in the array, STRES2. The only
+       difference here is that we are concerned with material type
+       2 instead of material type 1.
+ 
+ 535.1 maximum allowable stress in material 2: STRES2A
+ 540.1 factor of safety for stress, matl 2: STRES2F
+ 540.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 
+ 545.0 
+       Next, you will be asked to provide a behavioral variable
+       relating to buckling of the laminated composite skirts.
+        
+       You will next see the prompt:
+       "Number JSHLBUK of columns in the array, SHLBUK: JSHLBUK"
+       What is wanted is the number of skirt supports.
+ 
+ 550.1 Number JSHLBUK of columns in the array, SHLBUK: JSHLBUK
+ 555.0 buckling of skirt as a shell: SHLBUK
+ 555.2 
+       The shell buckling mode of the skirt may be a short-
+       axial-wavelength mode. The critical shell buckling
+       mode usually has multiple waves around the
+       circumference of the skirt.
+ 
+ 560.1 allowable for shell buckling of skirt: SHLBUKA
+ 560.2 
+       Always set SHLBUKA = 1.0
+ 
+ 565.1 factor of safety for shell buckling of skirt: SHLBUKF
+ 565.2 
+       Generally use a factor of safety of about 2.0 in order to
+       account for the inevitable presence of initial
+       imperfections in the skirt.
+ 
+ 570.0 launch-hold force in a skirt: FORCE
+ 570.2 
+       During lauch-hold a compound skirt, that is, a skirt that
+       has both a launch wall and a "folded" orbital wall, has a
+       "disconnect" feature (a gap) that must remain open during
+       the launch-hold phase and during the orbital phase of a
+       mission. If FORCE is less than the allowable force, then
+       this gap remains open, and the conductance of heat into the
+       propellant tank from the launch vehicle remains small.
+ 
+ 575.1 maximum allowable launch-hold force in skirt: FORCEA
+ 575.2 
+       Consult the maker of "disconnect" skirts for what the
+       maximum allowable launch-hold/orbital FORCE should be.
+ 
+ 580.1 factor of safety for launch-hold force: FORCEF
+ 580.2 
+       Generally use a factor of safety between 1.0 and 1.5.
+ 
+ 585.0 maximum stress in the propellant tank: TNKSTR
+ 585.2 
+       It is assumed here that the propellant tank is made of
+       isotropic material with a single layer in the shell wall.
+ 
+ 590.1 allowable for propellant tank stress: TNKSTRA
+ 590.2 
+       Conult the experts for what this maximum allowable stress
+       should be.
+ 
+ 595.1 factor of safety for tank stress: TNKSTRF
+ 595.2 
+       Use a factor of safety between 1.0 and 2.0
+ 
+ 600.0 propellant tank buckling load factor: TNKBUK
+ 600.2 
+       The propellant tank can buckle in various ways:
+       1. Buckling of the internally pressurized ellipsoidal
+       dome at the bottom of the propellant tank
+       2. Buckling due to local compressive membrane stresses in
+       the neighborhoods of where the skirts "poke at" the
+       propellant tank.
+ 
+ 605.1 allowable for propellant tank buckling: TNKBUKA
+ 605.2 
+       Always set TNKBUKA = 1.0
+ 
+ 610.1 factor of safety for tank buckling: TNKBUKF
+ 610.2 
+       Generally use a factor of safety between 1.0 and 1.2
+ 
+ 
+ 615.0 
+       In this study the objective is a weighted average of the
+       normalized empty tank mass and the normalized total conductance:
+       objective = WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM
+       in which TOTMAS is the empty tank mass, TNKNRM is a user-
+       provided normalizing empty tank mass, CONDCT is the total
+       conductance of heat into the propellant tank and CONNRM is
+       the normalizing total conductance.
+       This compound objective is to be minimized subject to the
+       responses (behaviors) identified previously.
+ 
+ 620.0 WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM: CONDCT
+ 999.0 DUMMY ENTRY TO MARK END OF FILE

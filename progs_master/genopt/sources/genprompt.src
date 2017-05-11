@@ -1,0 +1,4094 @@
+C=DECK      GENTXT
+      PROGRAM GENTXT
+C
+C  PURPOSE IS TO PERMIT USER TO SET UP A PROMPT FILE.
+C
+      CHARACTER*1 TN1,CN1,CNTYPE,CNV1,N,CIX,Q,YN
+C BEG OCT 2005
+C     CHARACTER*7 ANS, ANS2, VNAME, TAG
+      CHARACTER*8 ANS, ANS2, VNAME, TAG
+C END OCT 2005
+      CHARACTER*8 WIJ
+      CHARACTER*80 PHRASE,PHRAS2,P4,P5,P6,ROWDEF,COLDEF,ROWDSV,COLDSV
+      CHARACTER*80 PCOM,PCOM0,PICOM0,PCOM1,PCOM2,PRCOM1,PRCOM2
+      CHARACTER*3 CN3,CN3OLD,CN4,CN4OLD,CARN,CN3ROW,CN3COL
+      CHARACTER*2 CNV2,CNNV,CI,CNROWS,CNCOLS
+C BEG OCT 2005
+C     CHARACTER*6 NV,NC,VB,VBA,VBF,WICHA,WCHA,NVSAVE,NCSAVE,NAMSAV
+      CHARACTER*6 WICHA,WCHA
+      CHARACTER*7 NV,NC,VB,VBA,VBF,NVSAVE,NCSAVE,NAMSAV
+C END OCT 2005
+      CHARACTER*7 WORDN,WORD0
+C BEG OCT 2005
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8
+C     CHARACTER*16 CASE9,CASE10,CASE11,CASE12,CASE13
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8
+      CHARACTER*32 CASE9,CASE10,CASE11,CASE12,CASE13
+C END OCT 2005
+      CHARACTER*25 CODE1
+      CHARACTER*42 CODE2
+C BEG OCT 2005 (CODE3, CODE4, CODE6 increased by one character)
+      CHARACTER*45 CODE3
+      CHARACTER*69 CODE
+      CHARACTER*32 CODE4
+      CHARACTER*19 CODE5
+      CHARACTER*51 CODE6
+C END OCT 2005
+      INTEGER LABL,ILOC
+      INTEGER DK,TYPE,TYPEH
+      LOGICAL ANSL1
+C
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C
+C#if hp700
+C$hp9000_800 intrinsics
+C      call getarg(2,CASE)
+C#else
+C      call getarg(1,CASE)
+C#endif
+C
+      LABL = 0
+      ILOC = 0
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+c Added 11/90
+C BEG NOV 2005
+C     open(1,status='OLD')
+C     CALL CASGEN(1,CASE)
+      CALL CASGEN(5,CASE)
+C     close(1)
+C END NOV 2005
+c End 11/90
+      I=INDEX(CASE,' ')
+C
+C  NEXT, THE NAMES OF VARIOUS FILES ARE ESTABLISHED. THE
+C  PURPOSES OF THESE FILES ARE LISTED IN TABLE 5 IN FILE CASE.DEF.
+C
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.PRO'
+         CASE3=CASE(:I-1)//'.NEW'
+         CASE4=CASE(:I-1)//'.INP'
+         CASE5=CASE(:I-1)//'.COM'
+         CASE6=CASE(:I-1)//'.WRI'
+         CASE7=CASE(:I-1)//'.REA'
+         CASE8=CASE(:I-1)//'.SET'
+         CASE9=CASE(:I-1)//'.CON'
+         CASE10=CASE(:I-1)//'.SUB'
+         CASE11=CASE(:I-1)//'.DEF'
+         CASE12=CASE(:I-1)//'.CHA'
+         CASE13=CASE(:I-1)//'.DAT'
+      ELSE
+         CASE2=CASE//'.PRO'
+         CASE3=CASE//'.NEW'
+         CASE4=CASE//'.INP'
+         CASE5=CASE//'.COM'
+         CASE6=CASE//'.WRI'
+         CASE7=CASE//'.REA'
+         CASE8=CASE//'.SET'
+         CASE9=CASE//'.CON'
+         CASE10=CASE//'.SUB'
+         CASE11=CASE//'.DEF'
+         CASE12=CASE//'.CHA'
+         CASE13=CASE//'.DAT'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28 
+C END OCT 2005
+      OPEN(UNIT=3,FILE=CASE2,STATUS='UNKNOWN')
+      OPEN(UNIT=4,FILE=CASE3,STATUS='UNKNOWN')
+      OPEN(UNIT=7,FILE=CASE4,STATUS='UNKNOWN')
+      OPEN(UNIT=8,FILE=CASE5,STATUS='UNKNOWN')
+      OPEN(UNIT=9,FILE=CASE6,STATUS='UNKNOWN')
+      OPEN(UNIT=10,FILE=CASE7,STATUS='UNKNOWN')
+      OPEN(UNIT=15,FILE=CASE8,STATUS='UNKNOWN')
+      OPEN(UNIT=16,FILE=CASE9,STATUS='UNKNOWN')
+      OPEN(UNIT=17,FILE=CASE10,STATUS='UNKNOWN')
+      OPEN(UNIT=21,FILE=CASE11,STATUS='UNKNOWN')
+      OPEN(UNIT=22,FILE=CASE12,STATUS='UNKNOWN')
+      OPEN(UNIT=25,FILE=CASE13,STATUS='UNKNOWN')
+C
+      IOUT   =  3
+      IBEG   =  4
+      IRAW   =  7
+      ICOM   =  8
+      IWRI   =  9
+      IREA   = 10
+      ISET   = 15
+      ICON   = 16
+      ISUB   = 17
+      IDEF   = 21
+      ICHA   = 22
+      IDAT   = 25
+C
+      WRITE(ISUB,'(A)') 'C=DECK      BEHAVIOR.NEW'
+      WRITE(ISUB,'(A)') 'C  This library contains the skeletons of'
+      WRITE(ISUB,'(A)') 'C  subroutines called SUBROUTINE BEHXn, n = 1,'
+      WRITE(ISUB,'(A)') 'C  2, 3, . . . that will yield predictions'
+      WRITE(ISUB,'(A)') 'C  of behavioral responses of various systems'
+      WRITE(ISUB,'(A)') 'C  to environments (loads).'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)') 'C  You may complete the subroutines by writing'
+      WRITE(ISUB,'(A)') 'C  algorithms that yield the responses,'
+      WRITE(ISUB,'(A)') 'C  each of which plays a part in constraining'
+      WRITE(ISUB,'(A)') 'C  the design to a feasible region. Examples'
+      WRITE(ISUB,'(A)') 'C  of responses are: stress, buckling, drag,'
+      WRITE(ISUB,'(A)') 'C  vibration, deformation, clearances, etc.'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)') 'C  A skeleton routine called SUBROUTINE OBJECT'
+      WRITE(ISUB,'(A)') 'C  is also provided for any objective function'
+      WRITE(ISUB,'(A)') 'C  (e.g. weight, deformation, conductivity)'
+      WRITE(ISUB,'(A)') 'C  you may wish to create.'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)') 'C  A skeleton routine called SUBROUTINE USRCON'
+      WRITE(ISUB,'(A)') 'C  is also provided for any user-written'
+      WRITE(ISUB,'(A)') 'C  constraint condition you may wish to write:'
+      WRITE(ISUB,'(A)') 'C  This is an INEQUALITY condition that'
+      WRITE(ISUB,'(A)') 'C  involves any program variables.  However,'
+      WRITE(ISUB,'(A)') 'C  note that this kind of thing is done'
+      WRITE(ISUB,'(A)') 'C  automatically in the program DECIDE, so'
+      WRITE(ISUB,'(A)') 'C  try DECIDE first to see if your particular'
+      WRITE(ISUB,'(A)') 'C  constraint conditions can be accommodated'
+      WRITE(ISUB,'(A)') 'C  more easily there.'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)') 'C  Please note that you do not have to modify'
+      WRITE(ISUB,'(A)') 'C  BEHAVIOR.NEW in any way, but may instead'
+      WRITE(ISUB,'(A)') 'C  prefer to insert your subroutines into the'
+      WRITE(ISUB,'(A)') 'C  skeletal libraries ADDCODEn.NEW, n=1,2,...'
+      WRITE(ISUB,'(A)') 'C  and appropriate common blocks, dimension'
+      WRITE(ISUB,'(A)') 'C  and type statements and calls to these'
+      WRITE(ISUB,'(A)') 'C  subroutines in the library STRUCT.NEW.'
+      WRITE(ISUB,'(A)') 'C  This strategy is best if your FORTRAN'
+      WRITE(ISUB,'(A)') 'C  input to GENOPT contains quite a bit'
+      WRITE(ISUB,'(A)') 'C  of software previously written by'
+      WRITE(ISUB,'(A)') 'C  yourself or others, and/or the generation'
+      WRITE(ISUB,'(A)') 'C  of behavioral constraints is more easily'
+      WRITE(ISUB,'(A)') 'C  accomplished via another architecture'
+      WRITE(ISUB,'(A)') 'C  than that provided for in the'
+      WRITE(ISUB,'(A)') 'C  BEHAVIOR.NEW library. (See instructions'
+      WRITE(ISUB,'(A)') 'C  in the libraries ADDCODEn.NEW and'
+      WRITE(ISUB,'(A)') 'C  STRUCT.NEW for this procedure.)'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)') 'C  The two test cases provided with GENOPT'
+      WRITE(ISUB,'(A)') 'C  provide examples of each method:'
+      WRITE(ISUB,'(A)') 'C   PLATE (test case 1): use of BEHAVIOR.NEW'
+      WRITE(ISUB,'(A)') 'C   PANEL (test case 2): use of ADDCODEn.NEW'
+      WRITE(ISUB,'(A)') 'C                        and STRUCT.NEW.'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)')
+     * 'C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY'
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,2000)
+C
+      WRITE(ISUB,'(A)') 'C'
+      WRITE(ISUB,'(A)')
+     * 'C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:'
+      WRITE(ISUB,'(A)') 'C'
+C
+      WRITE(IDEF,2001) CASE(1:NLET)
+      write(IDEF,2002)
+      write(IDEF,2003) CASE(1:NLET)
+      WRITE(IDEF,2004) CASE(1:NLET)
+C BEG JAN 1990
+      WRITE(IDEF,2005)
+      WRITE(IDEF,2006)
+      WRITE(IDEF,2007)
+C BEG OCT 2005
+      WRITE(IDEF,2008)
+      WRITE(IDEF,2009)
+C END OCT 2005
+C BEG JAN 2013
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     *'C There is a "new" GENOPT processor called "SUPERDUPEROPT".',
+     *'C SUPERDUPEROPT executes SUPEROPT several times in',
+     *'C succession. The user specifies the number of successive',
+     *'C executions of SUPEROPT and the number of successive',
+     *'C executions of OPTIMIZE between each execution of',
+     *'C the GENOPT processor, AUTOCHANGE, which gets a new',
+     *'C "starting" design from a random process. See Item No. 43,',
+     *'C dated July 2011, in the file, ...genopt/doc/genopt.news,',
+     *'C for more details about how SUPERDUPEROPT works.'
+C END JAN 2013
+      WRITE(IDEF,2010)
+C BEG FEB 2009
+      WRITE(IDEF,2011)
+C END FEB 2009
+C BEG DEC 2010
+      WRITE(IDEF,'(A,/,A,/,A,/,A)')
+     *'C [2f] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain',
+     *'C optimum designs of a double-walled inflatable cylindrical',
+     *'C vacuum chamber", unpublished report for Michael Mayo,',
+     *'C November, 2010'
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/)')
+     *'C [2g] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain',
+     *'C optimum designs of a double-walled inflatable spherical',
+     *'C vacuum chamber", unpublished report for Michael Mayo,',
+     *'C December, 2010'
+C END DEC 2010
+C BEG JAN 2013
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/)')
+     *'C [2h] Bushnell, D. and Rankin, C.C, "Use of GENOPT and',
+     *'C BIGBOSOR4 to obtain optimum designs of a double-walled',
+     *'C inflatable spherical and cylindrical vacuum chambers",',
+     *'C AIAA Paper 2012-1416, 53rd AIAA Structures Meeting,',
+     *'C Honolulu, Hawaii, April 2012'
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/)')
+     *'C [2i] Bushnell, D., Jacoby, M.S. and Rankin, C.C.,',
+     *'C "Optimization of propellant tanks supported by',
+     *'C optimized laminated composite tubular struts",',
+     *'C AIAA Paper 2013-1479, 54th AIAA Structures Meeting,',
+     *'C Boston, Massachusetts, April 2013'
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/)')
+     *'C [2j] Bushnell, D., Jacoby, M.S. and Rankin, C.C.,',
+     *'C "Optimization of propellant tanks supported by',
+     *'C one or two optimized laminated composite skirts",',
+     *'C AIAA Paper 2013-1480, 54th AIAA Structures Meeting,',
+     *'C Boston, Massachusetts, April 2013'
+C END JAN 2013
+C BEG JUN 2013
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     *'C [2k] Bushnell, D. and Jacoby, M.S.,',
+     *'C "Minimum weight design of an axially compressed',
+     *'C isotropic prismatic panel consisting of a series',
+     *'C of cylindrical segments and verification by STAGS",',
+     *'C AIAA Paper 2014-0844, 55th AIAA Structures Meeting,',
+     *'C National Harbor, Maryland, January 13-17, 2014'
+C END JUN 2013
+C BEG APR 2014
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     *'C [2l] Bushnell, D. and Jacoby, M.S.,',
+     *'C "Minimum weight design by GENOPT/BIGBOSOR4 of an',
+     *'C externally pressurized circumferentially corrugated',
+     *'C cylindrical shell and verification by STAGS",',
+     *'C AIAA Paper 2015-xxxx, 56th AIAA Structures Meeting,',
+     *'C Kissammee, Florida, January 5-9, 2015'
+C END APR 2014
+      WRITE(IDEF,2012)
+C BEG OCT 2005
+      WRITE(IDEF,2013)
+C END OCT 2005
+C BEG JUN 2009
+      WRITE(IDEF,2014)
+C END JUN 2009
+C BEG FEB 2008
+C BEG JAN 2013
+      WRITE(IDEF,'(A,/)')
+     *'C [20] Bushnell, D., the case ..genopt/case/sphere [9]'
+C END FEB 2008
+      WRITE(IDEF,'(A,/)')
+     *'C [21] Bushnell, D., the case ..genopt/case/balloon [2h]'
+      WRITE(IDEF,'(A,/)')
+     *'C [22] Bushnell, D., the case ..genopt/case/tank [2i,2j]'
+C BEG APR 2014
+      WRITE(IDEF,'(A,/)')
+     *'C [23] Bushnell, D., the case ..genopt/case/span [2k]'
+      WRITE(IDEF,'(A,/)')
+     *'C [24] Bushnell, D., the case ..genopt/case/michelin [2l]'
+C END APR 2014
+C END JAN 2013
+C END JAN 1990
+      WRITE(IDEF,2015)
+      write(IDEF,2016)
+      WRITE(IDEF,2017) CASE(1:NLET)
+C
+      WRITE(IDEF,'(A)')
+     *'C=============================================================='
+      WRITE(IDEF,2018) CASE(1:NLET),CASE(1:NLET)
+C
+  100 CONTINUE
+      WRITE(6,'(1X,A,A,A,$)')
+     *' ARE YOU CORRECTING, ADDING TO, OR USING ',
+     * CASE(1:NLET),'.INP ? (TYPE y  OR  n): '
+  105 READ(5,'(A)',END=440,ERR=100) ANS
+      CALL SHIFTC(ANS)
+      IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *    ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+         WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+         GO TO 100
+      ENDIF
+      INFILE = 5
+      IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') INFILE = 7
+C
+      IF (INFILE.EQ.5) then
+        WRITE(6,2019) CASE(1:NLET),CASE(1:NLET),
+     *                CASE(1:NLET),CASE(1:NLET)
+C BEG FEB 2009
+        WRITE(6,2021) CASE(1:NLET),CASE(1:NLET)
+C END FEB 2009
+        write(6,2020)
+      endif
+C BEG FEB 2009
+C END FEB 2009
+C
+C     WRITE(6,2022) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C     WRITE(6,2024)
+C     WRITE(6,2026) CASE(1:NLET),CASE(1:NLET)
+C
+      IVAR = 0
+      IPAR = 0
+      IALLOW = 0
+      ILAR = 0
+      ICAR = 0
+      IFACT= 0
+      IOAR = 0
+      NLOADS = 0
+C BEG OCT 2005
+C     NAMSAV = '      '
+      NAMSAV = '       '
+C END OCT 2005
+      NDIMSV = 0
+      NROWSV = 0
+C BEG JAN 1990
+      NCOLSV = 0
+C BEG OCT 2005
+C     NVSAVE = '------'
+C     NCSAVE = '------'
+C     ROWDSV = '------'
+C     COLDSV = '------'
+C     ILONG1 = 6
+C     ILONG2 = 6
+      NVSAVE = '-------'
+      NCSAVE = '-------'
+      ROWDSV = '-------'
+      COLDSV = '-------'
+      ILONG1 = 7
+      ILONG2 = 7
+C END OCT 2005
+C END JAN 1990
+      MCOM0 = 0
+      MICOM0= 0
+      MCOM1 = 0
+      MCOM2 = 0
+C
+  110 CONTINUE
+      WRITE(6,'(1X,A,$)')
+     * ' STARTING PROMPT INDEX (integer from 1 to 10.  Try 5):'
+      LABL =   1
+      ILOC = 115
+  115 READ(INFILE,'(I8)',END=440,ERR=110) K
+      IF (K.LE.0.OR.K.GT.10) THEN
+         WRITE(6,*)' PROMPT INDEX MUST BE AN INTEGER FROM 1 TO 10'
+         GO TO 110
+      ENDIF
+      IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') K,
+     *'  $ starting prompt index in the file ',CASE2
+      WRITE(IDAT,'(1X,I7,A,A)') K,
+     *'  $ starting prompt index in the file ',CASE2
+      WRITE(6,'(1X,A,I7)')' K=',K
+  120 CONTINUE
+      WRITE(6,'(1X,A,$)')
+     *' INCREMENT FOR PROMPT INDEX (integer from 1 to 10. Try 5):'
+      LABL =   2
+      ILOC = 125
+  125 READ(INFILE,'(I8)',END=440,ERR=120) DK
+      IF (DK.LE.1.OR.DK.GT.10) THEN
+          WRITE(6,*)' INCREMENT MUST BE INTEGER BETWEEN 2 AND 10'
+          GO TO 120
+      ENDIF
+C
+      IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') DK,
+     *'  $ increment for prompt index'
+      WRITE(IDAT,'(1X,I7,A)') DK,
+     *'  $ increment for prompt index'
+      WRITE(6,'(1X,A,I7)')' DK=',DK
+  130 CONTINUE
+      KOUNT = 1
+      K = K - DK
+      NIV = 0
+      NFV = 0
+      NCV = 0
+      IROLEVV = 1
+  135 CONTINUE
+      YN = 'Y'
+      CALL MOREK(K,DK, CN1,CN3,CN4)
+  140 CONTINUE
+      IF (INFILE.EQ.5) WRITE(6,'(1X,A)')' CHOOSE: 0  or  1:'
+      IF (INFILE.EQ.5) 
+     *  WRITE(6,'(1X,A)')' (0 means "introductory explanatory text")'
+      IF (INFILE.EQ.5)
+     *  WRITE(6,'(1X,A)')' (1 means "one-line input datum prompt")'
+      WRITE(6,'(1X,A,$)')' CHOOSE: 0  or  1: '
+      LABL =   3
+      ILOC = 145
+  145 READ(INFILE,'(I8)',END=440,ERR=140) TYPE
+      IF (TYPE.NE.0.AND.TYPE.NE.1) THEN
+         WRITE(6,*)' PLEASE ANSWER EITHER  0  OR  1 .  TRY AGAIN.'
+         GO TO 140
+      ENDIF
+      TYPEH = TYPE
+      IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') TYPE,
+     *'  $ Type of prompt: 0="help" paragraph, 1=one-line prompt'
+      WRITE(IDAT,'(1X,I7,A)') TYPE,
+     *'  $ Type of prompt: 0="help" paragraph, 1=one-line prompt'
+      WRITE(6,'(1X,A,I7)')' TYPE=',TYPE
+      IF (TYPE.EQ.0) THEN
+         CODE1='CALL DATUM(IFILE,'//CN3//',0,0,'
+         CODE2='   INT, REALL,CHARAC,IOUT,0,0,0,IPROMP)   '
+         CODE = CODE1//CODE2
+         WRITE(IBEG,'(6X,A)') CODE
+         WORDN = ' '//CN3//'.0 '
+         WRITE(IOUT,'(A)') ' '
+         WRITE(IOUT,'(A)') WORDN
+         WRITE(6,'(1X,A)')' PROVIDE INTRODUCTORY EXPLANATORY TEXT'
+  150    CONTINUE
+         LABL =   0
+         ILOC = 155
+  155    READ(INFILE,'(A)',END=440,ERR=150) PHRASE
+         CALL SHIFTP(PHRASE)
+         CALL BLANKX(PHRASE,ILONG)
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRASE(1:ILONG)
+         WRITE(IDAT,'(1X,A)') PHRASE(1:ILONG)
+         WRITE(IOUT,'(7X,A)') PHRASE(1:ILONG)
+         WRITE(6,'(1X,A)') PHRASE(1:ILONG)
+  160    CONTINUE
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A,$)')
+     *  ' ANY MORE LINES IN THIS PARAGRAPH? (y  or  <cr> or  n): '
+         ANS = ' '
+         LABL =   0
+         ILOC = 165
+  165    READ(INFILE,'(A)',END=440,ERR=160) ANS
+         CALL SHIFTC(ANS)
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *'  $ Are there more lines in the "help" paragraph?'
+         WRITE(IDAT,'(1X,A,A)') ANS,
+     *'  $ Are there more lines in the "help" paragraph?'
+         WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+         IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y'.OR.ANS(1:1).EQ.' ')
+     *       GO TO 150
+         WRITE(IOUT,'(A)')' '
+         GO TO 135
+      ENDIF
+C
+      IF (TYPE.EQ.1) THEN
+         IF (KOUNT.EQ.1) THEN
+         IF (INFILE.EQ.5) WRITE(6,2027)
+C
+         WRITE(6,*)' Hit RETURN.'
+         READ(INFILE,*)
+         IF (INFILE.EQ.5) WRITE(IRAW,*)
+         WRITE(IDAT,*)
+         IF (INFILE.EQ.5) WRITE(6,2028)
+C
+         ENDIF
+         WORDN = ' '//CN3//'.1 '
+         WORD0 = ' '//CN3//'.0 '
+         KOUNT = KOUNT + 1
+  170    CONTINUE
+C BEG OCT 2005
+C        WRITE(6,'(1X,A,$)')
+C    1 ' PROVIDE A NAME FOR THE VARIABLE (6 or less characters, CAPS):'
+         WRITE(6,'(1X,A,$)')
+     * ' PROVIDE A NAME FOR THE VARIABLE (7 or less characters, CAPS):'
+C END OCT 2005
+         LABL =   0
+         ILOC = 175
+  175    READ(INFILE,'(A)',END=440,ERR=170) VNAME
+C BEG NOV 2005 (the write statement inserted to avoid compiler bug-sgi)
+*        IF (INFILE.EQ.7) WRITE(6,'(/,1X,A,A)')
+*    *  ' before SHIFTC: variable name=',VNAME(1:8)
+         CALL SHIFTC(VNAME)
+*        IF (INFILE.EQ.7) WRITE(6,'(/,1X,A,A)')
+*    *  ' after  SHIFTC: variable name=',VNAME(1:8)
+C END NOV 2005
+         CALL RESNAM(VNAME,IFLAG)
+         IF (IFLAG.EQ.1) GO TO 175
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') VNAME,
+     *'  $ Name of a variable in the users program (defined below)'
+         WRITE(IDAT,'(1X,A,A)') VNAME,
+     *'  $ Name of a variable in the users program (defined below)'
+         I=INDEX(VNAME,' ')
+         MLET = I - 1
+C BEG OCT 2005
+C        IF (I.EQ.0) MLET = 6
+         IF (I.EQ.0) MLET = 7
+C END OCT 2005
+         WRITE(6,'(1X,A,A)')' VNAME=',VNAME(1:MLET)
+C
+  180    CONTINUE
+         WRITE(6,'(1X,A,A,A)')
+     *      ' IDENTIFY ROLE OF  ',VNAME(1:MLET),
+     *      ' (1  or  2  or  3  or  4  or  5  or  6  or  7): '
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 1 = decision variable candidate(e.g.length, width, thickness)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 2 = fixed parameter (e.g. control integer, material property)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 3 = environmental factor (e.g. load, temperature)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 4 = response quantity (e.g. stress, buckling load, frequency)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 5 = allowable (e.g. maximum stress, minimum frequency)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 6 = factor of safety'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A)')
+     *' 7 = objective (e.g. minimum weight, minimum cost)'
+         IF (INFILE.EQ.5) WRITE(6,'(1X,A,$)')
+     *' CHOOSE:  1  or  2  or  3  or  4  or  5  or  6  or  7: '
+         LABL =   0
+         ILOC = 185
+  185    READ(INFILE,'(I8)',END=440,ERR=180) IROLEV
+         IF (IROLEV.NE.1.AND.IROLEV.NE.2.AND.IROLEV.NE.3.AND.
+     *       IROLEV.NE.4.AND.IROLEV.NE.5.AND.IROLEV.NE.6.AND.
+     *       IROLEV.NE.7) THEN
+            WRITE(6,*)' CHOOSE AN INTEGER: 1,2,3,4,5,6,7  . TRY AGAIN.'
+            GO TO 180
+         ENDIF
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') IROLEV,
+     *'  $ Role of the variable in the users program'
+         WRITE(IDAT,'(1X,I7,A)') IROLEV,
+     *'  $ Role of the variable in the users program'
+         WRITE(6,'(1X,A,I7)')' IROLEV=',IROLEV
+C
+         IF (IROLEV.EQ.2) THEN
+  190       CONTINUE
+            WRITE(6,'(1X,A,A,A)')
+     *         ' IDENTIFY TYPE FOR VARIABLE  ',VNAME(1:MLET),
+     *         ' (1  or  2): '
+            IF (INFILE.EQ.5) WRITE(6,'(1X,A)')' 1 = integer'
+            IF (INFILE.EQ.5) WRITE(6,'(1X,A)')' 2 = floating point'
+            IF (INFILE.EQ.5) WRITE(6,'(1X,A,$)')' CHOOSE: 1  or  2: '
+            LABL =   0
+            ILOC = 195
+  195       READ(INFILE,'(I8)',END=440,ERR=190) ITYPEV
+            IF (ITYPEV.NE.1.AND.ITYPEV.NE.2) THEN
+               WRITE(6,*)' PLEASE CHOOSE EITHER  1  OR  2  . TRY AGAIN.'
+               GO TO 190
+            ENDIF
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') ITYPEV,
+     * '  $ type of variable:  1 =integer,  2 =floating point'
+            WRITE(IDAT,'(1X,I7,A)') ITYPEV,
+     * '  $ type of variable:  1 =integer,  2 =floating point'
+            WRITE(6,'(1X,A,I7)')' ITYPEV=', ITYPEV
+         ELSE
+            ITYPEV = 2
+         ENDIF
+C
+         IF (IROLEV.NE.IROLEVV.AND.IROLEV.GT.2) THEN
+            IF (IROLEVV.GT.2) WRITE(6,2029) IROLEVV, IROLEV, IROLEVV
+            IF (IROLEVV.LE.2) WRITE(6,2030) IROLEV
+            GO TO 180
+         ENDIF
+C
+C BEG OCT 2005 (1:6) changed to (1:7)
+         IF (IROLEV.EQ.4) THEN
+            VB = VNAME(1:7)
+            MLET4 = MLET
+         ENDIF
+         IF (IROLEV.EQ.5) THEN
+            VBA = VNAME(1:7)
+            MLET5 = MLET
+         ENDIF
+         IF (IROLEV.EQ.6) THEN
+            VBF = VNAME(1:7)
+            MLET6 = MLET
+         ENDIF
+C END OCT 2005
+C
+         NDIMEN = 0
+C
+         IF (IROLEV.NE.7) THEN
+            IF (IROLEV.EQ.3) THEN
+               NROWS = 20
+               NCOLS = 1
+               NV = 'NCASES'
+               NC = 'MCASES'
+               ROWDEF='Number of load cases (number of environments) '
+               COLDEF='                                              '
+               NDIMEN = 1
+               ILONG1 = 46
+               NEWDIM = 0
+               IF (NLOADS.EQ.0) THEN
+                  NEWDIM = 1
+                  WRITE(IBEG,'(6X,A)') 'MCASES = 1'
+                  WRITE(IOUT,'(A,A,A,A,A)') WORDN,
+     *           'Number ',NV,' of load cases (environments): ',NV
+                  WRITE(IBEG,'(6X,A,A,A,A,A)') 'CALL DATUM(IFILE,',
+     *            CN3,',1,1,',NV,',REALL,CHARAC,IOUT,0,0,0,IPROMP)'
+                  CN3ROW = CN3
+                  CALL MOREK(K,DK, CN1,CN3,CN4)
+                  WORDN = ' '//CN3//'.1 '
+                  WORD0 = ' '//CN3//'.0 '
+               ENDIF
+               NLOADS = 1
+               CN3OLD = CN3
+               CN4OLD = CN4
+               WRITE(IBEG,'(6X,A,A,A,A)')'IF (',NV,'.EQ.0) GO TO ',CN4
+               WRITE(IBEG,'(6X,A,A,A,A)') 'DO ',CN3OLD, '  I=1,',NV
+               WRITE(IBEG,'(6X,A)')'REWIND IFILE'
+               NAMSAV = VNAME(1:MLET)
+               NVSAVE = NV
+               NCSAVE = NC
+               ROWDSV = ROWDEF
+               COLDSV = COLDEF
+               NROWSV = NROWS
+               NCOLSV = NCOLS
+               NDIMSV = NDIMEN
+               NEWD4  = 0
+               GO TO 275
+            ENDIF
+            ANS(1:1) = 'Y'
+            IF (IROLEV.GT.2) THEN
+               WRITE(6,'(1X,A,A)') VNAME(1:MLET),
+     *       ' is an array with the number of rows equal to 20 .'
+               WRITE(6,'(1X,A)')' Each row corresponds to a load case.'
+            ENDIF
+C
+            IF (IROLEV.LE.2) THEN
+  200          CONTINUE
+               WRITE(6,'(1X,A,A,A,$)')
+     *            ' Is the variable  ',VNAME(1:MLET),'   an array? '
+               LABL =   0
+               ILOC = 205
+  205          READ(INFILE,'(A)',END=440,ERR=200) ANS
+               CALL SHIFTC(ANS)
+               IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *             ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+                  WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+                  GO TO 200
+               ENDIF
+               YN = ANS(1:1)
+               IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A,A,A)') ANS,
+     *    '  $ Is the variable  ',VNAME(1:MLET),'  an array? '
+               WRITE(IDAT,'(1X,A,A,A,A)') ANS,
+     *    '  $ Is the variable  ',VNAME(1:MLET),'  an array? '
+               WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+            ENDIF
+            IF (ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n') THEN
+               NDIMEN = 0
+               COLDEF ='                                              '
+               ROWDEF ='                                              '
+               NEWDIM = 0
+               NEWD4  = 0
+            ENDIF
+C
+            IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+               IF (IROLEV.LE.2) THEN
+                  WRITE(6,'(1X,A,A,A,$)')
+     *            ' Do you want to establish new dimension(s) for ',
+     *            VNAME(1:MLET),'? '
+                  WRITE(6,'(1X,A)')
+     *'  If you answer "no", GENOPT will use the dimensions of the last'
+C BEG JAN 1990
+                  WRITE(6,'(1X,A,A,A)')'  array ('
+     *            ,NAMSAV,') for which dimension(s) were established.'
+                  WRITE(6,'(1X,A,A,A,/,1X,A,A,A)')
+     *'  The row index would be named "',NVSAVE,
+     *'", with the definition: ','   "',ROWDSV(1:ILONG1),'".'
+                  IF (NDIMSV.EQ.2) WRITE(6,'(1X,A,A,A,/,1X,A,A,A)')
+     *'  The col index would be named "',NCSAVE,
+     *'", with the definition: ','   "',COLDSV(1:ILONG2),'".'
+C END JAN 1990
+                  IF (NDIMSV.EQ.2) 
+     *            WRITE(6,'(1X,A,A,A,A,A,I2,A,I2,A)')
+     *         '  In this case ',VNAME(1:MLET),' would be dimensioned ',
+     *            VNAME(1:MLET),'(',NROWSV,',',NCOLSV,').'
+                  IF (NDIMSV.EQ.1.OR.NDIMSV.EQ.0) 
+     *            WRITE(6,'(1X,A,A,A,A,A,I2,A)')
+     *         '  In this case ',VNAME(1:MLET),' would be dimensioned ',
+     *            VNAME(1:MLET),'(',NROWSV,').'
+C BEG JAN 1990
+                  WRITE(6,'(1X,A,/,1X,A,A,A,/,1X,A,/,1X,A,/)')
+     *'  If you want either or both of the following:',
+     *'     1. new dimension(s) for ',VNAME(1:MLET),' and/or',
+     *'     2. new name(s) and definition(s) of the array indices',
+     *'  then answer "yes".  If you are in doubt, then answer "yes".'
+C END JAN 1990
+                  WRITE(6,'(1X,A,A,A,$)')
+     *            ' Do you want to establish new dimension(s) for ',
+     *            VNAME(1:MLET),'?'
+               ELSE
+                  ANS2(1:1) = 'N'
+                  IF (IROLEV.EQ.4) THEN
+                     WRITE(6,'(1X,A,A,A,$)')
+     *               ' Do you want to reset the number of columns in ',
+     *               VNAME(1:MLET),'?'
+                   IF (NDIMSV.EQ.2) WRITE(6,'(1X,A,A,A,A,A,I2,A,I2,A)')
+     *               ' In this case, if you answer "no" ',
+     *               VNAME(1:MLET),' would be dimensioned ',
+     *               VNAME(1:MLET),'(',NROWSV,',',NCOLSV,').'
+                     IF (NDIMSV.EQ.1) WRITE(6,'(1X,A,A,A,A,A,I2,A)')
+     *               ' In this case, if you answer "no" ',
+     *               VNAME(1:MLET),' would be dimensioned ',
+     *               VNAME(1:MLET),'(',NROWSV,').'
+                     WRITE(6,'(1X,A,A,A,$)')
+     *               ' Do you want to reset the number of columns in ',
+     *               VNAME(1:MLET),'?'
+                  ENDIF
+               ENDIF
+C
+               IF (IROLEV.NE.5.AND.IROLEV.NE.6) THEN
+  210             CONTINUE
+                  LABL =   0
+                  ILOC = 215
+  215             READ(INFILE,'(A)',END=440,ERR=210) ANS2
+                  CALL SHIFTC(ANS2)
+                  IF (ANS2(1:1).NE.'Y'.AND.ANS2(1:1).NE.'y'.AND.
+     *             ANS2(1:1).NE.'N'.AND.ANS2(1:1).NE.'n') THEN
+                     WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+                     GO TO 210
+                  ENDIF
+                  IF (INFILE.EQ.5.AND.IROLEV.LE.2)
+     *               WRITE(IRAW,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to establish new dimensions for ',
+     *            VNAME(1:MLET),' ?'
+                  IF (INFILE.EQ.5.AND.IROLEV.EQ.4)
+     *               WRITE(IRAW,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to reset the number of columns in ',
+     *            VNAME(1:MLET),' ?'
+                  IF (IROLEV.LE.2)
+     *               WRITE(IDAT,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to establish new dimensions for ',
+     *            VNAME(1:MLET),' ?'
+                  IF (IROLEV.EQ.4)
+     *               WRITE(IDAT,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to reset the number of columns in ',
+     *            VNAME(1:MLET),' ?'
+                  WRITE(6,'(1X,A,A)')' ANSWER=',ANS2(1:1)
+               ENDIF
+C
+                  NEWDIM = 1
+               IF (ANS2(1:1).EQ.'N'.OR.ANS2(1:1).EQ.'n') THEN
+                  NEWDIM = 0
+                  NV = NVSAVE
+                  NC = NCSAVE
+                  ROWDEF = ROWDSV
+                  COLDEF = COLDSV
+                  NROWS  = NROWSV
+                  NCOLS  = NCOLSV
+                  NDIMEN = NDIMSV
+                  GO TO 270
+               ENDIF
+  220          CONTINUE
+               WRITE(6,'(1X,A,A,A)')
+     *       ' Array ',VNAME(1:MLET),' is of type 1 or 2:'
+               WRITE(6,'(1X,A,$)')
+     * '  1 = vector (1-dim. array),  2 = matrix (2-d array): NDIMEN='
+               LABL =   0
+               ILOC = 225
+  225          READ(INFILE,'(I8)',END=440,ERR=220) NDIMEN
+               IF (NDIMEN.NE.1.AND.NDIMEN.NE.2) THEN
+                  WRITE(6,*)' CHOOSE EITHER  1  OR  2  .  TRY AGAIN.'
+                  GO TO 220
+               ENDIF
+               IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NDIMEN,
+     *       '  $ Number of dimensions in the array,  ',VNAME(1:MLET)
+               WRITE(IDAT,'(1X,I7,A,A)') NDIMEN,
+     *       '  $ Number of dimensions in the array,  ',VNAME(1:MLET)
+               WRITE(6,'(1X,A,I7)')' NDIMEN=', NDIMEN
+               IF (NDIMEN.EQ.1)
+     *         COLDEF ='                                              '
+               IF (IROLEV.LE.2) THEN
+C BEG MAY 2009
+C                 IF (MLET.LT.6) NV = 'I'//VNAME(1:MLET)
+                  IF (MLET.LT.7) NV = 'I'//VNAME(1:MLET)
+C END MAY 2009
+                  MLET1 = MLET - 1
+C BEG MAY 2009
+C                 IF (MLET.EQ.6) NV = 'I'//VNAME(1:MLET1)
+                  IF (MLET.EQ.7) NV = 'I'//VNAME(1:MLET1)
+C END MAY 2009
+  230             CONTINUE
+                  WRITE(6,'(1X,A,A,A,A,A)')' The row index of ',
+     *            VNAME(1:MLET),' is called ',NV,' .'
+                  WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *            NV,'.  (LESS THAN 60 CHARACTERS!)'
+                  LABL =   0
+                  ILOC = 235
+  235             READ(INFILE,'(A)',END=440,ERR=230) ROWDEF
+                  CALL SHIFTP(ROWDEF)
+                  CALL BLANKX(ROWDEF,ILONG1)
+                  IF (ILONG1.GT.61) THEN
+                     IDIFF = ILONG1 - 61
+                     WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY '
+     *              ,IDIFF,
+     *             ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',NV
+                     GO TO 230
+                  ENDIF
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)')ROWDEF(1:ILONG1)
+                  WRITE(IDAT,'(1X,A)')ROWDEF(1:ILONG1)
+  240             CONTINUE
+                  WRITE(6,'(1X,A)') ROWDEF(1:ILONG1)
+                  WRITE(6,'(1X,A,A,A,$)')
+     *            ' Maximum allowable number of rows in the array,  ',
+     *            VNAME(1:MLET),'. NROWS='
+                  LABL =   0
+                  ILOC = 245
+  245             READ(INFILE,'(I8)',END=440,ERR=240) NROWS
+                  IF (NROWS.LE.0.OR.NROWS.GE.100) THEN
+                     WRITE(6,*)' PLEASE MAKE   NROWS   GREATER THAN 0'
+                     WRITE(6,*)' AND LESS THAN 100 '
+                     GO TO 240
+                  ENDIF
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NROWS,
+     *       '  $ Max. allowable number of rows NROWS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(IDAT,'(1X,I7,A,A)') NROWS,
+     *       '  $ Max. allowable number of rows NROWS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(6,'(1X,A,I7)')' NROWS=', NROWS
+               ENDIF
+C
+               NCOLS = 1
+C BEG OCT 2005
+C              IF (MLET.LT.6) NC = 'J'//VNAME(1:MLET)
+               IF (MLET.LT.7) NC = 'J'//VNAME(1:MLET)
+C END OCT 2005
+               MLET1 = MLET - 1
+C BEG OCT 2005
+C              IF (MLET.EQ.6) NC = 'J'//VNAME(1:MLET1)
+               IF (MLET.EQ.7) NC = 'J'//VNAME(1:MLET1)
+C END OCT 2005
+C              IF (NDIMEN.EQ.1) WRITE(IBEG,'(6X,A,A)') NC,' = 1'
+               IF (NDIMEN.EQ.2) THEN
+  250             CONTINUE
+                  WRITE(6,'(1X,A,A,A,A,A)')' The column index of ',
+     *            VNAME(1:MLET),' is called ',NC,' .'
+                  WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *            NC,'.  (LESS THAN 60 CHARACTERS!)'
+                  LABL =   0
+                  ILOC = 255
+  255             READ(INFILE,'(A)',END=440,ERR=250) COLDEF
+                  CALL SHIFTP(COLDEF)
+                  CALL BLANKX(COLDEF,ILONG2)
+                  IF (ILONG2.GT.61) THEN
+                     IDIFF = ILONG2 - 61
+                     WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY '
+     *              ,IDIFF,
+     *             ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',NC
+                     GO TO 250
+                  ENDIF
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)')COLDEF(1:ILONG2)
+                  WRITE(IDAT,'(1X,A)')COLDEF(1:ILONG2)
+                  WRITE(6,'(1X,A)') COLDEF(1:ILONG2)
+                  WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')''   '''
+                  WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *           '1 '' DEFINITION OF THE COLUMN INDEX OF THE ARRAY, ',
+     *            VNAME(1:MLET),' = '''
+                  WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *           '1 ''  ',COLDEF(1:ILONG2),''''
+                  WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')''   '''
+  260             CONTINUE
+                  WRITE(6,'(1X,A,A,A,$)')
+     *          ' Maximum allowable number of columns in the array, ',
+     *            VNAME(1:MLET),'. NCOLS='
+                  LABL =   0
+                  ILOC = 265
+  265             READ(INFILE,'(I8)',END=440,ERR=260) NCOLS
+                  IF (NCOLS.LE.0.OR.NCOLS.GE.100) THEN
+                     WRITE(6,*)' PLEASE MAKE   NCOLS   GREATER THAN 0'
+                     WRITE(6,*)' AND LESS THAN 100 '
+                     GO TO 260
+                  ENDIF
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NCOLS,
+     *     '  $ Max. allowable number of columns NCOLS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(IDAT,'(1X,I7,A,A)') NCOLS,
+     *     '  $ Max. allowable number of columns NCOLS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(6,'(1X,A,I7)')' NCOLS=', NCOLS
+                  WRITE(IOUT,'(A,A,A,A,A,A,A)')  WORDN,'Number ',
+     *            NC,' of columns in the array, ',VNAME(1:MLET),': ',NC
+                  WRITE(IBEG,'(6X,A)')'REWIND IFILE'
+                  WRITE(IBEG,'(6X,A,A,A,A,A)')
+     *            'CALL DATUM(IFILE,',CN3,',1,1,',NC,
+     *            ',REALL,CHARAC,IOUT,0,0,0,IPROMP)'
+                  CN3COL = CN3
+                  CALL MOREK(K,DK, CN1,CN3,CN4)
+                  WORDN = ' '//CN3//'.1 '
+                  WORD0 = ' '//CN3//'.0 '
+               ENDIF
+               NAMSAV = VNAME(1:MLET)
+               NVSAVE = NV
+               NCSAVE = NC
+               ROWDSV = ROWDEF
+               COLDSV = COLDEF
+               NROWSV = NROWS
+               NCOLSV = NCOLS
+               NDIMSV = NDIMEN
+C
+  270          CONTINUE
+               IF (IROLEV.EQ.4) NEWD4 = NEWDIM
+               CN3OLD = CN3
+               CN4OLD = CN4
+               WRITE(IBEG,'(A)')'C'
+               IF (NDIMEN.EQ.2) THEN
+                  WRITE(IBEG,'(6X,A,A,A,A)')
+     *             'IF (',NC,'.EQ.0) GO TO ',CN4OLD
+                  WRITE(IBEG,'(6X,A,A,A,A)') 'DO ',CN3OLD, '  J=1,',NC
+                  WRITE(IBEG,'(6X,A,A,A)') 'IF (',NC,'.GT.1) THEN'
+                  WRITE(IBEG,'(6X,A)')'   WRITE(6,''(A)'')''   '''
+                  WRITE(IBEG,'(6X,A)')'   WRITE(6,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1    '' DEFINITION OF THE COLUMN INDEX OF THE ARRAY, ',
+     *            VNAME(1:MLET),' = '''
+                  WRITE(IBEG,'(6X,A)')'   WRITE(6,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1 ''  ',COLDEF(1:ILONG2),''''
+                  WRITE(IBEG,'(6X,A)')'   WRITE(6,''(A)'')''   '''
+                  WRITE(IBEG,'(6X,A)')'   CALL CONVR2(J,CJ)'
+                  WRITE(IBEG,'(6X,A)')'   WRITE(6,''(A,A,A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1 ''   INPUT FOR COL. NO. '',CJ,'' OF THE ARRAY ',
+     *            VNAME(1:MLET),''''
+                  WRITE(IBEG,'(6X,A)')'   IF (IPROMP.GT.1) THEN'
+                  WRITE(IBEG,'(6X,A)')'    WRITE(IFILE8,''(A)'')''  '''
+                  WRITE(IBEG,'(6X,A)')'    WRITE(IFILE8,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1    '' DEFINITION OF THE COLUMN INDEX OF THE ARRAY, ',
+     *            VNAME(1:MLET),' = '''
+                  WRITE(IBEG,'(6X,A)')'    WRITE(IFILE8,''(A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1 ''  ',COLDEF(1:ILONG2),''''
+                  WRITE(IBEG,'(6X,A)')'    WRITE(IFILE8,''(A)'')''  '''
+                  WRITE(IBEG,'(6X,A)')'    WRITE(IFILE8,''(A,A,A)'')'
+                  WRITE(IBEG,'(5X,A,A,A)')
+     *         '1 ''   INPUT FOR COL. NO. '',CJ,'' OF THE ARRAY ',
+     *            VNAME(1:MLET),''''
+                  WRITE(IBEG,'(6X,A)')'   ENDIF'
+                  WRITE(IBEG,'(6X,A)')'ENDIF'
+               ENDIF
+C
+               WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')''   '''
+               WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')'
+               WRITE(IBEG,'(5X,A,A,A)')
+     *        '1 '' DEFINITION OF THE ROW INDEX OF THE ARRAY, ',
+     *         VNAME(1:MLET),' = '''
+               WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')'
+               WRITE(IBEG,'(5X,A,A,A)')
+     *        '1 ''  ',ROWDEF(1:ILONG1),''''
+               WRITE(IBEG,'(6X,A)')'WRITE(6,''(A)'')''   '''
+               WRITE(IBEG,'(6X,A)')'IF (IPROMP.GT.1) THEN'
+               WRITE(IBEG,'(6X,A)')'   WRITE(IFILE8,''(A)'')''   '''
+               WRITE(IBEG,'(6X,A)')'   WRITE(IFILE8,''(A)'')'
+               WRITE(IBEG,'(5X,A,A,A)')
+     *        '1 '' DEFINITION OF THE ROW INDEX OF THE ARRAY, ',
+     *         VNAME(1:MLET),' = '''
+               WRITE(IBEG,'(6X,A)')'   WRITE(IFILE8,''(A)'')'
+               WRITE(IBEG,'(5X,A,A,A)')
+     *        '1 ''  ',ROWDEF(1:ILONG1),''''
+               WRITE(IBEG,'(6X,A)')'   WRITE(IFILE8,''(A)'')''   '''
+               WRITE(IBEG,'(6X,A)')'ENDIF'
+C
+               IF (IROLEV.LE.2) THEN
+                  IF (NDIMEN.EQ.2)
+     *             WRITE(IOUT,'(A,A,A,A,A,A,A)') WORDN,'Number ',NV,
+     *            ' of rows in this column of ',VNAME(1:MLET),': ',NV
+                  IF (NDIMEN.EQ.1.AND.NEWDIM.NE.0)
+     *             WRITE(IOUT,'(A,A,A,A,A,A,A)') WORDN,'Number ',NV,
+     *            ' of rows in the array  ',VNAME(1:MLET),': ',NV
+                  IF (NDIMEN.EQ.2.OR.NEWDIM.NE.0) THEN
+                     WRITE(IBEG,'(6X,A)')'REWIND IFILE' 
+                     WRITE(IBEG,'(6X,A,A,A,A,A)')
+     *               'CALL DATUM(IFILE,',CN3,',1,1,',NV,
+     *               ',REALL,CHARAC,IOUT,0,0,0,IPROMP)'
+                     CN3ROW = CN3
+                     CALL MOREK(K,DK, CN1,CN3,CN4)
+                     WORDN = ' '//CN3//'.1 '
+                     WORD0 = ' '//CN3//'.0 '
+                  ENDIF
+               ENDIF
+C
+               WRITE(IBEG,'(6X,A,A,A,A)')
+     *          'IF (',NV,'.EQ.0) GO TO ',CN4OLD
+               WRITE(IBEG,'(6X,A,A,A,A)') 'DO ',CN3OLD, '  I=1,',NV
+               WRITE(IBEG,'(6X,A)')'REWIND IFILE'
+            ENDIF
+         ENDIF
+C
+  275    CONTINUE
+         WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *   VNAME(1:MLET),'.  (LESS THAN 60 CHARACTERS!)'
+         LABL =   0
+         ILOC = 280
+  280    READ(INFILE,'(A)',END=440,ERR=275) PHRASE
+         CALL SHIFTP(PHRASE)
+         PHRAS2 = PHRASE
+         CALL BLANKX(PHRAS2,IENDP)
+         IF (IENDP.GT.61) THEN
+            IDIFF = IENDP - 61
+            WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY ',IDIFF,
+     *      ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',VNAME(1:MLET)
+            GO TO 275
+         ENDIF
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRAS2(1:IENDP)
+         WRITE(IDAT,'(1X,A)') PHRAS2(1:IENDP)
+         WRITE(6,'(1X,A,A,A)') VNAME(1:MLET),' = ', PHRAS2(1:IENDP)
+C
+         IF (NEWDIM.NE.0) THEN
+            NROWSP = 0
+            NCOLSP = 0
+            YN     = 'n'
+            NDIMP  = 0
+            IROLVP = 2
+            I=INDEX(NV,' ')
+            IENDNV = I - 1
+C BEG OCT 2005
+C           IF (I.EQ.0) IENDNV = 6
+            IF (I.EQ.0) IENDNV = 7
+C END OCT 2005
+            IF (NDIMEN.EQ.2) THEN
+               I=INDEX(NC,' ')
+               IENDNC = I - 1
+C BEG OCT 2005
+C              IF (I.EQ.0) IENDNC = 6
+               IF (I.EQ.0) IENDNC = 7
+C END OCT 2005
+               WRITE(IDEF,2031) YN,NROWSP,NCOLSP,IROLVP,CN3COL,NC,
+     *                          COLDEF(1:ILONG2),VNAME(1:MLET),
+     *                          NV(1:IENDNV),NC(1:IENDNC)
+               IF (IROLEV.LE.3)
+     *         WRITE(IDEF,2031) YN,NROWSP,NCOLSP,IROLVP,CN3ROW,NV,
+     *                          ROWDEF(1:ILONG1),VNAME(1:MLET),
+     *                          NV(1:IENDNV),NC(1:IENDNC)
+            ENDIF
+C
+            IF (NDIMEN.EQ.1) THEN
+               IF (IROLEV.LE.3)
+     *         WRITE(IDEF,2032) YN,NROWSP,NCOLSP,IROLVP,CN3ROW,NV,
+     *                          ROWDEF(1:ILONG1),VNAME(1:MLET),
+     *                          NV(1:IENDNV)
+            ENDIF
+C
+         ENDIF
+C
+         IF (NDIMEN.EQ.0) THEN
+            NROWSP = 0
+            NCOLSP = 0
+            YN     = 'n'
+         ENDIF
+         IF (NDIMEN.EQ.1) THEN
+            NROWSP = NROWS
+            NCOLSP = 0
+            YN     = 'y'
+         ENDIF
+         IF (NDIMEN.EQ.2) THEN
+            NROWSP = NROWS
+            NCOLSP = NCOLS
+            YN     = 'y'
+         ENDIF
+         WRITE(IDEF,2033) YN,NROWSP,NCOLSP,IROLEV,CN3,VNAME,
+     *                    PHRAS2(1:IENDP)
+         IF (IROLEV.EQ.4) THEN
+             IENDP4 = IENDP
+             P4 = PHRAS2(:IENDP4)
+         ENDIF
+         IF (IROLEV.EQ.5) THEN
+             IENDP5 = IENDP
+             P5 = PHRAS2(:IENDP5)
+         ENDIF
+         IF (IROLEV.EQ.6) THEN
+             IENDP6 = IENDP
+             P6 = PHRAS2(:IENDP6)
+         ENDIF
+         IF (IROLEV.EQ.4.OR.IROLEV.EQ.7) THEN
+            WORDN = ' '//CN3//'.1 '
+            WORD0 = ' '//CN3//'.0 '
+         ENDIF
+         IF (IROLEV.EQ.4.OR.IROLEV.EQ.7) THEN
+            WRITE(IOUT,'(A,A,A,A)') 
+     *         WORD0,PHRAS2(1:IENDP),': ',VNAME(1:MLET)
+         ELSE
+            WRITE(IOUT,'(A,A,A,A)') 
+     *         WORDN,PHRAS2(1:IENDP),': ',VNAME(1:MLET)
+         ENDIF
+C
+C  SET UP "WRITES" AND "READS" FOR SUBROUTINE STOGET...
+C
+         IF (NDIMEN.EQ.0) THEN
+            WRITE(IWRI,'(6X,A,A)') 'WRITE(IFILE) ',VNAME(1:MLET)
+            WRITE(IREA,'(6X,A,A)') ' READ(IFILE) ',VNAME(1:MLET)
+         ENDIF
+         IF (NDIMEN.EQ.2) THEN
+            CALL CONVR2(NROWS,CNROWS)
+            CALL CONVR2(NCOLS,CNCOLS)
+            IF (IROLEV.LE.2) THEN
+               IF (NEWDIM.EQ.1) WRITE(IWRI,'(6X,A,A,A,A,A,A,A,A,A,A)')
+     *         'WRITE(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,'),',NV,',',NC
+               IF (NEWDIM.EQ.1) WRITE(IREA,'(6X,A,A,A,A,A,A,A,A,A,A)')
+     *         ' READ(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,'),',NV,',',NC
+            ELSE
+               IF (NEWDIM.EQ.1) WRITE(IWRI,'(6X,A,A,A,A,A,A,A,A,A,A)')
+     *         'WRITE(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,'),',NC
+               IF (NEWDIM.EQ.1) WRITE(IREA,'(6X,A,A,A,A,A,A,A,A)')
+     *         ' READ(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,'),',NC
+            ENDIF
+C
+            IF (NEWDIM.EQ.0) WRITE(IWRI,'(6X,A,A,A,A,A,A,A)')
+     *      'WRITE(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,')'
+            IF (NEWDIM.EQ.0) WRITE(IREA,'(6X,A,A,A,A,A,A,A)')
+     *      ' READ(IFILE) ((',VNAME(1:MLET),'(I,J), I=1,',CNROWS,'),
+     *J=1,',CNCOLS,')'
+         ENDIF
+C
+         IF (NDIMEN.EQ.1) THEN
+            CALL CONVR2(NROWS,CNROWS)
+            IF (IROLEV.EQ.3) THEN
+               WRITE(IWRI,'(6X,A,A,A)')
+     *         'WRITE(IFILE) (',VNAME(1:MLET),'(I), I=1,20)'
+               WRITE(IREA,'(6X,A,A,A)')
+     *         ' READ(IFILE) (',VNAME(1:MLET),'(I), I=1,20)'
+            ELSE
+               IF (NEWDIM.EQ.1) WRITE(IWRI,'(6X,A,A,A,A,A,A)')
+     *         'WRITE(IFILE) (',VNAME(1:MLET),'(I), I=1,',CNROWS,'),',
+     *          NV
+               IF (NEWDIM.EQ.1) WRITE(IREA,'(6X,A,A,A,A,A,A)')
+     *         ' READ(IFILE) (',VNAME(1:MLET),'(I), I=1,',CNROWS,'),',
+     *          NV
+               IF (NEWDIM.EQ.0) WRITE(IWRI,'(6X,A,A,A,A,A)')
+     *         'WRITE(IFILE) (',VNAME(1:MLET),'(I), I=1,',CNROWS,')'
+               IF (NEWDIM.EQ.0) WRITE(IREA,'(6X,A,A,A,A,A)')
+     *         ' READ(IFILE) (',VNAME(1:MLET),'(I), I=1,',CNROWS,')'
+            ENDIF
+         ENDIF
+C
+C  SET UP COMMON BLOCKS...
+C
+         GO TO (285,290),ITYPEV
+  285    NIV = NIV + 1
+         IF (NIV.LT.100) THEN
+            IF (NIV.GE.10) THEN
+               CALL CONVR2(NIV,CNV2)
+               CNNV = CNV2
+            ELSE
+               CALL CONVR1(NIV,CNV1)
+               CNNV = '0'//CNV1
+            ENDIF
+C           IF (NDIMEN.EQ.0) WRITE(ICOM,'(6X,A,A,A,A)')
+C    1     'COMMON/IV',CNNV,'/',VNAME(1:MLET)
+C
+            IF (NDIMEN.EQ.0) THEN
+               IF (MICOM0.EQ.0)
+     *                     PICOM0='COMMON/IV'//CNNV//'/'//VNAME(1:MLET)
+               IF (MICOM0.GT.0)
+     *                     PICOM0=PICOM0(1:MICOM0)// ','//VNAME(1:MLET)
+               CALL BLANKX(PICOM0,MICOM0)
+               IF (MICOM0.GT.59) THEN
+                  WRITE(ICOM,'(6X,A)') PICOM0(1:MICOM0)
+                  WRITE(ICOM,'(6X,A,A)')'INTEGER ',PICOM0(13:MICOM0)
+                  MICOM0 = 0
+               ENDIF
+            ENDIF
+C
+            IF (NEWDIM.EQ.1) THEN
+               IF (IROLEV.LE.2) THEN
+                  IF (NDIMEN.EQ.2)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A,A,A,A,A)')
+     *           'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,',',
+     *            CNCOLS,'),',NV,',',NC
+                  IF (NDIMEN.EQ.1)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A)')
+     *           'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,'),',
+     *            NV
+               ELSE
+                  IF (NDIMEN.EQ.2)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A,A,A)')
+     *           'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,',',
+     *            CNCOLS,'),',NC
+                  IF (NDIMEN.EQ.1)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A)')
+     *           'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,')'
+               ENDIF
+            ENDIF
+C
+            IF (NEWDIM.EQ.0) THEN
+               IF (NDIMEN.EQ.2)
+     *         WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A,A)')
+     *        'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,',',
+     *         CNCOLS,')'
+               IF (NDIMEN.EQ.1)
+     *         WRITE(ICOM,'(6X,A,A,A,A,A,A,A)')
+     *        'COMMON/IV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,')'
+            ENDIF
+            IF (NDIMEN.NE.0)
+     *           WRITE(ICOM,'(6X,A,A)')'INTEGER ',VNAME(1:MLET)
+         ELSE
+            WRITE(6,*)
+     *    ' NUMBER OF INTEGER VARIABLES EXCEEDS MAXIMUM OF 99.'
+            CALL EXIT
+         ENDIF
+         GO TO 300
+C
+  290    NFV = NFV + 1
+         IF (NFV.LT.100) THEN
+            DO 295 ILET = 1,80
+  295       PCOM(ILET:ILET) = ' '
+            IF (NFV.GE.10) THEN
+               CALL CONVR2(NFV,CNV2)
+               CNNV = CNV2
+            ELSE
+               CALL CONVR1(NFV,CNV1)
+               CNNV = '0'//CNV1
+            ENDIF
+C
+            IF (NDIMEN.EQ.0) THEN
+               IF (MCOM0.EQ.0)
+     *                      PCOM0='COMMON/FV'//CNNV//'/'//VNAME(1:MLET)
+               IF (MCOM0.GT.0) PCOM0=PCOM0(1:MCOM0)//','//VNAME(1:MLET)
+               CALL BLANKX(PCOM0,MCOM0)
+               IF (MCOM0.GT.59) THEN
+                  WRITE(ICOM,'(6X,A)') PCOM0(1:MCOM0)
+                  WRITE(ICOM,'(6X,A,A)')'REAL ',PCOM0(13:MCOM0)
+                  MCOM0 = 0
+               ENDIF
+            ENDIF
+C
+            NEWTST = NEWDIM
+            IF (IROLEV.EQ.6) NEWTST = NEWD4
+            IF (NEWTST.EQ.1) THEN
+               IF (MCOM1.GT.0.AND.IROLEV.LT.4) THEN
+                   WRITE(ICOM,'(6X,A)') PCOM1(1:MCOM1)
+                   WRITE(ICOM,'(6X,A)') PRCOM1(1:MRCOM1)
+                   MCOM1 = 0
+               ENDIF
+               IF (MCOM2.GT.0.AND.IROLEV.LT.4) THEN
+                   WRITE(ICOM,'(6X,A)') PCOM2(1:MCOM2)
+                   WRITE(ICOM,'(6X,A)') PRCOM2(1:MRCOM2)
+                   MCOM2 = 0
+               ENDIF
+C
+               IF (IROLEV.LE.2) THEN
+                  IF (NDIMEN.EQ.2)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A,A,A,A,A)')
+     *           'COMMON/FV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,',',
+     *            CNCOLS,'),',NV,',',NC
+                  IF (NDIMEN.EQ.1)
+     *            WRITE(ICOM,'(6X,A,A,A,A,A,A,A,A)')
+     *          'COMMON/FV',CNNV,'/',VNAME(1:MLET),'(',CNROWS,'),',
+     *            NV
+               ELSE
+                  IF (NDIMEN.EQ.2) THEN
+                     IF (IROLEV.EQ.3.OR.IROLEV.EQ.7)
+     *               PCOM = 'COMMON/FV'//CNNV//'/'//VNAME(1:MLET)//
+     *                      '('//CNROWS//','//CNCOLS//'),'//NC
+                     IF (IROLEV.EQ.6)
+     *               PCOM = 'COMMON/FV'//CNNV//'/'//VB(1:MLET4)//
+     *                      '('//CNROWS//','//CNCOLS//'),'//NC//','
+     *                  //VBA(1:MLET5)//'('//CNROWS//','//CNCOLS//'),'
+     *                  //VBF(1:MLET6)//'('//CNROWS//','//CNCOLS//')'
+                     IF (IROLEV.NE.4.AND.IROLEV.NE.5) THEN
+                        CALL BLANKX(PCOM,MLETC)
+                        WRITE(ICOM,'(6X,A)') PCOM(1:MLETC)
+                     ENDIF
+                  ENDIF
+                  IF (NDIMEN.EQ.1) THEN
+                     IF (IROLEV.EQ.3.OR.IROLEV.EQ.7)
+     *               PCOM = 'COMMON/FV'//CNNV//'/'//VNAME(1:MLET)//
+     *                      '('//CNROWS//')'
+                     IF (IROLEV.EQ.6)
+     *               PCOM = 'COMMON/FV'//CNNV//'/'//VB(1:MLET4)//
+     *                      '('//CNROWS//'),'
+     *                     //VBA(1:MLET5)//'('//CNROWS//'),'
+     *                     //VBF(1:MLET6)//'('//CNROWS//')'
+                     IF (IROLEV.NE.4.AND.IROLEV.NE.5) THEN
+                        CALL BLANKX(PCOM,MLETC)
+                        WRITE(ICOM,'(6X,A)') PCOM(1:MLETC)
+                     ENDIF
+                  ENDIF
+               ENDIF
+               IF (NDIMEN.GT.0) THEN
+                  IF (IROLEV.NE.4.AND.IROLEV.NE.5.AND.IROLEV.NE.6)
+     *             WRITE(ICOM,'(6X,A,A)')'REAL ',VNAME(1:MLET)
+               ENDIF
+            ENDIF
+C
+            IF (NEWTST.EQ.0) THEN
+               IF (NDIMEN.EQ.2) THEN
+                  IF (IROLEV.NE.4.AND.IROLEV.NE.5.AND.IROLEV.NE.6) THEN
+                     IF (MCOM2.EQ.0) THEN
+                        PCOM2 ='COMMON/FV'//CNNV//'/'//VNAME(1:MLET)//
+     *                   '('//CNROWS//','//CNCOLS//')'
+                        PRCOM2='REAL '//VNAME(1:MLET)
+                     ENDIF
+                     IF (MCOM2.GT.0) THEN
+                        PCOM2=PCOM2(1:MCOM2)//','//VNAME(1:MLET)//
+     *                   '('//CNROWS//','//CNCOLS//')'
+                        PRCOM2=PRCOM2(1:MRCOM2)//','//VNAME(1:MLET)
+                     ENDIF
+                     CALL BLANKX(PCOM2,MCOM2)
+                     CALL BLANKX(PRCOM2,MRCOM2)
+                     IF (MCOM2.GT.52) THEN
+                        WRITE(ICOM,'(6X,A)') PCOM2(1:MCOM2)
+                        WRITE(ICOM,'(6X,A)') PRCOM2(1:MRCOM2)
+                        MCOM2 = 0
+                     ENDIF
+                  ENDIF
+C
+                  IF (IROLEV.EQ.6) THEN
+                     PCOM = 'COMMON/FV'//CNNV//'/'//VB(1:MLET4)//
+     *                   '('//CNROWS//','//CNCOLS//'),'
+     *                  //VBA(1:MLET5)//'('//CNROWS//','//CNCOLS//'),'
+     *                  //VBF(1:MLET6)//'('//CNROWS//','//CNCOLS//')'
+                     CALL BLANKX(PCOM,MLETC)
+                     WRITE(ICOM,'(6X,A)') PCOM(1:MLETC)
+                  ENDIF
+               ENDIF
+C
+               IF (NDIMEN.EQ.1) THEN
+                  IF (IROLEV.NE.4.AND.IROLEV.NE.5.AND.IROLEV.NE.6) THEN
+                     IF (MCOM1.EQ.0) THEN
+                        PCOM1 ='COMMON/FV'//CNNV//'/'//VNAME(1:MLET)//
+     *                         '('//CNROWS//')'
+                        PRCOM1='REAL '//VNAME(1:MLET)
+                     ENDIF
+                     IF (MCOM1.GT.0) THEN
+                        PCOM1 = PCOM1(1:MCOM1)//','//VNAME(1:MLET)//
+     *                         '('//CNROWS//')'
+                        PRCOM1=PRCOM1(1:MRCOM1)//','//VNAME(1:MLET)
+                     ENDIF
+                     CALL BLANKX(PCOM1,MCOM1)
+                     CALL BLANKX(PRCOM1,MRCOM1)
+                     IF (MCOM1.GT.55) THEN
+                        WRITE(ICOM,'(6X,A)') PCOM1(1:MCOM1)
+                        WRITE(ICOM,'(6X,A)') PRCOM1(1:MRCOM1)
+                        MCOM1 = 0
+                     ENDIF
+                  ENDIF
+C
+                  IF (IROLEV.EQ.6) THEN
+                     PCOM = 'COMMON/FV'//CNNV//'/'//VB(1:MLET4)//
+     *                      '('//CNROWS//'),'
+     *                     //VBA(1:MLET5)//'('//CNROWS//'),'
+     *                     //VBF(1:MLET6)//'('//CNROWS//')'
+                     CALL BLANKX(PCOM,MLETC)
+                     WRITE(ICOM,'(6X,A)') PCOM(1:MLETC)
+                  ENDIF
+               ENDIF
+            ENDIF
+            IF (NDIMEN.GT.0) THEN
+               IF (IROLEV.EQ.6) WRITE(ICOM,'(6X,A,A,A,A,A,A)')'REAL ',
+     *          VB(1:MLET4),',',VBA(1:MLET5),',',VBF(1:MLET6)
+            ENDIF
+         ELSE
+            WRITE(6,*)
+     *    ' NUMBER OF FLOATING POINT VARIABLES EXCEEDS MAXIMUM OF 99.'
+            CALL EXIT
+         ENDIF
+C
+  300    CONTINUE
+C
+  305    CONTINUE
+         WRITE(6,'(1X,A,$)')
+     *      ' DO YOU WANT TO INCLUDE A "HELP" PARAGRAPH? (y  or  n): '
+         LABL =   0
+         ILOC = 310
+  310    READ(INFILE,'(A)',END=440,ERR=305) ANS
+         CALL SHIFTC(ANS)
+         IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *       ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+            WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+            GO TO 305
+         ENDIF
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *'  $ Do you want to include a "help" paragraph?'
+         WRITE(IDAT,'(1X,A,A)') ANS,
+     *'  $ Do you want to include a "help" paragraph?'
+         WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+         IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+            TYPEH = 2
+            WORDN = ' '//CN3//'.2 '
+            WRITE(IOUT,'(A)') WORDN
+            WRITE(6,'(1X,A)')' PROVIDE HELP PARAGRAPH TO EXPLAIN INPUT'
+  315       CONTINUE
+            LABL =   0
+            ILOC = 320
+  320       READ(INFILE,'(A)',END=440,ERR=315) PHRASE
+            CALL SHIFTP(PHRASE)
+            CALL BLANKX(PHRASE,ILONG)
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRASE(1:ILONG)
+            WRITE(IDAT,'(1X,A)') PHRASE(1:ILONG)
+            WRITE(6,'(1X,A)') PHRASE(1:ILONG)
+            WRITE(IOUT,'(7X,A)') PHRASE(1:ILONG)
+  325       CONTINUE
+            IF (INFILE.EQ.5) WRITE(6,'(1X,A,$)')
+     *    ' ANY MORE LINES IN THIS PARAGRAPH? (y  or  <cr> or  n): '
+            ANS = ' '
+            LABL =   0
+            ILOC = 330
+  330       READ(INFILE,'(A)',END=440,ERR=325) ANS
+            CALL SHIFTC(ANS)
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *'  $ Any more lines in the "help" paragraph?'
+            WRITE(IDAT,'(1X,A,A)') ANS,
+     *'  $ Any more lines in the "help" paragraph?'
+            WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+            IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y'.OR.ANS(1:1).EQ.' ')
+     *          GO TO 315
+            WRITE(IOUT,'(A)')' '
+         ENDIF
+C
+         CALL CONVR1(IROLEV,CN1)
+         CALL CONVR1(TYPEH,TN1)
+         CNTYPE = '1'
+         IF (TYPEH.EQ.0) CNTYPE = '0'
+         IF (IROLEV.EQ.4.OR.IROLEV.EQ.7) THEN
+            CNTYPE = '0'
+            TN1    = '0'
+         ENDIF
+
+         CODE1='CALL DATUM(IFILE,'//CN3//','//CNTYPE//','//TN1//','
+
+         GO TO (335,340,345,350,355,360,365),IROLEV
+
+
+  335    CODE5 = '  IVAR,  VAR,WORDV)'
+         WICHA = ' IVAR '
+         WCHA  = '  VAR '
+         IVAR = IVAR + 1
+         GO TO 370
+
+  340    CONTINUE
+         IF (ITYPEV.EQ.2) THEN
+            CODE5 = '  IPAR,  PAR,WORDP)'
+            WICHA = ' IPAR '
+            WCHA  = '  PAR '
+            IPAR = IPAR + 1
+         ENDIF
+         GO TO 370
+
+  345    CODE5 = '  ILAR, FLAR,WORDF)'
+         WICHA = ' ILAR '
+         WCHA  = ' FLAR '
+         ILAR = ILAR + 1
+         GO TO 370
+
+  350    CODE5 = '  ICAR,  CAR,WORDB)'
+         WICHA = ' ICAR '
+         WCHA  = '  CAR '
+         ICAR = ICAR + 1
+         GO TO 370
+
+  355    CODE5 = 'IALLOW,ALLOW,WORDA)'
+         WICHA = 'IALLOW'
+         WCHA  = ' ALLOW'
+         IALLOW = IALLOW + 1
+         GO TO 370
+
+  360    CODE5 = ' IFACT,FSAFE,WORDS)'
+         WICHA = 'IFACT '
+         WCHA  = 'FSAFE '
+         IFACT = IFACT + 1
+         GO TO 370
+
+  365    CODE5 = '  IOAR, OAR,WORDOB)'
+         WICHA = ' IOAR '
+         WCHA  = ' OAR  '
+         IOAR = IOAR + 1
+         IF (IOAR.GT.1) THEN
+            WRITE(6,*)' NUMBER OF OBJECTIVE FUNCTIONS EXCEEDS 1.'
+            CALL EXIT
+         ENDIF
+
+  370    CONTINUE
+C
+C  SET UP SKELETONS OF SUBROUTINES WHICH THE USER MUST FINISH...
+C
+         IF (IROLEV.EQ.6) THEN
+            IF (INFILE.EQ.5) WRITE(6,2034) P4(:IENDP4),VB(1:MLET4),
+     *                                    P5(:IENDP5),VBA(1:MLET5),
+     *                                    P6(:IENDP6),VBF(1:MLET6)
+C
+            IF (INFILE.EQ.5) THEN
+               WRITE(6,2035)
+               WRITE(6,2036)
+               WRITE(6,2037)
+            ENDIF
+  375    CONTINUE
+         WRITE(6,'(1X,A,A,A,$)')
+     *' PLEASE CHOOSE  1  OR  2 OR 3  FOR THIS CONSTRAINT (',
+     *  VB(1:MLET4),'):'
+         LABL =   0
+         ILOC = 380
+  380    READ(INFILE,'(I8)',END=440,ERR=375) INDX
+         IF (INDX.NE.1.AND.INDX.NE.2.AND.INDX.NE.3) THEN
+            WRITE(6,*)' PLEASE CHOOSE  1 OR 2 OR 3 . TRY AGAIN.'
+            GO TO 375
+         ENDIF
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') INDX,
+     *'  $ Indicator (1 or 2 or 3) for type of constraint'
+         WRITE(IDAT,'(1X,I7,A)') INDX,
+     *'  $ Indicator (1 or 2 or 3) for type of constraint'
+         WRITE(6,'(40X,A,I7)')' TYPE OF CONSTRAINT=', INDX
+         CALL CONVR1(INDX,CIX)
+         ENDIF
+C
+         IF (IROLEV.EQ.4) THEN
+            CALL CONVRT(ICAR,CARN)
+         ENDIF
+C
+         IF (NDIMEN.EQ.0) THEN
+
+            GO TO (385,390,395),ITYPEV
+
+  385       CODE2=VNAME//', REALL,CHARAC,IOUT,0,0,0,IPROMP)'
+            GO TO 400
+
+  390       CODE2='   INT,'//VNAME//',CHARAC,IOUT,0,0,0,IPROMP)'
+            GO TO 400
+
+  395       CODE2='   INT, REALL,'//VNAME//',IOUT,0,0,0,IPROMP)'
+
+  400       CODE = CODE1//CODE2
+            WRITE(IBEG,'(6X,A)') CODE
+            IF (ITYPEV.EQ.2) THEN
+               CODE4 = 'CALL GETVAR(0,0,     '//VNAME//','
+               CODE6 = CODE4//CODE5
+            ENDIF
+            IF (IROLEV.EQ.4.OR.IROLEV.EQ.7) THEN
+               WRITE(IBEG,'(6X,A)')'PHRASE = '
+               WRITE(IBEG,'(5X,A,A,A,A,A)')
+     *         '1 ''',PHRAS2(1:IENDP),': ',VNAME(1:MLET),''''
+               WRITE(IBEG,'(6X,A)') 'CALL BLANKX(PHRASE,IBLANK)'
+            ENDIF
+            IF (ITYPEV.EQ.2) THEN
+               WRITE(IBEG,'(6X,A)') CODE6
+               IF (IROLEV.NE.4) THEN
+                  WRITE(ICHA,'(6X,A,A,A,A,A,A)')
+     *                        VNAME,' = ',WCHA,'(',WICHA,')'
+                  WRITE(ICHA,'(6X,A,A,A,A)') WICHA,' = ',WICHA,' + 1'
+               ENDIF
+            ENDIF
+            IF (IROLEV.EQ.1) THEN
+               WRITE(ISET,'(6X,A,A)') VNAME,' = VAR(IVAR)'
+               WRITE(ISET,'(6X,A)') 'IVAR = IVAR + 1'
+            ENDIF
+            IF (IROLEV.EQ.6) THEN
+C
+               WRITE(ISUB,'(A,A)')'C=DECK      BEHX',CARN
+C BEG DEC 2005
+               WRITE(ISUB,'(6X,A,A,/,5X,A)')
+     *               'SUBROUTINE BEHX',CARN,
+     *               '1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)'
+C END DEC 2005
+               WRITE(ISUB,'(A,A)')'C   PURPOSE: OBTAIN ',P4(1:IENDP4)
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(A)')'C   YOU MUST WRITE CODE THAT, USING'
+               WRITE(ISUB,'(A)')'C   THE VARIABLES IN THE LABELLED'
+               WRITE(ISUB,'(A)')'C   COMMON BLOCKS AS INPUT, ULTIMATELY'
+               WRITE(ISUB,'(A)')'C   YIELDS THE RESPONSE VARIABLE'
+               WRITE(ISUB,'(A,A)')'C         ',VB(1:MLET4)
+               WRITE(ISUB,'(A)')'C   AS OUTPUT.'
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(A)')'C   DEFINITION OF INPUT DATA:'
+               WRITE(ISUB,'(A)')'C    IMODX  = DESIGN CONTROL INTEGER:'
+               WRITE(ISUB,'(A)')'C     IMODX = 0 MEANS BASELINE DESIGN'
+               WRITE(ISUB,'(A)')'C     IMODX = 1 MEANS PERTURBED DESIGN'
+               WRITE(ISUB,'(A)')'C    IFILE = FILE FOR OUTPUT LIST:'
+               WRITE(ISUB,'(A)')'C    NPRINX= OUTPUT CONTROL INTEGER:'
+               WRITE(ISUB,'(A)')'C     NPRINX=0 MEANS SMALLEST AMOUNT'
+               WRITE(ISUB,'(A)')'C     NPRINX=1 MEANS MEDIUM AMOUNT'
+               WRITE(ISUB,'(A)')'C     NPRINX=2 MEANS LOTS OF OUTPUT'
+               WRITE(ISUB,'(A)')'C   '
+               WRITE(ISUB,'(A,A)')'C    PHRASE= ',P4(1:IENDP4)
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(6X,A)')' CHARACTER*80 PHRASE'
+               WRITE(ISUB,'(A)')'C  INSERT ADDITIONAL COMMON BLOCKS:'
+               WRITE(ISUB,'(A)')'C '
+               WRITE(ICON,'(6X,A)')'PHRASE ='
+               WRITE(ICON,'(5X,A,A,A)')'1 ''',P4(1:IENDP4),''''
+               WRITE(ICON,'(6X,A)')'CALL BLANKX(PHRASE,IENDP4)'
+C BEG SEP 1999
+C BEG DEC 2005
+C BEG JUN 2010
+               IF (ICAR.EQ.1) WRITE(ICON,'(6X,A)')'JXX = 0'
+               WRITE(ICON,'(6X,A)')'JXX = JXX + 1'
+               WRITE(ICON,'(6X,A,A)') VB(1:MLET4),' = 0.0'
+               WRITE(ICON,'(6X,A,A,/,5X,A)')
+     *        'IF (IBEHV(JXX).EQ.0) CALL BEHX',CARN,
+     *        '1 (IFILE8,NPRINX,IMODX,IFAST'
+C END JUN 2010
+C END DEC 2005
+C END SEP 1999
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P4(:IENDP4),''')'
+C
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     *          WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     *          VB(1:MLET4),'.EQ.0.)  ',VB(1:MLET4),' = 1.E-10'
+               IF (INDX.EQ.2) WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     *          VB(1:MLET4),'.EQ.0.)  ',VB(1:MLET4),' = 1.E+10'
+               WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     *         VBA(1:MLET5),'.EQ.0.)  ',VBA(1:MLET5),' = 1.0'
+               WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     *         VBF(1:MLET6),'.EQ.0.)  ',VBF(1:MLET6),' = 1.0'
+C
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     *          WRITE(ICON,'(6X,A,A,A,A,A,A,A)') 
+     *'WORDC= ''',VBA(1:MLET5),'/(',VB(1:MLET4),' X ',VBF(1:MLET6),')'''
+               IF (INDX.EQ.2) WRITE(ICON,'(6X,A,A,A,A,A,A,A)') 
+     *'WORDC= ''',VB(1:MLET4),'/(',VBA(1:MLET5),' X ',VBF(1:MLET6),')'''
+               WRITE(ICON,'(6X,A,A,A,A,A,A)')
+     *        'CALL CONX(',VB(1:MLET4),',',VBA(1:MLET5),',',VBF(1:MLET6)
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1,''',P4(:IENDP4),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P5(:IENDP5),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P6(:IENDP6),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *     '1 ',CIX,',INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,'
+               WRITE(ICON,'(5X,A)')
+     *        '1 WORDMX,PCWORD,CPLOTX,ICARX)'
+            ENDIF
+         ELSE
+            CALL CONVR1(NDIMEN,Q)
+
+            GO TO (405,410,415),ITYPEV
+
+  405       CONTINUE
+            IF (NDIMEN.EQ.2)
+     *      CODE3=
+     *     VNAME(1:MLET)//'(I,J), REALL,CHARAC,IOUT,I,J,'//Q//',IPROMP)'
+            IF (NDIMEN.EQ.1)
+     *      CODE3=
+     *     VNAME(1:MLET)//'(I),   REALL,CHARAC,IOUT,I,0,'//Q//',IPROMP)'
+            GO TO  420
+
+  410       CONTINUE
+            IF (NDIMEN.EQ.2)
+     *      CODE3=
+     *  '  INT,'//VNAME(1:MLET)//'(I,J),CHARAC,IOUT,I,J,'//Q//',IPROMP)'
+            IF (NDIMEN.EQ.1)
+     *      CODE3=
+     *  '  INT,'//VNAME(1:MLET)//'(I),CHARAC,  IOUT,I,0,'//Q//',IPROMP)'
+            GO TO 420
+
+  415       CODE3=
+     *  '  INT, REALL,'//VNAME(1:MLET)//'   ,  IOUT,0,0,'//Q//',IPROMP)'
+
+  420       CONTINUE
+            WRITE(IBEG,'(6X,A)') CODE1
+            WRITE(IBEG,'(5X,A,A)')'1  ',CODE3
+            IF (IROLEV.EQ.4.OR.IROLEV.EQ.7) THEN
+               WRITE(IBEG,'(6X,A)')'PHRASE = '
+               WRITE(IBEG,'(5X,A,A,A,A,A)')
+     *         '1 ''',PHRAS2(1:IENDP),': ',VNAME(1:MLET),''''
+               WRITE(IBEG,'(6X,A)') 'CALL BLANKX(PHRASE,IBLANK)'
+            ENDIF
+            IF (ITYPEV.EQ.2) THEN
+               IF (NDIMEN.EQ.2)
+     *          CODE4 = 'CALL GETVAR(I,J,   '//VNAME(1:MLET)//'(I,J),'
+               IF (NDIMEN.EQ.1)
+     *          CODE4 = 'CALL GETVAR(I,0,     '//VNAME(1:MLET)//'(I),'
+               CODE6 = CODE4//CODE5
+               WRITE(IBEG,'(6X,A)') CODE6
+               IF (NDIMEN.EQ.2.AND.IROLEV.NE.4) THEN
+                  WRITE(ICHA,'(6X,A,A,A,A)')
+     *             'IF (',NC,'.EQ.0) GO TO ',CN4
+                  WRITE(ICHA,'(6X,A,A,A,A)')
+     *             'IF (',NV,'.EQ.0) GO TO ',CN4
+                  WRITE(ICHA,'(6X,A,A,A,A)') 'DO ',CN3,' J=1,',NC
+                  WRITE(ICHA,'(6X,A,A,A,A)') 'DO ',CN3,' I=1,',NV
+                  WRITE(ICHA,'(6X,A,A,A,A,A,A)')
+     *                    VNAME(1:MLET),'(I,J) = ',WCHA,'(',WICHA,')'
+                  WRITE(ICHA,'(6X,A,A,A,A)') WICHA,' = ',WICHA,' + 1'
+                  WRITE(ICHA,'(2X,A,A)') CN3,' CONTINUE'
+                  WRITE(ICHA,'(2X,A,A)') CN4,' CONTINUE'
+               ENDIF
+               IF (NDIMEN.EQ.1.AND.IROLEV.NE.4) THEN
+                  WRITE(ICHA,'(6X,A,A,A,A)')
+     *             'IF (',NV,'.EQ.0) GO TO ',CN4
+                  WRITE(ICHA,'(6X,A,A,A,A)') 'DO ',CN3,' I=1,',NV
+                  WRITE(ICHA,'(6X,A,A,A,A,A,A)')
+     *                    VNAME(1:MLET),'(I) = ',WCHA,'(',WICHA,')'
+                  WRITE(ICHA,'(6X,A,A,A,A)') WICHA,' = ',WICHA,' + 1'
+                  WRITE(ICHA,'(2X,A,A)') CN3,' CONTINUE'
+                  WRITE(ICHA,'(2X,A,A)') CN4,' CONTINUE'
+               ENDIF
+            ENDIF
+C
+            IF (IROLEV.EQ.1) THEN
+               IF (NDIMEN.EQ.2) THEN
+                 WRITE(ISET,'(6X,A,A,A,A)')
+     *            'IF (',NC,'.EQ.0) GO TO ',CN4
+                 WRITE(ISET,'(6X,A,A,A,A)')
+     *            'IF (',NV,'.EQ.0) GO TO ',CN4
+                 WRITE(ISET,'(6X,A,A,A,A)') 'DO ',CN3,' J=1,',NC
+                 WRITE(ISET,'(6X,A,A,A,A)') 'DO ',CN3,' I=1,',NV
+                 WRITE(ISET,'(6X,A,A)') VNAME(1:MLET),'(I,J)=VAR(IVAR)'
+                 WRITE(ISET,'(6X,A)') 'IVAR = IVAR + 1'
+                 WRITE(ISET,'(2X,A,A)') CN3,' CONTINUE'
+                 WRITE(ISET,'(2X,A,A)') CN4,' CONTINUE'
+               ENDIF
+               IF (NDIMEN.EQ.1) THEN
+                 WRITE(ISET,'(6X,A,A,A,A)')
+     *            'IF (',NV,'.EQ.0) GO TO ',CN4
+                 WRITE(ISET,'(6X,A,A,A,A)') 'DO ',CN3,' I=1,',NV
+                 WRITE(ISET,'(6X,A,A)') VNAME(1:MLET),'(I) = VAR(IVAR)'
+                 WRITE(ISET,'(6X,A)') 'IVAR = IVAR + 1'
+                 WRITE(ISET,'(2X,A,A)') CN3,' CONTINUE'
+                 WRITE(ISET,'(2X,A,A)') CN4,' CONTINUE'
+               ENDIF
+            ENDIF
+            IF (IROLEV.EQ.6) THEN
+               WRITE(ISUB,'(A,A)')'C=DECK      BEHX',CARN
+C BEG DEC 2005
+               IF (NDIMEN.EQ.2) WRITE(ISUB,'(6X,A,A,/,5X,A)')
+     *         'SUBROUTINE BEHX',CARN,
+     *         '1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,JCOL,PHRASE)'
+               IF (NDIMEN.EQ.1) WRITE(ISUB,'(6X,A,A,/,5X,A)')
+     *         'SUBROUTINE BEHX',CARN,
+     *         '1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)'
+C END DEC 2005
+               WRITE(ISUB,'(A)')'C '
+               WRITE(ISUB,'(A,A)')'C   PURPOSE: OBTAIN ',P4(1:IENDP4)
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(A)')'C   YOU MUST WRITE CODE THAT, USING'
+               WRITE(ISUB,'(A)')'C   THE VARIABLES IN THE LABELLED'
+               WRITE(ISUB,'(A)')'C   COMMON BLOCKS AS INPUT, ULTIMATELY'
+               WRITE(ISUB,'(A)')'C   YIELDS THE RESPONSE VARIABLE FOR'
+               WRITE(ISUB,'(A)')'C   THE ith LOAD CASE, ILOADX:'
+               WRITE(ISUB,'(A)')'C '
+               IF (NDIMEN.EQ.2)
+     *         WRITE(ISUB,'(A,A,A)')'C     ',VB(1:MLET4),'(ILOADX,JCOL)'
+               IF (NDIMEN.EQ.1)
+     *         WRITE(ISUB,'(A,A,A)')'C     ',VB(1:MLET4),'(ILOADX)'
+               WRITE(ISUB,'(A)')'C '
+               WRITE(ISUB,'(A)')'C   AS OUTPUT. THE ith CASE REFERS'
+               WRITE(ISUB,'(A)')'C   TO ith ENVIRONMENT (e.g. load com-'
+               WRITE(ISUB,'(A)')'C   bination).'
+               IF (NDIMEN.EQ.2) THEN
+                  WRITE(ISUB,'(A)')'C   THE jth COLUMN  (JCOL)'
+                  WRITE(ISUB,'(A)')'C   INDEX IS DEFINED AS FOLLOWS:'
+                  WRITE(ISUB,'(A,A)')'C     ',COLDEF(1:ILONG2)
+               ENDIF
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(A)')'C   DEFINITIONS OF INPUT DATA:'
+               WRITE(ISUB,'(A)')'C    IMODX  = DESIGN CONTROL INTEGER:'
+               WRITE(ISUB,'(A)')'C     IMODX = 0 MEANS BASELINE DESIGN'
+               WRITE(ISUB,'(A)')'C     IMODX = 1 MEANS PERTURBED DESIGN'
+               WRITE(ISUB,'(A)')
+     *      'C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS'
+               WRITE(ISUB,'(A)')
+     *      'C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS'
+               WRITE(ISUB,'(A)')'C    IFILE = FILE FOR OUTPUT LIST:'
+               WRITE(ISUB,'(A)')'C    NPRINX= OUTPUT CONTROL INTEGER:'
+               WRITE(ISUB,'(A)')'C     NPRINX=0 MEANS SMALLEST AMOUNT'
+               WRITE(ISUB,'(A)')'C     NPRINX=1 MEANS MEDIUM AMOUNT'
+               WRITE(ISUB,'(A)')'C     NPRINX=2 MEANS LOTS OF OUTPUT'
+               WRITE(ISUB,'(A)')'C   '
+               WRITE(ISUB,'(A)')'C     ILOADX = ith LOADING COMBINATION'
+               IF (NDIMEN.EQ.2) THEN
+                  WRITE(ISUB,'(A,A)')'C     JCOL   = jth column of ',
+     *                                               VB(1:MLET4)
+                  WRITE(ISUB,'(A,A)')'C     JCOL   = ',COLDEF(1:ILONG2)
+               ENDIF
+               WRITE(ISUB,'(A,A)')'C     PHRASE = ',P4(1:IENDP4)
+               WRITE(ISUB,'(A)')'C'
+               WRITE(ISUB,'(A)')'C   OUTPUT:'
+               WRITE(ISUB,'(A)')'C '
+               IF (NDIMEN.EQ.2)
+     *         WRITE(ISUB,'(A,A,A)')'C     ',VB(1:MLET4),'(ILOADX,JCOL)'
+               IF (NDIMEN.EQ.1)
+     *         WRITE(ISUB,'(A,A,A)')'C     ',VB(1:MLET4),'(ILOADX)'
+               WRITE(ISUB,'(A)')'C '
+               WRITE(ISUB,'(6X,A)')' CHARACTER*80 PHRASE'
+               WRITE(ISUB,'(A)')'C  INSERT ADDITIONAL COMMON BLOCKS:'
+               WRITE(ISUB,'(A)')'C '
+C
+               WRITE(ICON,'(A)')'C'
+               WRITE(ICON,'(A,A,A)')
+     *         'C  Behavior and constraints generated next for ',
+     *         VB(1:MLET4),':'
+               WRITE(ICON,'(A,A,A,A)')
+     *            'C  ',VB(1:MLET4),' = ',P4(1:IENDP4)
+               WRITE(ICON,'(A)')'C'
+C              IF (NDIMEN.EQ.1) WRITE(ICON,'(6X,A,A)') NC,' = 1'
+               IF (NDIMEN.EQ.2) THEN
+                  WRITE(ICON,'(6X,A,A,A,A)')
+     *               'IF (',NC,'.EQ.0) GO TO ',CN4
+                  WRITE(ICON,'(6X,A)')'IF (NPRINX.GT.0) THEN'
+                  WRITE(ICON,'(6X,A,A,A)')'   IF (',NC,'.GT.1) THEN'
+                  WRITE(ICON,'(6X,A)')
+     *        '      WRITE(IFILE8,''(1X,A)'')''  '''
+                     WRITE(ICON,'(6X,A)')
+     *        '      WRITE(IFILE8,''(1X,A,$)'')'' BEHAVIOR OVER J = '''
+                    WRITE(ICON,'(6X,A)')'      WRITE(IFILE8,''(1X,A)'')'
+                     WRITE(ICON,'(5X,A,A,A)')
+     *              '1      ''',COLDEF(1:ILONG2),''''
+                     WRITE(ICON,'(6X,A)')'   ENDIF'
+                  WRITE(ICON,'(6X,A)')'ENDIF'
+                  WRITE(ICON,'(6X,A,A,A,A)') 'DO ',CN3, '  J=1,',NC
+                  WRITE(ICON,'(6X,A)') 'CALL CONVR2(J,CJX)'
+               ENDIF
+C
+               IF (NDIMEN.EQ.2) WIJ = 'ILOADX,J'
+               IF (NDIMEN.EQ.1) WIJ = 'ILOADX  '
+C
+               WRITE(ICON,'(6X,A)')'PHRASE ='
+               WRITE(ICON,'(5X,A,A,A)')'1 ''',P4(1:IENDP4),''''
+               WRITE(ICON,'(6X,A)')'CALL BLANKX(PHRASE,IENDP4)'
+C BEG SEP 1999
+C BEG DEC 2005
+C BEG JUN 2010
+               IF (ICAR.EQ.1) THEN
+                  IF (NDIMEN.EQ.2)
+     *                 WRITE(ICON,'(6X,A)')'IF (J.EQ.1) JXX = 0'
+                  IF (NDIMEN.EQ.1) WRITE(ICON,'(6X,A)')'JXX = 0'
+               ENDIF
+               WRITE(ICON,'(6X,A)')'JXX = JXX + 1'
+               IF (NDIMEN.EQ.2)
+     *         WRITE(ICON,'(6X,A,A)') VB(1:MLET4),'(ILOADX,J) = 0.0'
+               IF (NDIMEN.EQ.1)
+     *         WRITE(ICON,'(6X,A,A)') VB(1:MLET4),'(ILOADX) = 0.0'
+               WRITE(ICON,'(6X,A,A,/,5X,A,A,A)')
+     *        'IF (IBEHV(JXX).EQ.0) CALL BEHX',CARN,
+     *        '1 (IFILE8,NPRINX,IMODX,IFAST,',WIJ,','
+C END JUN 2010
+C END DEC 2005
+C END SEP 1999
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P4(1:IENDP4),''')'
+C
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     *          WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     *          VB(1:MLET4),'(',WIJ,').EQ.0.)  ',
+     *          VB(1:MLET4),'(',WIJ,') = 1.E-10'
+               IF (INDX.EQ.2)
+     *          WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     *          VB(1:MLET4),'(',WIJ,').EQ.0.)  ',
+     *          VB(1:MLET4),'(',WIJ,') = 1.E+10'
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     *         VBA(1:MLET5),'(',WIJ,').EQ.0.)  ',
+     *         VBA(1:MLET5),'(',WIJ,') = 1.0'
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     *         VBF(1:MLET6),'(',WIJ,').EQ.0.)  ',
+     *         VBF(1:MLET6),'(',WIJ,') = 1.0'
+C
+               WRITE(ICON,'(6X,A)') 'KCONX = KCONX + 1'
+               WRITE(ICON,'(6X,A,A,A,A,A)')
+     *        'CARX(KCONX) =',VB(1:MLET4),'(',WIJ,')'
+C
+C BEG DEC 1990
+               IF (NDIMEN.EQ.2) THEN
+C BEG OCT 2005
+                  IF (INDX.EQ.1.OR.INDX.EQ.2)
+     *            WRITE(ICON,'(6X,A,A,A,A,A)')
+     *          'WORDCX= ''(',VB(1:MLET4),'(''//CIX//'',''//CJX//'')/',
+     *            VBA(1:MLET5),'(''//CIX//'',''//CJX//'
+                  IF (INDX.EQ.3)
+     *            WRITE(ICON,'(6X,A,A,A,A,A)')
+     *          'WORDCX= ''(',VBA(1:MLET5),'(''//CIX//'',''//CJX//'')/',
+     *            VB(1:MLET4),'(''//CIX//'',''//CJX//'
+C END OCT 2005
+                  IF (INDX.EQ.1) WRITE(ICON,'(5X,A,A,A)')
+     *          '1  '')) X ',VBF(1:MLET6),'(''//CIX//'',''//CJX//'')'''
+                  IF (INDX.EQ.2.OR.INDX.EQ.3) WRITE(ICON,'(5X,A,A,A)')
+     *          '1  '')) / ',VBF(1:MLET6),'(''//CIX//'',''//CJX//'')'''
+               ENDIF
+               IF (NDIMEN.EQ.1) THEN
+                  IF (INDX.EQ.1.OR.INDX.EQ.2)
+     *            WRITE(ICON,'(6X,A,A,A,A,A)')
+     *           'WORDCX= ''(',VB(1:MLET4),'(''//CIX//'')/',
+     *            VBA(1:MLET5),'(''//CIX//'
+                  IF (INDX.EQ.3)
+     *            WRITE(ICON,'(6X,A,A,A,A,A)')
+     *           'WORDCX= ''(',VBA(1:MLET5),'(''//CIX//'')/',
+     *            VB(1:MLET4),'(''//CIX//'
+                  IF (INDX.EQ.1) WRITE(ICON,'(5X,A,A,A)')
+     *            '1  '')) X ',VBF(1:MLET6),'(''//CIX//'')'''
+                  IF (INDX.EQ.2.OR.INDX.EQ.3) WRITE(ICON,'(5X,A,A,A)')
+     *            '1  '')) / ',VBF(1:MLET6),'(''//CIX//'')'''
+               ENDIF
+C END DEC 1990
+C
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A,A,A,A,A)')
+     *        'CALL CONX(',VB(1:MLET4),
+     *        '(',WIJ,'),',VBA(1:MLET5),'(',WIJ,'),',
+     *         VBF(1:MLET6),'(',WIJ,')'
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1,''',P4(:IENDP4),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P5(:IENDP5),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *        '1 ''',P6(:IENDP6),''','
+               WRITE(ICON,'(5X,A,A,A)')
+     *      '1 ',CIX,',INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,'
+               WRITE(ICON,'(5X,A)')
+     *        '1 WORDMX,PCWORD,CPLOTX,ICARX)'
+               WRITE(ICON,'(6X,A)')'IF (IMODX.EQ.0) THEN'
+               WRITE(ICON,'(6X,A)')'   CODPHR ='
+               WRITE(ICON,'(5X,A,A,A)')'1 ''  ',P4(1:IENDP4),': '''
+               WRITE(ICON,'(6X,A,I2)')'   IENDP4 =',IENDP4 + 4
+               IF (NDIMEN.EQ.1) THEN
+                  WRITE(ICON,'(6X,A,A,A)')
+     *           '   CODNAM =''',VB(1:MLET4),'(''//CIX//'')'''
+                  WRITE(ICON,'(6X,A,I1,A)')'   MLET4 =',MLET4,' + 4'
+               ENDIF
+               IF (NDIMEN.EQ.2) THEN
+                  WRITE(ICON,'(6X,A,A,A)')
+     *         '   CODNAM =''',VB(1:MLET4),'(''//CIX//'',''//CJX//'')'''
+                  WRITE(ICON,'(6X,A,I1,A)')'   MLET4 =',MLET4,' + 7'
+               ENDIF
+               WRITE(ICON,'(6X,A)')
+     *        '   WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)'
+               WRITE(ICON,'(6X,A)')
+     *        '   IF (NPRINX.GT.0) WRITE(IFILE8,''(I5,6X,G14.7,A,A)'')'
+               WRITE(ICON,'(5X,A)')
+     *        '1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)'
+               WRITE(ICON,'(6X,A)')'ENDIF'
+               WRITE(ICON,'(2X,A,A)') CN3,' CONTINUE'
+               WRITE(ICON,'(2X,A,A)') CN4,' CONTINUE'
+            ENDIF
+C
+            WRITE(IBEG,'(2X,A,A)') CN3OLD,' CONTINUE'
+            WRITE(IBEG,'(2X,A,A)') CN4OLD,' CONTINUE'
+         ENDIF
+C
+C   NEXT, SET UP A SKELETON ROUTINE FOR USER-WRITTEN INEQUALITY
+C   CONSTRAINT CONDITION(S) THAT CANNOT BE HANDLED BY THE
+C   STANDARDIZED FORM USED IN DECIDE.NEW...
+C
+         IF (IROLEV.EQ.7) THEN
+            WRITE(ISUB,'(A)')'C=DECK      USRCON'
+            WRITE(ISUB,'(6X,A)')
+     *'SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,'
+            WRITE(ISUB,'(5X,A)')
+     *     '1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)'
+            WRITE(ISUB,'(A)')'C   PURPOSE: GENERATE USER-WRITTEN'
+            WRITE(ISUB,'(A)')'C   INEQUALITY CONSTRAINT CONDITION'
+            WRITE(ISUB,'(A)')'C   USING ANY COMBINATION OF PROGRAM'
+            WRITE(ISUB,'(A)')'C   VARIABLES.'
+            WRITE(ISUB,'(A)')'C   YOU MUST WRITE CODE THAT, USING'
+            WRITE(ISUB,'(A)')'C   THE VARIABLES IN THE LABELLED'
+            WRITE(ISUB,'(A)')'C   COMMON BLOCKS AS INPUT, ULTIMATELY'
+            WRITE(ISUB,'(A)')'C   YIELDS A CONSTRAINT CONDITION,'
+            WRITE(ISUB,'(A)')'C   CALLED "CONX" IN THIS ROUTINE.'
+C
+            WRITE(ISUB,'(6X,A)')
+     *      'DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)'
+            WRITE(ISUB,'(6X,A)')
+     *      'DIMENSION PCWORD(*),CPLOTX(*)'
+            WRITE(ISUB,'(6X,A)')'CHARACTER*80 WORDCX,WORDMX,PCWORD'
+            WRITE(ISUB,'(A)')'C  INSERT ADDITIONAL COMMON BLOCKS:'
+C
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(6X,A)')'CONX = 0.0'
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(A)')'C  INSERT USER-WRITTEN STATEMENTS'
+            WRITE(ISUB,'(A)')'C  HERE. THE CONSTRAINT CONDITION'
+            WRITE(ISUB,'(A)')'C  THAT YOU CALCULATE IS CALLED "CONX"'
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(6X,A)')'IF (CONX.EQ.0.0) RETURN'
+            WRITE(ISUB,'(6X,A)')'IF (CONX.LT.0.0) THEN'
+            WRITE(ISUB,'(6X,A)')
+     *      '   WRITE(IFILEX,*)'' CONX MUST BE GREATER THAN ZERO.'''
+            WRITE(ISUB,'(6X,A)')'   CALL EXIT'
+            WRITE(ISUB,'(6X,A)')'ENDIF'
+C
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(A)')
+     *      'C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC'
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(6X,A)')'ICARX = ICARX + 1'
+            WRITE(ISUB,'(6X,A)')'INUMTT = INUMTT + 1'
+            WRITE(ISUB,'(6X,A)')
+     *           'WORDCX(ICARX) = '' USER: PROVIDE THIS.'''
+            WRITE(ISUB,'(6X,A)')'CPLOTX(ICARX) = CONX - 1.'
+            WRITE(ISUB,'(6X,A)')'CALL BLANKX(WORDCX(ICARX),IENDP)'
+            WRITE(ISUB,'(6X,A)')
+     *      'PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//'' -1'''
+            WRITE(ISUB,'(6X,A)')
+     *      'IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200'
+            WRITE(ISUB,'(6X,A)')
+     *      'IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200'
+            WRITE(ISUB,'(6X,A)')'ICONSX = ICONSX + 1'
+            WRITE(ISUB,'(6X,A)')'IF (IMODX.EQ.0) IPOINC(INUMTT) = 1'
+            WRITE(ISUB,'(6X,A)')'CONSTX(ICONSX) = CONX'
+            WRITE(ISUB,'(6X,A)')
+     *      'WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//'' -1'''
+            WRITE(ISUB,'(2X,A)') '200 CONTINUE'
+            WRITE(ISUB,'(A)')'C  END OF USRCON'
+         ENDIF
+C************ begin modification *********************************
+c Read the comments in this subroutine
+c Jeff Jacoby 12/90
+C  NEXT, SET UP A SKELETON ROUTINE FOR USER-WRITTEN LINKING
+C  CONDITION(S) THAT CANNOT BE HANDLED BY THE STANDARDIZED
+C  FORM USED IN decide.f...
+C
+      IF (IROLEV.EQ.7) THEN
+         WRITE(ISUB,'(A)')'C=DECK      USRLNK'
+         WRITE(ISUB,'(6X,A)')
+     *  'SUBROUTINE USRLNK(VARI,I,VARIAB)'
+         WRITE(ISUB,'(A)')'C Purpose: generate user-written'
+         WRITE(ISUB,'(A)')'C linking conditions using any'
+         WRITE(ISUB,'(A)')'C combination of decision variables.'
+         WRITE(ISUB,'(A)')'C You must write conde that, using'
+         WRITE(ISUB,'(A)')'C the variables in the subroutine'
+         WRITE(ISUB,'(A)')'C argument VARIAB as input, ultimately'
+         WRITE(ISUB,'(A)')'C yield a value for the linked variable'
+         WRITE(ISUB,'(A)')'C VARI.'
+         WRITE(ISUB,'(A)')'C '
+         WRITE(ISUB,'(A)')'C VARI is the Ith entry of the array'
+         WRITE(ISUB,'(A)')'C VARIAB.  You have decided that this'
+         WRITE(ISUB,'(A)')'C is to be a linked variable with user'
+         WRITE(ISUB,'(A)')'C defined linking.  It is linked to'
+         WRITE(ISUB,'(A)')'C the decision variables in the array'
+         WRITE(ISUB,'(A)')'C VARIAB.'
+         WRITE(ISUB,'(A)')'C An example will provide the simplest'
+         WRITE(ISUB,'(A)')'C explanation of this:'
+         WRITE(ISUB,'(A)')'C Let"s say that the 5th decision'
+         WRITE(ISUB,'(A)')'C variable candidate (I=5) is linked'
+         WRITE(ISUB,'(A)')'C to the decision variable candidates'
+         WRITE(ISUB,'(A)')'C 2 and 7. (You used DECIDE to select'
+         WRITE(ISUB,'(A)')'C these as decision variables.'
+         WRITE(ISUB,'(A)')'C In this case VARI is equal to'
+         WRITE(ISUB,'(A)')'C VARIAB(I).  You then write your'
+         WRITE(ISUB,'(A)')'C linking equation in the form'
+         WRITE(ISUB,'(A)')'C VARI=f(VARIAB(2),VARIAB(7)).'
+         WRITE(ISUB,'(A)')'C Use the index I in an IF statement if'
+         WRITE(ISUB,'(A)')'C you have more than one user-defined'
+         WRITE(ISUB,'(A)')'C linked variable.'
+         WRITE(ISUB,'(A)')'C  '
+C
+         WRITE(ISUB,'(A)')'C'
+         WRITE(ISUB,'(6X,A)')'REAL VARI,VARIAB(50)'
+         WRITE(ISUB,'(6X,A)')'INTEGER I'
+         WRITE(ISUB,'(A)')'C'
+         WRITE(ISUB,'(A)')'C  INSERT USER-WRITTEN DECLARATION'
+         WRITE(ISUB,'(A)')'C  STATEMENTS HERE.'
+C
+         WRITE(ISUB,'(A)')'C'
+         WRITE(ISUB,'(A)')'C  INSERT USER-WRITTEN'
+         WRITE(ISUB,'(A)')'C  STATEMENTS HERE.'
+         WRITE(ISUB,'(A)')'C'
+C
+         WRITE(ISUB,'(A)')'C'
+         WRITE(ISUB,'(A)')'C  END OF USRLNK'
+         WRITE(ISUB,'(6X,A)')'RETURN'
+         WRITE(ISUB,'(6X,A)')'END'
+      ENDIF
+c************* end modification ******************************
+C
+C
+C
+C   NEXT SET UP THE OBJECTIVE FUNCTION SUBROUTINE AND CALL...
+C
+         IF (IROLEV.EQ.7) THEN
+            WRITE(ISUB,'(A)')'C=DECK      OBJECT'
+            WRITE(ISUB,'(6X,A)')
+     *     'SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)'
+            WRITE(ISUB,'(A,A)')'C   PURPOSE:',PHRAS2(1:IENDP)
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(A)')'C   YOU MUST WRITE CODE THAT, USING'
+            WRITE(ISUB,'(A)')'C   THE VARIABLES IN THE LABELLED'
+            WRITE(ISUB,'(A)')'C   COMMON BLOCKS AS INPUT, ULTIMATELY'
+            WRITE(ISUB,'(A)')'C   YIELDS THE OBJECTIVE FUNCTION'
+            WRITE(ISUB,'(A,A)')'C         ',VNAME(1:MLET)
+            WRITE(ISUB,'(A)')'C   AS OUTPUT. MAKE SURE TO INCLUDE AT'
+            WRITE(ISUB,'(A)')'C   THE END OF THE SUBROUTINE, THE'
+            WRITE(ISUB,'(A,A)')'C   STATEMENT: OBJGEN = ',VNAME(1:MLET)
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(A)')'C   DEFINITIONS OF INPUT DATA:'
+            WRITE(ISUB,'(A)')'C    IMODX  = DESIGN CONTROL INTEGER:'
+            WRITE(ISUB,'(A)')'C     IMODX = 0 MEANS BASELINE DESIGN'
+            WRITE(ISUB,'(A)')'C     IMODX = 1 MEANS PERTURBED DESIGN'
+            WRITE(ISUB,'(A)')
+     *     'C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS'
+            WRITE(ISUB,'(A)')
+     *     'C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS'
+            WRITE(ISUB,'(A)')'C    IFILE = FILE FOR OUTPUT LIST:'
+            WRITE(ISUB,'(A)')'C    NPRINX= OUTPUT CONTROL INTEGER:'
+            WRITE(ISUB,'(A)')'C     NPRINX=0 MEANS SMALLEST AMOUNT'
+            WRITE(ISUB,'(A)')'C     NPRINX=1 MEANS MEDIUM AMOUNT'
+            WRITE(ISUB,'(A)')'C     NPRINX=2 MEANS LOTS OF OUTPUT'
+            WRITE(ISUB,'(A)')'C   '
+            WRITE(ISUB,'(A)')'C   DEFINITION OF PHRASE:'
+            WRITE(ISUB,'(A,A)')'C     PHRASE = ',PHRAS2(1:IENDP)
+            WRITE(ISUB,'(A)')'C'
+            WRITE(ISUB,'(6X,A)')' CHARACTER*80 PHRASE'
+            WRITE(ISUB,'(A)')'C  INSERT ADDITIONAL COMMON BLOCKS:'
+C
+C           WRITE(ICON,'(A)')' 105 CONTINUE'
+C           WRITE(ICON,'(A)')
+C    1     'C  END OF LOOP OVER NUMBER OF LOAD SETS (environments)'
+            WRITE(ICON,'(A)')'C '
+            WRITE(ICON,'(A)')'C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:'
+            WRITE(ICON,'(6X,A)')'IF (ILOADX.EQ.1) THEN'
+            WRITE(ICON,'(6X,A,A,A)')'   PHRASE =''',PHRAS2(1:IENDP),''''
+            WRITE(ICON,'(6X,A)')'   CALL BLANKX(PHRASE,IENDP4)'
+            WRITE(ICON,'(6X,A)')
+     *        '   CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,'
+            WRITE(ICON,'(5X,A,A,A)')'1    ''',PHRAS2(1:IENDP),''')'
+            WRITE(ICON,'(6X,A)')'ENDIF'
+            WRITE(ICON,'(6X,A)')'NCONSX = ICONSX'
+         ENDIF
+C
+      ENDIF
+C
+      IF (IROLEV.EQ.7) GO TO 435
+C
+      IF (IROLEVV.EQ.1.OR.IROLEVV.EQ.2) THEN
+        WRITE(6,'(1X,A)')
+     *' ANY MORE DECISION VARIABLE CANDIDATES     (ROLE 1 VARIABLES) '
+        WRITE(6,'(1X,A,$)')
+     *'    OR    FIXED PARAMETERS (e.g. material) (ROLE 2 VARIABLES)? '
+      ENDIF
+C
+      IF (IROLEV.EQ.3) WRITE(6,'(1X,A,$)')
+     *' ANY MORE ENVIRONMENTAL PARAMETERS (loads) (ROLE 3 VARIABLES)? '
+      IF (IROLEV.EQ.4) THEN
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(1X,A,A,A)')
+     *' CHOOSE AN ALLOWABLE FOR ',VB(1:MLET4),' (ROLE 5 VARIABLE).'
+        IF (INFILE.EQ.5.AND.ICAR.LT.2) WRITE(6,2038)
+         WRITE(6,'(A)') '  '
+         IROLEVV = 5
+         GO TO 135
+      ENDIF
+      IF (IROLEV.EQ.5) THEN
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(1X,A,A,A)')
+     *' CHOOSE FACTOR OF SAFETY FOR ',VB(1:MLET4),' (ROLE 6 VARIABLE).'
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         IROLEVV = 6
+         GO TO 135
+      ENDIF
+      IF (IROLEV.EQ.6) THEN
+        WRITE(6,'(1X,A,$)')
+     *' ANY MORE RESPONSE VARIABLES (e.g.buckling) (ROLE 4 VARIABLES)? '
+        IROLEVV = 4
+      ENDIF
+C
+  425    CONTINUE
+         LABL =   4
+         ILOC = 430
+  430    READ(INFILE,'(A)',END=440,ERR=425) ANS
+         CALL SHIFTC(ANS)
+         IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *       ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+            WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+            GO TO 425
+         ENDIF
+C
+            TAG   = CN3//'     '
+            CALL SHIFTC(TAG)
+            IF (ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n') TAG = '        '
+         IF (INFILE.EQ.5) THEN
+            IF (IROLEVV.GT.2) WRITE(IRAW,'(1X,A,A,I2,A,A)') ANS,
+     *   '  $ Any more variables for role type ',IROLEVV,
+     *       ' ?              $',TAG
+            IF (IROLEVV.LE.2) WRITE(IRAW,'(1X,A,A,A)') ANS,
+     *   '  $ Any more variables for role types  1  or  2   ?    $',TAG
+         ENDIF
+            IF (IROLEVV.GT.2) WRITE(IDAT,'(1X,A,A,I2,A,A)') ANS,
+     *   '  $ Any more variables for role type ',IROLEVV,
+     *       ' ?              $',TAG
+            IF (IROLEVV.LE.2) WRITE(IDAT,'(1X,A,A,A)') ANS,
+     *   '  $ Any more variables for role types  1  or  2   ?    $',TAG
+C
+         WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+         IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+            IF (IROLEVV.EQ.1.OR.IROLEVV.EQ.2) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER DECISION VARIABLE CANDIDATE (ROLE 1 VARIABLE)'
+               WRITE(6,'(1X,A)')
+     *'       OR       FIXED PARAMETER             (ROLE 2 VARIABLE).'
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               IROLEVV = 1
+               GO TO 135
+            ENDIF
+            IF (IROLEV.EQ.3) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER ENVIRONMENTAL PARAMETER     (ROLE 3 VARIABLE).'
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               IROLEVV = 3
+               GO TO 135
+            ENDIF
+            IF (IROLEV.EQ.6) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER RESPONSE VARIABLE           (ROLE 4 VARIABLE).'
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               IROLEVV = 4
+               GO TO 135
+            ENDIF
+            GO TO 135
+         ELSE
+            IF (IROLEVV.EQ.1.OR.IROLEVV.EQ.2) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE AN ENVIRONMENTAL PARAMETER (load)   (ROLE 3 VARIABLE).'
+               IF (INFILE.EQ.5.AND.ILAR.LT.1) WRITE(6,2039)
+C
+               IROLEVV = 3
+               GO TO 135
+            ENDIF
+            IF (IROLEV.EQ.3) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE A RESPONSE PARAMETER (e.g. stress)  (ROLE 4 VARIABLE).'
+               IF (INFILE.EQ.5.AND.ICAR.LT.1) WRITE(6,2040)
+C
+               IROLEVV = 4
+               GO TO 135
+            ENDIF
+            IF (IROLEV.EQ.6) THEN
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(A)') '  '
+               WRITE(6,'(1X,A)')
+     *' CHOOSE AN OBJECTIVE (e.g. minimum weight)  (ROLE 7 VARIABLE).'
+               IF (INFILE.EQ.5.AND.IOAR.LT.1) WRITE(6,2041)
+               WRITE(6,'(A)') '  '
+               IROLEVV = 7
+               GO TO 135
+            ENDIF
+            IF (IROLEV.NE.7) GO TO 135
+         ENDIF
+  435 CONTINUE
+C
+      IF (IVAR.EQ.0) THEN
+         WRITE(6,2042)
+         WRITE(6,*)' YOU MUST HAVE AT LEAST ONE DECISION VARIABLE.'
+         CALL EXIT
+      ENDIF
+      IF (ICAR.EQ.0) THEN
+         WRITE(6,2042)
+         WRITE(6,*)' YOU MUST HAVE AT LEAST ONE RESPONSE VARIABLE.'
+         CALL EXIT
+      ENDIF
+      IF (IOAR.EQ.0) THEN
+         WRITE(6,2042)
+         WRITE(6,*)' YOU MUST HAVE ONE OBJECTIVE VARIABLE.'
+         CALL EXIT
+      ENDIF
+      IF (ILAR.EQ.0) THEN
+         WRITE(6,2042)
+         WRITE(6,*)' YOU MUST HAVE AT LEAST ONE ENVIRONMENTAL VARIABLE.'
+         CALL EXIT
+      ENDIF
+C
+      GO TO 445
+C
+  440 CONTINUE
+
+C     PATH FOR END OF FILE ON THE INPUT DATA FILE, INFILE
+
+      INFILE = 5
+
+C     WRITE(6,*)' LABL,ILOC = ',LABL,ILOC
+
+C BEG SEP 2011
+
+*     ########## original GOTO statement ##########
+*     GO TO (115,125,145,155,165,175,185,195,205,215,
+*    *       225,235,245,255,265,280,310,320,330,380,430),LABL
+
+*     ########## modified GOTO statement ##########
+*     GO TO (115,125,145,999,999,999,999,999,999,999,
+*    *       999,999,999,999,999,999,999,999,999,999,430),LABL
+
+*     ########## final GOTO logic ##########
+
+      IF (LABL .EQ. 0) THEN
+        WRITE(6,2062) LABL, ILOC
+      ENDIF
+
+      GO TO (110,120,140,425), LABL
+
+C END SEP 2011
+
+C
+  445 CONTINUE
+C
+      NCAR = ICAR
+C
+      WRITE(IOUT,'(A)')' 999.0 DUMMY ENTRY TO MARK END OF FILE'
+      WRITE(6,'(A)') '  '
+      WRITE(6,'(A)') '  '
+      WRITE(6,'(1X,A,A)')
+     *' DUMMY ENTRY WRITTEN AT END OF ',CASE2
+      WRITE(6,'(A)') '  '
+      WRITE(6,'(A)') '  '
+C
+C  WRITE INTO THE NAME.COM FILE ANY REMAINING ACCUMULATED COMMON:
+C
+      IF (MICOM0.GT.0) THEN
+          WRITE(ICOM,'(6X,A)') PICOM0(1:MICOM0)
+          WRITE(ICOM,'(6X,A,A)')'INTEGER ',PICOM0(13:MICOM0)
+      ENDIF
+      IF (MCOM0.GT.0) THEN
+          WRITE(ICOM,'(6X,A)') PCOM0(1:MCOM0)
+          WRITE(ICOM,'(6X,A,A)')'REAL ',PCOM0(13:MCOM0)
+      ENDIF
+      IF (MCOM1.GT.0) THEN
+          WRITE(ICOM,'(6X,A)') PCOM1(1:MCOM1)
+          WRITE(ICOM,'(6X,A)') PRCOM1(1:MRCOM1)
+      ENDIF
+      IF (MCOM2.GT.0) THEN
+          WRITE(ICOM,'(6X,A)') PCOM2(1:MCOM2)
+          WRITE(ICOM,'(6X,A)') PRCOM2(1:MRCOM2)
+      ENDIF
+C
+C  NEXT, GENERATE THE STOGET.NEW, BEGIN.NEW, MAIN.NEW, AND CHANGE.NEW
+C  PROGRAMS:
+C
+      CALL UNITE1(IWRI,IREA,ICOM)
+      WRITE(6,'(1X,A)')' stoget.new has been created.'
+      CALL UNITE2(IBEG,ICOM,ISET)
+      WRITE(6,'(1X,A)')' begin.new has been created.'
+      CALL UNITE3(ICOM,ICON)
+      WRITE(6,'(1X,A)')' struct.new has been created.'
+C BEG SEP 2011
+      CALL UNITE4(IDEF,ICOM,ISUB,NCAR,VNAME,NDEF)
+C END SEP 2011
+      WRITE(6,'(1X,A)')' behavior.new has been created.'
+      CALL UNITE5(ICOM,ICHA)
+      WRITE(6,'(1X,A)')' change.new has been created.'
+C
+C BEG SEP 2011
+C     because of errors in the fortran library within FEDORA_15
+C     the following must be performed to prevent those errors
+C     prior to attempting to write additional lines to (IDEF)
+C
+*     CLOSE(UNIT=IDEF,STATUS='KEEP',IOSTAT=IO_DEF_CLO)
+C
+*     OPEN(UNIT=IDEF,FILE=CASE11,STATUS='UNKNOWN',IOSTAT=IO_DEF_OPN)
+
+      REWIND IDEF
+
+      DO 446 ID = 1,NDEF
+        READ(IDEF,'(A)',END=447) PHRASE
+  446 CONTINUE
+  447 CONTINUE
+C
+C END SEP 2011
+C
+      WRITE(IDEF,'(A)') 'C'
+      WRITE(IDEF,'(A)')
+     *'C=============================================================='
+      WRITE(IDEF,'(A)')
+     * 'C       TABLE 3   SEVEN ROLES THAT VARIABLES PLAY'
+      WRITE(IDEF,'(A)')
+     *'C=============================================================='
+      WRITE(IDEF,2000)
+      WRITE(6,2022) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      write(6,2023)
+      WRITE(6,2024)
+      write(6,2025)
+      WRITE(6,2026) CASE(1:NLET),CASE(1:NLET)
+      WRITE(IDEF,2022) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      write(IDEF,2023)
+      WRITE(IDEF,2024)
+      write(IDEF,2025)
+      WRITE(IDEF,2043) CASE2,CASE3,CASE4,CASE5,CASE6
+      WRITE(IDEF,2044) CASE7,CASE8,CASE9
+      WRITE(IDEF,2045) CASE10,CASE11,CASE12,CASE13
+      WRITE(IDEF,2046)
+      write(IDEF,2047)
+      WRITE(IDEF,2048)
+      WRITE(IDEF,2049)
+      WRITE(IDEF,2050)
+C BEG SEP 2008
+C  six lines removed and put farther down.
+C END SEP 2008
+C BEG MAR 2008
+C END MAR 2008
+C
+C BEG MAR 2008
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     *' genopt/case/torisph/struct.tori    (behavior.new not modified)',
+     *' genopt/case/torisph/struct.ellipse (behavior.new not modified)',
+     *' genopt/case/torisph/struct.equivellipse',
+     *'                                    (behavior.new not modified)',
+     *' genopt/case/cylinder/struct.cylinder',
+     *' genopt/case/cylinder/behavior.cylinder',
+     *' genopt/case/wavycyl/struct.wavycyl',
+     *' genopt/case/wavycyl/behavior.wavycyl',
+     *' genopt/case/plate/behavior.plate  (struct.new is not modified)',
+     *' genopt/case/plate/behavior.plate  (struct.new is not modified)',
+     *' genopt/case/sphere/behavior.plate (struct.new is not modified)'
+C BEG JUL 2008
+C BEG DEC 2010
+      WRITE(IDEF,'(A,/,A,/,A,/,A,/,A)')
+     *' genopt/case/weldland/behavior.weldland  (tiny mod. struct.new)',
+     *' genopt/case/trusscomp/behavior.trusscomp (tiny mod.struct.new)',
+     *' genopt/case/submarine/behavior.submarine (tiny mod.struct.new)',
+     *' genopt/case/span/behavior.span (tiny modification, struct.new)',
+     *' genopt/case/balloon/behavior.balloon (tiny mod. of struct.new)'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     *' The "tiny modification" of struct.new consists of adding only',
+     *' three lines to struct.new: CALL OPNGEN, CALL RWDGEN, and',
+     *' CALL CLSGEN, added as described on p. 2 of Table 8 of the file',
+     *' ...genopt/case/trusscomp/trusscomp.vol1.pdf (see p. 53 of that',
+     *' file). The three added statements, CALL OPNGEN, CALL RWDGEN,',
+     *' and CALL CLSGEN, open, rewind, and close various files used by',
+     *' BIGBOSOR4. If you plan to optimize some other shell using',
+     *' GENOPT/BIGBOSOR4 you can "flesh out" struct.new in exactly the'
+C END DEC 2010
+      WRITE(IDEF,'(A,/,A,/,A,/,A,/,A,/,A)')
+     *' same way. To find the places in the "skeletal" version of',
+     *' struct.new that is automatically produced by GENTEXT, search',
+     *' for the string, "YOU MAY WANT" in order to find where you',
+     *' should insert the two lines, CALL OPNGEN and CALL RWDGEN.',
+     *' Search for the string, "NCONSX", in order to find where you',
+     *' should insert the line, CALL CLSGEN.'
+C END JUL 2008
+C
+      WRITE(IDEF,'(/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     *' ************** NOTE ****************** NOTE ******************',
+     *' MAKE SURE ALWAYS TO SAVE COPIES OF struct.new AND behavior.new',
+     *' THAT YOU HAVE PUT A LOT OF EFFORT INTO CREATING.',
+     *' THE struct.new AND behavior.new FILES ARE DESTROYED BY',
+     *' EXECUTION OF "gentext".',
+     *' **************************************************************'
+C END MAR 2008
+C BEG SEP 2008
+      WRITE(IDEF,2051)
+      WRITE(IDEF,2052)
+      WRITE(IDEF,2053)
+      WRITE(IDEF,2054)
+      WRITE(IDEF,2055)
+C     WRITE(IDEF,2056)
+C END SEP 2008
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=IBEG)
+      CLOSE(UNIT=IRAW)
+      CLOSE(UNIT=ICOM)
+      CLOSE(UNIT=IWRI)
+      CLOSE(UNIT=IREA)
+      CLOSE(UNIT=ISET)
+      CLOSE(UNIT=ICON)
+      CLOSE(UNIT=ISUB)
+      CLOSE(UNIT=IDEF)
+      CLOSE(UNIT=ICHA)
+      CLOSE(UNIT=IDAT)
+c End 11/90 changes
+C
+      WRITE(6,2057) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(6,2059)
+      write(6,2060)
+C
+      WRITE(6,2061) CASE(1:NLET),CASE(1:NLET)
+C
+      RETURN
+C+---------------------------------------------------------------------+
+C|    FORMAT STATEMENTS                                                |
+C+---------------------------------------------------------------------+
+ 2000 FORMAT('C    A variable can have one of the following roles:'/
+     * 'C'/
+     * 'C    1 = a possible decision variable for optimization,'/
+     * 'C        typically a dimension of a structure.'/
+     * 'C    2 = a constant parameter (cannot vary as design evolves),'/
+     * 'C        typically a control integer or material property,'/
+     * 'C        but not a load, allowable, or factor of safety,'/
+     * 'C        which are asked for later.'/
+     * 'C    3 = a parameter characterizing the environment, such'/
+     * 'C        as a load component or a temperature.'/
+     * 'C    4 = a quantity that describes the response of the'/
+     * 'C        structure, (e.g. stress, buckling load, frequency)'/
+     * 'C    5 = an allowable, such as maximum allowable stress,'/
+     * 'C        minimum allowable frequency, etc.'/
+     * 'C    6 = a factor of safety'/
+     * 'C    7 = the quantity that is to be minimized or maximized,'/
+     * 'C        called the "objective function" (e.g. weight).'/
+     * 'C ===========================================================')
+ 2001 FORMAT(/
+     *'C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN'/
+     *'C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.'/
+     *'C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: ',A//
+     *'C "GENOPT" (GENeral OPTimization) was written during 1987-1988'/
+     *'C by Dr. David Bushnell, Dept. 93-30, Bldg. 315, (415)424-3237'/
+     *'C    Lockheed Missiles and Space Co., 3315 Hanover St.,'/
+     *'C    Palo Alto, California, USA  94304'//
+     *'C The optimizer used in GENOPT is called ADS, and was'/
+     *'C written by G. Vanderplaats [3]. It is based on the method'/
+     *'C of feasible directions [4].')
+ 2002 FORMAT(/
+     *'C                       ABSTRACT'//
+     *'C "GENOPT" has the following purposes and properties:'/
+     *'C     1. Any relatively simple analysis is "automatically"'/
+     *'C        converted into an optimization of whatever system'/
+     *'C        can be analyzed with fixed properties. Please note'/
+     *'C        that GENOPT is not intended to be used for problems'/
+     *'C        that require elaborate data-base management systems'/
+     *'C        or large numbers of degrees of freedom.'//
+     *'C     2. The optimization problems need not be in fields nor'/
+     *'C        jargon familiar to me, the developer of GENOPT.'/
+     *'C        Although all of the example cases (See the cases'/
+     *'C        in the directories under genopt/case)'/
+     *'C        are in the field of structural analysis, GENOPT is'/
+     *'C        not limited to that field.'//)
+ 2003 FORMAT(
+     *'C     3. GENOPT is a program that writes other programs. These'/
+     *'C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,'/
+     *'C        form a program system that should be user-friendly in'/
+     *'C        the GENOPT-user"s field. In this instance the user'/
+     *'C        of GENOPT must later supply FORTRAN coding that'/
+     *'C        calculates behavior in the problem class called "',
+     *   A,'".'/)
+ 2004 FORMAT(
+     *'C     4. Input data and textual material are elicited from'/
+     *'C        the user of GENOPT in a general enough way so that'/
+     *'C        he or she may employ whatever data, definitions, and'/
+     *'C        "help" paragraphs will make subsequent use of the'/
+     *'C        program system thus generated easy by those less'/
+     *'C        familiar with the class of problems "',A,'" than'/
+     *'C        the GENOPT user.'//
+     *'C     5. The program system generated by GENOPT has the same'/
+     *'C        general architecture as previous programs written for'/
+     *'C        specific applications by the developer [7 - 16]. That'/
+     *'C        is, the command set is:'//
+     *'C           BEGIN     (User supplies starting design, loads,'/
+     *'C                      control integers, material properties,'/
+     *'C                      etc. in an interactive-help mode.)'//
+     *'C           DECIDE    (User chooses decision and linked'/
+     *'C                      variables and inequality constraints'/
+     *'C                      that are not based on behavior.)'/)
+ 2005 FORMAT(
+     *'C           MAINSETUP (User chooses output option, whether'/
+     *'C                      to perform analysis of a fixed design'/
+     *'C                      or to optimize, and number of design'/
+     *'C                      iterations.)'//
+     *'C           OPTIMIZE  (The program system performs, in a batch'/
+     *'C                      mode, the work specified in MAINSETUP.)'//
+     *'C           SUPEROPT  (Program tries to find the GLOBAL optimum'/
+     *'C                      design as described in Ref.[11] listed'/
+     *'C                      below (Many OPTIMIZEs in one run.)'//
+     *'C           CHANGE    (User changes certain parameters)'//
+     *'C           CHOOSEPLOT (User selects which quantities to plot'/
+     *'C                       vs. design iterations.)'//
+     *'C           DIPLOT    (User generates plots)'//
+     *'C           CLEANSPEC (User cleans out unwanted files.)'//
+     *'C     A typical runstream is:'/
+     *'C       GENOPTLOG   (activate command set)')
+ 2006 FORMAT(
+     *'C       BEGIN       (provide starting design, loads, etc.)'/
+     *'C       DECIDE      (choose decision variables and bounds)'/
+     *'C       MAINSETUP   (choose print option and analysis type)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       CHANGE      (change some variables for new starting pt)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       OPTIMIZE    (launch batch run for n design iterations)'/
+     *'C       CHOOSEPLOT  (choose which variables to plot)'/
+     *'C       DIPLOT      (plot variables v. iterations)')
+ 2007 FORMAT(
+     *'C       CHOOSEPLOT  (choose additional variables to plot)'/
+     *'C       DIPLOT      (plot more variables v design iterations)'/
+     *'C       CLEANSPEC   (delete extraneous files for specific case)'/
+     */
+     *'C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"'/
+     *'C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN'/
+     *'C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO'/
+     *'C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,'/
+     *'C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,'/
+     *'C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and'/
+     *'C              Structures, Vol. 25, No. 4, pp 469-605 (1987).'/)
+ 2008 FORMAT(
+     *'C Due to introduction of a "global" optimizer, SUPEROPT,'/
+     *'C described in Ref.[11], you can now use the runstream'//
+     *'C      BEGIN       (provide starting design, loads, etc.)'/
+     *'C      DECIDE      (choose decision variables and bounds)'/
+     *'C      MAINSETUP   (choose print option and analysis type)'/
+     *'C      SUPEROPT    (launch batch run for "global" optimization)'/
+     *'C      CHOOSEPLOT  (choose which variables to plot)'/
+     *'C      DIPLOT      (plot variables v. iterations)'//
+     *'C "Global" is in quotes because SUPEROPT does its best to find'/
+     *'C a true global optimum design. The user is strongly urged to'/
+     *'C execute SUPEROPT/CHOOSEPLOT several times in succession in'/
+     *'C order to determine an optimum that is essentially just as'/
+     *'C good as the theoretical true global optimum. Each execution'/
+     *'C of the series,'/
+     *'C      SUPEROPT'/
+     *'C      CHOOSEPLOT'/)
+ 2009 FORMAT(
+     *'C does the following:'//
+     *'C 1. SUPEROPT executes many sets of the two processors,'/
+     *'C    OPTIMIZE and AUTOCHANGE (AUTOCHANGE gets a new random'/
+     *'C    "starting" design), in which each set does the following:'//
+     *'C      OPTIMIZE          (perform k design iterations)'/
+     *'C      OPTIMIZE          (perform k design iterations)'/
+     *'C      OPTIMIZE          (perform k design iterations)'/
+     *'C      OPTIMIZE          (perform k design iterations)'/
+     *'C      OPTIMIZE          (perform k design iterations)'/
+     *'C      AUTOCHANGE        (get new starting design randomly)'//
+     *'C    SUPEROPT keeps repeating the above sequence until the'/
+     *'C    total number of design iterations reaches about 270.'/
+     *'C    The number of OPTIMIZEs per AUTOCHANGE is user-provided.'//
+     *'C 2. CHOOSEPLOT allows the user to plot stuff and resets the'/
+     *'C    total number of design iterations from SUPEROPT to zero.'/
+     *'C    After each execution of SUPEROPT the user MUST execute'/
+     *'C    CHOOSEPLOT: before the next execution of SUPEROPT the'/
+     *'C    total number of design iterations MUST be reset to zero.')
+ 2010 FORMAT(/
+     *'C                     REFERENCES'//
+     *'C [1] Bushnell, D., "GENOPT--A program that writes'/
+     *'C user-friendly optimization code", International'/
+     *'C Journal of Solids and Structures, Vol. 26, No. 9/10,'/,
+     *'C pp. 2031-380, 1990. The same paper is contained in a'/
+     *'C bound volume of papers from the International Journal of'/
+     *'C Solids and Structures published in memory of Professor'/
+     *'C Charles D. Babcock, formerly with the California Institute'/
+     *'C of Technology. '//
+     *'C [2] Bushnell, D., "Automated optimum design of shells of'/
+     *'C revolution with application to ring-stiffened cylindrical'/
+     *'C shells with wavy walls", AIAA paper 2000-1663, 41st'/
+     *'C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see'/
+     *'C Lockheed Martin report, same title, LMMS P534574, November'/
+     *'C 1999'/)
+ 2011 FORMAT(
+     *'C [2b] Bushnell, D., "Minimum weight design of imperfect'/
+     *'C isogrid-stiffened ellipsoidal shells under uniform external'/
+     *'C pressure", AIAA paper 2009-2702, 50th AIAA Structures'/
+     *'C Meeting, Palm Springs, CA, May 4-7, 2009'//
+     *'C [2c] Bushnell, D. and Thornburgh, R. P., "Use of GENOPT and'/
+     *'C BIGBOSOR4 to optimize weld lands in axially compressed'/
+     *'C stiffened cylindrical shells and evaluation of the optimized'/
+     *'C designs by STAGS", AIAA Paper 2010-2927, AIAA 51st Structures'/
+     *'C Meeting, Orlando, Florida, April 2010'//
+     *'C [2d] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain'/
+     *'C optimum designs of an axially compressed cylindrical shell'/
+     *'C with a composite truss-core sandwich wall", AIAA Paper 2011-'/
+     *'C 1811, 52nd AIAA Structures Meeting, Denver, CO, April, 2011'//
+     *'C [2e] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain'/
+     *'C an optimum design of a deep submergence tank", unpublished'/
+     *'C report to the DOER company, Alameda, CA, June 30, 2009'/)
+ 2012 FORMAT(
+     *'C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for'/
+     *'C automated design synthesis, Version 2.01", Engineering'/
+     *'C Design Optimization, Inc, Santa Barbara, CA, January, 1987'//
+     *'C [4] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose'/
+     *'C optimization program for engineering design", Computers'/
+     *'C and Structures, Vol. 24, pp 13-21, 1986'//
+     *'C [5] Bushnell, D., "BOSOR4: Program for stress, stability,'/
+     *'C and vibration of complex, branched shells of revolution",'/
+     *'C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.'/
+     *'C Niku-Lari, pp. 25-54, (1986) '//
+     *'C [6] Bushnell, D., "BOSOR5: Program for buckling of complex,'/
+     *'C branched shells of revolution including large deflections,'/
+     *'C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.'/
+     *'C 2,  edited by A. Niku-Lari, pp. 55-67, (1986) '//
+     *'C [7] Bushnell, D., "PANDA2--program for minimum weight'/
+     *'C design of stiffened, composite, locally buckled panels",'/
+     *'C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987'/)
+ 2013 FORMAT(
+     *'C [8] Bushnell, D., "Improved optimum design of dewar'/
+     *'C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,'/
+     *'C pp. 1-56 (1988)'//
+     *'C [9] Bushnell, D., "SPHERE - Program for minimum weight'/
+     *'C design of isogrid-stiffened spherical shells under uniform'/
+     *'C external pressure", Lockheed Report F372046, January, 1990'//
+     *'C [10] Bushnell, D.,"Optimum design of imperf.isogrid-stiffened'/
+     *'C ellipsoidal shells...", written and placed in the file'/
+     *'C ..genopt/case/torisph/sdm50.report.pdf'//
+     *'C [11] Bushnell, D., "Recent enhancements to PANDA2", AIAA'/
+     *'C paper 96-1337-CP, Proc. 37th AIAA SDM Meeting, April 1100'/
+     *'C pp. 126-182, in particular, pp. 127-130'//
+     *'C [12] Bushnell, D., the file ..genopt/doc/getting.started'//
+     *'C [13] Bushnell, D., the case ..genopt/case/torisph, Ref.[2b]'//
+     *'C [14] Bushnell, D., the case ..genopt/case/cylinder'//
+     *'C [15] Bushnell, D., the case ..genopt/case/wavycyl, Ref.[2]'//
+     *'C [16] Bushnell, D., the case ..genopt/case/plate'/)
+ 2014 FORMAT(
+     *'C [17] Bushnell, D., the case ..genopt/case/weldland, Ref.[2c]'//
+     *'C [18] Bushnell, D., the case ..genopt/case/trusscomp,Ref.[2d]'//
+     *'C [19] Bushnell, D., the case ..genopt/case/submarine,Ref.[2e]'/)
+ 2015 FORMAT(
+     *'C=============================================================='/
+     *'C                TABLE 1      "GENOPT" COMMANDS'/
+     *'C=============================================================='/
+     *'C     HELPG        (get information on GENOPT.) '/
+     *'C     GENTEXT      (GENOPT user generate a prompt file, program'/
+     *'C                   fragments [see TABLE 5], programs [see'/
+     *'C                   TABLE 4]., and this and other files'/
+     *'C                   [see TABLE 5 and the rest of this file.])'/
+     *'C     GENPROGRAMS  (GENOPT user generate absolute elements:'/
+     *'C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE, '/
+     *'C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,'/
+     *'C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)'/)
+ 2016 FORMAT(
+     *'C     BEGIN        (end user provide starting data.) '/
+     *'C     DECIDE       (end user choose decision variables, bounds,'/
+     *'C                   linked variables,inequality constraints.)'/
+     *'C     MAINSETUP    (end user set up strategy parameters.)'/
+     *'C     OPTIMIZE     (end user perform optimization, batch mode.)'/
+     *'C     SUPEROPT     (Program tries to find the GLOBAL optimum'/
+     *'C                   design as described in Ref.[11] listed'/
+     *'C                   above (Many OPTIMIZEs in one run.)'//
+     *'C     CHANGE       (end user change some parameters.)'/
+     *'C     CHOOSEPLOT   (end user choose which variables to plot v.'/
+     *'C                   design iterations.)'/
+     *'C     DIPLOT       (end user obtain plots.)'/
+     *'C     INSERT       (GENOPT user add parameters to the problem.)'/
+     *'C     CLEANGEN     (GENOPT user cleanup your GENeric files.)'/
+     *'C     CLEANSPEC    (end user cleanup your SPECific case files)'/)
+ 2017 FORMAT(     
+     *'C   Please consult the following sources for more'/
+     *'C   information about GENOPT: '/
+     *'C        1.  GENOPT.STORY  and  HOWTO.RUN  and  GENOPT.NEWS'/
+     *'C        2.  Sample cases: (in the directory, genopt/case)'/
+     *'C        3.  NAME.DEF file, where NAME is the name chosen by'/
+     *'C            the GENOPT-user for a class of problems. (In this'/
+     *'C            case  NAME = ',A,')'/
+     *'C        4.  GENOPT.HLP file    (type HELPG)'/
+     *'C============================================================='/)
+ 2018 FORMAT('C   TABLE 2   GLOSSARY OF VARIABLES USED IN "',A,'"'/
+     *'C=============================================================='/
+     *       'C  ARRAY  NUMBER OF         PROMPT'/
+     *       'C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                    
+     *DEFINITION OF VARIABLE'/
+     *       'C                         (',A,'.PRO)'/
+     *'C=============================================================='
+     *)
+ 2019 FORMAT(/
+     *' The purpose of GENOPT (GENeral OPTimization) is to generate a'/
+     *' user-friendly system of programs for optimizing anything you'/
+     *' want. GENOPT is designed to handle problems with small data'/
+     *' bases, not large finite element models.  Before you start'/
+     *' using GENOPT please read the file GENOPT.STORY and study the'/
+     *' cases, located in the subdirectories under genopt/case.'//
+     *' You have chosen the following name for this case:  ',A,'.'/
+     *' Henceforth, this will be called the "generic" name. After you'/
+     *' have completed your tasks in GENOPT, you and other users'/
+     *' will be able to optimize specific things that fit within the'/
+     *' class of optimization problems that you have called ',A,'.'//
+     *' Your tasks in GENOPT are:'/
+     *'    1. To provide variable names, definitions and helping'/
+     *'       paragraphs that will make it easy for others to'/
+     *'       optimize things that fit within the problem class ',A//
+     *'    2. To complete subroutines BEHX1, BEHX2, BEHX3,. . .BEHXn'/
+     *'       which calculate ',A,' behavior for a given design;')
+ 2020 FORMAT(
+     *'    3. To compile and collect all pertinent software that'/
+     *'       both you and GENOPT have written in order to generate'/
+     *'       the absolute elements:  BEGIN.EXE, DECIDE.EXE,'/
+     *'       MAINSETUP.EXE, OPTIMIZE.EXE, and  CHANGE.EXE.'/)
+ 2021 FORMAT(
+     *'       to complete SUBROUTINE OBJECT, which calculates the'/
+     *'       objective to be minimized; and/or to add any other'/
+     *'       subroutines, common blocks, utilities, etc. that you'/
+     *'       may wish.'//
+     *'    2b.Possibly "flesh out" SUBROUTINE STRUCT (struct.new'/
+     *'       library) instead of or in addition to "fleshing out"'/
+     *'       the "behavioral" subroutines, BEHXi. See Ref. [2]'/
+     *'       listed in ',A,'.DEF for an example in which both SUB.'/
+     *'       STRUCT and the "behavior" routines, BEHXi, were'/
+     *'       "fleshed out". See Ref. [2b] in ',A,'.DEF for an'/
+     *'       example in which SUBROUTINE STRUCT was "fleshed out"'/
+     *'       but the "behavioral" routines, BEHXi, were left in'/
+     *'       their skeletal forms just as GENOPT automatically'/
+     *'       created them.'/)
+ 2022 FORMAT(/' The purpose of GENTEXT is to generate a file of'/
+     *' prompting phrases and helps called ',A,'.PRO and five'/
+     *' FORTRAN source libraries, BEGIN.NEW, STOGET.NEW, STRUCT.NEW,'/
+     *' BEHAVIOR.NEW, and CHANGE.NEW.  The purposes of these files are'/
+     *' as follows:'//
+     *' =============================================================='/
+     *' TABLE 4   FILE OF PROMPTING PHRASES AND HELPS AND'/
+     *'           SOURCE CODE LIBRARIES GENERATED BY "GENTEXT"'/
+     *' =============================================================='/
+     * 2X,A,'.PRO   = prompt file for input data for the problem'/
+     *'                class that you wish to set up for optimization.'/
+     *'                When BEGIN asks you for the name of the generic'/
+     *'                file, you should respond in this case with ',A,'.
+     *'/)
+ 2023 FORMAT(
+     *'                The Prompt Numbers listed in TABLE 2 correspond'/
+     *'                to the prompts in this file.'//
+     *'  BEGIN.NEW   = source library for FORTRAN program which will'/
+     *'                be used to set up the starting design, material'/
+     *'                properties, and any other data you wish.'//
+     *'  STOGET.NEW  = source library for FORTRAN subroutines which'/
+     *'                are used to transfer labelled common blocks.'/
+     *'                These labelled common blocks are the data base.'
+     */)
+ 2024 FORMAT(
+     *'  STRUCT.NEW  = source library for FORTRAN subroutines that'/
+     *'                perform the analysis for each iterate in the'/
+     *'                set of optimization iterations.  You may have'/
+     *'                to complete this routine (add dimension state-'/
+     *'                ments, subroutine calls, output statements,'/
+     *'                etc.).  The library, STRUCT.NEW, also contains'/
+     *'                a skeletal routine, SUB. TRANFR, that you can'/
+     *'                complete in order to translate data names from'/
+     *'                from those just established by you (TABLE 2) to'/
+     *'                other names used by the developer of previously'/
+     *'                written code that you may plan to incorporate'/
+     *'                into SUBROUTINE STRUCT and/or SUBROUTINES'/
+     *'                BEHX1, BEHX2, BEHX3,...BEHXn (described next).'/
+     */)
+ 2025 FORMAT(
+     *'  BEHAVIOR.NEW= a library of subroutine skeletons, BEHX1,BEHX2,'/
+     *'                BEHX3,...BEHXn, that, upon completion by you,'/
+     *'                will calculate behavior for a given design or'/
+     *'                design perturbation.  Skeletal subroutines for'/
+     *'                a user-written constraint condition, USRCON,'/
+     *'                and a skeletal routine for the objective func-'/
+     *'                tion, OBJECT, are also generated and are'/
+     *'                included in the BEHAVIOR.NEW library.'//
+     *'  CHANGE.NEW  = FORTRAN program that permits you to change'/
+     *'                certain program parameters without having to'/
+     *'                go back to BEGIN and run a case from scratch.'/
+     *' ============================================================='/)
+ 2026 FORMAT(
+     *' OTHER FILES CREATED BY THIS INTERACTIVE RUN:'/
+     * 3X,A,'.INP    = A file that contains the input data that you'/
+     *'                have just provided.  This file becomes very'/
+     *'                useful if you make a mistake while typing'/
+     *'                input data. You can use it to avoid having'/
+     *'                to redo the input one datum at a time.'/
+     * 3X,A,'.*      = several files that contain FORTRAN program'/
+     *'                fragments that are automatically concatenated'/
+     *'                to generate BEGIN.NEW, STOGET.NEW, STRUCT.NEW,'/
+     *'                BEHAVIOR.NEW and CHANGE.NEW'/)
+ 2027 FORMAT(//
+     * ' ============================================================'/
+     * ' You will next be asked to provide information'/
+     * ' about a new variable that will play a role in your program.'/
+     * ' The following items relative to this new variable will be'/
+     * ' asked of you:'/
+     * '  1. A name of the variable (six characters or less).'/
+     * '  2. The role of the variable in your program.'/
+     * '  3. Is the variable an array? (If yes, give number of rows,'/
+     * '     NROWS and columns, NCOLS.)'/
+     * '  4. A one-line definition of the variable.'/
+     * '  5. Do you want to include a "help" paragraph that explains'/
+     * '     more about the variable than the one-line definition?'/
+     * '  6. If you answer 5. with Y, you provide a help paragraph.'/)
+ 2028 FORMAT(/' The variable can have one of the following roles:'//
+     * '    1 = a possible decision variable for optimization,'/
+     * '        typically a dimension of a structure.'/
+     * '    2 = a constant parameter (cannot vary as design evolves),'/
+     * '        typically a control integer or a material property,'/
+     * '        but not a load, allowable, or factor of safety,'/
+     * '        which are asked for later.'/
+     * '    3 = a parameter characterizing the environment, such'/
+     * '        as a load component or a temperature.'/
+     * '    4 = a quantity that describes the response of the'/
+     * '        structure, (e.g. stress, buckling load, frequency)'/
+     * '    5 = an allowable, such as maximum allowable stress,'/
+     * '        minimum allowable frequency, etc.'/
+     * '    6 = a factor of safety'/
+     * '    7 = the design objective (e.g. weight)'//
+     * ' NOTE: ALWAYS START WITH A ROLE = 1 OR A ROLE = 2 VARIABLE!'/
+     * ' ==========================================================='/)
+ 2029 FORMAT(/' REQUIRED VALUE OF THE ROLE IS',I2/
+     *        ' VALUE OF THE ROLE YOU CHOSE =',I2/
+     *        ' PLEASE USE THE REQUIRED VALUE',I2/)
+ 2030 FORMAT(/' REQUIRED VALUE OF THE ROLE IS  1   OR   2.'/
+     *        ' VALUE OF THE ROLE YOU CHOSE =',I2/
+     *        ' PLEASE USE EITHER  1  OR  2  .'/)
+ 2031 FORMAT('C    ',A,'   (',I4,',',I4,')',I5,5X,A,3X,A,
+     *       '  = ',A,' in ',A,'(',A,',',A,')')
+ 2032 FORMAT('C    ',A,'   (',I4,',',I4,')',I5,5X,A,3X,A,
+     *       '  = ',A,' in ',A,'(',A,')')
+ 2033 FORMAT('C    ',A,'   (',I4,',',I4,')',I5,5X,A,3X,A,' = ',A)
+ 2034 FORMAT(/
+     *' ACTUAL RESPONSE    = BEHAV = ',A,' = ',A/
+     *' ALLOWABLE RESPONSE = ALLOW = ',A,' = ',A/
+     *' FACTOR OF SAFETY   = FSAFE = ',A,' = ',A)
+ 2035 FORMAT(/' There are three types of behavioral constraint'/
+     *' conditions in an optimization problem:'//
+     *'  1  For a feasible design the allowable response, ALLOW'/
+     *'     must be greater than the product of the actual'/
+     *'     response, BEHAV, times its factor of safety, FSAFE.'/
+     *'     EXAMPLE: Allowable stress must be greater than the actual'/
+     *'              stress x the factor of safety for stress.'/
+     *'     For example, a design margin of this type is expressed as:'/
+     *'     1 - [BEHAVIOR)/(ALLOWABLE BEHAVIOR)] X (FACTOR OF SAFETY)'/)
+ 2036 FORMAT(
+     *'  2  For a feasible design the actual response, BEHAV,'/
+     *'     must be greater than the product of the allowable'/
+     *'     response, ALLOW, times its factor of safety, FSAFE.'/
+     *'     EXAMPLES: (a) buckling load factor must be greater than'/
+     *'                   the allowable value x the factor of safety'/
+     *'                   for buckling.'/
+     *'               (b) lowest natural frequency must be greater'/
+     *'                   than the allowable value x the factor of'/
+     *'                   safety for natural frequency.'/
+     *'     For example, a design margin of this type is expressed as:'/
+     *'     [(BEHAVIOR)/(ALLOWABLE BEHAVIOR)] /(FACTOR OF SAFETY) - 1'/)
+ 2037 FORMAT(
+     *'  3  For a feasible design the allowable response, ALLOW'/
+     *'     must be greater than the product of the actual'/
+     *'     response, BEHAV, times its factor of safety, FSAFE. (same'/
+     *'     as for INDX = 1). However, the margin has a different form'/
+     *'     EXAMPLE: Allowable stress must be greater than the actual'/
+     *'              stress x the factor of safety for stress.'/
+     *'     For example, a design margin of this type is expressed as:'/
+     *'     [(ALLOWABLE BEHAVIOR)/(BEHAVIOR)] /(FACTOR OF SAFETY) - 1'/)
+ 2038 FORMAT(/' NOTE: Please read Items 4, 5, and 6 in the section'/
+     *' of GENOPT.STORY entitled "SOME ITEMS TO BE AWARE OF"'/)
+ 2039 FORMAT(/' NOTE:  There are many optimization problems for which'/
+     *' there are no environmental parameters. However, GENOPT is set'/
+     *' up with typical engineering problems in mind: some object must'/
+     *' be designed to survive one or more environments (loads, tem-'/
+     *' peratures). Therefore, you must include at least one environ-'/
+     *' ment here, and at least one response (e.g. stress) to that'/
+     *' environment.  If environment does not play a real role in your'/
+     *' generic problem, just introduce a dummy variable with Role 3.'/
+     *' Include a one-line definition and possibly also a "help"'/
+     *' paragraph with the dummy variable that lets the end user know'/
+     *' how he or she should respond in BEGIN when asked to supply a'/
+     *' value for the dummy environment, and that makes it clear in'/
+     *' the output that the environment is a dummy variable.'/)
+ 2040 FORMAT(/' NOTE:  There are many optimization problems for which'/
+     *' there are no response parameters. However, GENOPT is set'/
+     *' up with typical engineering problems in mind: some object must'/
+     *' be designed to survive one or more environments (loads, tem-'/
+     *' peratures). Therefore, you must include at least one environ-'/
+     *' ment (e.g. load) and at least one response (e.g. stress) to'/
+     *' that environment.  If response does not play a real role in'/
+     *' your generic problem, just introduce dummy variables with'/
+     *' Role 4 (response), 5 (allowable), and 6 (factor of safety).'/
+     *' Include one-line definitions and possibly also "help" para-'/
+     *' graphs with the dummy variables that lets the end user know'/
+     *' how he or she should respond in BEGIN when asked to supply'/
+     *' values for the dummy allowable and the dummy factor of safety'/
+     *' corresponding to the dummy response, and that emphasizes in'/
+     *' the output that dummy quantities are present.  Please read the'/
+     *' section in GENOPT.STORY entitled "SOME ITEMS TO BE AWARE OF".'/)
+ 2041 FORMAT(/' NOTE: If you want the objective to be a series of'/
+     *' terms, each with a weight to be supplied later by the end'/
+     *' user, please make the weights constant (Role 2) parameters.'/)
+ 2042 FORMAT(/' SEVEN ROLES THAT VARIABLES CAN PLAY:'/
+     *' 1 = decision variable candidate(e.g.length, width, thickness)'/
+     *' 2 = fixed parameter (e.g. control integer, material property)'/
+     *' 3 = environmental factor (e.g. load, temperature)'/
+     *' 4 = response quantity (e.g. stress, buckling load factor,'/
+     *'     frequency)'/
+     *' 5 = allowable (e.g. maximum stress, minimum frequency)'/
+     *' 6 = factor of safety'/
+     *' 7 = objective (e.g. minimum weight, minimum cost)'/)
+ 2062 FORMAT(/,'INSERT - ERROR:  LABL = ',I5,',  ILOC = ',I5)
+ 2043 FORMAT(//
+     *' ============================================================'/ 
+     *'   TABLE 5: CONTENTS OF SMALL FILES CREATED BY   "GENTEXT"'/
+     *' ============================================================'/
+     *'   FILE NAME                DEFINITION OF FILE CONTENTS'/
+     *' ------------------------------------------------------------'/
+     * 1X,A16,'     Prompts and help paragraphs for interactive'/
+     * 17X,'         input to the user-developed optimization code.'//
+     * 1X,A16,'     Part of BEGIN.NEW that contains calls to'/
+     * 17X,'         SUBROUTINE DATUM and SUBROUTINE GETVAR.'/
+     * 17X,'         This coding sets up the interactive input'/
+     * 17X,'         for the starting design in the user-generated'/
+     * 17X,'         design code.'//
+     * 1X,A16,'     Image of interactive input for user-developed'/
+     * 17X,'         program, generated to save time in case you make'/
+     * 17X,'         a mistake during input.'//
+     * 1X,A16,'     Labelled common blocks generated specifically'/
+     * 17X,'         for the user-developed class of problems.'//
+     * 1X,A16,'     Part of subroutine for writing labelled common'/
+     * 17X,'         blocks in SUBROUTINE STORCM (in Library STOGET).'/)
+ 2044 FORMAT(
+     * 1X,A16,'     Part of subroutine for reading labelled common'/
+     * 17X,'         blocks in SUBROUTINE GETCOM (in Library STOGET).'//
+     * 1X,A16,'     Part of SUBROUTINE SETUPC in which new values'/
+     * 17X,'         are installed in labelled common blocks from'/
+     * 17X,'         the array VAR(I), which contains the latest'/
+     * 17X,'         values of all candidates for decision variables.'//
+     * 1X,A16,'     Calls to subroutines, BEHX1, BEHX2, BEHX3,...,'/
+     * 17X,'         which calculate behavior such as stresses'/
+     * 17X,'         modal frequencies, buckling loads, etc.'/
+     * 17X,'         Also, calls to CON, which generate the value'/
+     * 17X,'         of the behavioral constraints corresponding'/
+     * 17X,'         to BEHX1, BEHX2, BEHX3,...'/
+     * 17X,'         Also, generates phrases that identify, in the'/
+     * 17X,'         output of the user-generated program, the'/
+     * 17X,'         exact meaning of each behavioral constraint.'/)
+ 2045 FORMAT(
+     * 1X,A16,'     Skeletal subroutines, BEHX1, BEHX2, ..., and the'/
+     * 17X,'         skeletal objective function, OBJECT.'//
+     * 1X,A16,'     List of user-established variable names,'/
+     * 17X,'         definitions, and roles that these variables play'/
+     * 17X,'         in the user-generated program.  Also, contains'/
+     * 17X,'         list of files created by GENTEXT and the'/
+     * 17X,'         functions of these files.'//
+     * 1X,A16,'     Part of SUBROUTINE NEWPAR (called in the CHANGE'/
+     * 17X,'         processor) in which labelled common values are'/
+     * 17X,'         updated.'//
+     * 1X,A16,'     Image of interactive input for user-developed'/
+     * 17X,'         program, generated to save time in case you make'/
+     * 17X,'         a mistake during input. This file is used by'/
+     * 17X,'         the INSERT processor.'/
+     *' ============================================================'/)
+ 2046 FORMAT(/' WHAT TO DO NEXT (THIS IS REALLY IMPORTANT!):'/
+     *' Next, if necessary, provide the algorithms called for in the'/
+     *' skeletal subroutines listed in the library BEHAVIOR.NEW. You'/
+     *' may find useful routines, such as a linear interpolator,'/
+     *' in the library UTIL.NEW.'//
+     *' And/Or, if necessary, complete the skeletal routines STRUCT'/
+     *' and TRANFR.  (You may find useful routines in UTIL.NEW).'/
+     *' If you are adding subroutine calls to SUBROUTINE STRUCT or'/
+     *' SUBROUTINE TRANFR, store the subroutines themselves in'/
+     *' the libraries called ADDCODEn.NEW, n = 1,2,3,...5. (Please'/
+     *' list one of the ADDCODEn.NEW libraries for instructions.)'//
+     *' After you have done all this,  give the command GENPROGRAMS.'/
+     *' GENPROGRAMS will generate the absolute elements needed to'/
+     *' optimize whatever you have chosen as your objective (see'/
+     *' OBJECT routine in BEHAVIOR.NEW) in the presence of whatever'/
+     *' behavior or other factors (e.g. clearance) are quantified by'/
+     *' user-written subroutines collected in the libraries'/
+     *' ADDCODEn.NEW  and/or algorithms added to the skeletal'/
+     *' routines in the library BEHAVIOR.NEW .'//)
+ 2047 FORMAT(
+     *' If an error occurs during GENPROGRAMS, check your FORTRAN'/
+     *' coding. If you have to change something and rerun, make sure'/
+     *' to save the old version under a different file name so that'/
+     *' you can efficiently delete all outdated files with names'/
+     *' *.NEW without losing a lot of good coding! The writer had'/
+     *' fallen more than once into that trap during development of'/
+     *' GENOPT.'/)
+ 2048 FORMAT(
+     *' If GENPROGRAMS runs without bombing, try test examples within'/
+     *' the class of problems covered by your FORTRAN contributions'/
+     *' to GENOPT before assigning specific design development tasks'/
+     *' to individuals who may be more naive in the field covered by'/
+     *' your FORTRAN contributions to GENOPT than you are!'//
+     *' Please see the cases under genopt/case for examples and more'/
+     *' information.'/)
+ 2049 FORMAT(
+     *' USING GENOPT IN GENERAL AND WITH BIGBOSOR4'//
+     *' Please read the file, ..genopt/doc/getting.started.'/
+     *' Please also read the files:'/
+     *' ...genopt/case/cylinder/howto.bosdec'/
+     *' ...genopt/case/cylinder/howto.struct'/
+     *' ...genopt/case/cylinder/howto.behavior'/
+     *' ...genopt/case/torisph/howto.stags.pdf'/
+     *' ...genopt/case/torisph/readme.equivellipse'/
+     *' ...genopt/case/wavycyl/readme.wavycyl'//
+     *' The main things you must do are the following:'//
+     *' 1. create a file called ..bosdec/sources/bosdec.src, the'/
+     *' purpose of which is to create a BOSOR4 input file, *.ALL .'/
+     *' in which "*" represents the users name for the specific case.'/
+     *' The file, ..genopt/case/torisph/bosdec.equivellipse is a good'/
+     *' example. Make sure to save bosdec.src by copying it into'/
+     *' another file. Example: cp bosdec.src bosdec.equivellipse'/)
+ 2050 FORMAT(
+     *' 2. Flesh out either or both the libraries, struct.new and/or'/
+     *' behavior.new. In the case, ..genopt/case/torisph, only the'/
+     *' library struct.new is fleshed out. The library behavior.new is'/
+     *' not changed from that created automatically by GENOPT. In the'/
+     *' case, genopt/case/cylinder, both struct.new and behavior.new'/
+     *' are changed, struct.new in minor ways and behavior.new in'/
+     *' major ways. Make sure to save struct.new and behavior.new. For'/
+     *' example: cp struct.new   struct.cylinder'/
+     *'          cp behavior.new behavior.cylinder'/
+     *' (You save copies of bosdec.src, struct.new, behavior.new'/
+     *'  because it usually takes quite a bit of effort to modify'/
+     *'  the versions automatically created by GENOPT in order to'/
+     *'  solve your generic class of problems.)'/
+     *' See the following files for examples of modified libraries:'/)
+ 2051 FORMAT(
+     *' 3. Execute the GENOPT script called GENPROGRAMS. This script'/
+     *' "makes" the processors for the user-named generic case. The'/
+     *' "makefile" called ..genopt/execute/usermake.linux is used. If'/
+     *' GENPROGRAMS compiles everything successfully, which is not'/
+     *' likely on your first try because you probably did a lot of'/
+     *' FORTRAN coding to create bosdec.src, struct.new, behavior.new,'/
+     *' GENPROGRAMS will end with a list like the following:'//
+     *' Here is a list of all your newly created executables:'/
+     *' -rwxr-xr-x  1 bush bush 72012 Oct  8 15:56 autochange.linux'/
+     *' -rwxr-xr-x  1 bush bush 139553 Oct  8 15:56 begin.linux'/
+     *' -rwxr-xr-x  1 bush bush 124383 Oct  8 15:56 change.linux'/
+     *' -rwxr-xr-x  1 bush bush 201104 Oct  8 15:56 chooseplot.linux'/
+     *' -rwxr-xr-x  1 bush bush 161231 Oct  8 15:56 decide.linux'/
+     *' -rwxr-xr-x  1 bush bush 104222 Oct  8 15:56 mainsetup.linux'/
+     *' -rwxr-xr-x  1 bush bush 16920049 Oct  8 15:56 optimize.linux'/
+     *' -rwxr-xr-x  1 bush bush 95653 Oct  8 15:56 store.linux'//
+     *' Next, type the command BEGIN to input data for a new specific',
+     *' case.'/)
+ 2052 FORMAT(
+     *' If GENPROGRAMS bombs due to fatal compilation errors, or'/
+     *' even if GENPROGRAMS seems to finish successfully, it is best'/
+     *' to inspect the file ..genoptcase/usermakelinux.log. If there'/
+     *' are compilation errors, revise the appropriate source codes,'/
+     *' bosdec.src and/or struct.new and/or behavior.new, and execute'/
+     *' GENPROGRAMS again. Keep doing this until everything is okay.'/)
+ 2053 FORMAT(
+     *' 4. Next, think up a good name for your specific case and run'/
+     *' BEGIN, DECIDE, MAINSETUP, and OPTIMISE (several times) or'/
+     *' SUPEROPT. (See the file ..genopt/doc/getting.started and'/
+     *' the directories, genopt/case/cylinder and genopt/case/torisph'/
+     *' for examples.) Even though you had a successful "make" via'/
+     *' GENPROGRAMS in the previous step, something will doubtless not'/
+     *' be satisfactory and you will have to or want to make further'/
+     *' changes to one or more of the source files, bosdec.src,'/
+     *' struct.new, behavior.new.'/)
+ 2054 FORMAT(
+     *' THE NEXT STEPS PERTAIN TO THE USE OF GENOPT WITH BIGBOSOR4'//
+     *' 5. You must have the BIGBOSOR4 software in the directory,'/
+     *' ..bosdec/sources. You need to have the following files there:'/
+     *' addbosor4.src, b4util.src, opngen.src, prompter.src, gasp.F,'/
+     *' gasp_linux.o, bio_linux.c, bio_linux.o, b4plot.src, as well as'/
+     *' the bosdec.src file discussed above. (See "getting started".)'//
+     *' 6. The "make" file, ..genopt/execute/usermake.linux, must'/
+     *' include references to the BIGBOSOR4 sofware listed in Step 5.'/
+     *' Please see the file ..genopt/execute/usermake.linux, which'/
+     *' already exists. (You do not have to do anything about it!)'/)
+ 2055 FORMAT(
+     *' 7. Suppose everything compiles correctly during the'/
+     *' GENPROGRAMS execution, but when you try to run a specific case'/
+     *' the run bombs. Suppose all of your contributed FORTRAN coding'/
+     *' is in ..bosdec/sources/bosdec.src and in'/
+     *'       ..genoptcase/struct.new (..genoptcase/behavior.new did'/
+     *' not need to be modified for your case, as is true for the'/
+     *' generic case called "equivellipse" in ..genopt/case/torisph).'/ 
+     *' It is very helpful to insert a "CALL EXIT" statement after one'/
+     *' of the analyses performed in struct.new, then to execute'/
+     *' GENPROGRAMS again to recompile the temporarily changed'/
+     *' struct.new. The reason for doing this is explained in the file'/
+     *' ..genopt/case/torisph/struct.equivellipse and also in the file'/
+     *' ..genopt/doc/getting.started: you want to be able to make a'/
+     *' BIGBOSOR4 run to be certain that:'/
+     *' a. ..bosdec/sources/bosdec.src created a valid BOSOR4 input'/
+     *'    file, and,'/
+     *' b. the BIGBOSOR4 run did not finish for some reason.'/)
+ 2056 FORMAT(
+     *' 1. PLATE.CAS - - A simple case involving minimum-weight'/
+     *'                 design of flat, rectangular, isotropic'/
+     *'                 plates under multiple load sets, subject to'/
+     *'                 stress, buckling, vibration, and maximum'/
+     *'                 displacement constraints, and constraints on'/
+     *'                 area and aspect ratio.  New coding is intro-'/
+     *'                 duced only into skeletal subroutines BEHX1,'/
+     *'                 BEHX2, BEHX3,...BEHXn and OBJECT. A linear'/
+     *'                 interpolator, INTERP, from UTIL.NEW is used.'//
+     *' 2. PANEL.CAS - - A more complex case involving minimum-weight'/
+     *'                 design of cylindrical stringer and ring'/
+     *'                 stiffened panels made of laminated composite'/
+     *'                 material and subject to multiple sets of'/
+     *'                 in-plane loads.  Coding is borrowed from the'/
+     *'                 previously developed PANDA2 libraries [5].'/
+     *'                 STRUCT.NEW is modified, SUBROUTINE TRANFR is'/
+     *'                 used to translate data names, SUBROUTINES'/
+     *'                 BEHX1, BEHX2, BEHX3,...BEHX18 are not changed,'/
+     *'                 but SUBROUTINE OBJECT is completed.'/)
+ 2057 FORMAT(//' DESCRIPTION OF FILEs GENERATED BY THIS RUN:'//
+     * 1X,A,'.PRO    = Prompt file generated by this run.'/
+     * 1X,A,'.INP    = input data for GENTEXT generated by this run.'/
+     *' STOGET.NEW   = FORTRAN program for transfering common blocks'/
+     *'                to and from mass storage device.'/
+     *' BEGIN.NEW    = FORTRAN program for reading variables in an'/
+     *'                interactive mode.'/
+     *' STRUCT.NEW   = FORTRAN program for performing analysis.'/
+     *' BEHAVIOR.NEW = Library of skeletal subroutines for'/
+     *'                calculating response, user-written constraints,'/
+     *'                and the objective function.'/
+     *' CHANGE.NEW   = FORTRAN program that permits you to change'/
+     *'                certain program parameters without having to'/
+     *'                go back to BEGIN and run a case from scratch.'/
+     * 1X,A,'.etc   = various files with names such as NAME.PRO,'/)
+ 2058 FORMAT(
+     *'               NAME.REA, NAME.WRI, NAME.SUB, NAME.COM, NAME.CON'/
+     *'               NAME.INP, NAME.SET, NAME.NEW, NAME.DEF, NAME.CHA'/
+     *'               most of which are parts of FORTRAN code that are'/
+     *'               concatenated to form the complete programs'/
+     *'               BEGIN.NEW, STOGET.NEW, CHANGE.NEW, and the'/
+     *'               libraries of skeletal subroutines, STRUCT.NEW'/
+     *'               and BEHAVIOR.NEW.'/)
+ 2059 FORMAT(
+     *' Next, if necessary, provide the algorithms called for in the'/
+     *' skeletal subroutines listed in the library BEHAVIOR.NEW. You'/
+     *' may find useful routines in the library UTIL.NEW.  In the'/
+     *' example, "plate", a linear interpolator, INTERP, is used in'/
+     *' SUBROUTINE BEHX2 for getting buckling loads v. aspect ratio.'//
+     *' Or, if necessary, complete the skeletal routines STRUCT and'/
+     *' TRANFR.  (You may find useful routines in UTIL.NEW).'/
+     *' If you are adding subroutine calls to SUBROUTINE STRUCT or'/
+     *' SUBROUTINE TRANFR, store the subroutines themselves in'/
+     *' the libraries called ADDCODEn.NEW, n = 1,2,3,...5. (Please'/
+     *' list one of the ADDCODEn.NEW libraries for instructions.)'/
+     *' Please see the example PANEL.CAS for how this is done.'//)
+ 2060 FORMAT(
+     *' After you have done this,  give the command GENPROGRAMS.'/
+     *' GENPROGRAMS will generate the absolute elements needed to'/
+     *' optimize whatever you have chosen as your objective (see'/
+     *' OBJECT routine in BEHAVIOR.NEW) in the presence of whatever'/
+     *' behavior or other factors (e.g. clearance) are quantified by'/
+     *' user-written subroutines collected in the libraries'/
+     *' ADDCODEn.NEW  and/or algorithms added to the skeletal'/
+     *' routines in the library BEHAVIOR.NEW .'/)
+ 2061 FORMAT(/
+     *'   PLEASE PRINT OUT THE FILE ',A,'.DEF IN ORDER TO OBTAIN A'/
+     *'   SUMMARY OF THE PURPOSES OF GENOPT, PROGRAM VARIABLE NAMES,'/
+     *'   DEFINITIONS, ROLES, AND OTHER USEFUL INFORMATION FOR WORK'/
+     *'   THAT YOU MUST DO NEXT.  YOU DO NOT HAVE TO COMMIT TO MEMORY'/
+     *'   THE INSTRUCTIONS JUST PRINTED. THEY ARE LISTED IN THE'//
+     *'                         ',A,'.DEF'//
+     *'    FILE.'/)
+      END
+C
+C
+C
+C=DECK      RESNAM
+      SUBROUTINE RESNAM(VNAME,IFLAG)
+C
+C  PURPOSE IS TO SET IFLAG = 1 IF THE USER-CHOSEN NAME IS RESERVED.
+C
+C BEG OCT 2005
+C     CHARACTER*7 VNAME
+      CHARACTER*8 VNAME
+C END OCT 2005
+C
+      IFLAG = 0
+      IF (VNAME(1:4).EQ.'CONX') IFLAG = 1
+      IF (VNAME(1:4).EQ.'CALL') IFLAG = 1
+      IF (VNAME(1:4).EQ.'BEHX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CONSTX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'LWRUPR') IFLAG = 1
+      IF (VNAME(1:6).EQ.'PRMOUT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'PRMFIL') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ILOADX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IENDP4') IFLAG = 1
+      IF (VNAME(1:6).EQ.'PHRASE') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IBLANK') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CODPHR') IFLAG = 1
+      IF (VNAME(1:6).EQ.'PCWORD') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CPLOTX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CODNAM') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ANSOUT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ANSWER') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CHARAC') IFLAG = 1
+      IF (VNAME(1:6).EQ.'RETURN') IFLAG = 1
+      IF (VNAME(1:3).EQ.'CIX') IFLAG = 1
+      IF (VNAME(1:3).EQ.'END') IFLAG = 1
+      IF (VNAME(1:3).EQ.'CJX') IFLAG = 1
+      IF (VNAME(1:4).EQ.'KCONX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ICONSX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NCONSX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'OBJGEN') IFLAG = 1
+      IF (VNAME(1:6).EQ.'STRUCT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'OBJECT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'USRCON') IFLAG = 1
+      IF (VNAME(1:6).EQ.'VARCON') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CONMAX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'VLINKX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CLINKX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NLINKX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NESCAP') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ITYPEX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ALLOWX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CONSXX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IDLINK') IFLAG = 1
+      IF (VNAME(1:5).EQ.'PARAM')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'MLET4')  IFLAG = 1
+      IF (VNAME(1:6).EQ.'NCASES') IFLAG = 1
+      IF (VNAME(1:4).EQ.'WORD')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'VARX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'PARX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'DECX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'CARX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'ESCX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'VLBX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'VUBX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'VBVX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'IPRM')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'ILVX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'IEVX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'IDVX')   IFLAG = 1
+      IF (VNAME(1:4).EQ.'OARX')   IFLAG = 1
+      IF (VNAME(1:5).EQ.'IMODX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'ISUBX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'ANSL1')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'FLARX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'ICARX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'ILARX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'IOARX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'NDECX')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'IFILE')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'ENDIF')  IFLAG = 1
+      IF (VNAME(1:5).EQ.'PWORD')  IFLAG = 1
+      IF (VNAME(1:6).EQ.'PWORD2') IFLAG = 1
+      IF (VNAME(1:6).EQ.'MOVERX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'BLANKX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IBLANK') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IPOINC') IFLAG = 1
+      IF (VNAME(1:6).EQ.'INUMTT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CONVR2') IFLAG = 1
+      IF (VNAME(1:6).EQ.'OPTVAR') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IFLATX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NPRINX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NUMPR2') IFLAG = 1
+      IF (VNAME(1:6).EQ.'FSAFEX') IFLAG = 1
+      IF (VNAME(1:3).EQ.'FV0') IFLAG = 1
+      IF (VNAME(1:3).EQ.'FV1') IFLAG = 1
+      IF (VNAME(1:3).EQ.'IV0') IFLAG = 1
+      IF (VNAME(1:3).EQ.'IV1') IFLAG = 1
+      IF (VNAME(1:5).EQ.'INDAT') IFLAG = 1
+      IF (VNAME(1:5).EQ.'CPWRX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NUMPAR') IFLAG = 1
+      IF (VNAME(1:4).EQ.'IOUT') IFLAG = 1
+      IF (VNAME(1:6).EQ.'INFILE') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IALLOW') IFLAG = 1
+      IF (VNAME(1:6).EQ.'JTERMS') IFLAG = 1
+      IF (VNAME(1:6).EQ.'CINEQX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'DPWREQ') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IDINEQ') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NINEQX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'JINEQX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'IEQTYP') IFLAG = 1
+      IF (VNAME(1:6).EQ.'ISTARX') IFLAG = 1
+      IF (VNAME(1:6).EQ.'NUSERC') IFLAG = 1
+      IF (IFLAG.EQ.1) WRITE(6,10) VNAME
+C
+   10 FORMAT(/ A,' IS A NAME THAT IS RESERVED FOR USE BY GENOPT.'/
+     *'        PLEASE CHOOSE ANOTHER NAME FOR THIS VARIABLE.'/)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      MOREK
+      SUBROUTINE MOREK(K,DK, CN1,CN3,CN4)
+      INTEGER K,DK
+      CHARACTER*3 CN3,CN4
+      CHARACTER*2 CN2
+      CHARACTER*1 CN1
+C
+      K = K + DK
+      IF (K.LT.100) THEN
+         IF (K.GE.10) THEN
+            CALL CONVR2(K,CN2)
+            CN3 = ' '//CN2
+         ELSE
+            CALL CONVR1(K,CN1)
+            CN3 = '  '//CN1
+         ENDIF
+      ENDIF
+C
+      K1 = K + 1
+      IF (K1.LT.100) THEN
+         IF (K1.GE.10) THEN
+            CALL CONVR2(K1,CN2)
+            CN4 = ' '//CN2
+         ELSE
+            CALL CONVR1(K1,CN1)
+            CN4 = '  '//CN1
+         ENDIF
+      ENDIF
+C
+      IF (K.GE.999) THEN
+         WRITE(6,*)' PROMPT INDEX EXCEEDS MAXIMUM OF 998.'
+         CALL EXIT
+      ENDIF
+      IF (K.GE.100) CALL CONVRT(K,CN3)
+      IF (K1.GE.100) CALL CONVRT(K1,CN4)
+      RETURN
+      END
+C
+C
+C
+C=DECK      UNITE1
+      SUBROUTINE UNITE1(IWRI,IREA,ICOM)
+C
+C  PURPOSE IS TO GENERATE STOGET.NEW PERTAINING TO
+C  THIS SPECIFIC CASE.
+C
+      CHARACTER*1 ANS
+      CHARACTER*80 PHRASE
+      CHARACTER*12 KEY1
+      CHARACTER*7  KEY2
+c
+C OPEN statements for VAX/VMS
+c     OPEN(UNIT=11,FILE='GENOPT:URSTOGET.NEW',STATUS='OLD',READONLY)
+c     OPEN(UNIT=12,FILE='GENOPTCASE:STOGET.NEW',STATUS='UNKNOWN')
+C end OPEN statments for VMS
+C OPEN statements for UNIX
+      open(unit=11, file = 'stoget.tmpl', status='OLD')
+      open(unit=12, file = 'stoget.new', status = 'UNKNOWN')
+C end OPEN statements for UNIX
+C
+C    UPDATE URSTOGET TO STOGET.
+C    COPY OLD FILE TO NEW FILE UP THROUGH KEY1:
+C
+      KEY1 = 'CHARACTER*80'
+      KEY2 = '(IDV(I)'
+C
+        DO 10 I = 1,10000
+        READ(11,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(12,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' STOGET.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   20   CONTINUE
+C
+C  ADD COMMON BLOCKS TO STOCM:
+C
+        REWIND ICOM
+        DO 30 I = 1,10000
+        READ(ICOM,'(A)',END=35) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(12,'(A)') PHRASE(:J)
+   30   CONTINUE
+   35   CONTINUE
+C
+C  ADD WRITE STATEMENTS FROM URSTOGET TO STOGET:
+C
+      DO 40 I = 1,10000
+      READ(11,'(A)',END=45) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(12,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 50
+   40 CONTINUE
+   45 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' STOGET.NEW NOT PRODUCED.'
+      CALL ERREX
+   50 CONTINUE
+C
+C  NEXT, READ NEW WRITE STATEMENTS ONTO STOGET...
+C
+      REWIND IWRI
+      DO 60 I = 1,10000
+      READ(IWRI,'(A)',END=70) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(12,'(A)') PHRASE(:J)
+   60 CONTINUE
+   70 CONTINUE
+C
+C  NEXT, READ MORE STATEMENTS FROM URSTOGET ONTO STOGET...
+C
+      DO 80 I = 1,10000
+      READ(11,'(A)',END=85) PHRASE
+      ILET = INDEX(PHRASE,KEY1)
+      CALL BLANKX(PHRASE,J)
+      WRITE(12,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 90
+   80 CONTINUE
+   85 CONTINUE
+      WRITE(6,*)' ENDING KEY WORD NOT FOUND.'
+      WRITE(6,'(A,A)')' Ending key word=',KEY1
+      WRITE(6,*)' STOGET.NEW NOT PRODUCED.'
+      CALL ERREX
+   90 CONTINUE
+C
+C
+C  ADD COMMON BLOCKS TO GETCOM:
+C
+        REWIND ICOM
+        DO 120 I = 1,10000
+        READ(ICOM,'(A)',END=125) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(12,'(A)') PHRASE(:J)
+  120   CONTINUE
+  125   CONTINUE
+C
+C  ADD READ STATEMENTS FROM URSTOGET TO STOGET:
+C
+      DO 140 I = 1,10000
+      READ(11,'(A)',END=145) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(12,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 150
+  140 CONTINUE
+  145 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' STOGET.NEW NOT PRODUCED.'
+      CALL ERREX
+  150 CONTINUE
+C
+C  NEXT, WRITE NEW READ STATEMENTS ONTO STOGET...
+C
+      REWIND IREA
+      DO 160 I = 1,10000
+      READ(IREA,'(A)',END=170) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(12,'(A)') PHRASE(:J)
+  160 CONTINUE
+  170 CONTINUE
+C
+C  WRITE  "RETURN" AND "END" ONTO STOGET.NEW:
+C
+      WRITE(12,'(6X,A)') 'RETURN'
+      WRITE(12,'(6X,A)') 'END'
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=12)
+c End 11/90 changes
+      CLOSE(11,STATUS='KEEP')
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      UNITE2
+      SUBROUTINE UNITE2(IBEG,ICOM,ISET)
+C
+C  PURPOSE IS TO GENERATE BEGIN.NEW  PERTAINING TO
+C  THIS SPECIFIC CASE.
+C
+      CHARACTER*1 ANS
+      CHARACTER*80 PHRASE
+      CHARACTER*17 KEY1
+      CHARACTER*12 KEY2
+c
+C OPEN statements for VMS
+c     OPEN(UNIT=13,FILE='GENOPT:URBEGIN.NEW',STATUS='OLD',READONLY)
+c     OPEN(UNIT=14,FILE='GENOPTCASE:BEGIN.NEW',STATUS='UNKNOWN')
+C end OPEN statements for VMS
+C OPEN statements for UNIX
+      open(unit=13, file = 'begin.tmpl', status = 'OLD')
+      open(unit=14, file = 'begin.new', status = 'UNKNOWN')
+C end OPEN statements for UNIX
+C
+C    UPDATE UBEGIN TO BEGIN.
+C    COPY OLD FILE TO NEW FILE UP THROUGH KEY1:
+C
+      KEY1 = 'ADDITIONAL COMMON'
+      KEY2 = 'PROGRAM FILE'
+C
+        DO 10 I = 1,10000
+        READ(13,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(14,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' BEGIN.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   20   CONTINUE
+C
+C  ADD COMMON BLOCKS TO "INPUT":
+C
+        REWIND ICOM
+        DO 30 I = 1,10000
+        READ(ICOM,'(A)',END=35) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(14,'(A)') PHRASE(:J)
+   30   CONTINUE
+   35   CONTINUE
+C
+C  ADD PROGRAM STATEMENTS FROM URBEGIN TO BEGIN:
+C
+      DO 40 I = 1,10000
+      READ(13,'(A)',END=45) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(14,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 50
+   40 CONTINUE
+   45 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' BEGIN.NEW NOT PRODUCED.'
+      CALL ERREX
+   50 CONTINUE
+C
+C  NEXT, READ NEW WRITE STATEMENTS FROM NAME.NEW ONTO BEGIN...
+C
+      REWIND IBEG
+      DO 60 I = 1,10000
+      READ(IBEG,'(A)',END=70) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(14,'(A)') PHRASE(:J)
+   60 CONTINUE
+   70 CONTINUE
+C
+C  NEXT, CREATE SUBROUTINE "SETUPC".....
+C
+        DO 100 I = 1,10000
+        READ(13,'(A)',END=150) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(14,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 200
+  100   CONTINUE
+  150   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' BEGIN.NEW WAS NOT CONTINUED.'
+        CALL ERREX
+  200   CONTINUE
+C
+C  ADD COMMON BLOCKS TO SETUPC:
+C
+        REWIND ICOM
+        DO 210 I = 1,10000
+        READ(ICOM,'(A)',END=220) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(14,'(A)') PHRASE(:J)
+  210   CONTINUE
+  220   CONTINUE
+C
+C  ADD PROGRAM STATEMENTS FROM URBEGIN TO BEGIN:
+C
+      DO 230 I = 1,10000
+      READ(13,'(A)',END=240) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(14,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 250
+  230 CONTINUE
+  240 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' BEGIN.NEW NOT PRODUCED.'
+      CALL ERREX
+  250 CONTINUE
+C
+C  NEXT, READ NEW WRITE STATEMENTS FROM NAME.NEW ONTO BEGIN...
+C
+      REWIND ISET
+      DO 260 I = 1,10000
+      READ(ISET,'(A)',END=270) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(14,'(A)') PHRASE(:J)
+  260 CONTINUE
+  270 CONTINUE
+C
+C  NEXT, READ MORE STATEMENTS FROM URBEGIN ONTO BEGIN...
+C
+      DO 280 I = 1,10000
+      READ(13,'(A)',END=285) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(14,'(A)') PHRASE(:J)
+  280 CONTINUE
+  285 CONTINUE
+C
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=14)
+c End 11/90 changes
+      CLOSE(13,STATUS='KEEP')
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      UNITE3
+      SUBROUTINE UNITE3(ICOM,ICON)
+C
+C  PURPOSE IS TO GENERATE   STRUCT.NEW    AND   TRANFR.NEW     PERTAINING
+C  TO THIS SPECIFIC CASE.
+C
+      CHARACTER*1 ANS
+      CHARACTER*80 PHRASE
+      CHARACTER*17 KEY1
+      CHARACTER*12 KEY2
+C
+C OPEN statements for VMS
+c     OPEN(UNIT=18,FILE='GENOPT:struct.tmpl',STATUS='OLD',READONLY)
+c     OPEN(UNIT=19,FILE='GENOPTCASE:STRUCT.NEW',STATUS='UNKNOWN')
+C end OPEN statements for VMS
+C OPEN statements for UNIX
+      open(unit=18, file = 'struct.tmpl', status = 'OLD')
+      open(unit=19, file = 'struct.new', status = 'UNKNOWN')
+C end OPEN statements for UNIX
+C
+C    UPDATE struct.tmpl TO STRUCT.
+C    COPY OLD FILE TO NEW FILE UP THROUGH KEY1:
+C
+      KEY1 = 'ADDITIONAL COMMON'
+      KEY2 = 'PROGRAM FILE'
+C
+        DO 10 I = 1,10000
+        READ(18,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(19,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' STRUCT.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   20   CONTINUE
+C
+C  ADD COMMON BLOCKS TO "STRUCT":
+C
+        REWIND ICOM
+        DO 30 I = 1,10000
+        READ(ICOM,'(A)',END=35) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(19,'(A)') PHRASE(:J)
+   30   CONTINUE
+   35   CONTINUE
+C
+C  ADD PROGRAM STATEMENTS FROM struct.tmpl TO STRUCT:
+C
+      DO 40 I = 1,10000
+      READ(18,'(A)',END=45) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(19,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 50
+   40 CONTINUE
+   45 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' STRUCT.NEW NOT PRODUCED.'
+      CALL ERREX
+   50 CONTINUE
+C
+C  NEXT, READ NEW WRITE STATEMENTS FROM NAME.NEW ONTO STRUCT...
+C
+      REWIND ICON
+      DO 60 I = 1,10000
+      READ(ICON,'(A)',END=70) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(19,'(A)') PHRASE(:J)
+   60 CONTINUE
+   70 CONTINUE
+C
+C
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(6X,A)')'RETURN'
+      WRITE(19,'(6X,A)')'END'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+C
+        DO 80 I = 1,10000
+        READ(18,'(A)',END=75) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(19,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 90
+   80   CONTINUE
+   75   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' TRANFR.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   90   CONTINUE
+C
+C  ADD COMMON BLOCKS TO "TRANFR":
+C
+        REWIND ICOM
+        DO 100 I = 1,10000
+        READ(ICOM,'(A)',END=105) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(19,'(A)') PHRASE(:J)
+  100   CONTINUE
+  105   CONTINUE
+C
+C  ADD PROGRAM STATEMENTS FROM struct.tmpl TO STRUCT:
+C
+      DO 110 I = 1,10000
+      READ(18,'(A)',END=115) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(19,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 120
+  110 CONTINUE
+  115 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' TRANFR.NEW NOT PRODUCED.'
+      CALL ERREX
+  120 CONTINUE
+C
+C
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(6X,A)')'RETURN'
+      WRITE(19,'(6X,A)')'END'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+      WRITE(19,'(A)')'C'
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=19)
+c End 11/90 changes
+      CLOSE(18,STATUS='KEEP')
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      UNITE4
+C BEG SEP 2011
+      SUBROUTINE UNITE4(IDEF,ICOM,ISUB,NCAR,VNAME,NDEF)
+C END SEP 2011
+C
+C  PURPOSE IS TO GENERATE BEHAVIOR.NEW  PERTAINING TO
+C  THIS SPECIFIC CASE.
+C
+      CHARACTER*1 ANS
+      CHARACTER*7 VNAME
+      INTEGER     NDEF
+C
+C
+      CHARACTER*80 PHRASE
+      CHARACTER*14 KEY1
+      CHARACTER*17 KEY2
+      CHARACTER*13 KEY3
+C
+C OPEN statement for VMS
+c     OPEN(UNIT=20,FILE='GENOPTCASE:BEHAVIOR.NEW',STATUS='UNKNOWN')
+C end OPEN statement for VMS
+C OPEN statement for UNIX
+      open(unit=20, file = 'behavior.new', status = 'UNKNOWN')
+C end OPEN statement for UNIX
+C
+C    GENERATE BEHAVIOR.
+C    COPY OLD FILE TO NEW FILE UP THROUGH KEY1:
+C
+      KEY1 = 'C  NAMES, DEFINITIONS, AND ROLES'
+      KEY2 = 'ADDITIONAL COMMON'
+      KEY3 = 'END OF USRCON'
+C
+        REWIND ISUB
+        DO 10 I = 1,10000
+        READ(ISUB,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(20,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' BEHAVIOR.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   20   CONTINUE
+C
+C  ADD DEFINITIONS TO BEHAVIOR.NEW:
+C
+        REWIND IDEF
+C BEG SEP 2011
+        NDEF = 0
+C END SEP 2011
+        DO 30 I = 1,10000
+        READ(IDEF,'(A)',END=35) PHRASE
+C BEG SEP 2011
+        NDEF = NDEF + 1
+C END SEP 2011
+        CALL BLANKX(PHRASE,J)
+        WRITE(20,'(A)') PHRASE(:J)
+   30   CONTINUE
+   35   CONTINUE
+C
+      NCAR1 = NCAR +1
+      NCAR2 = NCAR +2
+C
+C  NEXT, ADD SUBROUTINE SKELETONS.....
+C
+C LOOP OVER THE NUMBER OF SUBROUTINE SKELETONS...
+C
+        DO 500 ILOOP = 1,NCAR2
+C
+        DO 100 I = 1,10000
+        READ(ISUB,'(A)',END=150) PHRASE
+        ILET = INDEX(PHRASE,KEY2)
+        CALL BLANKX(PHRASE,J)
+        WRITE(20,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 200
+  100   CONTINUE
+  150   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+        WRITE(6,*)' BEHAVIOR.NEW WAS NOT CONTINUED.'
+        CALL ERREX
+  200   CONTINUE
+C
+C  ADD COMMON BLOCKS TO SUBROUTINE SKELETON:
+C
+        REWIND ICOM
+        DO 210 I = 1,10000
+        READ(ICOM,'(A)',END=220) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(20,'(A)') PHRASE(:J)
+  210   CONTINUE
+  220   CONTINUE
+C
+C  IF ILOOP = NCAR1, WE MUST ADD SOME PROGRAM STATEMENTS FROM UNIT ISUB:
+C
+      IF (ILOOP.EQ.NCAR1) THEN
+         DO 230 I = 1,10000
+         READ(ISUB,'(A)',END=225) PHRASE
+         ILET = INDEX(PHRASE,KEY3)
+         CALL BLANKX(PHRASE,J)
+         WRITE(20,'(A)') PHRASE(:J)
+         IF (ILET.NE.0) GO TO 240
+         GO TO 230
+  225    CONTINUE
+         WRITE(6,*)' ENDING KEY PHRASE NOT FOUND.'
+         WRITE(6,'(A,A)')' Ending key phrase=',KEY3
+         WRITE(6,*)' BEHAVIOR.NEW WAS NOT CONTINUED.'
+         CALL ERREX
+  230    CONTINUE
+  240    CONTINUE
+         GO TO 300
+      ENDIF
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C  INSERT SUBROUTINE STATEMENTS HERE.'
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C'
+      IF (ILOOP.EQ.NCAR2) WRITE(20,'(6X,A,A)')'OBJGEN =',VNAME
+  300 CONTINUE
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(6X,A)')'RETURN'
+      WRITE(20,'(6X,A)')'END'
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C'
+      WRITE(20,'(A)')'C'
+C
+  500 CONTINUE
+C
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=20)
+c End 11/90 changes
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      UNITE5
+      SUBROUTINE UNITE5(ICOM,ICHA)
+C
+C  PURPOSE IS TO GENERATE CHANGE.NEW  PERTAINING TO
+C  THIS SPECIFIC CASE.
+C
+      CHARACTER*1 ANS
+      CHARACTER*80 PHRASE
+      CHARACTER*17 KEY1
+      CHARACTER*12 KEY2
+C
+C OPEN statements for VMS
+c     OPEN(UNIT=23,FILE='GENOPT:URCHANGE.NEW',STATUS='OLD',READONLY)
+c     OPEN(UNIT=24,FILE='GENOPTCASE:CHANGE.NEW',STATUS='UNKNOWN')
+C end OPEN statements for VMS
+C OPEN statements for UNIX
+      open(unit=23, file = 'change.tmpl', status = 'OLD')
+      open(unit=24, file = 'change.new', status = 'UNKNOWN')
+C end OPEN statements for UNIX
+C
+C    UPDATE URCHANGE TO CHANGE.
+C    COPY OLD FILE TO NEW FILE UP THROUGH KEY1:
+C
+      KEY1 = 'ADDITIONAL COMMON'
+      KEY2 = 'PROGRAM FILE'
+C
+        DO 10 I = 1,10000
+        READ(23,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEY1)
+        CALL BLANKX(PHRASE,J)
+        WRITE(24,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEY1
+        WRITE(6,*)' CHANGE.NEW WAS NOT GENERATED.'
+        CALL ERREX
+   20   CONTINUE
+C
+C  ADD COMMON BLOCKS TO "NEWPAR":
+C
+        REWIND ICOM
+        DO 30 I = 1,10000
+        READ(ICOM,'(A)',END=35) PHRASE
+        CALL BLANKX(PHRASE,J)
+        WRITE(24,'(A)') PHRASE(:J)
+   30   CONTINUE
+   35   CONTINUE
+C
+C  ADD PROGRAM STATEMENTS FROM URCHANGE TO CHANGE:
+C
+      DO 40 I = 1,10000
+      READ(23,'(A)',END=45) PHRASE
+      ILET = INDEX(PHRASE,KEY2)
+      CALL BLANKX(PHRASE,J)
+      WRITE(24,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 50
+   40 CONTINUE
+   45 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY2
+      WRITE(6,*)' CHANGE.NEW NOT PRODUCED.'
+      CALL ERREX
+   50 CONTINUE
+C
+C  NEXT, READ NEW WRITE STATEMENTS FROM NAME.CHA ONTO CHANGE...
+C
+      REWIND ICHA
+      DO 60 I = 1,10000
+      READ(ICHA,'(A)',END=70) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(24,'(A)') PHRASE(:J)
+   60 CONTINUE
+   70 CONTINUE
+C
+C
+      WRITE(24,'(A)')'C'
+      WRITE(24,'(A)')'C'
+      WRITE(24,'(6X,A)')'RETURN'
+      WRITE(24,'(6X,A)')'END'
+      WRITE(24,'(A)')'C'
+      WRITE(24,'(A)')'C'
+      WRITE(24,'(A)')'C'
+C
+c Changed 11/90 STATUS clause removed.
+      CLOSE(UNIT=24)
+c End 11/90 changes
+      CLOSE(23,STATUS='KEEP')
+C
+      RETURN
+      END

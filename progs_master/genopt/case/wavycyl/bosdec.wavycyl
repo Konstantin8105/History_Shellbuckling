@@ -1,0 +1,1956 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BOSOR4 INPUT FILE FOR WAVY CYLINDRICAL SHELL.
+C
+C BEG FEB 2008
+C     SUBROUTINE BOSDEC
+      SUBROUTINE BOSDEC(IFIL14)
+C END FEB 2008
+      DOUBLE PRECISION FL4,DISCRM,FNUM1,FNUM2,RATIO,CPHI,SPHI,RSPHI
+      DOUBLE PRECISION DENOM
+      DOUBLE PRECISION ZA1,ZA2,RA1,RA2,RC1,RC2,ZC1,ZC2,Z0
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/CWEFFX/C11EFF,C12EFF,C14EFF,C15EFF,C22EFF,C24EFF,C25EFF,
+     1              C44EFF,C45EFF,C55EFF,C33EFF,C36EFF,C66EFF,SMAEFF
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      DIMENSION CX(6,6),R1(200),R2(200),Z1(200),Z2(200)
+      DIMENSION SROT(200),NSHAPE(200),RC(200),ZC(200),NMESH(200)
+      DIMENSION LINDX(90),ZRING(200),NODRNG(200),ISEGRG(200)
+      DIMENSION R1RNG(200),R2RNG(200),Z1RNG(200),Z2RNG(200)
+      DIMENSION R1T(200),R2T(200),Z1T(200),Z2T(200),RCT(200),ZCT(200)
+      DIMENSION SROTT(200),NSHAPT(200),NMESHT(200)
+      COMMON/PRMFIL/IFILEX,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/UNITNO/IU
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5
+C END UNIX
+      CHARACTER*4 QUAL
+      CHARACTER*4 CHARAC,ANSOUT
+C BEG VMS
+      IUNAME = 12
+C BEG SEP 1999
+C     REWIND IUNAME
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMX
+      WRITE(IFILE4,'(A)') ' CASE NAME =',CASE
+      IDDATA = 1
+C BEG AUG 1999
+      IU = 11
+      IFILE  = 22
+      INFILE = 23
+C BEG FEB 2004 comment out following:
+C     IFIL14 = 24
+C END FEB 2005
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a wavy cylindrical shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by the batch run you launch next via the command BOSORALL.'/
+     1'  NOTE: BOSDEC also generates a file, NAME.WAV, which'/
+     1'  contains annotated echos of the input to BOSDEC.'/
+     1'  ***********************************************'/)
+C
+      IREDUC= 0
+      CALL MOVER(0.,0,SROT,1,200)
+      CALL MOVER(0.,0,RC,1,200)
+      CALL MOVER(0.,0,ZC,1,200)
+C
+      REWIND INFILE
+      REWIND IFILE
+      CALL DATUM(IFILE,80,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,85,1,2,MODLB4,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,87,1,2,ISYMTY,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,90,1,2,INDIC,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,100,1,2,INT,AXIAL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,102,1,2,INT,RADIUS,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,103,1,2,INT,T,CHARAC,IOUT,0,1)
+      ZVAL = T/2.
+      DENS = 0.00025
+    5 CONTINUE
+      REWIND IFILE
+      CALL DATUM(IFILE,105,1,2,NWAVES,REALL,CHARAC,IOUT,0,1)
+      IMOD = MOD(NWAVES,2)
+      IF (IMOD.NE.0) THEN
+         WRITE(IFILE4,'(A,I5,A)')
+     1 ' Input error: NWAVES must be an EVEN number, NWAVES=',
+     1   NWAVES,'. Please try again. NWAVES must be > or = to 2'
+         BACKSPACE(IOUT)
+         GO TO 5
+      ENDIF
+      CALL DATUM(IFILE,107,1,2,INT,WAVLEN,CHARAC,IOUT,0,1)
+      AXIALW = FLOAT(NWAVES)*WAVLEN
+      FL4 = WAVLEN/2.
+      IADD = 0
+      ISTART = 1
+      IF (MODLB4.EQ.2.AND.AXIAL.GT.1.02*AXIALW) THEN
+         IADD = 1
+         ISTART = 2
+      ENDIF
+      FLENG1 = FLOAT(IADD)*(AXIAL - AXIALW)/2.
+    7 CONTINUE
+      REWIND IFILE
+      CALL DATUM(IFILE,110,1,2,INT,AMPLIT,CHARAC,IOUT,0,1)
+      IF (AMPLIT.GT.RADIUS) THEN
+         WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. AMPLIT is greater than RADIUS. Try again.'
+         BACKSPACE(IOUT)
+         GO TO 7
+      ENDIF
+C
+      CALL DATUM(IFILE,112,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,113,1,2,IWAVE,REALL,CHARAC,IOUT,0,1)
+      IF (NWAVES.EQ.0) THEN
+         NSEG = 1
+         NSHAPE(1) = 1
+         R1(1) = RADIUS
+         R2(1) = RADIUS
+         Z1(1) = 0.
+         Z2(1) = AXIAL/2.
+         SROT(1) = 0.
+         AXIALW = 0.
+         REWIND IFILE
+         GO TO 93
+      ENDIF
+    9 CONTINUE
+      REWIND IFILE
+      IF (IWAVE.EQ.3) THEN
+         CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,1)
+   10    CONTINUE
+         REWIND IFILE
+         CALL DATUM(IFILE,120,1,2,INT,RADSML,CHARAC,IOUT,0,1)
+         DISCRM = AMPLIT**2 - 2.*AMPLIT*RADSML + FL4**2
+         IF (DISCRM.LT.0.0) THEN
+          WRITE(IFILE4,'(A)')
+     1  ' DISCRM = AMPLIT**2 - 2.*AMPLIT*RADSML + (WAVELENGTH/4)**2'
+          WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. DISCRIMINANT IS NEGATIVE. IWAVE is being'
+          WRITE(IFILE4,'(A)')' set equal to 2 instead of 3'
+          IWAVE = 2
+          BACKSPACE(IOUT)
+          GO TO 9
+         ENDIF
+         FNUM1 = -RADSML*(AMPLIT-RADSML) - FL4*DSQRT(DISCRM)
+         FNUM2 = -RADSML*(AMPLIT-RADSML) + FL4*DSQRT(DISCRM)
+         IF (FNUM2.LE.0.) THEN
+          WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. NUMERATOR IS NEGATIVE OR ZERO. TRY AGAIN.'
+          WRITE(IFILE4,'(A)')' Try increasing RADSML'
+          BACKSPACE(IOUT)
+          GO TO 10
+         ENDIF
+         DENOM = (AMPLIT-RADSML)**2 + FL4**2
+         RATIO = FNUM2/DENOM
+         IF (RATIO.GE.1.0) THEN
+          IF (FNUM1.LE.0.) THEN
+            WRITE(IFILE4,'(A)')
+     1     ' ILLEGAL INPUT. NUMERATOR IS NEGATIVE. TRY AGAIN.'
+            WRITE(IFILE4,'(A)')' Try increasing RADSML'
+            BACKSPACE(IOUT)
+            GO TO 10
+          ENDIF
+          RATIO = FNUM1/DENOM
+          IF (RATIO.GE.1.0) THEN
+            WRITE(IFILE4,'(A)')
+     1     ' ILLEGAL INPUT. COS(PHI)>1.0. TRY AGAIN.'
+            WRITE(IFILE4,'(A)')' Try changing RADSML'
+            BACKSPACE(IOUT)
+            GO TO 10
+          ENDIF
+         ENDIF
+         CPHI = RATIO
+         SPHI = DSQRT(1.-RATIO**2)
+         RSPHI= RADSML*SPHI
+         IF (RSPHI.GT.FL4) THEN
+          WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. RADSML*SIN(PHI)>0.9*WAVLEN/2. IWAVE is'
+          WRITE(IFILE4,'(A)') ' being set to 2 instead of 3 .'
+          IWAVE = 2
+          BACKSPACE(IOUT)
+          GO TO 9
+         ENDIF
+         IF (RSPHI.LT.2.*T) THEN
+          WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. RADSML*SIN(PHI)<2.*T. TRY AGAIN.'
+          WRITE(IFILE4,'(A)') ' TRY DOUBLING THE VALUE OF RADSML.'
+          BACKSPACE(IOUT)
+          GO TO 10
+         ENDIF
+C
+         ZA1 = RSPHI
+         RA1 = RADIUS - (AMPLIT-RADSML*(1.-CPHI))
+         RC1 = RADIUS + RADSML - AMPLIT
+         ZC1 = 0.
+C
+         ZA2 = WAVLEN - ZA1
+         RA2 = RADIUS + (AMPLIT-RADSML*(1.-CPHI))
+         RC2 = RADIUS - RADSML + AMPLIT
+         ZC2 = WAVLEN
+C
+         WRITE(IFILE4,'(A,1P,4E14.6)')
+     1 ' RA1,ZA1,RC1,ZC1=',RA1,ZA1,RC1,ZC1
+         WRITE(IFILE4,'(A,1P,4E14.6)')
+     1 ' RA2,ZA2,RC2,ZC2=',RA2,ZA2,RC2,ZC2
+C
+         SLONG = DSQRT((ZA2-ZA1)**2 + (RA2-RA1)**2)
+         IF (SLONG.LT.2.*T) THEN
+          WRITE(IFILE4,'(A)')
+     1  ' ILLEGAL INPUT. SQRT((ZA2-ZA1)**2 + (RA2-RA1)**2)<2.*T.'
+          WRITE(IFILE4,'(A)') ' IWAVE is being set to 2 instead of 3 .'
+          IWAVE = 2
+          BACKSPACE(IOUT)
+          GO TO 9
+         ENDIF
+C
+         NSEG = (NWAVES/2)*2 + 1
+         IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1    ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1    ' Number of segments is greater than max. allowable of 195 .',
+     1    ' Reducing the number of segments in the BOSOR4 model.'
+            IREDUC = 1
+            RETURN
+         ENDIF
+         NZ0  = NSEG/4
+         DO 100 IZ0 = 1,NZ0
+            ISEG = IZ0*4 - 1 + IADD
+            Z0   = FLOAT(ISEG-ISTART)*FL4 + FLENG1
+            NSHAPE(ISEG) = 2
+            R2(ISEG) = RA1
+            Z2(ISEG) = Z0 + ZA1
+            R1(ISEG) = RA1
+            Z1(ISEG) = Z0 - ZA1
+            RC(ISEG) = RC1
+            ZC(ISEG) = Z0 + ZC1
+            SROT(ISEG) = 1
+            NSHAPE(ISEG+1) = 1
+            R1(ISEG+1) = R2(ISEG)
+            Z1(ISEG+1) = Z2(ISEG)
+            R2(ISEG+1) = RA2
+            Z2(ISEG+1) = Z0 + ZA2
+            NSHAPE(ISEG+2) = 2
+            R1(ISEG+2) = R2(ISEG+1)
+            Z1(ISEG+2) = Z2(ISEG+1)
+            RC(ISEG+2) = RC2
+            ZC(ISEG+2) = Z0 + ZC2
+            SROT(ISEG+2) = -1
+            NSHAPE(ISEG-1) = 1
+            R2(ISEG-1) = R1(ISEG)
+            Z2(ISEG-1) = Z1(ISEG)
+            R1(ISEG-1) = RA2
+            Z1(ISEG-1) = Z0 - ZA2
+            NSHAPE(ISEG-2) = 2
+            R2(ISEG-2) = R1(ISEG-1)
+            Z2(ISEG-2) = Z1(ISEG-1)
+            RC(ISEG-2) = RC2
+            ZC(ISEG-2) = Z0 - ZC2
+            SROT(ISEG-2) = -1
+  100    CONTINUE
+         R1(ISTART) = RADIUS + AMPLIT
+         Z1(ISTART) = 0. + FLENG1
+         IEND = NSEG + IADD
+         Z2(IEND) = AXIALW/2. + FLENG1
+         IF (R1(IEND).GE.RADIUS) R2(IEND) = RADIUS + AMPLIT
+         IF (R1(IEND).LT.RADIUS) R2(IEND) = RADIUS - AMPLIT
+      ELSE
+         RADSML = AMPLIT/(1.-(FL4**2-AMPLIT**2)/(FL4**2+AMPLIT**2))
+         RC1 = RADIUS + RADSML - AMPLIT
+         RC2 = RADIUS - RADSML + AMPLIT
+         ZA2 = 2.*FL4
+         NSEG = NWAVES/2 + 1
+         IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1    ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1    ' Number of segments is greater than max. allowable of 195 .',
+     1    ' Reducing the number of segments in the BOSOR4 model.'
+            IREDUC = 1
+            RETURN
+         ENDIF
+         IBEG = ISTART + 1
+         IEND = NSEG + IADD
+         DO 150 ISEG = IBEG,IEND
+            Z0 = FLOAT(ISEG-ISTART)*ZA2 - FL4 + FLENG1
+            NSHAPE(ISEG) = 2
+            IMOD = MOD(ISEG-IADD,2)
+            R2(ISEG) = RADIUS
+            Z2(ISEG) = Z0 + ZA2
+            R1(ISEG) = RADIUS
+            Z1(ISEG) = Z0
+            ZC(ISEG) = Z1(ISEG) + FL4
+            IF (IMOD.EQ.0) THEN
+               RC(ISEG) = RC2
+               SROT(ISEG) = -1
+            ELSE
+               RC(ISEG) = RC1
+               SROT(ISEG) =  1
+            ENDIF
+  150    CONTINUE
+         NSHAPE(ISTART) = 2
+         R1(ISTART) = RADIUS - AMPLIT
+         Z1(ISTART) = 0. + FLENG1
+         R2(ISTART) = RADIUS
+         Z2(ISTART) = FL4 + FLENG1
+         RC(ISTART) = RC1
+         ZC(ISTART) = 0.0 + FLENG1
+         SROT(ISTART) = 1
+         Z2(IEND) = AXIALW/2. + FLENG1
+         IROT = SROT(IEND)
+         IF (IROT.EQ.1)  R2(IEND) = RADIUS - AMPLIT
+         IF (IROT.EQ.-1) R2(IEND) = RADIUS + AMPLIT
+      ENDIF
+      IF (MODLB4.EQ.2) THEN
+         NSHAPE(1) = 1
+         R1(1) = R1(2)
+         Z1(1) = 0.
+         R2(1) = R1(2)
+         Z2(1) = Z1(2)
+         SROT(1) = 0.
+      ENDIF
+      NSEG = NSEG + IADD
+      IF (NSEG.GT.195) THEN
+         WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1 ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1 ' Number of segments is greater than max. allowable of 195 .',
+     1 ' Reducing the number of segments in the BOSOR4 model.'
+         IREDUC = 1
+         RETURN
+      ENDIF
+C
+   93 CONTINUE
+C
+      WRITE(IFILE4,'(/,A,I3,A)') ' ENDPOINT DATA FOR',NSEG,' SEGMENTS'
+      WRITE(IFILE4,'(A,A)')
+     1 ' NSHAPE   R1        Z1         R2          Z2          RC',
+     1'          ZC       SROT'
+      DO 110 I = 1,NSEG
+         IROT = SROT(I)
+         WRITE(IFILE4,95)
+     1    NSHAPE(I),R1(I),Z1(I),R2(I),Z2(I),RC(I),ZC(I),IROT
+   95    FORMAT(I2,1P,6E12.4,I5)
+  110 CONTINUE
+C  discrete rings...
+      CALL DATUM(IFILE,122,1,2,IRING,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,123,1,2,INT,BRINGS,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,124,1,2,INT,TWEB,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,125,1,2,INT,HWEB,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,126,1,2,INT,TFLANG,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,127,1,2,INT,HFLANG,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,128,1,2,INT,ERING,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,129,1,2,INT,FNURNG,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,130,1,2,INT,DENRNG,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,131,1,2,NMESHR,REALL,CHARAC,IOUT,0,1)
+C
+      IF (IRING.EQ.0.OR.BRINGS.LE.0.) NRINGS = 0
+      IF (BRINGS.GT.0.0.AND.IRING.NE.0) NRINGS =AXIAL/(2.*BRINGS)+1.0
+      IF (NRINGS.EQ.1) THEN
+         NRINGS = 2
+         BRINGS = AXIAL/2.
+      ENDIF
+      IF (NRINGS.GT.0) THEN
+         ZRING(1) = AXIAL/2. - FLOAT(NRINGS-1)*BRINGS
+         IF (NRINGS.GE.2) THEN
+            DO 155 I = 2,NRINGS
+               I1 = I - 1
+               ZRING(I) = ZRING(I1) + BRINGS
+  155       CONTINUE
+            ZRING(NRINGS) = AXIAL/2.
+         ENDIF
+      ENDIF
+C
+      WRITE(IFILE4,'(A,/,I3,1P,3E12.4)')
+     1' NRINGS,AXIAL,BRINGS,FLENG1=',NRINGS,AXIAL,BRINGS,FLENG1
+      WRITE(IFILE4,'(A,/,(1P,5E12.4))')
+     1' (ZRING(i), i=1,NRINGS)=',(ZRING(i), i=1,NRINGS)
+C
+      CALL DATUM(IFILE,135,1,2,INT,GRAVTY,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,140,1,2,INT,GAXIAL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,150,1,2,INT,GLATRL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,170,1,2,INT,FNX,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,175,1,2,INT,FNXB,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,180,1,2,INT,PRESS,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,181,1,2,INT,PRESSB,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,182,0,0,INT,REALL,CHARAC,IOUT,0,1)
+C
+      NMESHS = 0
+      IF (IWAVE.EQ.3) THEN
+       IF (NWAVES.GT.0) THEN
+         SLONG = DSQRT((ZA2-ZA1)**2 + (RA2-RA1)**2)
+         CLONG = 2.*ZA1
+         IF (SLONG.GT.3.*CLONG.AND.SPHI.LT.0.3) WRITE(IFILE4,'(A,/,A)')
+     1 ' *** NOTE *** NOTE *** NOTE ***',
+     1 ' You should probably use NMESHS = (2 or 3) * NMESHC'
+         IF (CLONG.GT.SLONG) WRITE(IFILE4,'(A,/,A)')
+     1 ' *** NOTE *** NOTE *** NOTE ***',
+     1 ' You should probably use NMESHC = (2 or 3) * NMESHS'
+         IF (SLONG.LT.10.*T) WRITE(IFILE4,'(A,/,A)')
+     1 ' *** NOTE *** NOTE *** NOTE ***',
+     1 ' You should probably use 5 <= NMESHS <= 11'
+       ENDIF
+       CALL DATUM(IFILE,185,1,2,NMESHS,REALL,CHARAC,IOUT,0,1)
+       IF (NWAVES.GT.0) THEN
+         IF ((2.*ZA1).LT.10.*T.AND.SPHI.LT.0.5)
+     1       WRITE(IFILE4,'(/,A,/,A)')
+     1 ' *** NOTE *** NOTE *** NOTE ***',
+     1 ' You should probably use 5 <= NMESHC <= 11'
+         IF (SPHI.GT.0.707) WRITE(IFILE4,'(/,A,/,A)')
+     1 ' *** NOTE *** NOTE *** NOTE ***',
+     1 ' You should probably use NMESHC >= 31'
+       ENDIF
+      ENDIF
+      CALL DATUM(IFILE,186,1,2,NMESHC,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,188,1,2,NMESH1,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,189,1,2,MAXDOF,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,190,1,2,ISYM,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,200,1,2,N0B,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,210,1,2,NMAXB,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,220,1,2,INCRB,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,230,1,2,NVEC,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,330,1,2,IWALL,REALL,CHARAC,IOUT,0,1)
+      IF (IWALL.EQ.1) THEN
+         CALL DATUM(IFILE,340,1,2,INT,E,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,350,1,2,INT,FNU,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,360,1,2,INT,DENS,CHARAC,IOUT,0,1)
+      ENDIF
+C
+      IF (MODLB4.EQ.2) THEN
+         CALL MOVER(0.,0,CX(1,1),1,36)
+         CX(1,1)=C11EFF
+         CX(1,2)=C12EFF
+         CX(2,1)=CX(1,2)
+         CX(2,2)=C22EFF
+         CX(1,4)=C14EFF
+         CX(4,1)=CX(1,4)
+         CX(1,5)=C15EFF
+         CX(5,1)=CX(1,5)
+         CX(2,4)=C24EFF
+         CX(4,2)=CX(2,4)
+         CX(2,5)=C25EFF
+         CX(5,2)=CX(2,5)
+         CX(3,3)=C33EFF
+         CX(3,6)=C36EFF
+         CX(6,3)=CX(3,6)
+         CX(4,4)=C44EFF
+         CX(4,5)=C45EFF
+         CX(5,4)=CX(4,5)
+         CX(5,5)=C55EFF
+         CX(6,6)=C66EFF
+      ENDIF
+C
+      IF (ISTART.EQ.2) NMESH(1) = NMESH1
+      IF (NSEG.GT.1) THEN
+         DO 153 ISEG = ISTART,NSEG
+            IF (NSHAPE(ISEG).EQ.2) NMESH(ISEG) = NMESHC
+            IF (NSHAPE(ISEG).EQ.1) NMESH(ISEG) = NMESHS
+  153    CONTINUE
+      ENDIF
+C
+C discrete ring stuff...
+C     NMESHR = 11
+      CALL MOVER(0,0,ISEGRG,1,200)
+      IF (NRINGS.GT.0.AND.IRING.NE.0) THEN
+         NSEGRG = 1
+         NSEGR = 2
+         IFLAG = 0
+         IF (HFLANG.LE.0.0.OR.TFLANG.LE.0.0) NSEGR = 1
+         DO 180 KRING = 1,NRINGS
+            IF (ZRING(KRING).LE.1.00001*FLENG1) THEN
+C discrete ring is in "smeared" waviness Segment 1...
+               NODE = FLOAT(NMESH1-1)*ZRING(KRING)/FLENG1 + 1.0
+               ZNODE = FLOAT(NODE-1)*FLENG1/FLOAT(NMESH1-1)
+               NODRNG(KRING) = 1000 + NODE
+               ISEGWB = NSEGRG + 1
+               ISEGFL = ISEGWB + 1
+               NSEGRG = NSEGRG + NSEGR
+               IF (IRING.EQ.1) THEN
+C external ring...
+C    web...
+                  R1RNG(ISEGWB) = R1(1) + T/2.
+                  R2RNG(ISEGWB) = R1RNG(ISEGWB) + HWEB
+                  Z1RNG(ISEGWB) = ZNODE
+                  Z2RNG(ISEGWB) = ZNODE
+C    flange...
+                  IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                   R1RNG(ISEGFL) = R2RNG(ISEGWB)
+                   R2RNG(ISEGFL) = R2RNG(ISEGWB)
+                   Z1RNG(ISEGFL) = ZNODE - HFLANG/2.
+                   Z2RNG(ISEGFL) = ZNODE + HFLANG/2.
+                  ENDIF
+               ELSE
+C internal ring...
+C    web...
+                  R1RNG(ISEGWB) = R1(1) - T/2.
+                  R2RNG(ISEGWB) = R1RNG(ISEGWB) - HWEB
+                  Z1RNG(ISEGWB) = ZNODE
+                  Z2RNG(ISEGWB) = ZNODE
+C    flange...
+                  IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                   R1RNG(ISEGFL) = R2RNG(ISEGWB)
+                   R2RNG(ISEGFL) = R2RNG(ISEGWB)
+                   Z1RNG(ISEGFL) = ZNODE - HFLANG/2.
+                   Z2RNG(ISEGFL) = ZNODE + HFLANG/2.
+                  ENDIF
+               ENDIF
+               IF (KRING.EQ.1) WRITE(IFILE4,'(A,/,A)')
+     1       ' Rings in Segment 1 ("smeared" waviness segment)...',
+     1       ' KRING    NODRNG(KRING)     ZNODE'
+               WRITE(IFILE4,'(I4,7X,I8,4X,1P,E13.5)')
+     1         KRING, NODRNG(KRING), ZNODE
+               IF (NWAVES.EQ.0) THEN
+                  R1(ISEGWB) = R1RNG(ISEGWB)
+                  R2(ISEGWB) = R2RNG(ISEGWB)
+                  Z1(ISEGWB) = Z1RNG(ISEGWB)
+                  Z2(ISEGWB) = Z2RNG(ISEGWB)
+                  RC(ISEGWB)    = 0.
+                  ZC(ISEGWB)    = 0.
+                  NMESH(ISEGWB) = NMESHR
+                  NSHAPE(ISEGWB) = 1
+                  SROT(ISEGWB) = 0
+                  ISEGRG(ISEGWB)= ISEGWB
+                  NSEG = NSEG + 1
+                  IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                     IREDUC = 1
+                     RETURN
+                  ENDIF
+                  IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                     R1(ISEGFL) = R1RNG(ISEGFL)
+                     R2(ISEGFL) = R2RNG(ISEGFL)
+                     Z1(ISEGFL) = Z1RNG(ISEGFL)
+                     Z2(ISEGFL) = Z2RNG(ISEGFL)
+                     RC(ISEGFL)    = 0.
+                     ZC(ISEGFL)    = 0.
+                     NMESH(ISEGFL) = NMESHR
+                     NSHAPE(ISEGFL) = 1
+                     SROT(ISEGFL) = 0
+                     ISEGRG(ISEGFL)= ISEGFL
+                     NSEG = NSEG + 1
+                     IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                        IREDUC = 1
+                        RETURN
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ELSE
+C discrete ring is in one of the wavy segments...
+               IF (ISTART.EQ.2.AND.IFLAG.EQ.0) THEN
+C renumber the segments in the wavy section...
+                  DO 165 ISEG = 2,NSEG
+                     JSEG = ISEG + NSEGRG - 1
+                     R1T(JSEG)   = R1(ISEG)
+                     R2T(JSEG)   = R2(ISEG)
+                     Z1T(JSEG)   = Z1(ISEG)
+                     Z2T(JSEG)   = Z2(ISEG)
+                     RCT(JSEG)   = RC(ISEG)
+                     ZCT(JSEG)   = ZC(ISEG)
+                     SROTT(JSEG) = SROT(ISEG)
+                     NSHAPT(JSEG)= NSHAPE(ISEG)
+                     NMESHT(JSEG)= NMESH(ISEG)
+  165             CONTINUE
+                  DO 166 ISEG = 2,NSEG
+                     JSEG = ISEG + NSEGRG - 1
+                     R1(JSEG)    = R1T(JSEG)
+                     R2(JSEG)    = R2T(JSEG)
+                     Z1(JSEG)    = Z1T(JSEG)
+                     Z2(JSEG)    = Z2T(JSEG)
+                     RC(JSEG)    = RCT(JSEG)
+                     ZC(JSEG)    = ZCT(JSEG)
+                     SROT(JSEG)  = SROTT(JSEG)
+                     NSHAPE(JSEG)= NSHAPT(JSEG)
+                     NMESH(JSEG) = NMESHT(JSEG)
+  166             CONTINUE
+                  DO 167 ISEG = 2,NSEGRG
+                     R1(ISEG)    = R1RNG(ISEG)
+                     R2(ISEG)    = R2RNG(ISEG)
+                     Z1(ISEG)    = Z1RNG(ISEG)
+                     Z2(ISEG)    = Z2RNG(ISEG)
+                     RC(ISEG)    = 0.
+                     ZC(ISEG)    = 0.
+                     SROT(ISEG)  = 0.
+                     NSHAPE(ISEG)= 1
+                     NMESH(ISEG) = NMESHR
+                     ISEGRG(ISEG)= ISEG
+  167             CONTINUE
+                  NSEG  = JSEG
+                  IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                     IREDUC = 1
+                     RETURN
+                  ENDIF
+               ENDIF
+               IF (IFLAG.EQ.0) WRITE(IFILE4,'(/,A,/,A)')
+     1       ' Rings in wavy segments...',
+     1       ' KRING    NODRNG(KRING)     ZNODE'
+               IFLAG = 1
+               DIFF = ABS(ZRING(KRING) - AXIAL/2.)/(AXIAL/2.)
+               IF (DIFF.LT.0.00001) THEN
+C discrete ring is at the top symmetry plane...
+                  ZNODE = AXIAL/2.
+                  NODRNG(KRING) = 1000*NSEG + NMESH(NSEG)
+                  NSEG1 = NSEG + 1
+                  RC(NSEG1) = 0.
+                  ZC(NSEG1) = 0.
+                  SROT(NSEG1) = 0.
+                  NSHAPE(NSEG1) = 1
+                  NMESH(NSEG1) = NMESHR
+                  ISEGRG(NSEG1) = NSEG1
+                  IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                   NSEG2 = NSEG + 2
+                   RC(NSEG2) = 0.
+                   ZC(NSEG2) = 0.
+                   SROT(NSEG2) = 0.
+                   NSHAPE(NSEG2) = 1
+                   NMESH(NSEG2) = NMESHR
+                   ISEGRG(NSEG2) = NSEG2
+                  ENDIF
+                  IF (IRING.EQ.1) THEN
+C external ring...
+C    web...
+                     NSEG = NSEG + 1
+                     IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                        IREDUC = 1
+                        RETURN
+                     ENDIF
+                     R1(NSEG) = R2(NSEG-1) + T/2.
+                     R2(NSEG) = R1(NSEG) + HWEB
+                     Z1(NSEG) = AXIAL/2.
+                     Z2(NSEG) = AXIAL/2.
+C    flange...
+                     IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                      NSEG = NSEG + 1
+                      IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                         IREDUC = 1
+                         RETURN
+                      ENDIF
+                      R1(NSEG) = R2(NSEG-1)
+                      R2(NSEG) = R1(NSEG)
+                      Z1(NSEG) = Z1(NSEG-1) - HFLANG/2.
+                      Z2(NSEG) = Z1(NSEG) + HFLANG
+                     ENDIF
+                  ELSE
+C internal ring...
+C    web...
+                     NSEG = NSEG + 1
+                     IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                        IREDUC = 1
+                        RETURN
+                     ENDIF
+                     R1(NSEG) = R2(NSEG-1) - T/2.
+                     R2(NSEG) = R1(NSEG) - HWEB
+                     Z1(NSEG) = AXIAL/2.
+                     Z2(NSEG) = AXIAL/2.
+C    flange...
+                     IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                      NSEG = NSEG + 1
+                      IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                         IREDUC = 1
+                         RETURN
+                      ENDIF
+                      R1(NSEG) = R2(NSEG-1)
+                      R2(NSEG) = R1(NSEG)
+                      Z1(NSEG) = Z1(NSEG-1) - HFLANG/2.
+                      Z2(NSEG) = Z1(NSEG) + HFLANG
+                     ENDIF
+                  ENDIF
+               ELSE
+C discrete ring is not at top symmetry plane but is in the
+C wavy section. First find out which segment of the wavy section
+C it is in...
+                  DO 170 ISEG = 1,NSEG
+                     IF (ZRING(KRING).GE.Z1(ISEG).AND.
+     1                   ZRING(KRING).LT.Z2(ISEG)) THEN
+                        IF (NSHAPE(ISEG).EQ.1) NMSHX = NMESHS
+                        IF (NSHAPE(ISEG).EQ.2) NMSHX = NMESHC
+C                       KNODE = (NMSHX-1)/2 +1
+                        KNODE =FLOAT(NMSHX-1)*(ZRING(KRING)-Z1(ISEG))/
+     1                                        (Z2(ISEG)-Z1(ISEG)) +1.0
+                        NODRNG(KRING) = 1000*ISEG + KNODE
+                        ZNODE = Z1(ISEG) +FLOAT(KNODE-1)*
+     1                            (Z2(ISEG)-Z1(ISEG))/FLOAT(NMSHX-1)
+                        KSEG = ISEG
+                        GO TO 171
+                     ENDIF
+  170             CONTINUE
+  171             CONTINUE
+                  ISEGWB = KSEG + 1
+                  ISEGFL = KSEG + 2
+                  RADCYL = RADIUS
+                  IROT = SROT(KSEG)
+                  IF (NSHAPE(KSEG).EQ.2.AND.IROT.EQ.1)
+     1               RADCYL = RADIUS - AMPLIT
+                  IF (NSHAPE(KSEG).EQ.2.AND.IROT.EQ.-1)
+     1               RADCYL = RADIUS + AMPLIT
+                  IF (IRING.EQ.1) THEN
+C external ring...
+C    web...
+                     R1RNG(ISEGWB) = RADCYL + T/2.
+                     R2RNG(ISEGWB) = R1RNG(ISEGWB) + HWEB
+                     Z1RNG(ISEGWB) = ZNODE
+                     Z2RNG(ISEGWB) = ZNODE
+C    flange...
+                     IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                      R1RNG(ISEGFL) = R2RNG(ISEGWB)
+                      R2RNG(ISEGFL) = R2RNG(ISEGWB)
+                      Z1RNG(ISEGFL) = ZNODE - HFLANG/2.
+                      Z2RNG(ISEGFL) = ZNODE + HFLANG/2.
+                     ENDIF
+                  ELSE
+C internal ring...
+C    web...
+                     R1RNG(ISEGWB) = RADCYL - T/2.
+                     R2RNG(ISEGWB) = R1RNG(ISEGWB) - HWEB
+                     Z1RNG(ISEGWB) = ZNODE
+                     Z2RNG(ISEGWB) = ZNODE
+C    flange...
+                     IF (HFLANG.GT.0.0.AND.TFLANG.GT.0.0) THEN
+                      R1RNG(ISEGFL) = R2RNG(ISEGWB)
+                      R2RNG(ISEGFL) = R2RNG(ISEGWB)
+                      Z1RNG(ISEGFL) = ZNODE - HFLANG/2.
+                      Z2RNG(ISEGFL) = ZNODE + HFLANG/2.
+                     ENDIF
+                  ENDIF
+C
+                  KSEG1 = KSEG + 1
+                  DO 172 ISEG = KSEG1,NSEG
+                     JSEG = ISEG + NSEGR
+                     R1T(JSEG)   = R1(ISEG)
+                     R2T(JSEG)   = R2(ISEG)
+                     Z1T(JSEG)   = Z1(ISEG)
+                     Z2T(JSEG)   = Z2(ISEG)
+                     RCT(JSEG)   = RC(ISEG)
+                     ZCT(JSEG)   = ZC(ISEG)
+                     SROTT(JSEG) = SROT(ISEG)
+                     NSHAPT(JSEG)= NSHAPE(ISEG)
+                     NMESHT(JSEG)= NMESH(ISEG)
+  172             CONTINUE
+                  DO 173 ISEG = KSEG1,NSEG
+                     JSEG = ISEG + NSEGR
+                     R1(JSEG)    = R1T(JSEG)
+                     R2(JSEG)    = R2T(JSEG)
+                     Z1(JSEG)    = Z1T(JSEG)
+                     Z2(JSEG)    = Z2T(JSEG)
+                     RC(JSEG)    = RCT(JSEG)
+                     ZC(JSEG)    = ZCT(JSEG)
+                     SROT(JSEG)  = SROTT(JSEG)
+                     NSHAPE(JSEG)= NSHAPT(JSEG)
+                     NMESH(JSEG) = NMESHT(JSEG)
+  173             CONTINUE
+                  KSEGE = KSEG1 + NSEGR - 1
+                  DO 174 ISEG = KSEG1,KSEGE
+                     R1(ISEG)    = R1RNG(ISEG)
+                     R2(ISEG)    = R2RNG(ISEG)
+                     Z1(ISEG)    = Z1RNG(ISEG)
+                     Z2(ISEG)    = Z2RNG(ISEG)
+                     RC(ISEG)    = 0.
+                     ZC(ISEG)    = 0.
+                     SROT(ISEG)  = 0.
+                     NSHAPE(ISEG)= 1
+                     NMESH(ISEG) = NMESHR
+                     ISEGRG(ISEG)= ISEG
+  174             CONTINUE
+                  NSEG  = NSEG + NSEGR
+                  IF (NSEG.GT.195) THEN
+            WRITE(IFILE4,'(/,A,I4,/,A,/,A)')
+     1   ' Number of segments in the BOSOR4 model, NSEG=',NSEG,
+     1   ' Number of segments is greater than max. allowable of 195 .',
+     1   ' Reducing the number of segments in the BOSOR4 model.'
+                     IREDUC = 1
+                     RETURN
+                  ENDIF
+               ENDIF
+               WRITE(IFILE4,'(I4,7X,I8,4X,1P,E13.5)')
+     1         KRING, NODRNG(KRING), ZNODE
+            ENDIF
+  180    CONTINUE
+      ENDIF
+C end of discrete ring stuff.
+      IUSTAR = 0
+      IVSTAR = 0
+      IWSTAR = 0
+      IBETA  = 0
+      IF (ISYM.EQ.1) THEN
+         IWSTAR = 1
+         IVSTAR = 1
+      ENDIF
+      IF (ISYM.EQ.2) THEN
+         IUSTAR = 1
+         IWSTAR = 1
+         IVSTAR = 1
+         IBETA  = 1
+      ENDIF
+C
+      IF (NSEG.GT.195) THEN
+         AXNEW = AXIALW*65./FLOAT(NSEG)
+         WRITE(IFILE4,15) AXIALW, NSEG, AXNEW
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   15    FORMAT(/' TOO MANY SEGMENTS IN WAVY CYL. LENGTH OF',1P,E12.4/
+     1   ' REQUIRES A TOTAL OF'I4,' SEGMENTS. THERE MUST BE LESS THAN'/
+     1   ' 195 SEGMENTS IN THE OVERALL MODEL.  CUT WAVY LENGTH TO LESS'/
+     1   ' THAN',1P,E12.4//)
+         IREDUC = 1
+      ENDIF
+C
+C  NOW WRITE TO THE OUTPUT FILE..
+C
+      IF (INDIC.EQ.0)
+     1WRITE(IFIL14,'(A)')' BOSOR4 INPUT: WAVY CYL.SHELL, STRESS'
+      IF (INDIC.EQ.1)
+     1WRITE(IFIL14,'(A)')' BOSOR4 INPUT: WAVY CYL.SHELL, BUCKLING'
+      IF (INDIC.EQ.2)
+     1WRITE(IFIL14,'(A)')' BOSOR4 INPUT: WAVY CYL.SHELL, VIBRATION'
+      IF (INDIC.EQ.3)
+     1WRITE(IFIL14,'(A)')' BOSOR4 INPUT: WAVY CYL.SHELL, NONSYM STRESS'
+      IF (INDIC.EQ.4)
+     1WRITE(IFIL14,'(A)')' BOSOR4 INPUT: WAVY CYL.SHELL, BUCKLING'
+      NPRT = 2
+C BEG SEP 1999  (TEMPORARY DEBUG CHANGE)
+C     IF (INDIC.EQ.1) NPRT = 3
+C END SEP 1999
+      ISTRES = 0
+      IF (INDIC.EQ.0.OR.INDIC.EQ.3) ISTRES = 1
+      IPRE = 1
+      NSTART = -1
+      NFIN = 0
+      INCR = 1
+      THETAM = 180.
+      IF (INDIC.LE.3) WRITE(IFIL14,'(4I5,A)')
+     1   INDIC, NPRT, ISTRES, NSEG,' $ INDIC, NPRT, ISTRES, NSEG'
+      IF (INDIC.EQ.4) WRITE(IFIL14,'(5I5,A)')
+     1 INDIC,NPRT,ISTRES,IPRE,NSEG,' $ INDIC,NPRT,ISTRES,IPRE,NSEG'
+      IF (INDIC.GT.2) WRITE(IFIL14,'(3I5,1P,E14.6,A)')
+     1 NSTART,NFIN,INCR,THETAM,' $ NSTART,NFIN,INCR,THETAM'
+C
+      EFOUND = 0.
+      IDIST = 1
+      I2 = 0
+      DO 200 I = 1,NSEG
+C        IF (I.EQ.1.AND.ISTART.EQ.2) THEN
+C           NMESH(I) = NMESH1
+C        ELSE
+C           IF (IWAVE.EQ.3) THEN
+C              IMOD = MOD(I-IADD,2)
+C              NMESH(I) = NMESHS
+C              IF (IMOD.NE.0) NMESH(I) = NMESHC
+C           ELSE
+C              NMESH(I) = NMESHC
+C           ENDIF
+C        ENDIF
+         I2 = I2 + NMESH(I) + 2
+         IF (I.EQ.1) THEN
+            IIRING = 1
+            FMLT = -1.
+            IF (IWAVE.EQ.3) FMLT = 1.
+            RADLOD = RADIUS + FMLT*AMPLIT
+            IF (NWAVES.EQ.0) RADLOD = RADIUS
+            AXLOAD =  FNX*RADIUS/RADLOD
+            FXLOAD = FNXB*RADIUS/RADLOD
+         ENDIF
+         IF (I.GT.1) IIRING = 0
+         IWALLA = IWALL
+C        IF (I.EQ.1.AND.MODLB4.EQ.2.AND.NWAVES.GT.0) IWALLA = 0
+         IF (I.EQ.1.AND.MODLB4.EQ.2) IWALLA = 0
+C        WRITE(IFILE4,'(A,2I6)')' IWALLA,IWALL =',IWALLA,IWALL
+         CALL SEGMNT(IFIL14,I,NMESH(I),R1(I),Z1(I),R2(I),Z2(I),RC(I),
+     1   ZC(I),NSHAPE(I),SROT(I),CX,EFOUND,IIRING,IDIST,AXLOAD,PRESS,
+     1   FXLOAD,PRESSB,IWALLA,ZVAL,E,FNU,IFILE,IOUT,NLAY,LINDX,INDIC,
+     1   DENS,MODLB4,SMAEFF,ISEGRG(I),TWEB,TFLANG,ERING,FNURNG,DENRNG,
+     1   NSEG,NSEGR,NWAVES,NODRNG)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  200 CONTINUE
+C
+C  GLOBAL INPUT AFTER SEGMENT DATA...
+C
+      WRITE(IFIL14,'(A)')' H $ END OF SEGMENT DATA; GLOBAL DATA BEGINS.'
+      IF (ITYPEX.EQ.2) THEN
+         WRITE(IFIL14,'(A)')
+     1 ' 0  $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)'
+         WRITE(IFIL14,'(A)')' N   $ no expanded regions for plots.'
+      ELSE
+         WRITE(IFIL14,'(A)')
+     1 ' -1  $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)'
+      ENDIF
+      IF (INDIC.EQ.1.OR.INDIC.EQ.2.OR.INDIC.EQ.4)
+     1 WRITE(IFIL14,'(4I7,I3,A)')
+     1 N0B,N0B,NMAXB,INCRB,NVEC,' $ circ.waves n, no. of eigenvalues/n'
+      IF (INDIC.EQ.1) WRITE(IFIL14,'(1P,2E14.6,A)') PRESSB,PRESS,
+     1 ', 0., 0., 0., 0. $ P,DP,TEMP,DTEMP,OMEGA,DOMEGA'
+      IF (INDIC.EQ.2) WRITE(IFIL14,'(1P,E14.6,A)') PRESS,
+     1       ', 0., 0.  $ P,TEMP,OMEGA'
+      IF (INDIC.EQ.0) WRITE(IFIL14,'(1P,E14.6,A)') PRESS,
+     1', 1., 0., 0., 1, 0., 0. $ P,DP,TEMP,DTEMP,NSTEP,OMEGA,DOMEGA'
+      IF (INDIC.EQ.3.OR.INDIC.EQ.4) THEN
+         NDIST = 1
+         NCIRC = 0
+         THETAS = ANGBUC
+         OMEGA = 0.
+         IOMGAB = 1
+         OMEGDR = 0.000001
+         WRITE(IFIL14,'(I3,1P,E14.6,I3,A)')
+     1   NDIST,ANGSTR,NCIRC,'  $  NDIST,ANGSTR,NCIRC'
+         WRITE(IFIL14,'(1P,2E14.6,I3,A)')
+     1   THETAS,OMEGA,IOMGAB,'        $  THETAS,OMEGA,IOMGAB'
+         WRITE(IFIL14,'(A)')' Y       $ Response to harmonic forcing?'
+         WRITE(IFIL14,'(1P,E14.6,A)')
+     1   OMEGDR,'                     $ Driving frequency'
+         WRITE(IFIL14,'(A)')' Y        $ base excitation?'
+         WRITE(IFIL14,'(1P,3E14.6,A)')
+     1   GRAVTY,GLATRL,GAXIAL,'       $ GRAVTY,GLATRL,GAXIAL'
+         WRITE(IFIL14,'(A)')' N        $ is there a tank with fluid?'
+      ENDIF
+      WRITE(IFIL14,'(I4,A)') NSEG,' $ no. of segments'
+C
+C  CONSTRAINT AND JUNCTION CONDITIONS...
+      NCOND = 0
+C  First, conditions at the beginning of the multi-segment model...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (MODLB4.EQ.2) THEN
+         IF (NWAVES.GT.0) THEN
+          WRITE(IFIL14,'(A,3I3,A)')
+     1  ' 0,1,1,0,',IVSTAR,IWSTAR,IBETA,',0,0  $ Seg.1 prebuckling b.c.'
+          WRITE(IFIL14,'(A)')' N   $ prebuck. and bifurc. b.c. not same'
+          WRITE(IFIL14,'(4I3,A)')
+     1           IUSTAR,IVSTAR,IWSTAR,IBETA,' $ Seg.1 bifurcation b.c.'
+         ELSE
+C  Next, conditions at beginning and end of the multi-segment model...
+          DIFF = ABS(AXIAL/2. - BRINGS)/(AXIAL/2.)
+          IF (INDIC.EQ.1.AND.DIFF.LT.0.00001) THEN
+             WRITE(IFIL14,'(A)')
+     1     ' 0,2,1,0,1,0,1,0,0  $ Seg.1 prebuckling b.c.'
+          ELSE
+             WRITE(IFIL14,'(A,3I3,A)')
+     1  ' 0,2,1,0,',IVSTAR,IWSTAR,IBETA,',0,0  $ Seg.1 prebuckling b.c.'
+          ENDIF
+          WRITE(IFIL14,'(A)')' N   $ prebuck. and bifurc. b.c. not same'
+          WRITE(IFIL14,'(4I3,A)')
+     1           IUSTAR,IVSTAR,IWSTAR,IBETA,' $ Seg.1 bifurcation b.c.'
+          NCOND = NCOND + 1
+          WRITE(IFIL14,'(I3,A)')
+     1     NMESH(1),', 1,0,0,1,0,0  $ Seg.NSEG symmetry b.c.'
+          WRITE(IFIL14,'(A)')' N    $ prebuck., bifurc. cond. the same'
+          IF (ISYMTY.EQ.0)
+     1    WRITE(IFIL14,'(A)')' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+          IF (ISYMTY.EQ.1)
+     1    WRITE(IFIL14,'(A)')' 0, 1, 1, 0  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+         ENDIF
+      ELSE
+       WRITE(IFIL14,'(A)')' 0,1,1,0,0,0,1,0,0 $ Seg.1 prebuckling b.c.'
+       WRITE(IFIL14,'(A)')' N   $ prebuck. and bifurc. b.c. not same'
+       IF (ISYMTY.NE.2) THEN
+          WRITE(IFIL14,'(A)')' 1,0,0,1       $ Seg.1 bifurcation b.c.'
+       ELSE
+          WRITE(IFIL14,'(A)')' 0,0,0,1       $ Seg.1 bifurcation b.c.'
+       ENDIF
+      ENDIF
+      WRITE(IFIL14,'(A)')' N        $ connection to lower segment?'
+      NCOND = NCOND + 1
+C
+      IF (NRINGS.EQ.0.OR.IRING.EQ.0) THEN
+        NSEG1 = NSEG - 1
+        IF (NSEG1.EQ.0) GO TO 233
+        DO 300 I = 2,NSEG1
+          WRITE(IFIL14,'(A,I3)')
+     1  ' 0,0  $ no poles, no connect. to ground; Seg.no.',I
+          WRITE(IFIL14,'(A)')
+     1  ' Y     $ yes, connection to lower segment'
+          JSEG = I - 1
+          JNODE = NMESH(I-1)
+          NNODE = 1
+          INODE = 1
+          WRITE(IFIL14,'(4I4,A)')
+     1    NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0   $ junct. conditions'
+          WRITE(IFIL14,'(A)')
+     1  ' Y     $ prebuck., bifurc. cond. the same'
+          NCOND = NCOND + 1
+ 300    CONTINUE
+C
+C  Next, conditions at the end of the multi-segment model...
+        WRITE(IFIL14,'(A,I3,A)')
+     1' 0,1,',NMESH(NSEG),', 1,0,0,1,0,0  $ Seg.NSEG symmetry b.c.'
+        WRITE(IFIL14,'(A)')' N     $ prebuck., bifurc. cond. the same'
+        IF (ISYMTY.EQ.0)
+     1    WRITE(IFIL14,'(A)')' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+        IF (ISYMTY.EQ.1)
+     1    WRITE(IFIL14,'(A)')' 0, 1, 1, 0  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+        IF (ISYMTY.EQ.2)
+     1    WRITE(IFIL14,'(A)')' 0, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+        NCOND = NCOND + 1
+        WRITE(IFIL14,'(A)') ' Y     $ yes, connection to lower segment'
+        JSEG = NSEG - 1
+        JNODE = NMESH(NSEG-1)
+        NNODE = 1
+        INODE = 1
+        WRITE(IFIL14,'(4I4,A)')
+     1  NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0   $ junct. conditions'
+        WRITE(IFIL14,'(A)')' Y     $ prebuck., bifurc. cond. the same'
+        NCOND = NCOND + 1
+C
+  233   CONTINUE
+        IF (MODLB4.EQ.1) THEN
+          WRITE(IFIL14,'(A)')' Y  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Want to prevent rigid body motion?'
+          WRITE(IFIL14,'(2I5,A)') NSEG,NMESH(NSEG),'  $ ISEG, INODE'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 1, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(0)'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 1, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(1)'
+        ELSE
+C         WRITE(IFIL14,'(A)')' N  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Want to prevent rigid body motion?'
+          WRITE(IFIL14,'(2I5,A)') NSEG,NMESH(NSEG),'  $ ISEG, INODE'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(0)'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(1)'
+        ENDIF
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (NRINGS.GT.0) THEN
+          KRING = 0
+          NSUB = 1
+          DO 400 ISEG = 2,NSEG
+             IF (ISEGRG(ISEG).EQ.ISEG) THEN
+C this is a ring segment...
+                NSUB = NSEGR + 1
+                RDIFF = ABS(R2(ISEG) - R1(ISEG))
+                ZDIFF = ABS(Z2(ISEG) - Z1(ISEG))
+                IF (RDIFF.GE.ZDIFF) THEN
+C this is a ring web...
+                   KRING = KRING + 1
+                   JSEG = NODRNG(KRING)/1000
+                   JNODE= NODRNG(KRING) - JSEG*1000
+                   D1 = T/2.
+                   IF (IRING.EQ.-1) D1 = -T/2.
+                   NSEG1 = NSEG - NSEGR + 1
+                   IF (ISEG.NE.NSEG1.OR.NWAVES.EQ.0)
+     1                WRITE(IFIL14,'(A,I3)')
+     1          ' 0,0  $ no poles, no connect. to ground; Seg.no.',ISEG
+                   IF (ISEG.EQ.NSEG1.AND.NWAVES.GT.0) THEN
+                      WRITE(IFIL14,'(A)')
+     1              ' 0,1,1, 1,0,0,1,0,0  $ symmetry conditions at top'
+                      WRITE(IFIL14,'(A)')
+     1              ' N     $ prebuck., bifurc. cond. the same'
+                      IF (ISYMTY.EQ.0) THEN
+                       WRITE(IFIL14,'(A)')
+     1               ' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+                      ELSE
+                       WRITE(IFIL14,'(A)')
+     1               ' 0, 1, 1, 0  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+                      ENDIF
+                      NCOND = NCOND + 1
+                   ENDIF
+                   WRITE(IFIL14,'(A)')
+     1           ' Y     $ yes, connection to lower segment'
+                   NNODE = 1
+                   INODE = 1
+                   WRITE(IFIL14,'(4I4,A,1P,E14.6,A)')
+     1    NNODE,INODE,JSEG,JNODE,',1,1,1,1,',D1,', 0 $ junct. condition'
+                   WRITE(IFIL14,'(A)')
+     1           ' Y     $ prebuck., bifurc. cond. the same'
+                   NCOND = NCOND + 1
+C23456789012345678901234567890123456789012345678901234567890123456789012
+                ELSE
+C this is a ring outstanding flange...
+                   JSEG = ISEG - 1
+                   JNODE= NMESH(JSEG)
+                   NNODE = 1
+                   INODE = (NMESH(ISEG)-1)/2 + 1
+                   WRITE(IFIL14,'(A,I3)')
+     1           ' 0,0  $ no poles, no connect. to ground; Seg.no.',ISEG
+                   WRITE(IFIL14,'(A)')
+     1           ' Y     $ yes, connection to lower segment'
+                   WRITE(IFIL14,'(4I4,A)')
+     1        NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0   $ junct. condition'
+                   WRITE(IFIL14,'(A)')
+     1           ' Y     $ prebuck., bifurc. cond. the same'
+                   NCOND = NCOND + 1
+                ENDIF
+             ELSE
+C this is not a ring segment...
+                WRITE(IFIL14,'(A,I3)')
+     1        ' 0,0  $ no poles, no connect. to ground; Seg.no.',ISEG
+                WRITE(IFIL14,'(A)')
+     1        ' Y     $ yes, connection to lower segment'
+                JSEG = ISEG - NSUB
+                IF (NSUB.GT.1.AND.NODRNG(KRING)/1000.EQ.1) JSEG = 1
+                JNODE = NMESH(JSEG)
+                NNODE = 1
+                INODE = 1
+                WRITE(IFIL14,'(4I4,A)')
+     1      NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0   $ junct. condition'
+                WRITE(IFIL14,'(A)')
+     1        ' Y     $ prebuck., bifurc. cond. the same'
+                NCOND = NCOND + 1
+                NSUB = 1
+             ENDIF
+  400     CONTINUE
+        IF (MODLB4.EQ.1) THEN
+          WRITE(IFIL14,'(A)')' Y  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Want to prevent rigid body motion?'
+          WRITE(IFIL14,'(I5,A)') NSEG1,', 1  $ ISEG, INODE'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 1, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(0)'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 1, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(1)'
+        ELSE
+C         WRITE(IFIL14,'(A)')' N  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Are rigid body modes possible?'
+          WRITE(IFIL14,'(A)')' Y  $ Want to prevent rigid body motion?'
+          IF (NWAVES.GT.0)
+     1       WRITE(IFIL14,'(I5,A)') NSEG1,', 1  $ ISEG, INODE'
+          IF (NWAVES.EQ.0) WRITE(IFIL14,'(A,I5,A)')
+     1       ' 1, ', NMESH(1),'   $ ISEG, INODE'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(0)'
+          WRITE(IFIL14,'(A)')
+     1  ' 1, 0, 0, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI(1)'
+        ENDIF
+      ENDIF
+C end of constraint and junction conditions if there are discrete rings.
+      IF (INDIC.GE.3) THEN
+        WRITE(IFIL14,'(A)')' N   $ No inertial reactions to load set A'
+        WRITE(IFIL14,'(A)')' N   $ No inertial reactions to load set B'
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      DO 440 ISEG = 1,NSEG
+  440 WRITE(IFIL14,'(A)')' Y'
+      WRITE(IFIL14,'(A)')' N'
+      WRITE(IFIL14,'(A)')' H   $ END OF DATA FOR WAVY CYL. SHELL '
+C
+      WIDTH1 = NWAVES
+      NDOF = 3*NCOND + 3*(NSEG + 1) + 2*I2
+      NDOF2 = NDOF
+      IF (NDOF.GT.(2*MAXDOF/3)) THEN
+         REDUCE = FLOAT(2*MAXDOF/3)/FLOAT(NDOF)
+         WIDTH1  = 0.90*FLOAT(NWAVES)*REDUCE
+         NWAVR1  = WIDTH1
+         IMOD = MOD(NWAVR1,2)
+         IF (IMOD.EQ.0) NWAVR1 = NWAVR1 - 1
+         WRITE(IFILE4,450) NDOF,NWAVES,NWAVR1
+  450  FORMAT(/' PREBUCKLING NUMBER OF DEGREES IN THIS BOSOR4 MODEL'/
+     1 ' (NDOF=',I5,')'/
+     1' EXCEEDS THE MAXIMUM OF MAXDOF ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' PREBUCKLING ANALYSIS. YOU MUST REDUCE THE NUMBER OF AXIAL'/
+     1 ' HALFWAVES ALONG THE CYL. FROM ITS PRESENT VALUE, NWAVES=',I3/
+     1 ' TO A VALUE WHICH IS LESS THAN OR EQUAL TO',I3/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 PREBUCKLING ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C
+      WIDTH2 = NWAVES
+      NDOF = 4*NCOND + 4*(NSEG + 1) + 3*I2
+      NDOF3 = NDOF
+      IF (NDOF.GT.MAXDOF) THEN
+         REDUCE = FLOAT(MAXDOF)/FLOAT(NDOF)
+         WIDTH2  = 0.90*FLOAT(NWAVES)*REDUCE
+         NWAVR2  = WIDTH2
+         IMOD = MOD(NWAVR2,2)
+         IF (IMOD.EQ.0) NWAVR2 = NWAVR2 - 1
+         WRITE(IFILE4,460) NDOF,NWAVES,NWAVR2
+  460  FORMAT(/' BIFURCATION BUCKLING NUMBER OF DEGREES IN THIS BOSOR4'/
+     1 ' MODEL (NDOF=',I5,')'/
+     1' EXCEEDS THE MAXIMUM OF MAXDOF ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' BIFURCATION ANALYSIS. YOU MUST REDUCE THE NUMBER OF AXIAL'/
+     1 ' HALFWAVES ALONG THE WAVY PART OF THE CYLINDRICAL SHELL FROM'/
+     1 ' ITS PRESENT VALUE,                NWAVES=',I3/
+     1 ' TO A VALUE WHICH IS LESS THAN OR EQUAL TO',I3/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 BIFURCATION ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C
+      IF (IREDUC.EQ.1) THEN
+         NWAVEM = MIN(NWAVR1,NWAVR2)
+         FACTR = FLOAT(NwAVEM)/FLOAT(NWAVES)
+         AXIALM = AXIAL*FACTR
+         WRITE(IFILE4,470) NWAVEM,AXIALM
+  470    FORMAT(' RUN "BOSDEC" AGAIN.  REDUCE THE NUMBER OF AXIAL'/
+     1' HALFWAVES TO LESS THAN', I3, ' OR REDUCE THE AXIAL LENGTH'/
+     1' TO LESS THAN LENGTH=',1P,E12.4/)
+         NMSHSR = FACTR*FLOAT(NMESHS)
+         IMOD = MOD(NMSHSR,2)
+         IF (IMOD.EQ.0) NMSHSR = NMSHSR - 1
+         NMSHCR = FACTR*FLOAT(NMESHC)
+         IMOD = MOD(NMSHCR,2)
+         IF (IMOD.EQ.0) NMSHCR = NMSHCR - 1
+         IF (NMESHS.GE.11.AND.NMESHC.GE.11)
+     1   WRITE(IFILE4,480) NMESHS, NMSHSR, NMESHC, NMSHCR
+  480    FORMAT(/' YOU MAY INSTEAD REDUCE THE NUMBER OF NODAL POINTS'/
+     1' IN THE STRAIGHT (CONICAL) AND CURVED (TOROIDAL) SEGMENTS AS'/
+     1' FOLLOWS:'/
+     1'   STRAIGHT SEGMENT: REDUCE NODAL PTS. FROM',I3,' TO ',I3/
+     1'   CURVED   SEGMENT: REDUCE NODAL PTS. FROM',I3,' TO ',I3)
+C        CALL ERREX
+      ENDIF
+C
+      WRITE(IFILE4,30) CASE(1:NLET)
+   30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.ALL = Input data for BOSOR4-type of preprocessor.'/
+     1'           correponding to discretized entire wavy cyl. shell.'/
+     1' Next, give the command  BOSOR4LOG followed by BOSORALL   .'//
+     1' BOSOR4 will be used to find buckling of the wavy cyl. shell.')
+C
+ 5000 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      SEGMNT
+      SUBROUTINE SEGMNT(IOUT,ISEG,NMESH,R1,Z1,R2,Z2,RC,ZC,NSHAPE,
+     1               SROT,C,EFOUND,IRING,IDIST,FNX,PRESS,FNXB,PRESSB,
+     1               IWALL,ZVAL,E,FNU,IFILE,IOUTD,NLAY,LINDX,INDIC,
+     1               DENS,MODLB4,SMAEFF,ISEGRG,TWEB,TFLANG,ERING,
+     1               FNURNG,DENRNG,NSEG,NSEGR,NWAVES,NODRNG)
+C
+C  PURPOSE IS TO GENERATE BOSOR4-TYPE INPUT FOR A SINGLE SEGMENT...
+C
+      DIMENSION C(6,6),LINDX(*),NODRNG(*)
+C
+      WRITE(IOUT,'(A,I4)')' H $ BEGINNING OF DATA FOR SEGMENT',ISEG
+      WRITE(IOUT,'(I4,A,I4)') NMESH,',3,',NSHAPE
+      WRITE(IOUT,'(1P,4E14.6,A)') R1,Z1,R2,Z2,' $ END POINTS'
+      IF (NSHAPE.EQ.2) WRITE(IOUT,'(1P,3E14.6,A)')
+     1                          RC,ZC,SROT,' $ CENTER OF CURV.'
+      IF (ISEGRG.EQ.0) THEN
+       WRITE(IOUT,'(A,1P,E14.6,A)')' 0,3,',ZVAL,'   $ IMP,ITYPEZ,ZVAL'
+      ELSE
+       IF ( ABS(Z2-Z1).GE.ABS(R2-R1) ) ZREF = TFLANG/2.
+       IF ( ABS(Z2-Z1).LE.ABS(R2-R1) ) ZREF = TWEB/2.
+       WRITE(IOUT,'(A,1P,E14.6,A)')' 0,3,',ZREF,'   $ IMP,ITYPEZ,ZVAL'
+      ENDIF
+      IF (IRING.EQ.0)
+     1   WRITE(IOUT,'(A)')' N,0 $ NO PRINTOUT OF r,etc., no rings'
+      IF (IRING.EQ.1) THEN
+         IF ( ABS(Z2-Z1).GE.ABS(R2-R1) ) THEN
+            WRITE(IOUT,'(A)')
+     1    ' N,1,2,0.,0     $ No r O/P,NRINGS,NTYPE,Z,NTYPER'
+         ELSE
+            WRITE(IOUT,'(A,1P,E14.6,A)')
+     1    ' N,1,3,',R1,',0 $ No r O/P,NRINGS,NTYPE,R,NTYPER'
+         ENDIF
+      ENDIF
+      WRITE(IOUT,'(1P,E14.6,A)') EFOUND,' $ ELASTIC FOUNDATION MODULUS'
+      IF (IRING.EQ.0)  WRITE(IOUT,'(A)') ' 0      $ LINTYP'
+      IF (IRING.EQ.1) THEN
+       IF (INDIC.LT.3) THEN
+         WRITE(IOUT,'(A)') ' 1      $ LINTYP'
+         IF (INDIC.EQ.0.OR.INDIC.EQ.2)
+     1   WRITE(IOUT,'(A,E14.6,A)') ' 1,0,0,0,',FNX,' $ NLOAD(1-4),Nx'
+         IF (INDIC.EQ.1)
+     1   WRITE(IOUT,'(A,E14.6,A)') ' 1,0,0,0,',FNXB,' $ NLOAD(1-4),Nxo'
+         IF (INDIC.EQ.0.OR.INDIC.EQ.1)
+     1   WRITE(IOUT,'(A,E14.6,A)') ' 1,0,0,0,',FNX,'  $ NLOAD(1-4),Nx'
+         IF (INDIC.EQ.2)
+     1   WRITE(IOUT,'(A)') ' 1,0,0,0, 0.  $ NLOAD(1-4), DV'
+       ELSE
+C  LOAD SET A LINE LOAD...
+         WRITE(IOUT,'(A,1P,E14.6,A)')
+     1 ' 3,1,4,1,0,0,0,',FNX,' $ LINAB,LINTYP,NTYPEL,NLOAD(1-4), Nx'
+         WRITE(IOUT,'(A)')
+     1 ' 2,2,1,0.,180.,1.,1. $ NTHETA,NOPT,NODD,THETA1-2,YPLUS1-2'
+         WRITE(IOUT,'(A)')
+     1 ' N  $ Want to print out Fourier expansion of applied load?'
+C
+C  LOAD SET B LINE LOAD...
+         WRITE(IOUT,'(A,1P,E14.6,A)')
+     1 '   1,4,1,0,0,0,',FNXB,' $ LINTYP,NTYPEL,NLOAD(1-4), Nxo'
+         WRITE(IOUT,'(A)')
+     1 ' 2,2,1,0.,180.,1.,1. $ NTHETA,NOPT,NODD,THETA1-2,YPLUS1-2'
+         WRITE(IOUT,'(A)')
+     1 ' N  $ Want to print out Fourier expansion of applied load?'
+       ENDIF
+      ENDIF
+      IF (IDIST.EQ.0.OR.ISEGRG.NE.0) WRITE(IOUT,'(A)') ' 0   $ IDISAB'
+      IF (IDIST.EQ.1.AND.ISEGRG.EQ.0) THEN
+       IF (INDIC.LT.3) THEN
+         WRITE(IOUT,'(A)') ' 1      $ IDISAB'
+         WRITE(IOUT,'(A)')
+     1 ' 1,2,0,0,1, 1., 1.      $ NLTYPE,NPSTAT,NLOAD(1-3),PN1,PN2'
+         IF ( ABS(Z2-Z1).GE.ABS(R2-R1) ) THEN
+            WRITE(IOUT,'(A,2E14.6,A)') ' 2,',Z1,Z2,' $ NTYPE,Z1,Z2'
+         ELSE
+            WRITE(IOUT,'(A,2E14.6,A)') ' 3,',R1,R2,' $ NTYPE,R1,R2'
+         ENDIF
+       ELSE
+C  LOAD SET A DISTRIBUTED LOAD...
+         WRITE(IOUT,'(A)')
+     1 ' 3,1,2,4,0,0,1   $ IDISAB,NLTYPE,NPSTAT,NTYPEL,NLOAD(1-3)'
+         WRITE(IOUT,'(1P,2E14.6,A)')
+     1   PRESS, PRESS,'  $ PN(1),PN(2)=normal pressure at Z1, Z2'
+         WRITE(IOUT,'(A)')
+     1 ' 2,2,1,0.,180.,1.,1. $ NTHETA,NOPT,NODD,THETA1-2,YPLUS1-2'
+         WRITE(IOUT,'(A)')
+     1 ' N  $ Want to print out Fourier expansion of applied load?'
+         IF ( ABS(Z2-Z1).GE.ABS(R2-R1) ) THEN
+            WRITE(IOUT,'(A,2E14.6,A)') ' 2,',Z1,Z2,' $ NTYPE,Z1,Z2'
+         ELSE
+            WRITE(IOUT,'(A,2E14.6,A)') ' 3,',R1,R2,' $ NTYPE,R1,R2'
+         ENDIF
+C
+C  LOAD SET B DISTRIBUTED LOAD...
+         WRITE(IOUT,'(A)')
+     1 ' 1,2,4,0,0,1   $ NLTYPE,NPSTAT,NTYPEL,NLOAD(1-3)'
+         WRITE(IOUT,'(1P,2E14.6,A)')
+     1   PRESSB, PRESSB,'  $ PN(1),PN(2)=normal pressure at Z1, Z2'
+         WRITE(IOUT,'(A)')
+     1 ' 2,2,1,0.,180.,1.,1. $ NTHETA,NOPT,NODD,THETA1-2,YPLUS1-2'
+         WRITE(IOUT,'(A)')
+     1 ' N  $ Want to print out Fourier expansion of applied load?'
+         IF ( ABS(Z2-Z1).GE.ABS(R2-R1) ) THEN
+            WRITE(IOUT,'(A,2E14.6,A)') ' 2,',Z1,Z2,' $ NTYPE,Z1,Z2'
+         ELSE
+            WRITE(IOUT,'(A,2E14.6,A)') ' 3,',R1,R2,' $ NTYPE,R1,R2'
+         ENDIF
+       ENDIF
+      ENDIF
+C
+      IF (IWALL.EQ.1.AND.ISEGRG.EQ.0) THEN
+        WRITE(IOUT,'(A,1P,3E14.6,A)')
+     1' 2,',E,FNU,DENS,',0., 0, 0     $ NWALL,E,NU,SM,ALPHA,NRS,NSUR'
+        WRITE(IOUT,'(A)')' N        $ do not print ref.surf locatn'
+      ENDIF
+      IF (ISEGRG.NE.0) THEN
+        NSEG1 = NSEG - NSEGR + 1
+        IF (ISEG.LT.NSEG1) THEN
+           EREFF = ERING
+           DENEFF= DENRNG
+        ELSE
+           EREFF = ERING/2.
+           DENEFF= DENRNG/2.
+        ENDIF
+        IF (ISEG.LE.(NSEGR+1)) THEN
+           JSEG  = NODRNG(1)/1000
+           JNODE = NODRNG(1) - JSEG*1000
+           IF (JSEG.EQ.1.AND.JNODE.EQ.1) THEN
+              EREFF = ERING/2.
+              DENEFF= DENRNG/2.
+           ENDIF
+        ENDIF
+        WRITE(IOUT,'(A,1P,3E14.6,A)')
+     1 ' 2,',EREFF,FNURNG,DENEFF,
+     1 ',0., 0, 0     $ NWALL,E,NU,SM,ALPHA,NRS,NSUR'
+        WRITE(IOUT,'(A)')' N        $ do not print ref.surf locatn'
+      ENDIF
+C     IF (NWAVES.GT.0.AND.MODLB4.EQ.2.AND.ISEG.EQ.1) THEN
+      IF (                MODLB4.EQ.2.AND.ISEG.EQ.1) THEN
+C
+        WRITE(IOUT,'(A,1P,E14.6,A)') ' 1, ',SMAEFF,'  $ NWALL,SMAEFF'
+        WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(1,1),C(1,2),C(1,4),C(1,5),          ' $ C(i,j)'
+        WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(2,2),C(2,4),C(2,5),C(3,3),          ' $ C(i,j)'
+        WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(4,4),C(4,5),C(5,5),C(6,6),          ' $ C(i,j)'
+        WRITE(IOUT,'(1P,E14.6,A)')
+     1              C(3,6),', 0                         $ C(3,6),NRS'
+      ENDIF
+C
+      IF (IWALL.EQ.2.AND.ISEGRG.EQ.0) THEN
+         WRITE(IOUT,'(A)')' 4              $ NWALL (laminated)'
+         CALL INPRP(IFILE,IOUTD,IOUT,ISEG,NLAY,LINDX,MODLB4)
+         CALL NODEP(IFILE,IOUTD,IOUT)
+      ENDIF
+C 
+      WRITE(IOUT,'(A)')' N       $ do not print C(i,j)'
+      WRITE(IOUT,'(A)')' N       $ do not print distributed loads'
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      INPRP
+      SUBROUTINE INPRP(IFILE,IOUT,IFIL14,ISEG,NLAY,LINDX,MODLB4)
+C
+C  PURPOSE IS TO READ IN PROPERTIES OF LAYERED WALL WITH LAMINAE
+C  AT VARIOUS WINDING ANGLES.
+C
+      DIMENSION LTYPE(90),MATL(90),LINDX(*)
+      DIMENSION IMATL(90)
+C
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT,CHARAC
+      LOGICAL ANSL1
+C
+      DO 5 I = 1,90
+      IMATL(I) = 0
+    5 MATL(I) = 0
+      IPROMP = 1
+      REWIND IFILE
+      CALL DATUM(IFILE,384,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF ((MODLB4.EQ.1.AND.ISEG.EQ.1).OR.(MODLB4.EQ.2.AND.ISEG.EQ.2))
+     1  CALL DATUM(IFILE,385,1,2,NLAY,REALL,CHARAC,IOUT,0,IPROMP)
+      WRITE(IFIL14,'(I3,A)') NLAY,'  $ NLAY=number of layers'
+C
+      LKOUNT = 0
+      MAXMAT = 0
+      DO 30 J = 1,NLAY
+      L = J
+      REWIND IFILE
+   20 CONTINUE
+      IF ((MODLB4.EQ.1.AND.ISEG.EQ.1).OR.(MODLB4.EQ.2.AND.ISEG.EQ.2))
+     1THEN
+       CALL DATUM(IFILE,386,1,2,LTYPE(L),REALL,CHARAC,IOUT,L,IPROMP)
+       LINDX(J) = LTYPE(L)
+      ENDIF
+      IF (ISEG.GT.1) LTYPE(L) = LINDX(J)
+      WRITE(IFIL14,'(I3,A)') LTYPE(L),'  $ LTYPE=type of layer'
+      IF ((MODLB4.EQ.1.AND.ISEG.EQ.1).OR.(MODLB4.EQ.2.AND.ISEG.EQ.2))
+     1THEN
+        CALL DATUM(IFILE,387,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+        WRITE(IFIL14,'(A,A1,A)')
+     1 '  ',ANSOUT(1:1),'  $ is this a new layer type?'
+      ENDIF
+      IF ((MODLB4.EQ.1.AND.ISEG.GT.1).OR.(MODLB4.EQ.2.AND.ISEG.GT.2))
+     1THEN
+         WRITE(IFIL14,'(A)')'  N    $ is this a new layer type?'
+         GO TO 30
+      ENDIF
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 30
+C
+C  NEW LAYER TYPE.  READ IN THICKNESS, WINDING ANGLE, MATERIAL TYPE...
+C
+      K = LTYPE(L)
+      CALL DATUM(IFILE,388,0,0,INT,REALL,CHARAC,IOUT,K,IPROMP)
+      CALL DATUM(IFILE,389,1,1,INT,T,CHARAC,IOUT,K,IPROMP)
+      CALL DATUM(IFILE,390,1,2,INT,ANGLE,CHARAC,IOUT,K,IPROMP)
+      CALL DATUM(IFILE,391,1,1,MATL(K),REALL,CHARAC,IOUT,K,IPROMP)
+      WRITE(IFIL14,'(1P,2E14.6,I3,A)')
+     1 T,ANGLE,MATL(K),'  $ T,ANGLE,MATL'
+      LKOUNT = LKOUNT + 1
+      IF (LKOUNT.EQ.1) THEN
+         IMATL(J) = MATL(K)
+         MAXMAT = 1
+      ENDIF
+      IF (J.GT.1) THEN
+         L1 = J - 1
+         DO 25 LL = 1,L1
+            IF (MATL(K).EQ.IMATL(LL)) GO TO 26
+   25    CONTINUE
+         IMATL(J) = MATL(K)
+   26    CONTINUE
+      ENDIF
+   30 CONTINUE
+      IF (MAXMAT.GT.0)
+     1 CALL DATUM(IFILE,392,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      DO 200 J = 1,NLAY
+      I = IMATL(J)
+      IF (I.EQ.0) GO TO 200
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,393,1,2,INT,REALL,ANSOUT,IOUT,I,IPROMP)
+      WRITE(IFIL14,'(A,A1,A)')
+     1 '  ',ANSOUT(1:1),'  $ is this new material?'
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 200
+C
+      CALL DATUM(IFILE,394,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,395,1,1,INT,E1,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,396,1,1,INT,E2,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,397,1,1,INT, G,CHARAC,IOUT,I,IPROMP)
+      KKOUNT = 0
+  150 CONTINUE
+      CALL DATUM(IFILE,398,1,1,INT,FNU,CHARAC,IOUT,I,IPROMP)
+      FNUTST = 1000000.
+      IF (E2.NE.0.) FNUTST = FNU*E1/E2
+      DIF    = 1. - FNUTST*FNU
+      IF (DIF.LE.0.) THEN
+         WRITE(IFILE4,155)
+  155    FORMAT(/' BAD VALUE FOR POISSONS RATIO. NOTE THAT THERE ARE'/
+     1 ' TWO POISSONS RATIOS, NU12 AND NU21. THE ONE THAT YOU ARE'/
+     1 ' ASKED TO PROVIDE, NU12, IS GIVEN BY:'/
+     1 '               NU12  = NU21*E2/E1'/
+     1 ' THEREFORE, IF E1 IS LARGER THAN E2 (WHICH IS USUALLY THE'/
+     1 ' CASE), YOU MUST PROVIDE AS INPUT HERE THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS.'/)
+C
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 150
+      ENDIF
+C
+      IF (FNUTST.GT.1.0.AND.KKOUNT.EQ.0.AND.E2.NE.0.) THEN
+         WRITE(IFILE4,156)
+  156    FORMAT(/' POISSONS RATIO MAY BE TOO BIG.  NOTE THAT THERE ARE'/
+     1 ' TWO POISSONS RATIOS, NU12 AND NU21. THE ONE THAT YOU ARE'/
+     1 ' ASKED TO PROVIDE, NU12, IS GIVEN BY:'/
+     1 '               NU12  = NU21*E2/E1'/
+     1 ' THEREFORE, IF E1 IS LARGER THAN E2 (WHICH IS USUALLY THE'/
+     1 ' CASE), YOU MUST PROVIDE AS INPUT HERE THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS.'/)
+         WRITE(IFILE4,157)
+  157    FORMAT(/' PANDA2 WILL ASK YOU AGAIN FOR THE POISSONS RATIO.'/
+     1 ' PLEASE MAKE SURE THAT YOU SUPPLY THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS FOR THIS ORTHOTROPIC MATERIAL.'/)
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         KKOUNT = KKOUNT + 1
+         GO TO 150
+      ENDIF
+      WRITE(IFIL14,'(1P,2E14.6,A)') E1,E2,'  $ E1,E2'
+      WRITE(IFIL14,'(1P,2E14.6,A)') G,FNU,'  $ G,FNU'
+C
+  160 CONTINUE
+      CALL DATUM(IFILE,399,1,1,INT,ALPHA1,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,400,1,1,INT,ALPHA2,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,401,1,2,INT,CURETP,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,402,1,2,INT,DENS,CHARAC,IOUT,I,IPROMP)
+      WRITE(IFIL14,'(1P,2E14.6,A)') ALPHA1,ALPHA2,'  $ ALPHA1,ALPHA2'
+      WRITE(IFIL14,'(1P,2E14.6,A)') CURETP,DENS,'  $ CURETP,DENS'
+      CALL DATUM(IFILE,403,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,404,1,1,INT,EALLW1,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,405,1,1,INT,EALLW2,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,406,1,1,INT,EALLW3,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,407,1,1,INT,EALLW4,CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,408,1,1,INT,EALLW5,CHARAC,IOUT,I,IPROMP)
+      WRITE(IFIL14,'(1P,2E14.6,A)') EALLW1,EALLW2,'  $ EALLW1,EALLW2'
+      WRITE(IFIL14,'(1P,2E14.6,A)') EALLW3,EALLW4,'  $ EALLW3,EALLW4'
+      WRITE(IFIL14,'(1P,E14.6,A)') EALLW5,'                 $ EALLW5'
+  200 CONTINUE
+      WRITE(IFIL14,'(A)')' 0                                $ NRS'
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      NODEP
+      SUBROUTINE NODEP(IFILE3,IOUT,IFIL14)
+C
+C  PURPOSE IS TO CHOOSE NODAL POINTS FOR STRESS OUTPUT FOR COMPOSITE
+C  SEGMENTS.
+C
+      COMMON/INDAT/INFILE
+      CHARACTER*4 CHARAC,ANSOUT
+      LOGICAL ANSL1
+C
+      REWIND IFILE3
+      CALL DATUM(IFILE3,620,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,622,1,1,INT,REALL,ANSOUT,IOUT,ISEG,1)
+      WRITE(IFIL14,'(A,A1,A)')
+     1 '  ',ANSOUT(1:1),'  $ output at all nodes?'
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 100
+      CALL DATUM(IFILE3,624,0,0,INT,REALL,CHARAC,IOUT,0,1)
+   10 CONTINUE
+      REWIND IFILE3
+      CALL DATUM(IFILE3,626,1,1,NODE,REALL,CHARAC,IOUT,0,1)
+      WRITE(IFIL14,'(I3,A)') NODE,'        $ output at node no.'
+      CALL DATUM(IFILE3,628,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      WRITE(IFIL14,'(A,A1,A)')
+     1 '  ',ANSOUT(1:1),'  $ output at any more nodes?'
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+C
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      PUTWAV
+C
+C  PURPOSE IS TO SET UP BOSDEC INPUT FILE FOR WAVY CYLINDRICAL SHELL.
+C
+      SUBROUTINE PUTWAV(MODLB4,ISYMTY,ILOADX,IMODX,NWAVEX,NPRINX)
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/MORFNX/FNXADD
+C BEG FROM WAVYCYL.COM (labelled common blocks from GENOPT)
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1   
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C END FROM WAVYCYL.COM
+      DIMENSION IMATL(20)
+      COMMON/INSTAB/INDIC
+      COMMON/PRMFIL/IFILEX,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE3
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+C END UNIX
+C BEG VMS
+      IUNAME = 12
+C BEG SEP 1999
+C     REWIND IUNAME
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMX
+      REWIND 23
+C
+C  FIRST, PROVIDE THE *.WAV FILE (INPUT FOR SUBROUTINE BOSDEC)
+      IF (IMODX.EQ.0.AND.NWAVEX.GT.0) THEN
+         NWVOLD = NWAVEX
+         IF (NWAVEX.EQ.1) NWAVEX = 2
+         IMOD = MOD(NWAVEX,2)
+         IF (IMOD.NE.0) NWAVEX = NWAVEX - 1
+         IF (IWAVE.EQ.2) IMOD = MOD(NWAVEX-2,4)
+         IF (IWAVE.EQ.3) IMOD = MOD(NWAVEX,4)
+         IF (IMOD.NE.0)  NWAVEX = NWAVEX + 2
+         IF (NWAVEX*WAVLEN.GT.0.9*AXIAL) THEN
+            NWAVEX = 0.9*AXIAL/WAVLEN
+            IMOD = MOD(NWAVEX,2)
+            IF (IMOD.NE.0) NWAVEX = NWAVEX - 1
+            IF (IWAVE.EQ.2) IMOD = MOD(NWAVEX-2,4)
+            IF (IWAVE.EQ.3) IMOD = MOD(NWAVEX,4)
+            IF (IMOD.NE.0)  NWAVEX = NWAVEX - 2
+         ENDIF
+         IF (NWVOLD.NE.NWAVEX) THEN
+C           IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/,A,I3,/,A,I3)')
+C    1   ' Number of axial halfwaves in bosor4 model has been changed:',
+C    1   '  Old value of NWAVES, NWVOLD =',NWVOLD,
+C    1   '  New value of NWAVES, NWAVES =',NWAVEX
+         ENDIF
+      ENDIF
+      IF (IMODX.EQ.1.AND.NWAVEX*WAVLEN.GT.0.98*AXIAL) THEN
+         NWAVEX = 0.98*AXIAL/WAVLEN
+         IMOD = MOD(NWAVEX,2)
+         IF (IMOD.NE.0) NWAVEX = NWAVEX - 1
+         IF (IWAVE.EQ.2) IMOD = MOD(NWAVEX-2,4)
+         IF (IWAVE.EQ.3) IMOD = MOD(NWAVEX,4)
+         IF (IMOD.NE.0) NWAVEX = NWAVEX - 2
+      ENDIF 
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IWAVE.EQ.3) NSEG = (NWAVEX/2)*2 + 1
+      IF (IWAVE.EQ.2) NSEG = NWAVEX/2 + 1
+      IF (IWALL.EQ.2) THEN
+         THICK = 0.
+         DO 5 I = 1,NLAYER
+            K = LTYPE(I)
+            THICK = THICK + TLAYER(K)
+    5    CONTINUE
+      ENDIF
+      IF (MAXDOF.GT.15000) MAXDOF = 15000
+      IF (RADSML.GT.0.0.AND.AMPLIT.GT.RADSML.AND.2.*RADSML.GE.WAVLEN)
+     1 RADSML = 0.999*WAVLEN/2.
+      IFILE = 23
+      REWIND IFILE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFILE,'(I7,A)')
+     1 MODLB4,' $ Type of BOSOR4 model (1 or 2), MODLB4'
+      WRITE(IFILE,'(I7,A)') ISYMTY,
+     1' $ b.c.(0=sym, 1=antisym, 2=ufree) at symmetry plane, ISYMTY'
+      WRITE(IFILE,'(I7,A)')
+     1 INDIC,' $ Analysis: (0,3=stress, 1,4=buckling, 2=vibratn), INDIC'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 AXIAL,' $ Length of cylindrical shell, AXIAL'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1RADIUS,' $ Average nominal radius of cylindrical shell, RADIUS'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 THICK,' $ Total wall thickness, THICK'
+      WRITE(IFILE,'(I7,A)')
+     1NWAVEX,'        $ Number of axial halfwaves along AXIAL, NWAVES'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1WAVLEN,' $ axial halfwavelength of waviness, WAVLEN'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1AMPLIT,' $ Amplitude of waviness, AMPLIT'
+      WRITE(IFILE,'(I7,A)')
+     1 IWAVE,'        $ Type of waviness (2 or 3), IWAVE'
+      IF (IWAVE.EQ.3.AND.NWAVEX.GT.0) WRITE(IFILE,'(1P,E14.6,A)')
+     1RADSML,' $ Local meridional radius of curvature, RADSML'
+      WRITE(IFILE,'(I7,A)')
+     1 IRING,'    $ Location of T-ring: -1=internal, 0=none, 1=external'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 BRINGS,' $ ring spacing (use zero if no rings)'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 TWEB,' $ thickness of web of T-ring'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 HWEB,' $ height of web of T-ring'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 TFLANG,' $ thickness of outstanding flange of T-ring'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 HFLANG,' $ width of outstanding flange of T-ring'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 ERING,' $ Average modulus of ring material'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 FNURNG,' $ Average Poisson ratio of ring material'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 DENRNG,' $ Average mass density of ring material'
+      WRITE(IFILE,'(I7,A)')
+     1 NMESHR,'       $ Number of nodal points in each of web, flange'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 GRAVTY,' $ Accel. of gravity in units of this case, GRAVTY'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 GAXIAL(ILOADX),' $ Number of g axial acceleration, GAXIAL'
+      WRITE(IFILE,'(1P,E14.6,A)')
+     1 GLATRL(ILOADX),' $ Number of g lateral acceleration, GLATRL'
+      FNXTOT = FNX(ILOADX) + FNXADD
+      WRITE(IFILE,'(1P,E14.6,A)') FNXTOT,
+     1' $ Axial resultant (neg. for compression,LOAD A), FNX'
+      WRITE(IFILE,'(1P,E14.6,A)') FNXB(ILOADX),
+     1' $ Axial resultant (neg. for compression,LOAD B), FNXB'
+      WRITE(IFILE,'(1P,E14.6,A)') PRESS(ILOADX),
+     1' $ Pressure (negative for external, LOAD A), PRESS'
+      WRITE(IFILE,'(1P,E14.6,A)') PRESSB(ILOADX),
+     1' $ Pressure (negative for external, LOAD B), PRESSB'
+      IF (IWAVE.EQ.3) WRITE(IFILE,'(I7,A)')
+     1NMESHS,'        $ No. nodal points each STRAIGHT segment, NMESHS'
+      WRITE(IFILE,'(I7,A)')
+     1NMESHC,'        $ No. nodal points each  CURVED  segment, NMESHC'
+      WRITE(IFILE,'(I7,A)')
+     1NMESH1,'        $ No. nodal points in "smeared" segment, NMESH1'
+      WRITE(IFILE,'(I7,A)')
+     1MAXDOF,'        $ Max. no. of d.o.f. in buckling problem, MAXDOF'
+      WRITE(IFILE,'(I7,A)')
+     1IBOUND,'        $ Index (1=s.s.; 2=clamped) for b.c., IBOUND'
+      IF (INDIC.EQ.0.OR.INDIC.EQ.1.OR.INDIC.GE.3) THEN
+         WRITE(IFILE,'(I7,A)')
+     1   N0B,'        $ Starting number of circumferential waves, N0B'
+         WRITE(IFILE,'(I7,A)')
+     1 NMAXB,'        $  Ending  number of circumferential waves, NMAXB'
+         WRITE(IFILE,'(I7,A)')
+     1 INCRB,'        $ Increment in number of circumferl. waves, INCRB'
+      ENDIF
+      IF (INDIC.EQ.2) THEN
+         WRITE(IFILE,'(I7,A)')
+     1   N0V,'        $ Starting number of circumferential waves, N0V'
+         WRITE(IFILE,'(I7,A)')
+     1 NMAXV,'        $  Ending  number of circumferential waves, NMAXV'
+         WRITE(IFILE,'(I7,A)')
+     1 INCRV,'        $ Increment in number of circumferl. waves, INCRV'
+      ENDIF
+      WRITE(IFILE,'(I7,A)')
+     1  NVEC,'        $ No. eigenvalues for each circ. wavenumber, NVEC'
+      WRITE(IFILE,'(I7,A)')
+     1 IWALL,'        $ Type shell wall (1=isotrop, 2=laminated), IWALL'
+      IF (IWALL.EQ.1) THEN
+         WRITE(IFILE,'(1P,E14.6,A)')
+     1   ESTIFF,' $ Youngs modulus, ESTIFF'
+         WRITE(IFILE,'(1P,E14.6,A)')
+     1   FNU,' $ Poisson ratio, FNU'
+         WRITE(IFILE,'(1P,E14.6,A)')
+     1   DENS,' $ Material mass density, DENS'
+      ELSE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFILE,'(I3,A)') NLAYER,'  $ NLAYER=number of layers'
+C
+         LKOUNT = 0
+         CALL MOVER(0,0,IMATL,1,20)
+         DO 30 J = 1,NLAYER
+   20    CONTINUE
+         WRITE(IFILE,'(I3,A)') LTYPE(J),'  $ LTYPE=type of layer'
+         K = LTYPE(J)
+         IF (NEWLAY(J).EQ.0) THEN
+            WRITE(IFILE,'(A)')' N  $ is this a new layer type?'
+            GO TO 30
+         ELSE
+            WRITE(IFILE,'(A)')' Y  $ is this a new layer type?'
+C
+C  NEW LAYER TYPE.  WRITE THICKNESS, WINDING ANGLE, MATERIAL TYPE...
+C
+            WRITE(IFILE,'(1P,2E14.6,I3,A)')
+     1      TLAYER(K),ANGLE(K),MTYPE(K),'  $ TLAYER,ANGLE,MTYPE'
+            LKOUNT = LKOUNT + 1
+            IF (LKOUNT.EQ.1) THEN
+               IMATL(J) = MTYPE(K)
+            ENDIF
+            IF (J.GT.1) THEN
+               L1 = J - 1
+               DO 25 LL = 1,L1
+                  IF (MTYPE(K).EQ.IMATL(LL)) GO TO 26
+   25          CONTINUE
+               IMATL(J) = MTYPE(K)
+   26          CONTINUE
+            ENDIF
+         ENDIF
+   30    CONTINUE
+C
+         DO 200 J = 1,NLAYER
+            I = IMATL(J)
+            IF (I.EQ.0) GO TO 200
+            WRITE(IFILE,'(A)')' Y  $ is this a new material type?'
+            WRITE(IFILE,'(1P,2E14.6,A)') E1(I),E2(I),'  $ E1,E2'
+            WRITE(IFILE,'(1P,2E14.6,A)') G(I),NU(I),'  $ G,NU'
+            WRITE(IFILE,'(1P,2E14.6,A)') A1(I),A2(I),'  $ A1,A2'
+            WRITE(IFILE,'(1P,2E14.6,A)')
+     1                              CURETP(I),RHO(I),'  $ CURETP,RHO'
+            WRITE(IFILE,'(1P,2E14.6,A)')
+     1                            S1TEN(I),S1COMP(I),'  $ S1TEN,S1COMP'
+            WRITE(IFILE,'(1P,2E14.6,A)')
+     1                            S2TEN(I),S2COMP(I),'  $ S2TEN,S2COMP'
+            WRITE(IFILE,'(1P,E14.6,A)') TAU12(I),'       $ TAU12'
+  200    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         DO 300 ISEG = 1,NSEG
+            WRITE(IFILE,'(A)')' Y    $ want output for all nodal pts?'
+  300    CONTINUE
+      ENDIF
+C
+C  NEXT, PROVIDE THE *.RES FILE (INPUT FOR RESETUP)
+      IFIL11 = 29
+      REWIND IFIL11
+      WRITE(IFIL11,'(A)')
+     1'  Y  $ Do you want response at resonance to base excitation?'
+      WRITE(IFIL11,'(A)')
+     1'  1  $ ISTRES=(0=resultants, 1=sigma, 2=epsilon)'
+      WRITE(IFIL11,'(A)')
+     1' 0  $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)'
+      WRITE(IFIL11,'(A)')'  N   $ no expanded regions for plots.'
+      WRITE(IFIL11,'(A)')'  Y  $ Want more information?'
+      WRITE(IFIL11,'(A)')'  Y  $ Want more information?'
+      WRITE(IFIL11,'(A)')'  Y  $ Want more information?'
+      WRITE(IFIL11,'(A)')
+     1'  2  $ Type of response analysis (2=random excitation)'     
+      WRITE(IFIL11,'(1P,E14.6,A)')
+     1 GRAVTY,' $ Acceleration of gravity in units of this case'
+      WRITE(IFIL11,'(A)')
+     1'  Y  $ Does B (damping factor) vary with f (frequency)?'
+      DO 320 I = 1,NDAMP
+       WRITE(IFIL11,'(1P,E14.6,A)') BDAMP(I),' $ damping factor,   B(i)'
+       WRITE(IFIL11,'(1P,E14.6,A)') BFREQ(I),' $ frequency,        F(i)'
+       IF (I.LT.NDAMP) WRITE(IFIL11,'(A)')'  Y  $  any more values?'
+       IF (I.EQ.NDAMP) WRITE(IFIL11,'(A)')'  N  $  any more values?'
+  320 CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL11,'(A)')
+     1'  Y  $ Does W (spectral density) vary with f (frequency)?'
+      DO 340 I = 1,NSPECT
+      WRITE(IFIL11,'(1P,E14.6,A)') SPTDEN(I),' $ spectral density, W(i)'
+      WRITE(IFIL11,'(1P,E14.6,A)') SFREQ(I),' $ frequency,        F(i)'
+      IF (I.LT.NSPECT) WRITE(IFIL11,'(A)')'  Y  $  any more values?'
+      IF (I.EQ.NSPECT) WRITE(IFIL11,'(A)')'  N  $  any more values?'
+  340 CONTINUE
+      WRITE(IFIL11,'(A)')
+     1'  Y  $ Do you want to find buckling load factors?'
+         WRITE(IFIL11,'(I7,A)')
+     1   N0B,'        $ Starting number of circumferential waves, N0B'
+         WRITE(IFIL11,'(I7,A)')
+     1   N0B,'        $ minimum number of circumferential waves, N0B'
+         WRITE(IFIL11,'(I7,A)')
+     1 NMAXB,'        $  Ending  number of circumferential waves, NMAXB'
+         WRITE(IFIL11,'(I7,A)')
+     1 INCRB,'        $ Increment in number of circumferl. waves, INCRB'
+      WRITE(IFIL11,'(I7,A)')
+     1  NVEC,'        $ No. eigenvalues for each circ. wavenumber, NVEC'
+      WRITE(IFIL11,'(A)')
+     1'  N  $ Want to suppress listing prebuckling resultants?'
+      WRITE(IFIL11,'(A)')
+     1'  N  $ Want to suppress listing the buckling modes?'
+      WRITE(IFIL11,'(A)')
+     1'  1  $ NDIST = number of circ. stations for meridional output'
+      WRITE(IFIL11,'(1P,E14.6,A)')
+     1 ANGSTR,' $ THETA = circ. station (in deg.) meridional state'
+      WRITE(IFIL11,'(A)')
+     1'  0  $ NCIRC=number of meridional stations for circ. state'
+C
+      RETURN
+      END
+C
+C
+C

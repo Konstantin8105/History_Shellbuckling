@@ -1,0 +1,774 @@
+
+/*
+cleanup: unlinks all temporary files associated with di2ps.c and plotps.c
+         cleanup can be called from any routine.  If errcond and cleanup
+         is unable to unlink file, error messages will be printed, otherwise
+         error messages are suppressed.
+*/
+void cleanup(_int_ errcond)
+{
+char filename[MaxLineLength], tempstr[MaxLineLength];
+_int_ stat;
+
+  sprintf(filename, "%s%d", "/tmp/plotps_in", getpid());
+  stat = unlink(filename);
+  if (stat && errcond) {
+    strcpy(tempstr, "Could not unlink: ");
+    strcat(tempstr, filename);
+    strcat(tempstr, "  Routine: cleanup");
+    derror(tempstr, !FATAL);
+  } 
+
+  sprintf(filename, "%s%d", TempPostScriptFile, getpid());
+  stat = unlink(filename);
+  if (stat && errcond) {
+    strcpy(tempstr, "Could not unlink: ");
+    strcat(tempstr, filename);
+    strcat(tempstr, "  Routine: cleanup");
+    derror(tempstr, !FATAL);
+  } 
+  
+}
+
+/*
+define_aliases: defines shortened names for common PostScript commands such as
+moveto, rmoveto, lineto, and rlineto.
+*/
+void define_aliases(void)
+{
+
+  if (level != 0) {
+    derror("Level must be 0.  Routine: define_aliases", FATAL);
+  }
+
+  fprintf(fp, "%%\n%% set up alias for moveto\n");
+  fprintf(fp, "/m { moveto } def\n");
+  fprintf(fp, "%%\n%% set up alias for rmoveto\n");
+  fprintf(fp, "/rm { rmoveto } def\n");
+  fprintf(fp, "%%\n%% set up alias for lineto\n");
+  fprintf(fp, "/l { lineto } def\n");
+  fprintf(fp, "%%\n%% set up alias for rlineto\n");
+  fprintf(fp, "/rl { rlineto } def\n");
+  fprintf(fp, "%%\n");
+}
+
+/*
+define_fonts: add font definitions to the current dictionary.
+*/
+void define_fonts(void)
+{
+
+  if (level != 0) {
+    derror("Level must be 0.  Routine: define_fonts", FATAL);
+  }
+
+/*
+Macro for choosing fonts and storing font statistics.
+Cribbed from Xgraph PS output file, courtesy of Rick Spickelmeier
+and David Harrison, authors of Xgraph.
+*/
+
+  fprintf(fp, "%%\n%% macro for choosing font and for obtaining\n");
+  fprintf(fp, "%% y-offsets from center of font.\n");
+  fprintf(fp, "/ChooseFont  %% example: fontsize fontname ChooseFont\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  -10000 -10000 translate\n");
+  fprintf(fp, "  findfont\n");
+  fprintf(fp, "  exch scalefont\n");
+  fprintf(fp, "  setfont\n");
+  fprintf(fp, "  newpath\n");
+  fprintf(fp, "  0 0 moveto (0) true charpath pathbbox\n");
+  fprintf(fp, "  /Top exch def pop\n");
+  fprintf(fp, "  /Bottom exch def pop\n");
+  fprintf(fp, "  Bottom Top Bottom Top add 2 div\n");
+  fprintf(fp, "  /CenterFontVal exch def\n");
+  fprintf(fp, "  /UpperFontVal exch def\n");
+  fprintf(fp, "  /LowerFontVal exch def\n");
+  fprintf(fp, "  10000 10000 translate\n");
+  fprintf(fp, "} def\n");
+
+/*
+Macros for calculating justification offsets for most recently chosen font.
+Cribbed from Xgraph PS output file, courtesy of Rick Spickelmeier
+and David Harrison, authors of Xgraph.
+*/
+
+  fprintf(fp, "%%\n%% justification macros\n%%\n");
+  fprintf(fp, "/CenterXJust  %% stack: (string) x y --> (string) newx y\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  exch 2 index stringwidth pop 2 div sub exch\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "/LeftXJust  %% stack: (string) x y --> (string) newx y\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "/RightXJust  %% stack: (string) x y --> (string) newx y\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  exch 2 index stringwidth pop sub exch\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "/CenterYJust  %% stack: (string) x y --> (string) x newy\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  CenterFontVal sub\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "/LowerYJust  %% stack: (string) x y --> (string) x newy\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  LowerFontVal sub\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "/UpperYJust  %% stack: (string) x y --> (string) x newy\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "UpperFontVal sub\n");
+  fprintf(fp, "} def\n");
+  fprintf(fp, "%%\n%% macro to show string on page subject\n");
+  fprintf(fp, "%% to justification just.\n");
+  fprintf(fp, "/JustString  %% example: (string) x y just JustString\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  dup 0 eq { pop CenterXJust CenterYJust } if\n");
+  fprintf(fp, "  dup 1 eq { pop LeftXJust CenterYJust } if\n");
+  fprintf(fp, "  dup 2 eq { pop LeftXJust UpperYJust } if\n");
+  fprintf(fp, "  dup 3 eq { pop CenterXJust UpperYJust } if\n");
+  fprintf(fp, "  dup 4 eq { pop RightXJust UpperYJust } if\n");
+  fprintf(fp, "  dup 5 eq { pop RightXJust CenterYJust } if\n");
+  fprintf(fp, "  dup 6 eq { pop RightXJust LowerYJust } if\n"); 
+  fprintf(fp, "  dup 7 eq { pop CenterXJust LowerYJust } if\n");
+  fprintf(fp, "  dup 8 eq { pop LeftXJust LowerYJust } if\n");
+  fprintf(fp, "  moveto show\n");
+  fprintf(fp, "} def\n");
+
+}
+
+/*
+define_markers: write commands to the PS file that define the 19 
+different markers available from DISSPLA.
+*/
+void define_markers(void)
+{
+
+  if (level != 0) {
+    derror("Level must be 0.  Routine: define_markers", FATAL);
+  }
+
+  fprintf(fp, "%%\n%% define the 19 different markers supported by DISSPLA\n");
+  fprintf(fp, "%% All marker macros must be called with absolute (x, y)\n");
+  fprintf(fp, "%% coordinates and overall scaling factor\n");
+  fprintf(fp, "%% arguments.  Example: xloc yloc scale M3\n");
+
+  fprintf(fp, "%%\n/BeginMarker\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   gsave\n");
+  fprintf(fp, "   dup\n");
+  fprintf(fp, "   %d %d roll\n", 4, 2);
+  fprintf(fp, "   newpath\n");
+  fprintf(fp, "   m scale\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/EndMarker\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   grestore\n");
+  fprintf(fp, " } def\n");
+
+/* Old begin and end marker
+  fprintf(fp, "%%\n/BeginMarker\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   %d index %d index\n", 1, 1);
+  fprintf(fp, "   %d %d roll\n", 6, -2);
+  fprintf(fp, "   newpath\n");
+  fprintf(fp, "   m scale\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/EndMarker\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   %.2f exch div exch\n", 1.0);
+  fprintf(fp, "   %.2f exch div exch\n", 1.0);
+  fprintf(fp, "   scale\n");
+  fprintf(fp, " } def\n");
+*/
+
+  fprintf(fp, "%%\n/M0\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M1\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.25*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, -0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -0.5*MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %d setlinejoin\n", RoundJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M2\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %d setlinejoin\n", MiterJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M3\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %d setlinecap\n", RoundCap);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M4\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, -MarkerDia);
+  fprintf(fp, "   %d setlinecap\n", RoundCap);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M5\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M6\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %d setlinejoin\n", MiterJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M7\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, -MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.75);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M8\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %d setlinecap\n", RoundCap);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M9\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %d setlinejoin\n", MiterJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.8);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M10\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.25*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, -0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.25*MarkerDia, -0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", 0.25*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %d setlinejoin\n", RoundJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.8);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M11\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %d setlinejoin\n", MiterJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.75);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M12\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %d setlinejoin\n", MiterJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.8);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M13\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.25*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, 0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, 0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.25*MarkerDia, -0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.25*MarkerDia, -0.25*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -0.25*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rm\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, -MarkerDia);
+  fprintf(fp, "   %d setlinejoin\n", RoundJoin);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.8);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M14\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, -MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.5*MarkerDia, -MarkerDia);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*0.8);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M15\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   currentpoint\n");
+  fprintf(fp, "   %.2f %.2f rm\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f %.2f arc\n", 0.5*MarkerDia, 0.0, 360.0);
+  fprintf(fp, "   fill\n"); 
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M16\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   currentpoint\n");
+  fprintf(fp, "   %.2f %.2f rm\n", 0.5*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f %.2f arc\n", 0.5*MarkerDia, 0.0, 360.0);
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*4.0);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M17\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.40*MarkerDia, -0.40*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.80*MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, 0.80*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -0.80*MarkerDia, 0.0);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", MarkLineThick*4.0);
+  fprintf(fp, "   stroke\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/M18\n");
+  fprintf(fp, " {\n");
+  fprintf(fp, "   BeginMarker\n");
+  fprintf(fp, "   %.2f %.2f rm\n", -0.5*MarkerDia, -0.5*MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", MarkerDia, 0.0);
+  fprintf(fp, "   %.2f %.2f rl\n", 0.0, MarkerDia);
+  fprintf(fp, "   %.2f %.2f rl\n", -MarkerDia, 0.0);
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   fill\n");
+  fprintf(fp, "   EndMarker\n");
+  fprintf(fp, " } def\n");
+
+  fprintf(fp, "%%\n/Tick\n");
+  fprintf(fp, " { currentpoint\n");
+  fprintf(fp, "   4 2 roll\n");
+  fprintf(fp, "   3 index\n");
+  fprintf(fp, "   %.2f add\n", 2.0);
+  fprintf(fp, "   3 index\n");
+  fprintf(fp, "   l\n");
+  fprintf(fp, "   l\n");
+  fprintf(fp, "   exch\n");
+  fprintf(fp, "   %.2f add\n", -2.0);
+  fprintf(fp, "   exch\n");
+  fprintf(fp, "   l\n");
+  fprintf(fp, "   closepath\n");
+  fprintf(fp, "   %.2f setlinewidth\n", TickLineThickness);
+  fprintf(fp, "   fill } def\n");
+
+  fprintf(fp, "%%\n%% end marker definitions\n");
+}
+
+/*
+derror: handles errors for di2ps and calling programs.
+*/
+void derror(char *mes, _int_ number)
+{
+
+  if (number)
+    cleanup(number);
+
+  error(mes, number);
+}
+
+/*
+escapeParens: takes a string, s, as input and places a
+backslash "\" immediately before each open and close
+parenthesis and each backslash so that it is interpreted literally
+by the PostScript interpreter.  The escaped string is returned, but
+the input string is not modified.
+*/
+char *escapeParens(char *s)
+{
+static char v[MaxLineLength];
+_int_ i, j;
+
+/* Clear out v. */
+memset(v, '\0', MaxLineLength);
+
+for(i=0, j=0; s[i] ; i++, j++) {
+  if ((s[i] == '(') || (s[i] == ')') || (s[i] == '\\'))
+    strcat(&v[j++], "\\");
+  v[j] = s[i];
+}
+
+return(v);
+}
+
+/*
+getAxisNumStyle: returns a style appropriate for plot axis
+numerals.  Return values are either INTEGER, FLOAT, or
+SCALEFLOAT.
+*/
+enum axis_num_type getAxisNumStyle(_float_ max,
+                                   _float_ min,
+                                   _float_ scale)
+{
+
+_float_ range;
+
+range = fabs(max-min);
+
+/* What style for axis numerals? */
+  if ((scale > 1.0 - EPSILON) &&
+      (scale < 100.0 + EPSILON) &&
+      (range > 6.0 - EPSILON) &&
+      (max < 1000.0) &&
+      (min > -100.0))
+    return(INTEGER);
+  else if (((scale > 1.0 - EPSILON) && (scale < 1.0 + EPSILON)) ||
+           ((scale > 0.1 - EPSILON) && (scale < 0.1 + EPSILON) &&
+            (range > 0.6 - EPSILON) ))
+    return(FLOAT);
+  else
+    return(SCALEFLOAT);
+}
+
+/*
+initstruct: initializes the static data structures.
+*/
+void initstruct(void)
+{
+_int_ i;
+
+  set_color(0.0, 0.0, 0.0);
+  markr = DefaultMarker;
+
+/* Clear out legnd structure. */
+  memset(&legnd, '\0', sizeof(struct old_legend_type));
+  strcpy(legnd.heading, "LEGEND");
+
+/* Clear out leg structure. */
+  memset(&leg, '\0', sizeof(struct legend_type));
+
+/* Initialize lineStyle to line. */
+  memset(plot.lineStyle, '\0', MaxLeg*sizeof(*(plot.lineStyle)));
+  memset(plot.marker, '\0', MaxLeg*sizeof(*(plot.marker)));
+
+/* Initialize trace color to black. */
+  for (i=0; i<MaxLeg; i++)
+    strcpy(plot.color[i], "BLAC");
+
+  plot.title[0] = '\0';
+  plot.xname[0] = '\0';
+  plot.yname[0] = '\0';
+  plot.xmin = 0.0;
+  plot.xmax = 0.0;
+  plot.xstp = 0.0;
+  plot.ymin = 0.0;
+  plot.ymax = 0.0;
+  plot.ystp = 0.0;
+
+  o.x = o.y = 0.0;
+}
+
+/*
+markeradd: Increments the current marker (mod MaxLeg).
+*/
+void markeradd_(void)
+{
+  markr = abs((markr + 1) % MaxLeg);
+}
+
+/*
+markersub: Decrements the current marker (mod MaxLeg).
+*/
+void markersub_(void)
+{
+  markr = abs((markr - 1) % MaxLeg);
+}
+
+/*
+open_ps_out: opens a temporary output file so that file may be modified later to
+             conform to the encapsulated PostScript standards.
+*/
+void open_ps_out(char *outfile)
+{
+
+char tempstr[MaxLineLength];
+
+  if (level != 0) {
+    derror("Level must be 0.  Routine: open_ps_out", FATAL);
+    return;
+  }
+
+  eps = 1;
+  sprintf(outfile, "%s%d", TempPostScriptFile, getpid());
+  if (!(fp = fopen(outfile, "w"))) {
+    strcpy(tempstr, "Could not open temporary output PostScript file: ");
+    strcat(tempstr, outfile);
+    derror(tempstr, FATAL);
+  }
+}
+
+/* ps2eps: opens the temporary output PostScript file and converts it to
+           an encapsulated PostScript file which adheres to EPSF-2.0
+           conventions.
+*/
+void ps2eps(char *infile)
+{
+FILE *fpin, *fpout;
+char tempstr[MaxLineLength], s[MAXINT];
+
+  if (level != 0) {
+    derror("Level must be 0.  Routine: ps2eps", FATAL);
+    return;
+  }
+
+/* Open input file with read access. */
+  if (!(fpin = fopen(infile, "r"))) {
+    strcpy(tempstr, "Could not open input PostScript file: ");
+    strcat(tempstr, infile);
+    derror(tempstr, FATAL);
+  }
+
+/* Set output file pointer to stdout. */
+  fpout = stdout;
+
+/* Set first two lines of output file to conform to EPSF rules. */
+  fprintf(fpout, "%%!PS-Adobe-2.0 EPSF-2.0\n");
+  fprintf(fpout, "%%%%BoundingBox: %d %d %d %d\n",
+                 (_int_) round(bb.left*DPI),
+                 (_int_) round(bb.bottom*DPI),
+                 (_int_) round(bb.right*DPI),
+                 (_int_) round(bb.top*DPI)
+         );
+
+/* Loop over each line of input PS file until EOF. */
+  while (fgets(s, MAXINT, fpin) != NULL) {
+
+    if (!strncmp(s, "%!PS-Adobe-", 11) ||
+        !strncmp(s, "%%Page", 6) ||
+        !strncmp(s, "%%BoundingBox:", 14))
+      continue;
+    else if (!strncmp(s, "showpage", 8))
+      fprintf(fpout, "stroke\n");
+    else if (!strncmp(s, "%%EndComments", 13)) {
+      fputs(s, fpout);
+      fprintf(fpout, "%%%%BeginPreview: %d %d %d %d\n",
+                     (_int_) round(bb.right*DPI) - (_int_) round(bb.left*DPI),
+                     (_int_) round(bb.top*DPI) - (_int_) round(bb.bottom*DPI),
+                     8, 0);
+      fprintf(fpout, "%%%%EndPreview\n");
+    }
+    else
+      fputs(s, fpout);
+  } /* end while */
+
+  fclose(fpin);
+
+}
+
+/*
+scaleaxis: takes a maximum and minimum value to be plotted on a
+plot axis and returns a scale factor, scale, in the form 10^X,
+where X is an integer between -32 and +32.  scale is the largest
+order of magnitude (0.1, 1, 10, etc.) smaller than range=max-min.
+*/
+_float_ scaleaxis(_float_ max, _float_ min)
+{
+_int_ i;
+_float_ range, scale;
+
+  range = max - min;
+
+  if ((range <= 10.0) && (range >= 1.0))
+    return(1.0);
+
+  for (i = 32; i >= 0; i--) {
+    scale = pow(10.0, i*1.0);
+    if (range > scale)
+      return(scale);
+  }
+
+  for (i = -32; i <= 0; i++) {
+    scale = pow(10.0, i*1.0);
+    if (range - EPSILON <= scale)
+      return(scale/10.0);
+  }
+
+/* default case */
+  return(1.0);
+}
+
+/*
+scalefont: sets the static fontscale parameter to sf.
+*/
+void scalefont(_float_ sf)
+{
+  if (level != 1) {
+    derror("Level must be 1.  Routine: scalefont", FATAL);
+  }
+
+  fontscale = sf;
+}
+
+/*
+scale_line: scales plot.linethick by sl.
+*/
+void scale_line(_float_ sl)
+{
+  if (level < 1 || level > 3) {
+    derror("Level must be 1, 2, or 3.  Routine: scale_line", FATAL);
+  }
+
+  plot.linethick = sl;
+}
+
+/*
+scalemarker: sets the static markerscale parameter to sm.
+*/
+void scalemarker(_float_ sm)
+{
+  if (level < 1 || level > 3) {
+    derror("Level must be 1, 2, or 3.  Routine: scalemarker", FATAL);
+  }
+
+  markerscale = sm;
+}
+
+/*
+zerorg: sets the plot physical origin to zero.
+*/
+void zerorg(void)
+{
+_float_ x, y;
+
+  if (level < 1 || level > 3) {
+    derror("Level must be 1, 2, or 3.  Routine: zerorg", FATAL);
+  }
+
+  x = -(o.x);
+  y = -(o.y);
+  bshift_(&x, &y);
+  o.x = 0.0;
+  o.y = 0.0;
+}

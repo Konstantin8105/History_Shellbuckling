@@ -1,0 +1,5076 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: wavycyl
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called ADS, and was
+C written by G. Vanderplaats [1]. It is based on the method
+C of feasible directions [2].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although both example cases (See the files
+C        PLATE.CAS    and    PANEL.CAS)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "wavycyl".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "wavycyl" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [3 - 6]. That
+C        is, the command set is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.
+ 
+C           CHANGE    (User changes certain parameters)
+ 
+C           CHOOSEPLOT (User selects which quantities to plot
+C                       vs. design iterations.)
+ 
+C           DIPLOT    (User generates plots)
+ 
+C           CLEANSPEC (User cleans out unwanted files.)
+ 
+C     A typical runstream is:
+C       GENOPTLOG   (activate command set)
+C       BEGIN       (provide starting design, loads, etc.)
+C       DECIDE      (choose decision variables and bounds)
+C       MAINSETUP   (choose print option and analysis type)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHANGE      (change some variables for new starting pt)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHOOSEPLOT  (choose which variables to plot)
+C       DIPLOT      (plot variables v. iterations)
+C       CHOOSEPLOT  (choose additional variables to plot)
+C       DIPLOT      (plot more variables v design iterations)
+C       CLEANSPEC   (delete extraneous files for specific case)
+ 
+C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"
+C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN
+C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO
+C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,
+C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,
+C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and
+C              Structures, Vol. 25, No. 4, pp 469-605 (1987).
+ 
+C                     REFERENCES
+ 
+C [1] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+ 
+C [2] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+ 
+C [3] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [4] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [5] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [6] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C [7] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", to appear, International
+C Journal of Solids and Structures, 1990. Also to appear in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in the memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology.
+ 
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+ 
+C     GETLIB       (GENOPT user generate a relocatable elemnt.)
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPTST.ORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (2 cases: PLATE.CAS, PANEL.CAS)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = wavycyl)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "wavycyl"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (wavycyl.PRO)
+C==============================================================
+C    n   (   0,   0)    2      10   AXIAL   = length of cylindrical shell
+C    n   (   0,   0)    2      15   RADIUS  = Average nominal radius of cylindri
+C    n   (   0,   0)    1      20   THICK   = Total wall thickness
+C    n   (   0,   0)    2      25   IRING   = Location of T-ring: -1=internal, 0
+C    n   (   0,   0)    1      30   BRINGS  = ring spacing (use zero if no rings
+C    n   (   0,   0)    1      35   TWEB    = thickness of web of T-ring
+C    n   (   0,   0)    1      40   HWEB    = height of web of T-ring
+C    n   (   0,   0)    1      45   TFLANG  = thickness of outstanding flange of
+C    n   (   0,   0)    1      50   HFLANG  = width of outstanding flange of T-r
+C    n   (   0,   0)    2      55   ERING   = Average modulus of ring material
+C    n   (   0,   0)    2      60   FNURNG  = Average Poisson ratio of ring mate
+C    n   (   0,   0)    2      65   DENRNG  = Average mass density of ring mater
+C    n   (   0,   0)    2      70   NMESHR  = Number of nodal points in each rin
+C    n   (   0,   0)    2      75   GRAVTY  = Acceleration of gravity (e.g. 386.
+C    n   (   0,   0)    2      80   LGAXL   = Length of tube unrestrained by axi
+C    n   (   0,   0)    2      85   NWAVES  = Number (EVEN) of axial halfwaves i
+C    n   (   0,   0)    1      90   WAVLEN  = Axial halfwavelength of the wavine
+C    n   (   0,   0)    1      95   AMPLIT  = Amplitude of waviness
+C    n   (   0,   0)    2     105   IWAVE   = Type of waviness (IWAVE=2 or 3)
+C    n   (   0,   0)    1     115   RADSML  = Local meridional radius of curvatu
+C    n   (   0,   0)    2     125   NMESHS  = Number of nodal points in STRAIGHT
+C    n   (   0,   0)    2     130   NMESHC  = Number of nodal pts. in each curve
+C    n   (   0,   0)    2     135   NMESH1  = Number of nodal pts. in "smeared"
+C    n   (   0,   0)    2     140   MAXDOF  = Maximum number of d.o.f. of buckli
+C    n   (   0,   0)    2     145   IBOUND  = Boundary condition index: 1 = s.s.
+C    n   (   0,   0)    2     150   IWALL   = Type of shell wall (1=isotropic, 2
+C    n   (   0,   0)    2     155   ESTIFF  = Youngs modulus
+C    n   (   0,   0)    2     160   FNU     = Poisson ratio
+C    n   (   0,   0)    2     165   DENS    = Material mass density (e.g. alum.=
+C    n   (   0,   0)    2     175   NLAYER  = Number of layers in the wall
+C    n   (   0,   0)    2     180   ILTYPE  = ILTYPE=layer type in LTYPE(ILTYPE)
+C    y   (  90,   0)    2     185   LTYPE   = Layer index
+C    y   (  90,   0)    2     190   NEWLAY  = NEWLAY: 0=not new layer type; 1=ne
+C    n   (   0,   0)    2     195   ITLAYE  = position in TLAYER array in TLAYER
+C    y   (  20,   0)    1     200   TLAYER  = thickness of layer type
+C    y   (  20,   0)    1     205   ANGLE   = layup angle (deg.) for layer type
+C    y   (  20,   0)    2     210   MTYPE   = Material index (1,2...) for layer
+C    y   (  20,   0)    2     215   NEWMAT  = NEWMAT: 0=not new matl; 1=new matl
+C    n   (   0,   0)    2     225   IE1     = position in E1 array, matl type in
+C    y   (  10,   0)    2     230   E1      = modulus in the fiber direction
+C    y   (  10,   0)    2     235   E2      = modulus transverse to fibers
+C    y   (  10,   0)    2     240   G       = in-plane shear modulus
+C    y   (  10,   0)    2     245   NU      = small Poisson ratio
+C    y   (  10,   0)    2     250   A1      = coeff. thermal expansion along fib
+C    y   (  10,   0)    2     255   A2      = coeff. thermal expansion transvers
+C    y   (  10,   0)    2     260   CURETP  = residual stress temperature
+C    y   (  10,   0)    2     265   RHO     = mass density (e.g. alum.=.00025 lb
+C    y   (  10,   0)    2     275   S1TEN   = maximum tensile stress long fibers
+C    y   (  10,   0)    2     280   S1COMP  = max compressive stress along fiber
+C    y   (  10,   0)    2     285   S2TEN   = max tensile stress normal to fiber
+C    y   (  10,   0)    2     290   S2COMP  = max compressive stress normal to f
+C    y   (  10,   0)    2     295   TAU12   = max shear stress
+C    n   (   0,   0)    2     300   NRS     = control (0 or 1) for smeared stiff
+C    n   (   0,   0)    2     305   NDAMP   = number of entries in table of damp
+C    n   (   0,   0)    2     310   IBDAMP  = position in BDAMP array in BDAMP(I
+C    y   (  20,   0)    2     315   BDAMP   = damping factor
+C    y   (  20,   0)    2     320   BFREQ   = frequency (hertz) corresponding to
+C    n   (   0,   0)    2     325   NSPECT  = number of entries in table of spec
+C    n   (   0,   0)    2     330   ISPTDE  = position in BDAMP array in SPTDEN(
+C    y   (  20,   0)    2     335   SPTDEN  = spectral density
+C    y   (  20,   0)    2     340   SFREQ   = frequency (hertz) corresponding to
+C    n   (   0,   0)    2     345   N0B     = starting number of circumferential
+C    n   (   0,   0)    2     350   NMAXB   = ending number of circumferential w
+C    n   (   0,   0)    2     355   INCRB   = Increment in number of circumferen
+C    n   (   0,   0)    2     360   N0V     = starting no. of circ. waves for vi
+C    n   (   0,   0)    2     365   NMAXV   = ending no. of circ. waves for vibr
+C    n   (   0,   0)    2     370   INCRV   = increment in no. circ. waves for v
+C    n   (   0,   0)    2     375   NVEC    = Number of eigenvalues for each cir
+C    n   (   0,   0)    2     380   NCASES  = Number of load cases (number of en
+C    y   (  20,   0)    3     385   FNX     = Axial resultant (neg. for compress
+C    y   (  20,   0)    3     390   FNXB    = Axial resultant (neg. for compress
+C    y   (  20,   0)    3     395   GAXIAL  = number of g's acceleration along c
+C    y   (  20,   0)    3     400   GLATRL  = Number of g's perpendicular to axi
+C    y   (  20,   0)    3     405   PRESS   = pressure (negative for external),
+C    y   (  20,   0)    3     410   PRESSB  = pressure (negative for external),
+C    y   (  20,   0)    4     415   STRMAX  = maximum stress in wall from nonlin
+C    y   (  20,   0)    5     420   STRALW  = maximum allowable stress, nonlinea
+C    y   (  20,   0)    6     425   STRFS   = factor of safety stress, nonlinear
+C    y   (  20,   0)    4     430   BUCFAC  = buckling load factor from nonlinea
+C    y   (  20,   0)    5     435   BUCALW  = allowable buckling factor (use 1.0
+C    y   (  20,   0)    6     440   BUCFS   = factor of safety buckling, nonline
+C    y   (  20,   0)    4     445   BUCHIW  = hi-wave buckling load factor, nonl
+C    y   (  20,   0)    5     450   BUCHIA  = allowable hi-wave bucklng factor (
+C    y   (  20,   0)    6     455   BUCHIF  = factor of safety hi-wave buckling
+C    y   (  20,   0)    4     460   STR0    = max. stress at 0 deg., linear theo
+C    y   (  20,   0)    5     465   STR0A   = max. allowable stress, linear theo
+C    y   (  20,   0)    6     470   STR0F   = factor of safety stress, linear th
+C    y   (  20,   0)    4     475   STR180  = max. stress at 180 deg., linear th
+C    y   (  20,   0)    5     480   ST180A  = max. allowable stress, linear theo
+C    y   (  20,   0)    6     485   ST180F  = factor of safety stress, linear th
+C    y   (  20,   0)    4     490   BUC0    = buckling load factor at 0 deg., li
+C    y   (  20,   0)    5     495   BUC0A   = allowable buckling factor (use 1),
+C    y   (  20,   0)    6     500   BUC0F   = factor of safety buckling factor,
+C    y   (  20,   0)    4     505   B0ANTI  = load factor for antisymmetric buck
+C    y   (  20,   0)    5     510   B0ANTA  = allowable (use 1), antisymmetric b
+C    y   (  20,   0)    6     515   B0ANTF  = factor of safety antisymmetric buc
+C    y   (  20,   0)    4     520   BUC0MD  = load factor for mid-wave-range buc
+C    y   (  20,   0)    5     525   BUC0MA  = allowable (use 1), mid-wave-range
+C    y   (  20,   0)    6     530   BUC0MF  = factor of safety mid-wave-range bu
+C    y   (  20,   0)    4     535   BUC0HI  = hi-wave buckling load factor, 0 de
+C    y   (  20,   0)    5     540   BUC0HA  = allowable for hi-wave buckling (us
+C    y   (  20,   0)    6     545   BUC0HF  = factor of safety hi-wave buckling,
+C    y   (  20,   0)    4     550   BUC180  = buckling load factor at 180 deg, l
+C    y   (  20,   0)    5     555   BU180A  = allowable buckling factor at 180 d
+C    y   (  20,   0)    6     560   BU180F  = factor of safety buckling at 180 d
+C    y   (  20,   0)    4     565   B180HI  = hi-wave buckling load factor 180 d
+C    y   (  20,   0)    5     570   B180HA  = allowable (use 1), hi-wave bucklin
+C    y   (  20,   0)    6     575   B180HF  = factor of safety hi-wave buckling
+C    y   (  20,   0)    4     580   WWW0    = maximum normal displacement, 0 deg
+C    y   (  20,   0)    5     585   WWW0A   = maximum allowable normal displacem
+C    y   (  20,   0)    6     590   WWW0F   = factor of safety max. normal displ
+C    y   (  20,   0)    4     595   WWW180  = maximum normal displacement, 180 d
+C    y   (  20,   0)    5     600   WW180A  = max. allowable normal displacment,
+C    y   (  20,   0)    6     605   WW180F  = factor of safety normal displacmen
+C    y   (  20,   0)    4     610   FREQ    = modal frequency (hertz)
+C    y   (  20,   0)    5     615   VIBALW  = minimum allowable modal frequency
+C    y   (  20,   0)    6     620   VIBFS   = factor of safety modal frequency
+C    y   (  20,   0)    4     625   STRRAN  = maximum stress from random excitat
+C    y   (  20,   0)    5     630   STRRNA  = max. allowable stress from random
+C    y   (  20,   0)    6     635   STRRNF  = factor of safety stress from rando
+C    y   (  20,   0)    4     640   BUCRAN  = buckling load factor from random e
+C    y   (  20,   0)    5     645   BUCRNA  = allowable buckling load factor (us
+C    y   (  20,   0)    6     650   BUCRNF  = factor of safety, buckling from ra
+C    y   (  20,   0)    4     655   BRANHI  = hi-wave buckling factor from rando
+C    y   (  20,   0)    5     660   BRANHA  = allowable (use 1), buckling factor
+C    y   (  20,   0)    6     665   BRANHF  = factor of safety hi-wave buckling,
+C    y   (  20,   0)    4     670   WWWRAN  = max. normal displacement from rand
+C    y   (  20,   0)    5     675   WWWRNA  = max. allowable normal displ., rand
+C    y   (  20,   0)    6     680   WWWRNF  = factor of safety max. normal displ
+C    n   (   0,   0)    7     685   WEIGHT  = weight of the cylindrical shell
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN maximum stress in wall from nonlinear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRMAX(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = maximum stress in wall from nonlinear theory
+C
+C   OUTPUT:
+C
+C     STRMAX(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/ENDUVX/ENDUV,STRMXX,ARCLEN
+C
+      IF (NWAVES.EQ.0) RETURN
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN COMPUTATIONS IN SUBROUTINE BEHX1 (NONLINEAR STRESS).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      STRMAX(ILOADX) = STRMXX
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Maximum nonlinear effective stress, STRMAX=',STRMAX(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN buckling load factor from nonlinear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCFAC(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = buckling load factor from nonlinear theory
+C
+C   OUTPUT:
+C
+C     BUCFAC(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      IF (NWAVES.EQ.0) RETURN
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN COMPUTATIONS IN SUBROUTINE BEHX2 (NONLINEAR BUCKLING).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      IRINGS = IRING
+      BRNGSV = BRINGS
+C BEG FEB 2008 (comment out next two statements)
+C     IRING = 0
+C     BRINGS = 0
+C END FEB 2008
+      INDIC = 1
+      IF (IMODX.EQ.0) ISYM3 = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(20)
+C BEG FEB 2008
+C     CALL PUTWAV(1,ISYM3,ILOADX,IMODX,NWAVEX(20),NPRINX)
+      CALL PUTWAV(2,ISYM3,ILOADX,IMODX,NWAVEX(20),NPRINX)
+C END FEB 2008
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(20) =',
+     1  NWAVEX(20),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(20) = 0.9*FLOAT(NWAVEX(20))
+         IF (NWAVXS.NE.NWAVEX(20)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(20) = NWAVEX(20) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX2 file for input for BIGBOSOR4...
+C      CASE.BEHX2 is an input file for BIGBOSOR4 for behavior no. 2:
+C      buckling with nonlinear prebuckling.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX2'
+         ELSE
+            CASA=CASE//'.BEHX2'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(1,ISYM3,ILOADX,IMODX,NWAVEX(20),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for buckling with nonlinear preb.=',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+         IVIB13  = 1
+      ELSE
+         N0BX   = NWAV3
+         NDIFF = 0.2*FLOAT(NWAV3)
+         IF (NDIFF.EQ.0) NDIFF = 1
+         IF (NWAV3.GT.1) N0BX = NWAV3 - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV3 + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      WRITE(IFILE,'(A,4I5)')
+     1' BUCKLING WAVES: IMODX,N0BX,NMINBX,NMAXBX=',
+     1                  IMODX,N0BX,NMINBX,NMAXBX
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG3  = EIGCRT
+         NWAV3 = NWVCRT
+         FACTX = BUCFS(ILOADX)/1.05
+         IF (FACTX.LT.1.0) FACTX = 1.0
+C        IF (EIGCRT.LT.FACTX) IVIB13 = 0
+      ENDIF
+      BUCFAC(ILOADX) = EIGCRT
+      WRITE(IFILE,'(/,A,/,A,/,A)')
+     1' ***** BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' BUCKLING LOAD FACTOR, NONLINEAR THEORY, MODEL 1 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ======================================='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUCFAC=',BUCFAC(ILOADX)
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      IRING = IRINGS
+      BRINGS= BRNGSV
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN hi-wave buckling load factor, nonlinear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCHIW(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = hi-wave buckling load factor, nonlinear theory
+C
+C   OUTPUT:
+C
+C     BUCHIW(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      IF (NWAVES.EQ.0) RETURN
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX3 (NONLINEAR HI-CIRC.-WAVE BUCKLING).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      IRINGS = IRING
+      BRNGSV = BRINGS
+C BEG FEB 2008 (comment out next two statements)
+C     IRING = 0
+C     BRINGS = 0
+C END FEB 2008
+      INDIC = 1
+      IF (IMODX.EQ.0) ISYM4 = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(21)
+C BEG FEB 2008
+C     CALL PUTWAV(1,ISYM4,ILOADX,IMODX,NWAVEX(21),NPRINX)
+      CALL PUTWAV(2,ISYM4,ILOADX,IMODX,NWAVEX(21),NPRINX)
+C END FEB 2008
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(21) =',
+     1  NWAVEX(21),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(21) = 0.9*FLOAT(NWAVEX(21))
+         IF (NWAVXS.NE.NWAVEX(21)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(21) = NWAVEX(21) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX3 file for input for BIGBOSOR4...
+C      CASE.BEHX3 is an input file for BIGBOSOR4 for behavior no. 3:
+C      high-wave buckling with nonlinear prebuckling.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX3'
+         ELSE
+            CASA=CASE//'.BEHX3'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(1,ISYM4,ILOADX,IMODX,NWAVEX(21),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for hi-wave buckling with nonlinear',
+     1 ' prebuckling=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         PI = 3.1415927
+         NAVE = PI*RADIUS/WAVLEN
+         INCRBX = 0.1*FLOAT(NAVE) + 1
+         N0BX = NMAXB+INCRBX
+         NMINBX = N0BX
+         NMAXBX = 3*NAVE
+      ELSE
+         N0BX   = NWAV4
+         NDIFF = 0.2*FLOAT(NWAV4)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV4.GT.1) N0BX = NWAV4 - NDIFF
+         IF (N0BX.LE.NMAXB+1) N0BX = NWAV4
+         NMINBX = N0BX
+         NMAXBX = NWAV4 + NDIFF
+         INCRBX = 0.1*FLOAT(NWAV4) + 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG4  = EIGCRT
+         NWAV4 = NWVCRT
+      ENDIF
+      BUCHIW(ILOADX) = EIGCRT
+      WRITE(IFILE,'(/,A,/,A,/,A)')
+     1' ***** BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1'  HI-WAVE BUCKLING LOAD FACTOR, NONLINEAR THEORY(CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ======================================='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUCHIW=',BUCHIW(ILOADX)
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      IRING = IRINGS
+      BRINGS= BRNGSV
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX4
+      SUBROUTINE BEHX4
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN max. stress at 0 deg., linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STR0(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = max. stress at 0 deg., linear theory
+C
+C   OUTPUT:
+C
+C     STR0(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/DISSTR/STR0X,WWW0X,STR18X,WWW18X
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX4 (LINEAR NONAXISYMMETRIC STRESS, 0deg).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      STR0(ILOADX) = STR0X
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Maximum stress from linear theory at 0 deg, STR0(ILOADX)=',
+     1  STR0(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX5
+      SUBROUTINE BEHX5
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN max. stress at 180 deg., linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STR180(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = max. stress at 180 deg., linear theory
+C
+C   OUTPUT:
+C
+C     STR180(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/DISSTR/STR0X,WWW0X,STR18X,WWW18X
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX5 (LINEAR NONAXISYMMETRIC STRESS, 180d).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      STR180(ILOADX) = STR18X
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Maximum stress, linear theory at 180 deg, STR180(ILOADX)=',
+     1  STR180(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX6
+      SUBROUTINE BEHX6
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN buckling load factor at 0 deg., linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUC0(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = buckling load factor at 0 deg., linear theory
+C
+C   OUTPUT:
+C
+C     BUC0(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/MWAVAL/MWAV7
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2,/,A)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX6 (LINEAR BUCKLING AT 0 DEGREES).',
+     1' LOW-WAVE-RANGE, IMODX=',IMODX,'; LOAD SET NO. ',ILOADX,
+     1' SYMMETRIC BUCKLING ABOUT MIDLENGTH SYMMETRY PLANE'
+      INDIC = 4
+      ANGSTR = 0.
+      ANGBUC = 0.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(22) = 0.9*AXIAL/WAVLEN
+      ENDIF
+   10 CONTINUE
+      NWAVXS = NWAVEX(22)
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(22),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(22) =',
+     1  NWAVEX(22),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(22) = 0.9*FLOAT(NWAVEX(22))
+         IF (NWAVXS.NE.NWAVEX(22)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(22) = NWAVEX(22) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX6A file for input for BIGBOSOR4...
+C      CASE.BEHX6A is an input file for BIGBOSOR4 for behavior no. 6A:
+C      linear buckling at 0 degrees, symmetry at symmetry plane.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX6A'
+         ELSE
+            CASA=CASE//'.BEHX6A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(22),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1 ' with linear prebuckling (symmetry at symmetry plane)=',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB/2
+      ELSE
+         N0BX   = NWAV7
+         NDIFF = 0.2*FLOAT(NWAV7)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV7.GT.1) N0BX = NWAV7 - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV7 + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG7  = EIGCRT
+         NWAV7 = NWVCRT
+      ENDIF
+      WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' ***** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUC0=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      EIGCRS = EIGCRT
+C
+C     CALL EXIT
+C
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2
+     1                              .AND.NWAVEX(22).GT.0) THEN
+         NWAVXS = NWAVEX(22)
+         NWAVEX(22) = 0
+         NMSHSV = NMESH1
+         NMESH1 = 97
+         CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(22),NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVEX(22) =',
+     1   NWAVEX(22),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+C BEG FEB 2008
+         IF (ITYPEX.EQ.2) THEN
+C         Get CASE.BEHX6B file for input for BIGBOSOR4...
+C         CASE.BEHX6B is an input file for BIGBOSOR4 for behavior no. 6B:
+C         linear buckling at 0 degrees, symmetry at symmetry plane,
+C         smeared waviness.
+            I=INDEX(CASE,' ')
+            IF(I.NE.0) THEN
+               CASA=CASE(:I-1)//'.BEHX6B'
+            ELSE
+               CASA=CASE//'.BEHX6B'
+            ENDIF
+            OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C           CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(22),NPRINX)
+            CALL BOSDEC(61)
+            CLOSE(UNIT=61)
+            WRITE(IFILE,'(/,/,A,/,A,A,/,A)')
+     1    ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1    ' with linear prebuckling (symmetry at symmetry plane)',
+     1    ' (smeared waviness)=',  CASA
+         ENDIF
+C
+C END FEB 2008
+         CALL B4READ
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB/2
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+C        IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE,'(/,A,/,A,/,A,1P,E12.4,A,A,/,A,A,/,A)')
+     1 ' *** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 ' THE ENTIRE LENGTH (',AXIAL/2.,') OF THE CYL. HAS "SMEARED"',
+     1 ' WAVINESS.',
+     1 ' THIS MODEL, BEING LESS ACCURATE, DOES NOT INFLUENCE THE BEHX6',
+     1 ' MARGIN.',
+     1 '    eigenvalue(circ. waves)'
+         DO 426 I = 1,IWAVEB
+           WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  426    CONTINUE
+         WRITE(IFILE,'(A)')
+     1   ' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Crit. buckling factor,  BUC0("smeared waviness")=',EIGCRT
+         WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         NWAVEX(22) = NWAVXS
+         NMESH1 = NMSHSV
+      ENDIF
+      EIGCRT = EIGCRS
+C
+C     CALL EXIT
+C
+      BUC0(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX7
+      SUBROUTINE BEHX7
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN load factor for antisymmetric buckling at 0 deg
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     B0ANTI(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = load factor for antisymmetric buckling at 0 deg
+C
+C   OUTPUT:
+C
+C     B0ANTI(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/EIGMOR/EIG7A,EIG7M
+      COMMON/WAVMOR/NWAV7A,NWAV7M
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/MWAVAL/MWAV7
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2,/,A)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX7 (LINEAR BUCKLING AT 0 DEGREES).',
+     1' LOW-WAVE-RANGE, IMODX=',IMODX,'; LOAD SET NO. ',ILOADX,
+     1' ANTI-SYMMETRIC BUCKLING ABOUT MIDLENGTH SYMMETRY PLANE'
+      INDIC = 4
+      ANGSTR = 0.
+      ANGBUC = 0.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(23) = 0.9*AXIAL/WAVLEN
+      ENDIF
+   10 CONTINUE
+      NWAVXS = NWAVEX(23)
+      CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(23),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(23) =',
+     1  NWAVEX(23),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(23) = 0.9*FLOAT(NWAVEX(23))
+         IF (NWAVXS.NE.NWAVEX(23)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(23) = NWAVEX(23) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX7A file for input for BIGBOSOR4...
+C      CASE.BEHX7A is an input file for BIGBOSOR4 for behavior no. 7A:
+C      linear buckling at 0 degrees, antisymmetry at symmetry plane.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX7A'
+         ELSE
+            CASA=CASE//'.BEHX7A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(23),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1 ' with linear prebuckling (antisymmetry at symmetry plane)=',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB/2
+      ELSE
+         N0BX   = NWAV7A
+         NDIFF = 0.2*FLOAT(NWAV7A)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV7A.GT.1) N0BX = NWAV7A - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV7A + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG7A  = EIGCRT
+         NWAV7A = NWVCRT
+      ENDIF
+      WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUC0=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      EIGCRS = EIGCRT
+C
+C     CALL EXIT
+C
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2
+     1                              .AND.NWAVEX(23).GT.0) THEN
+         NWAVXS = NWAVEX(23)
+         NWAVEX(23) = 0
+         NMSHSV = NMESH1
+         NMESH1 = 97
+         CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(23),NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVEX(23) =',
+     1   NWAVEX(23),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+C BEG FEB 2008
+         IF (ITYPEX.EQ.2) THEN
+C         Get CASE.BEHX7B file for input for BIGBOSOR4...
+C         CASE.BEHX7B is an input file for BIGBOSOR4 for behavior no. 7B:
+C         linear buckling at 0 degrees, antisymmetry at symmetry plane,
+C         smeared waviness.
+            I=INDEX(CASE,' ')
+            IF(I.NE.0) THEN
+               CASA=CASE(:I-1)//'.BEHX7B'
+            ELSE
+               CASA=CASE//'.BEHX7B'
+            ENDIF
+            OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C           CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(23),NPRINX)
+            CALL BOSDEC(61)
+            CLOSE(UNIT=61)
+            WRITE(IFILE,'(/,/,A,/,A,A,/,A)')
+     1    ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1    ' with linear prebuckling (antisymmetry at symmetry plane)',
+     1    ' (smeared waviness)=',  CASA
+         ENDIF
+C
+C END FEB 2008
+         CALL B4READ
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB/2
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+C        IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE,'(/,A,/,A,/,A,1P,E12.4,A,A,/,A,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 ' THE ENTIRE LENGTH (',AXIAL/2.,') OF THE CYL. HAS "SMEARED"',
+     1 ' WAVINESS.',
+     1 ' THIS MODEL, BEING LESS ACCURATE, DOES NOT INFLUENCE THE BEHX7',
+     1 ' MARGIN.',
+     1 '    eigenvalue(circ. waves)'
+         DO 426 I = 1,IWAVEB
+           WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  426    CONTINUE
+         WRITE(IFILE,'(A)')
+     1   ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Crit. buckling factor,  BUC0("smeared waviness")=',EIGCRT
+         WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         NWAVEX(23) = NWAVXS
+         NMESH1 = NMSHSV
+      ENDIF
+      EIGCRT = EIGCRS
+C
+C     CALL EXIT
+C
+      B0ANTI(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX8
+      SUBROUTINE BEHX8
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN load factor for mid-wave-range buckling at 0 deg
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUC0MD(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = load factor for mid-wave-range buckling at 0 deg
+C
+C   OUTPUT:
+C
+C     BUC0MD(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/EIGMOR/EIG7A,EIG7M
+      COMMON/WAVMOR/NWAV7A,NWAV7M
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/SYMMOR/ISYM7M
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX8 (LINEAR BUCKLING AT 0 DEGREES).',
+     1' MID-WAVE-RANGE, IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      INDIC = 4
+      ANGSTR = 0.
+      ANGBUC = 0.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(26) = 0.9*AXIAL/WAVLEN
+      ENDIF
+      IF (IMODX.EQ.0) ISYM7M = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(26)
+      CALL PUTWAV(2,ISYM7M,ILOADX,IMODX,NWAVEX(26),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVESX(26) =',
+     1  NWAVEX(26),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(26) = 0.9*FLOAT(NWAVEX(26))
+         IF (NWAVXS.NE.NWAVEX(26)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(26) = NWAVEX(26) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX8A file for input for BIGBOSOR4...
+C      CASE.BEHX8A is an input file for BIGBOSOR4 for behavior no. 8A:
+C      linear buckling at 0 degrees, mid-wave range.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX8A'
+         ELSE
+            CASA=CASE//'.BEHX8A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM7M,ILOADX,IMODX,NWAVEX(26),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1 ' with linear prebuckling, mid-wave range=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = NMAXB/2 + 1
+         NMINBX = N0BX
+         NMAXBX = NMAXB
+      ELSE
+         N0BX   = NWAV7M
+         NDIFF = 0.2*FLOAT(NWAV7M)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV7M.GT.1) N0BX = NWAV7M - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV7M + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG7M  = EIGCRT
+         NWAV7M = NWVCRT
+      ENDIF
+      IF (ISYM7M.EQ.0) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' ***** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      IF (ISYM7M.EQ.1) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      IF (ISYM7M.EQ.0) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+      IF (ISYM7M.EQ.1) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUC0=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+C     CALL EXIT
+C
+      IF (IRING.NE.0.AND.IMODX.EQ.0) THEN
+         CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(26),NPRINX)
+         CALL BOSDEC(24)
+C BEG FEB 2008
+         IF (ITYPEX.EQ.2) THEN
+C         Get CASE.BEHX8B file for input for BIGBOSOR4...
+C         CASE.BEHX8B is an input file for BIGBOSOR4 for behavior no. 8B:
+C         linear buckling at 0 degrees, antisymmetry at symmetry plane,
+C         mid-wave range, smeared waviness.
+            I=INDEX(CASE,' ')
+            IF(I.NE.0) THEN
+               CASA=CASE(:I-1)//'.BEHX8B'
+            ELSE
+               CASA=CASE//'.BEHX8B'
+            ENDIF
+            OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C           CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(26),NPRINX)
+            CALL BOSDEC(61)
+            CLOSE(UNIT=61)
+            WRITE(IFILE,'(/,/,A,/,A,A,/,A)')
+     1    ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1    ' with linear prebuckling (antisymmetry at symmetry plane)',
+     1    ' (mid-wave range)=',  CASA
+         ENDIF
+C
+C END FEB 2008
+         CALL B4READ
+         N0BX   = NMAXB/2 + 1
+         NMINBX = N0BX
+         NMAXBX = NMAXB
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE,'(/,A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+         DO 426 I = 1,IWAVEB
+           WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  426    CONTINUE
+         WRITE(IFILE,'(A)')
+     1   ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE,'(A,1P,E12.4)')
+     1    ' Critical buckling load factor, BUC0=',EIGCRT
+         WRITE(IFILE,'(A,I5)')
+     1    ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         EIG72 = EIGCRT
+         NWAV72 = NWVCRT
+C
+         EIG7M = MIN(EIG7M,EIG72)
+         EIGCRT = EIG7M
+         DIFF = ABS(EIG7M - EIG72)/EIG7M
+         IF (DIFF.LT.0.00001) THEN
+            NWAV7M = NWAV72
+            ISYM7M = 1
+         ENDIF
+      ENDIF
+      BUC0MD(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX9
+      SUBROUTINE BEHX9
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN hi-wave buckling load factor, 0 deg,linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUC0HI(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = hi-wave buckling load factor, 0 deg,linear theory
+C
+C   OUTPUT:
+C
+C     BUC0HI(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX9(HI-WAVE LINEAR BUCKLING AT 0 DEGREES).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      INDIC = 4
+      ANGSTR = 0.
+      ANGBUC = 0.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(30) = 0.9*AXIAL/WAVLEN
+      ENDIF
+      IF (IMODX.EQ.0) ISYM8 = 1
+   10 CONTINUE
+      NWAVXS = NWAVEX(30)
+      CALL PUTWAV(2,ISYM8,ILOADX,IMODX,NWAVEX(30),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(30) =',
+     1  NWAVEX(30),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(30) = 0.9*FLOAT(NWAVEX(30))
+         IF (NWAVXS.NE.NWAVEX(30)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(30) = NWAVEX(30) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX9 file for input for BIGBOSOR4...
+C      CASE.BEHX9 is an input file for BIGBOSOR4 for behavior no. 9:
+C      linear buckling at 0 degrees, mid-wave range.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX9'
+         ELSE
+            CASA=CASE//'.BEHX9'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM8,ILOADX,IMODX,NWAVEX(30),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 0 degrees',
+     1 ' with linear prebuckling, high-wave range=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         PI = 3.1415927
+         NAVE = PI*RADIUS/WAVLEN
+         INCRBX = 0.1*FLOAT(NAVE) + 1
+         N0BX = NMAXB + INCRBX
+         NMINBX = N0BX
+         NMAXBX = 3*NAVE
+      ELSE
+         N0BX   = NWAV8
+         NDIFF = 0.2*FLOAT(NWAV8)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV8.GT.1) N0BX = NWAV8 - NDIFF
+         IF (N0BX.LE.NMAXB+1) N0BX = NWAV8
+         NMINBX = N0BX
+         NMAXBX = NWAV8 + NDIFF
+         INCRBX = 0.1*FLOAT(NWAV8) + 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG8  = EIGCRT
+         NWAV8 = NWVCRT
+      ENDIF
+      IF (ISYM8.EQ.0) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' ***** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 0 DEGREES (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      IF (ISYM8.EQ.1) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 0 DEGREES (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      IF (ISYM8.EQ.0) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+      IF (ISYM8.EQ.1) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUC0HI=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+C     IF (IRING.NE.0.AND.IMODX.EQ.0) THEN
+C        CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(30),NPRINX)
+C        CALL BOSDEC(24)
+C        CALL B4READ
+C        PI = 3.1415927
+C        NAVE = PI*RADIUS/WAVLEN
+C        INCRBX = 0.1*FLOAT(NAVE) + 1
+C        N0BX = MAX(NMAXB+INCRBX,NAVE/2)
+C        NMINBX = N0BX
+C        NMAXBX = 3*NAVE
+C        REWIND IFILE9
+C        CALL STOCM1(IFILE9)
+C        CALL STOCM2(IFILE9)
+C        CALL B4MAIN
+C        CALL GASP(DUM1,DUM2,-2,DUM3)
+C        WRITE(IFILE,'(/,A,/,A,/,A)')
+C    1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+C    1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 0 DEGREES (CIRC. WAVES)',
+C    1 ' ======================================='
+C        DO 426 I = 1,IWAVEB
+C          WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+C    1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+C 426    CONTINUE
+C        WRITE(IFILE,'(A)')
+C    1   ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+C        WRITE(IFILE,'(A,1P,E12.4)')
+C    1    ' Critical buckling load factor, BUC0HI=',EIGCRT
+C        WRITE(IFILE,'(A,I5)')
+C    1    ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+C        EIG82 = EIGCRT
+C        NWAV82 = NWVCRT
+C        EIG8 = MIN(EIG8,EIG82)
+C        EIGCRT = EIG8
+C        DIFF = ABS(EIG8 - EIG82)/EIG8
+C        IF (DIFF.LT.0.00001) THEN
+C           NWAV8 = NWAV82
+C           ISYM8 = 1
+C        ENDIF
+C     ENDIF
+      BUC0HI(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX10
+      SUBROUTINE BEHX10
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN buckling load factor at 180 deg, linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUC180(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = buckling load factor at 180 deg, linear theory
+C
+C   OUTPUT:
+C
+C     BUC180(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX10 (LINEAR BUCKLING AT 180 DEGREES).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      INDIC = 4
+      ANGSTR = 180.
+      ANGBUC = 180.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(32) = 0.9*AXIAL/WAVLEN
+      ENDIF
+      IF (IMODX.EQ.0) ISYM9 = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(32)
+      CALL PUTWAV(2,ISYM9,ILOADX,IMODX,NWAVEX(32),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(32) =',
+     1  NWAVEX(32),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(32) = 0.9*FLOAT(NWAVEX(32))
+         IF (NWAVXS.NE.NWAVEX(32)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(32) = NWAVEX(32) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX10A file for input for BIGBOSOR4...
+C      CASE.BEHX10A is an input file for BIGBOSOR4 for behavior no. 10A:
+C      linear buckling at 180 degrees.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX10A'
+         ELSE
+            CASA=CASE//'.BEHX10A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM9,ILOADX,IMODX,NWAVEX(32),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 180 degrees',
+     1 ' with linear prebuckling=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+C        IVIB13  = 1
+      ELSE
+         N0BX   = NWAV9
+         NDIFF = 0.2*FLOAT(NWAV9)
+         IF (NDIFF.EQ.0) NDIFF = 1
+         IF (NWAV9.GT.1) N0BX = NWAV9 - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV9 + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG9  = EIGCRT
+         NWAV9 = NWVCRT
+      ENDIF
+      IF (ISYM9.EQ.0) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' ***** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' LINEAR BUCKLING LOAD FACTOR, 180 DEG., MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      IF (ISYM9.EQ.1) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR BUCKLING LOAD FACTOR, 180 DEG., MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      IF (ISYM9.EQ.0) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+      IF (ISYM9.EQ.1) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUC180=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      IF (IRING.NE.0.AND.IMODX.EQ.0) THEN
+         CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(32),NPRINX)
+         CALL BOSDEC(24)
+C BEG FEB 2008
+         IF (ITYPEX.EQ.2) THEN
+C         Get CASE.BEHX10B file for input for BIGBOSOR4...
+C         CASE.BEHX10B is an input file for BIGBOSOR4 for behavior no. 10B:
+C         linear buckling at 180 degrees, antisymmetry at symmetry plane,
+            I=INDEX(CASE,' ')
+            IF(I.NE.0) THEN
+               CASA=CASE(:I-1)//'.BEHX10B'
+            ELSE
+               CASA=CASE//'.BEHX10B'
+            ENDIF
+            OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C           CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(32),NPRINX)
+            CALL BOSDEC(61)
+            CLOSE(UNIT=61)
+            WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1    ' BIGBOSOR4 input file for linear buckling at 180 degrees',
+     1    ' with linear prebuckling (antisymmetry at symmetry plane)',
+     1      CASA
+         ENDIF
+C
+C END FEB 2008
+         CALL B4READ
+         N0BX   = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE,'(/,A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR BUCKLING LOAD FACTOR, 180 DEG., MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+         DO 426 I = 1,IWAVEB
+           WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  426    CONTINUE
+         WRITE(IFILE,'(A)')
+     1   ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE,'(A,1P,E12.4)')
+     1    ' Critical buckling load factor, BUC180=',EIGCRT
+         WRITE(IFILE,'(A,I5)')
+     1    ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         EIG92 = EIGCRT
+         NWAV92 = NWVCRT
+         EIG9 = MIN(EIG9,EIG92)
+         EIGCRT = EIG9
+         DIFF = ABS(EIG9 - EIG92)/EIG9
+         IF (DIFF.LT.0.00001) THEN
+            NWAV9 = NWAV92
+            ISYM9 = 1
+         ENDIF
+      ENDIF
+      BUC180(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX11
+      SUBROUTINE BEHX11
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN hi-wave buckling load factor 180 deg, lin.theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     B180HI(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = hi-wave buckling load factor 180 deg, lin.theory
+C
+C   OUTPUT:
+C
+C     B180HI(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+C BEG FEB 2008
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX11 (HI-WAVE LINEAR BUCKLNG 180 DEGREES).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      INDIC = 4
+      ANGSTR = 180.
+      ANGBUC = 180.
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(34) = 0.9*AXIAL/WAVLEN
+      ENDIF
+      IF (IMODX.EQ.0) ISYM10 = 1
+   10 CONTINUE
+      NWAVXS = NWAVEX(34)
+      CALL PUTWAV(2,ISYM10,ILOADX,IMODX,NWAVEX(34),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(34) =',
+     1  NWAVEX(34),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(34) = 0.9*FLOAT(NWAVEX(34))
+         IF (NWAVXS.NE.NWAVEX(34)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(34) = NWAVEX(34) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX11 file for input for BIGBOSOR4...
+C      CASE.BEHX11 is an input file for BIGBOSOR4 for behavior no. 11:
+C      linear buckling at 180 degrees, hi-wave range.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX11'
+         ELSE
+            CASA=CASE//'.BEHX11'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM10,ILOADX,IMODX,NWAVEX(34),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for linear buckling at 180 degrees',
+     1 ' with linear prebuckling, hi-wave range=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         PI = 3.1415927
+         NAVE = PI*RADIUS/WAVLEN
+         INCRBX = 0.1*FLOAT(NAVE) + 1
+         N0BX = NMAXB + INCRBX
+         NMINBX = N0BX
+         NMAXBX = 3*NAVE
+      ELSE
+         N0BX   = NWAV10
+         NDIFF = 0.2*FLOAT(NWAV10)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV10.GT.1) N0BX = NWAV10 - NDIFF
+         IF (N0BX.LE.NMAXB+1) N0BX = NWAV10
+         NMINBX = N0BX
+         NMAXBX = NWAV10 + NDIFF
+         INCRBX = 0.1*FLOAT(NWAV10) + 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG10  = EIGCRT
+         NWAV10 = NWVCRT
+      ENDIF
+      IF (ISYM10.EQ.0) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' ***** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES *****',
+     1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 180 DEG. (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      IF (ISYM10.EQ.1) WRITE(IFILE,'(A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 180 DEG. (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      IF (ISYM10.EQ.0) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+      IF (ISYM10.EQ.1) WRITE(IFILE,'(A)')
+     1' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, B180HI=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+C     IF (IRING.NE.0.AND.IMODX.EQ.0) THEN
+C        CALL PUTWAV(2,1,ILOADX,IMODX,NWAVEX(34),NPRINX)
+C        CALL BOSDEC(24)
+C        CALL B4READ
+C        PI = 3.1415927
+C        NAVE = PI*RADIUS/WAVLEN
+C        INCRBX = 0.1*FLOAT(NAVE) + 1
+C        N0BX = MAX(NMAXB+INCRBX,NAVE/2)
+C        NMINBX = N0BX
+C        NMAXBX = 3*NAVE
+C        REWIND IFILE9
+C        CALL STOCM1(IFILE9)
+C        CALL STOCM2(IFILE9)
+C        CALL B4MAIN
+C        CALL GASP(DUM1,DUM2,-2,DUM3)
+C        WRITE(IFILE,'(/,A,/,A,/,A)')
+C    1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+C    1' LINEAR HI-WAVE BUCKLING LOAD FACTOR, 180 DEG. (CIRC. WAVES)',
+C    1 ' ======================================='
+C        DO 426 I = 1,IWAVEB
+C          WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+C    1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+C 426    CONTINUE
+C        WRITE(IFILE,'(A)')
+C    1   ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+C        WRITE(IFILE,'(A,1P,E12.4)')
+C    1    ' Critical buckling load factor, B180HI=',EIGCRT
+C        WRITE(IFILE,'(A,I5)')
+C    1    ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+C        EIG102 = EIGCRT
+C        NWAV102 = NWVCRT
+C        EIG10 = MIN(EIG10,EIG102)
+C        EIGCRT = EIG10
+C        DIFF = ABS(EIG10 - EIG102)/EIG10
+C        IF (DIFF.LT.0.00001) THEN
+C           NWAV10 = NWAV102
+C           ISYM10 = 1
+C        ENDIF
+C     ENDIF
+      B180HI(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX12
+      SUBROUTINE BEHX12
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN maximum normal displacement, 0 deg., linear theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     WWW0(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = maximum normal displacement, 0 deg., linear theory
+C
+C   OUTPUT:
+C
+C     WWW0(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/DISSTR/STR0X,WWW0X,STR18X,WWW18X
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX12 (MAX. NORMAL DISPLACEMENT, 0 DEG.).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      WWW0(ILOADX) = WWW0X
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Max. normal displacement, linear theory, 0 deg, WWW0(ILOADX)=',
+     1  WWW0(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX13
+      SUBROUTINE BEHX13
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN maximum normal displacement, 180 deg., lin.theory
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     WWW180(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = maximum normal displacement, 180 deg., lin.theory
+C
+C   OUTPUT:
+C
+C     WWW180(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/DISSTR/STR0X,WWW0X,STR18X,WWW18X
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX13 (MAX. NORMAL DISPLACEMENT, 180 DEG.).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      WWW180(ILOADX) = WWW18X
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Max. normal displac., linear theory, 180 deg, WWW180(ILOADX)=',
+     1  WWW180(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX14
+      SUBROUTINE BEHX14
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN modal frequency (hertz)
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     FREQ(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = modal frequency (hertz)
+C
+C   OUTPUT:
+C
+C     FREQ(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+      COMMON/RHOEFX/RHOEFF,DENSHL
+      COMMON/CWEFFX/C11EFF,C12EFF,C14EFF,C15EFF,C22EFF,C24EFF,C25EFF,
+     1              C44EFF,C45EFF,C55EFF,C33EFF,C36EFF,C66EFF,SMAEFF
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUBROUTINE BEHX14 (MODAL FREQUENCY, AXISYM. LOADING).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+      IF (IVIB13.EQ.0) THEN
+         FREQ(ILOADX) = 10.E+25
+         RETURN
+      ENDIF
+      INDIC = 2
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(36) = 0.9*AXIAL/WAVLEN
+      ENDIF
+      IF (IMODX.EQ.1.AND.NWAV13.EQ.0) GO TO 400
+      IF (IMODX.EQ.0) ISYM13 = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(36)
+      CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(36),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(36) =',
+     1  NWAVEX(36),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(36) = 0.9*FLOAT(NWAVEX(36))
+         IF (NWAVXS.NE.NWAVEX(36)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(36) = NWAVEX(36) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX14A file for input for BIGBOSOR4...
+C      CASE.BEHX14A is an input file for BIGBOSOR4 for behavior 14A:
+C      modal vibration for length of tube between lateral supports.
+C      with use of actual wavy shell (NOT smeared waviness).
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX14A'
+         ELSE
+            CASA=CASE//'.BEHX14A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(36),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for modal vib. betw. lateral supports=',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX   = N0V
+         NMINBX = N0V
+         NMAXBX = NMAXV
+      ELSE
+         N0BX   = NWAV13
+         NDIFF = 0.2*FLOAT(NWAV13)
+         IF (NDIFF.EQ.0) NDIFF = 1
+         IF (NWAV13.GT.1) N0BX = NWAV13 - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV13 + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG13  = EIGCRT
+         NWAV13 = NWVCRT
+      ENDIF
+      WRITE(IFILE,'(A,/,A)')
+     1' ***** FREQUENCIES AND MODE SHAPES *****',
+     1'       FREQUENCY(CIRC. WAVES)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ======================================='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical modal vibration frequency, FREQ=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      EIGCRS = EIGCRT
+C
+C     CALL EXIT
+C
+      IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2
+     1                              .AND.NWAVEX(36).GT.0) THEN
+         NWAVXS = NWAVEX(36)
+         NWAVEX(36) = 0
+         NMSHSV = NMESH1
+         NMESH1 = 97
+         CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(36),NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVEX(36) =',
+     1   NWAVEX(36),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+C BEG FEB 2008
+         IF (ITYPEX.EQ.2) THEN
+C         Get CASE.BEHX14B file for input for BIGBOSOR4...
+C         CASE.BEHX14B is an input file for BIGBOSOR4 for behavior 14B:
+C         modal vibration for length of tube between lateral supports.
+C         with use of the smeared waviness model.
+            I=INDEX(CASE,' ')
+            IF(I.NE.0) THEN
+               CASA=CASE(:I-1)//'.BEHX14B'
+            ELSE
+               CASA=CASE//'.BEHX14B'
+            ENDIF
+            OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C           CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(36),NPRINX)
+            CALL BOSDEC(61)
+            CLOSE(UNIT=61)
+            WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1    ' BIGBOSOR4 input file for modal vib. betw. lateral supports',
+     1    ' (smeared waviness model)=',CASA
+         ENDIF
+C
+C END FEB 2008
+         CALL B4READ
+         N0BX   = N0V
+         NMINBX = N0V
+         NMAXBX = NMAXV
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+C        IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE,'(/,A,/,A)')
+     1 ' ***** FREQUENCIES AND MODE SHAPES: "SMEARED" WAVINESS *****',
+     1'       FREQUENCY(CIRC. WAVES)'
+         DO 356 I = 1,IWAVEB
+           WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  356    CONTINUE
+         WRITE(IFILE,'(A)')
+     1   ' ======================================='
+         WRITE(IFILE,'(A,1P,E12.4)')
+     1    ' Critical modal vibration frequency, FREQ=',EIGCRT
+         WRITE(IFILE,'(A,I5)')
+     1    ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         NWAVEX(36) = NWAVXS
+         NMESH1 = NMSHSV
+      ENDIF
+      EIGCRT = EIGCRS
+C
+C     CALL EXIT
+C
+      IF (IMODX.EQ.1) GO TO 500
+C  NEXT, FIND FREQ. CORRESPONDING TO N=0 CIRC. WAVES WITH USE OF THE
+C  LONGER AXIALLY UNSUPPORTED LENGTH, LGAXL:
+C
+  400 CONTINUE
+      AXIALS = AXIAL
+      AXIAL  = LGAXL
+      NMSH1S = NMESH1
+      NMESH1 = 97
+      IRINGS = IRING
+      BRNGSV = BRINGS
+      DENSSV = DENS
+      IRING = 0
+      BRINGS = 0
+      DENS = RHOEFF
+      SMAEFS = SMAEFF
+      SMAEFF = SMAEFF*RHOEFF/DENSHL
+      WRITE(IFILE,
+     1'(/,A,1P,E12.4,/,A,/,A,/,A,1PE12.4,A,/,A,/,A,1PE12.4)')
+     1' Find natural frequency for axial length=',AXIAL,
+     1' NOTE: Only NWVCRT = 0 circumferential waves applies here',
+     1' because we are only concerned with axial (axisymmetric)',
+     1' motion, since the length, LGAXL = ',AXIAL,' is the distance',
+     1' between supports that prevent axial motion. The constraints',
+     1' that prevent lateral motion are spaced at AXIAL = ',AXIALS
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(37) = 0.9*AXIALS/WAVLEN
+      ENDIF
+   20 CONTINUE
+      NWAVXS = NWAVEX(37)
+      CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(37),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(37) =',
+     1  NWAVEX(37),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(37) = 0.9*FLOAT(NWAVEX(37))
+         IF (NWAVXS.NE.NWAVEX(37)) THEN
+            GO TO 20
+         ELSE
+            NWAVEX(37) = NWAVEX(37) - 4
+            GO TO 20
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX14C file for input for BIGBOSOR4...
+C      CASE.BEHX14C is an input file for BIGBOSOR4 for behavior 14C:
+C      axisymmetric axial modal vibration between axial supports.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX14C'
+         ELSE
+            CASA=CASE//'.BEHX14C'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,ISYM13,ILOADX,IMODX,NWAVEX(37),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for modal vibration between supports',
+     1 ' that prevent axial motion=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      N0BX   = 0
+      NMINBX = 0
+      NMAXBX = 0
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+C     IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG13B = EIGCRT
+         NWV13B = NWVCRT
+      ENDIF
+      WRITE(IFILE,'(/,A,/,A)')
+     1' ***** FREQUENCY AND MODE SHAPE FOR 0 CIRC. WAVES *****',
+     1'       FREQUENCY(CIRC. WAVES)'
+      DO 426 I = 1,IWAVEB
+        WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  426 CONTINUE
+      WRITE(IFILE,'(A)')
+     1' ======================================='
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1 ' Critical modal vibration frequency, FREQ=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+      IF (IMODX.EQ.0) THEN
+         EIG13 = MIN(EIG13,EIG13B)
+         EIGCRT = EIG13
+         DIFF = ABS(EIG13 - EIG13B)/EIG13
+         IF (DIFF.LT.0.00001) NWAV13 = NWV13B
+      ENDIF
+  490 CONTINUE
+      AXIAL  = AXIALS
+      NMESH1 = NMSH1S
+      IRING  = IRINGS
+      BRINGS = BRNGSV
+      DENS   = DENSSV
+      SMAEFF = SMAEFS
+  500 CONTINUE
+      FREQ(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX15
+      SUBROUTINE BEHX15
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN maximum stress from random excitation
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRRAN(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = maximum stress from random excitation
+C
+C   OUTPUT:
+C
+C     STRRAN(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/MAXNON/WWWNON(2),STRNON(2)
+      COMMON/MAXLOC/LOCATW(2),LOCATS(2)
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/EIGNO/NVECX,EGVX(50),AXBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/WRANXX/WWWRNX,BUCRNX
+      COMMON/ENDUVX/ENDUV,STRMXX,ARCLEN
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/NWVAXL/NWAVEX(100)
+      COMMON/LAMSTR/STRRAT(99)
+      COMMON/WRDSTR/STRWRD(99)
+      CHARACTER*80 STRWRD
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUB. BEHX15 (LINEAR NONSYM.STRESS, RANDOM EXCITATION).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+C FIRST, GET STRESSES FROM AXISYMMETRIC MODEL 2:
+      INDIC = 0
+   10 CONTINUE
+      NWAVXS = NWAVEX(38)
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(38),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(38) =',
+     1  NWAVEX(38),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(38) = 0.9*FLOAT(NWAVEX(38))
+         IF (NWAVXS.NE.NWAVEX(38)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(38) = NWAVEX(38) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX15A file for input for BIGBOSOR4...
+C      CASE.BEHX15A is an input file for BIGBOSOR4 for behavior 15A:
+C      stresses from nonlinear (INDIC=0) axisymmetric model 2.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX15A'
+         ELSE
+            CASA=CASE//'.BEHX15A'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(38),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for nonlinear axisymmetric stress=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IWALL.EQ.2) THEN
+         ICRIT = 0
+         STRALW(ILOADX) = 1.0
+         STRMXX = 0.
+         STRMIN = 10.E+26
+         DO 14 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 14
+            STRMIN = MIN(STRRAT(I),STRMIN)
+   14    CONTINUE
+         IF (STRMIN.LE.0.) GO TO 16
+         DO 15 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 15
+            DIFF = ABS(STRMIN-STRRAT(I))/STRMIN
+            IF (DIFF.LT.0.0001) THEN
+               ICRIT = I
+               GO TO 16
+            ENDIF
+   15    CONTINUE
+   16    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICRIT.GT.0) THEN
+            WRITE(IFILE8,'(A,/,A)')
+     1    ' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********',
+     1    ' Nonlinear BOSOR4 MODEL 1: Only wavy section, no rings'
+            DO 17 I = 1,20
+               IF (STRRAT(I).LT.0.000001) GO TO 17
+               WRITE(IFILE8,'(I3,1P,E12.4,1X,A)')
+     1                      I,STRRAT(I),STRWRD(I)(1:60)
+   17       CONTINUE
+            WRITE(IFILE8,'(A)')
+     1    ' ****************************************************'
+            WRITE(IFILE8,'(/,A,A,/,1P,E12.4,1X,A)')
+     1    ' Composite matl: Most critical stress ratio,',
+     1    ' allowable/actual, and definition',
+     1      STRMIN,STRWRD(ICRIT)(1:60)
+         ENDIF
+         IF (STRMIN.GT.0.) STRMXX = 1./STRMIN
+      ENDIF
+C
+C NEXT, DO THE RESPONSE TO RANDOM EXCITATION...
+C
+      FNXS   = FNX(ILOADX)
+      FNXBS  = FNXB(ILOADX)
+      PRESSS = PRESS(ILOADX)
+      PRSSBS = PRESSB(ILOADX)
+      FNX(ILOADX)   = FNX(ILOADX) + FNXB(ILOADX)
+      FNXB(ILOADX)  = 0.
+      PRESS(ILOADX) = PRESS(ILOADX) + PRESSB(ILOADX)
+      PRESSB(ILOADX)= 0.
+C
+C  NEXT, FIND RESPONSE TO RANDOM EXCITATION...
+C  FIRST, WE MUST FIND NATURAL FREQUENCIES CORRESPONDING TO SEVERAL
+C  MODES WITH n = 1 CIRC. WAVE:
+      INDIC = 2
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(39) = 0.9*AXIAL/WAVLEN
+      ENDIF
+   20 CONTINUE
+      NWAVXS = NWAVEX(39)
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(39),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(39) =',
+     1  NWAVEX(39),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(39) = 0.9*FLOAT(NWAVEX(39))
+         IF (NWAVXS.NE.NWAVEX(39)) THEN
+            GO TO 20
+         ELSE
+            NWAVEX(39) = NWAVEX(39) - 4
+            GO TO 20
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX15B file for input for BIGBOSOR4...
+C      CASE.BEHX15B is an input file for BIGBOSOR4 for behavior 15B:
+C      modal frequencies for n = 1 circ. wave needed for random response..
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX15B'
+         ELSE
+            CASA=CASE//'.BEHX15B'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+C        CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(39),NPRINX)
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for n=1 modal vibration between',
+     1 ' supports that prevent lateral motion=',CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      N0BX   = 1
+      NMINBX = 1
+      NMAXBX = 1
+      INCRBX = 1
+      NVECX  = 5
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      WRITE(IFILE8,'(/,A,/,1P,5E12.4)')
+     1' Modal frequencies for n = 1 circ. wave=', (EGVX(I),I=1,NVECX)
+      CALL B4POST
+C
+C FIRST, FIND RESPONSE AT THETA = 0 DEG. (ANGSTR AND ANGBUC = 0.)
+      ANGSTR = 0.
+      ANGBUC = 0.
+      REWIND IFIL11
+      CALL RESET
+      IF (IMODX.EQ.0) THEN
+         N0BRR = MAX(N0B,2)
+         N0BX   = N0BRR
+         NMINBX = N0BRR
+         NMAXBX = NMAXB
+      ELSE
+         N0BX   = NWAV15
+         NDIFF = 0.2*FLOAT(NWAV15)
+         IF (NDIFF.EQ.0) NDIFF = 1
+         IF (NWAV15.GT.2) N0BX = NWAV15 - NDIFF
+         NMINBX = N0BX
+         NMAXBX = NWAV15 + NDIFF
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+C BEG FEB 2008
+C     CALL EXIT
+C END FEB 2008
+      IF (IMODX.EQ.0) THEN
+         EIG15  = EIGCRT
+         NWAV15 = NWVCRT
+      ENDIF
+      BUCRNX = EIGCRT
+      WRITE(IFILE8,'(/,A,/,A,/,A)')
+     1' ***** BUCKLING LOAD FACTORS, RANDOM EXCITATION *****',
+     1' LINEAR BUCKLING LOAD FACTOR, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 326 I = 1,IWAVEB
+        WRITE(IFILE8,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  326 CONTINUE
+      WRITE(IFILE8,'(A)')
+     1' ======================================='
+      WRITE(IFILE8,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BUCRAN=',BUCRNX
+      WRITE(IFILE8,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      CALL B4POST
+      IF (IWALL.EQ.2) THEN
+         ICRIT = 0
+         STRRNA(ILOADX) = 1.0
+         STRNON(1) = 0.
+         STRNON(2) = 0.
+         STRMIN = 10.E+26
+         DO 44 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 44
+            STRMIN = MIN(STRRAT(I),STRMIN)
+   44    CONTINUE
+         IF (STRMIN.LE.0.) GO TO 46
+         DO 45 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 45
+            DIFF = ABS(STRMIN-STRRAT(I))/STRMIN
+            IF (DIFF.LT.0.0001) THEN
+               ICRIT = I
+               GO TO 46
+            ENDIF
+   45    CONTINUE
+   46    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICRIT.GT.0) THEN
+            WRITE(IFILE8,'(/,A,/,A)')
+     1    ' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********',
+     1    ' Linear BOSOR4 MODEL 2: Entire length + rings'
+            DO 47 I = 1,20
+               IF (STRRAT(I).LT.0.000001) GO TO 47
+               WRITE(IFILE8,'(I3,1P,E12.4,1X,A)')
+     1                      I,STRRAT(I),STRWRD(I)(1:60)
+   47       CONTINUE
+            WRITE(IFILE8,'(A)')
+     1    ' ****************************************************'
+            WRITE(IFILE8,'(/,A,A,/,1P,E12.4,1X,A)')
+     1    ' Composite matl: Most critical stress ratio,',
+     1    ' allowable/actual, and definition',
+     1      STRMIN,STRWRD(ICRIT)(1:60)
+         ENDIF
+         IF (STRMIN.GT.0.) STRNON(1) = 1./STRMIN
+      ENDIF
+C
+      WRITE(IFILE8,'(A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Maximum stress, random excitatn, load set A, STRNON(1)=',
+     1   STRNON(1),',',LOCATS(1),'=1000*ISEG+I',
+     1' Maximum stress, random excitatn, load set B, STRNON(2)=',
+     1   STRNON(2),',',LOCATS(2),'=1000*ISEG+I'
+      WRITE(IFILE8,'(A,1P,E12.4)')
+     1' Maximum stress, nonlinear axisymmtrc analysis, STRMXX =',
+     1   STRMXX
+      WRITE(IFILE8,'(A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Max. w-displacmnt,random excite, load set A, WWWNON(1)=',
+     1   WWWNON(1),',',LOCATW(1),'=1000*ISEG+I',
+     1' Max. w-displacmnt,random excite, load set B, WWWNON(2)=',
+     1   WWWNON(2),',',LOCATW(2),'=1000*ISEG+I'
+C
+      STRRAN(ILOADX) = STRNON(1) + STRNON(2) + STRMXX
+      WWWRNX = ABS(WWWNON(1)) + ABS(WWWNON(2))
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Maximum stress from random excitation, STRRAN(ILOADX)=',
+     1  STRRAN(ILOADX)
+C
+      FNX(ILOADX)   = FNXS
+      FNXB(ILOADX)  = FNXBS
+      PRESS(ILOADX) = PRESSS
+      PRESSB(ILOADX)= PRSSBS
+C
+C     call exit
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX16
+      SUBROUTINE BEHX16
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN buckling load factor from random excitation
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCRAN(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = buckling load factor from random excitation
+C
+C   OUTPUT:
+C
+C     BUCRAN(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/WRANXX/WWWRNX,BUCRNX
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUB. BEHX16 (LINEAR BUCKLING, RANDOM EXCITATION).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      BUCRAN(ILOADX) = BUCRNX
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Critical buckling load factor, random excite, BUCRAN(ILOADX)=',
+     1  BUCRAN(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX17
+      SUBROUTINE BEHX17
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN hi-wave buckling factor from random excitation
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BRANHI(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = hi-wave buckling factor from random excitation
+C
+C   OUTPUT:
+C
+C     BRANHI(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/MAXNON/WWWNON(2),STRNON(2)
+      COMMON/MAXLOC/LOCATW(2),LOCATS(2)
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/EIGALL/EIG3,EIG4,EIG7,EIG8,EIG9,EIG10,EIG13,EIG15,EIG16
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/INSTAB/INDIC
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUB. BEHX17 (HI-WAVE LINEAR BUCKLING, RANDOM EXCITATN).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+C  NEXT, FIND HI-WAVE BUCKLING FROM RANDOM EXCITATION...
+      IF (IMODX.EQ.0) THEN
+         PI = 3.1415927
+         NAVE = PI*RADIUS/WAVLEN
+         INCRBX = 0.1*FLOAT(NAVE) + 1
+         N0BX = NMAXB + INCRBX
+         NMINBX = N0BX
+         NMAXBX = 3*NAVE
+      ELSE
+         N0BX   = NWAV16
+         NDIFF = 0.2*FLOAT(NWAV16)
+         IF (NDIFF.EQ.0) NDIFF = 1
+C        NDIFF = 0
+         IF (NWAV16.GT.1) N0BX = NWAV16 - NDIFF
+         IF (N0BX.LE.NMAXB+1) N0BX = NWAV16
+         NMINBX = N0BX
+         NMAXBX = NWAV16 + NDIFF
+         INCRBX = 0.1*FLOAT(NWAV16) + 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG16  = EIGCRT
+         NWAV16 = NWVCRT
+      ENDIF
+      BRANHI(ILOADX) = EIGCRT
+      WRITE(IFILE8,'(A,/,A,/,A)')
+     1' ***** HI-WAVE BUCKLING LOAD FACTORS, RANDOM EXCITATION *****',
+     1' HI-WAVE LINEAR BUCKLING LOAD FACTOR, MODEL 2 (CIRC. WAVES)',
+     1 '    eigenvalue(circ. waves)'
+      DO 328 I = 1,IWAVEB
+        WRITE(IFILE8,'(A,1P,E12.4,A,I4,A)')
+     1 '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  328 CONTINUE
+      WRITE(IFILE8,'(A)')
+     1' ======================================='
+      WRITE(IFILE8,'(A,1P,E12.4)')
+     1 ' Critical buckling load factor, BRANHI=',BRANHI(ILOADX)
+      WRITE(IFILE8,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX18
+      SUBROUTINE BEHX18
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN max. normal displacement from random excitation
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     WWWRAN(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = max. normal displacement from random excitation
+C
+C   OUTPUT:
+C
+C     WWWRAN(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/WRANXX/WWWRNX,BUCRNX
+C
+      WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2)')
+     1' =============================================================',
+     1' BEGIN SUB. BEHX18 (MAX. NORMAL DISPLAC., RANDOM EXCITATION).',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX
+C
+      WWWRAN(ILOADX) = WWWRNX
+C
+      WRITE(IFILE8,'(A,1P,E14.4)')
+     1' Max. normal displacement, random excite, WWWRAN(ILOADX)=',
+     1  WWWRAN(ILOADX)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:weight of the cylindrical shell
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = weight of the cylindrical shell
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+      OBJGEN =WEIGHT 
+C
+C
+      RETURN
+      END
+C
+C
+C

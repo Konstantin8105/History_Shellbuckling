@@ -1,0 +1,380 @@
+C=DECK      AUTOCHANGE
+C
+C  PURPOSE IS TO AUTOMATICALLY CHANGE DECISION VARIABLES FOR USE
+C  WITH "SUPEROPT", A BATCH PROGRAM THAT RUNS CHANGE, PANDAOPT,
+C  PANDAOPT, PANDAOPT,....CHANGE,PANDAOPT,PANDAOPT,...IN AN ATTEMPT
+C  TO FIND A GLOBAL OPTIMUM DESIGN.
+C
+      PROGRAM CHAUTO
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+C BEG FEB 2007
+      COMMON/GEOM2S/BSUBX(2),B2SUBX(2),HSUBX(2),WSUBX(2),W2SUBX(2)
+C END FEB 2007
+C BEG NOV 2005
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+C END NOV 2005
+C BEG JUN 2004
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/IQSAVX/IQSAVE(5),NLOADS
+C END JUN 2004
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+C BEG JUNE 1995
+      DIMENSION IB2W2(2)
+C END JUNE 1995
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/LWRUPR/VARLOW(50),VARHI(50),CLINK(50,5),VLINK(50),VBV(99)
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/PARAM2/CPWR(50,5),CLINK0(50)
+C BEG MAR 1996
+C BEG JUN 2004 (NLOADX instead of NLOADS)
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADX,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END JUN 2004
+C END MAR 1996
+      DIMENSION DVAR(50),DVARS(50),X(50),VUB(50),VLB(50),Y(50),DMOD(50)
+C BEG JULY 1995
+      DIMENSION IBMOD(50)
+C END JULY 1995
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE,PHRASE
+      CHARACTER*4 ANSOUT,QUAL
+      CHARACTER*13 KEYWRD
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+C END UNIX
+      LOGICAL ANSL1     
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+       external signal_handler
+       integer dummyint, signal
+       dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+       integer signal_handler
+       external signal_handler
+       integer dummyint, signal
+       dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+       integer signal_handler
+       external signal_handler
+       call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C BEG VMS
+C     IUNAME = 12
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPA'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPA'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(IOUTFL)
+#endif
+      else
+        OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IFILE7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+C BEG NOV 2005
+      IAUTOC = 1
+      ITIGHT = 0
+C END NOV 2005
+      ISCAPE = 0
+      DO 5 I = 1,NDEC
+    5 DVAR(I) = 0.0
+C BEG AUG 1995
+      ISTART = ITRTOT + ITRALL/100
+      IF (ISTART.GT.470) ISTART = ITRTOT + ITRALL/100 - 470
+C END AUG 1995
+C BEG JUNE 1995
+      IB2W2(1) = 0
+      IB2W2(2) = 0
+      IF (ISTIF(1).EQ.4.AND.B2(1).EQ.W2(1)) IB2W2(1) = 1
+      IF (ISTIF(2).EQ.4.AND.B2(2).EQ.W2(2)) IB2W2(2) = 1
+C END JUNE 1995
+      WRITE(IFILE8,*)' ********************************************'
+      WRITE(IFILE8,*)' Entering AUTOCHANGE: ISTART =',ISTART
+      WRITE(IFILE8,*)' ********************************************'
+      DO 6 I = 1,NDEC
+         DVAR(I) = RANDOM(ISTART)
+    6 CONTINUE
+C
+C  SETUPX GETS THE VECTOR X OF DECISION VARIABLES FROM THE VECTOR VAR
+C  OF ALL CANDIDATES FOR DECISION VARIABLES.
+C
+C  A VECTOR DVAR OF RANDOM NUMBERS FROM 0 TO 1 ARE ADDED TO X.
+C  SETUPV GETS THE NEW VECTOR VAR FROM THE NEW X.
+C  SETUPC GETS THE NEW B,B2,H,W,W2, ETC. FROM THE NEW VAR.
+C
+      CALL SETUPX(NVAR,IDV,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      CALL MOVER(X,1,Y,1,NDEC)
+      CALL MOVER(0.,0,DMOD,1,NDEC)
+C BEG JULY 1995
+      CALL MOVER(0,0,IBMOD,1,NDEC)
+C END JULY 1995
+C
+C BEG MAR 1996
+      IB2DEC = 0
+C END MAR 1996
+      KOUNT = 0
+C BEG JUN 2004
+      BSUB1 = 0.
+      BSUB2 = 0.
+C END JUN 2004
+      DO 8 I = 1,NVAR
+C BEG JUN 2004
+      ILETS1 = INDEX(WORDV(I),'substr:Spacing')
+      IF (ILETS1.NE.0) BSUB1 = VAR(I)
+      ILETS2 = INDEX(WORDV(I),'subrng:Spacing')
+      IF (ILETS2.NE.0) BSUB2 = VAR(I)
+C END JUN 2004
+      IF (IDV(I).EQ.0) GO TO 8
+      KOUNT = KOUNT + 1
+      ILET = INDEX(WORDV(I),'winding')
+      IF (ILET.NE.0) DMOD(KOUNT) = 360.
+C BEG JULY 1995
+      ILETB = INDEX(WORDV(I),'B(STR)')
+C BEG MAR 1996
+C BEG FEB 1998
+      IF (ILETB.NE.0.AND.IBEAM.EQ.0) IBMOD(KOUNT) = 1
+C END FEB 1998
+      ILETC = INDEX(WORDV(I),'B2(STR)')
+      IF (ISTIF(1).EQ.5.AND.ILETC.NE.0) IB2DEC = 1
+C END MAR 1996
+      ILETB = INDEX(WORDV(I),'B(RNG)')
+C BEG FEB 1998
+      IF (ILETB.NE.0) IBMOD(KOUNT) = 1
+C END FEB 1998
+C END JULY 1995
+    8 CONTINUE
+C
+      DO 10 I = 1,NDEC
+C BEG FEB 1995
+C        DVARS(I) = 2.0*DVAR(I) - 1.0
+C BEG JULY 1995
+         IF (IBMOD(I).EQ.0) DVARS(I) = 2.0*DVAR(I) - 0.5
+         IF (IBMOD(I).EQ.1) DVARS(I) = 2.0*DVAR(I) - 1.0
+C BEG FEB 1998
+         IF (DMOD(I).GT.300.) DVARS(I) = 2.0*DVAR(I) - 1.0
+C END FEB 1998
+C END JULY 1995
+C BEG FEB 1998
+C END FEB 1995
+         X(I) = (Y(I)-DMOD(I))*(1. + DVARS(I)) + DMOD(I)
+         IF (X(I).LT.VLB(I)) X(I) = VLB(I)
+         IF (X(I).GT.VUB(I)) X(I) = VUB(I)
+   10 CONTINUE
+      CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1            CPWR,JTERMS,CLINK0)
+      IZERO = 0
+C BEG OCT 1996
+      CALL SETUPC(NVAR,VAR,ISTIF,NSEG,NLAYER,LTYPE,B,B2,H,W,W2,T,
+     1            ANGLE,MATL,IZERO,0,0,IFILE8)
+C END OCT 1996
+C BEG FEB 1995
+      DO 15 ILOOP = 1,2
+C BEG JUN 2004
+         IF (ILOOP.EQ.1) THEN
+            IF (BSUB1.GT.0.0.AND.B(1).LT.2.*BSUB1) B(1) = 2.*BSUB1
+            IF (BSUB2.GT.0.0.AND.B(2).LT.2.*BSUB2) B(2) = 2.*BSUB2
+C BEG FEB 2007
+            IF (BSUBX(1).GT.0.0.AND.BSUBX(1).GT.B(1)/2.)
+     1                                            BSUBX(1)=B(1)/2.
+            IF (BSUBX(2).GT.0.0.AND.BSUBX(2).GT.B(2)/2.)
+     1                                            BSUBX(2)=B(2)/2.
+C END FEB 2007
+         ENDIF
+         IF (ILOOP.EQ.1.AND.ISTIF(1).NE.0.AND.NLOADS.GT.0) THEN
+            DO 11 I = 1,NLOADS
+               IF (IQSAVE(I).EQ.0) THEN
+                  IF (B(1).GE.ABS(R)/3.) B(1) = ABS(R)/3.1
+                  IF (B(1).GE.5.*B(2))   B(1) = 4.9*B(2)
+               ENDIF
+   11       CONTINUE
+         ENDIF
+C END JUN 2004
+C BEG NOV 1995
+         IF (ISTIF(ILOOP).EQ.0.OR.
+     1      (ISTIF(ILOOP).EQ.5.AND.B2(ILOOP).LE.0.0)) GO TO 15
+         FMULT = 0.3333
+C BEG MAR 1996
+         IF (ISTIF(ILOOP).EQ.5) FMULT = 0.45
+C END MAR 1996
+C END NOV 1995
+C BEG JUNE 1995
+         IF (ISTIF(ILOOP).EQ.4) FMULT = 0.9
+         IF (B2(ILOOP).GT.FMULT*B(ILOOP)) B2(ILOOP) = FMULT*B(ILOOP)
+C BEG NOV 1995
+         IF (ISTIF(ILOOP).EQ.5.AND.B2(ILOOP).GT.0.0) THEN
+            FMULT = 0.2
+C BEG MAR 1996
+C           IF (B2(ILOOP).LT.FMULT*B(ILOOP)) B2(ILOOP)=FMULT*B(ILOOP)
+            IF (IB2DEC.EQ.1.AND.B2(ILOOP).LT.FMULT*B(ILOOP))
+     1                                       B2(ILOOP)=FMULT*B(ILOOP)
+C END MAR 1996
+         ENDIF
+C END NOV 1995
+         IF (IB2W2(ILOOP).EQ.1) W2(ILOOP) = B2(ILOOP)
+         IF (ISTIF(ILOOP).EQ.4.AND.B2(ILOOP).NE.W2(ILOOP)
+     1    .AND.W2(ILOOP).GT.0.9*B2(ILOOP)) W2(ILOOP) = 0.9*B2(ILOOP)
+C           WRITE(IFILE8,*)' B2(1),W2(1)=',B2(1),W2(1)
+C END JUNE 1995
+         IF (ISTIF(ILOOP).EQ.4.AND.W(ILOOP).GT.W2(ILOOP))
+     1      W(ILOOP) = 0.9*W2(ILOOP)
+         IF (ILOOP.EQ.1) THEN
+            DO 12 I = 1,NVAR
+              ILETB = INDEX(WORDV(I),'B(STR)')
+              ILETB2= INDEX(WORDV(I),'B2(STR)')
+              ILETH = INDEX(WORDV(I),'H(STR)')
+              ILETW = INDEX(WORDV(I),'W(STR)')
+              ILETW2= INDEX(WORDV(I),'W2(STR)')
+C BEG FEB 2007
+              ILETS1= INDEX(WORDV(I),'substr:Spacing')
+C END FEB 2007
+              IF (ILETB.NE.0)  VAR(I) = B(1)
+              IF (ILETB2.NE.0) VAR(I) = B2(1)
+              IF (ILETH.NE.0)  VAR(I) = H(1)
+              IF (ILETW.NE.0)  VAR(I) = W(1)
+              IF (ILETW2.NE.0) VAR(I) = W2(1)
+C BEG FEB 2007
+              IF (ILETS1.NE.0) VAR(I) = BSUBX(1)
+C END FEB 2007
+   12       CONTINUE
+         ELSE
+            DO 14 I = 1,NVAR
+              ILETB = INDEX(WORDV(I),'B(RNG)')
+              ILETB2= INDEX(WORDV(I),'B2(RNG)')
+              ILETH = INDEX(WORDV(I),'H(RNG)')
+              ILETW = INDEX(WORDV(I),'W(RNG)')
+              ILETW2= INDEX(WORDV(I),'W2(RNG)')
+C BEG FEB 2007
+              ILETS2= INDEX(WORDV(I),'subrng:Spacing')
+C END FEB 2007
+              IF (ILETB.NE.0)  VAR(I) = B(2)
+              IF (ILETB2.NE.0) VAR(I) = B2(2)
+              IF (ILETH.NE.0)  VAR(I) = H(2)
+              IF (ILETW.NE.0)  VAR(I) = W(2)
+              IF (ILETW2.NE.0) VAR(I) = W2(2)
+C BEG FEB 2007
+              IF (ILETS2.NE.0) VAR(I) = BSUBX(2)
+C END FEB 2007
+   14       CONTINUE
+         ENDIF
+   15 CONTINUE
+C END FEB 1995
+      CALL SETUPX(NVAR,IDV,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+C BEG JUNE 1995
+      CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1            CPWR,JTERMS,CLINK0)
+      IZERO = 0
+C BEG OCT 1996
+      CALL SETUPC(NVAR,VAR,ISTIF,NSEG,NLAYER,LTYPE,B,B2,H,W,W2,T,
+     1            ANGLE,MATL,IZERO,0,0,IFILE8)
+C END OCT 1996
+C END JUNE 1995
+      WRITE(IFILE8,20) (Y(I),I=1,NDEC)
+      WRITE(IFILE8,30) (X(I),I=1,NDEC)
+      WRITE(IFILE8,40) (DVARS(I),I=1,NDEC)
+   20 FORMAT(/' OLD VECTOR OF DECISION VARIABLES'/(1P5E12.4))
+   30 FORMAT(/' NEW VECTOR OF DECISION VARIABLES'/(1P5E12.4))
+   40 FORMAT(/' RANDOM VECTOR OF DECISION VARIABLE MODS'/(1P5E12.4))
+      CALL OUTOPT(IFILE8,NVAR,IDV,ISCAPE,ILV,CLINK,IDLINK,VARLOW,
+     1 VARHI,VAR,WORDV,
+     1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+     1  ',57)
+C
+      WRITE(IFILE8,*)' ********************************************'
+      WRITE(IFILE8,*)' Leaving AUTOCHANGE'
+      WRITE(IFILE8,*)' ********************************************'
+      IF (ITRTOT.GT.470) ITRTOT = 0
+      CALL STORCM(IFILE7)
+      IF (IOUT.NE.0) CLOSE(UNIT=IOUT)
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+      END

@@ -1,0 +1,3990 @@
+C=DECK      STORE
+      PROGRAM STORE
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+C  PURPOSE IS TO CALL STORE1 AND STORE2, THE PURPOSES OF WHICH
+C  ARE DESCRIBED THERIN.
+C
+C BEG AUG 1995
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,IMISCL(24)
+C END AUG 1995
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NNNCON,NDEC,NLINK,NESCAP,ITYPE
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE7
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE7
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     IUNAME = 10
+C     OPEN(UNIT=IUNAME,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+        CASE7=CASE(:I-1)//'.CBL'
+      ELSE
+        CASE7=CASE//'.CBL'
+      ENDIF
+C
+      IFILE7 = 7
+C BEG VMS
+C     OPEN(UNIT=7,FILE=CASE7,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      inquire(FILE=case7(1:lastch(case7)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+C
+C BEG MAR 1991
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.2.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5)
+     1   CALL STORE1(CASE)
+C END MAR 1991
+      IF (ITYPE.EQ.3) CALL STORE2(CASE)
+C BEG AUG 1990
+      IF (ITYPE.EQ.2) GO TO 100
+C END AUG 1990
+      CALL STORCM(IFILE7)
+      CLOSE(UNIT=IFILE7)
+C BEG AUG 1995
+      IF (ITYPE.EQ.1.AND.IRESET.EQ.1) THEN
+         CALL EXIT(2)
+      ENDIF
+C END AUG 1995
+  100 CONTINUE
+      END
+C
+C
+C
+C=DECK      STORE1
+      SUBROUTINE STORE1(CASE)
+C
+C  PURPOSE IS TO READ BINARY RESULTS FROM LAST SET OF ITERATIONS,
+C  REFORMAT THEM IN FORMATTED FORM, WRITE THEM TO A FILE, NAME.OPP,
+C  FOR LIST OUTPUT, ETC.
+C
+C BEG NOV 2005
+C BEG FEB 2009
+      COMMON/GRADMZ/GRADMX(30),CONMXJ(30)
+      COMMON/ISCAPZ/ISCAPX(30),ICNMAX(30)
+C END FEB 2009
+      DIMENSION GRDPLT(500)
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+      DIMENSION ILINE2(500)
+      DIMENSION IGOOD(500),OBJIVE(500),DWORDM(500)
+      DIMENSION VARBST(100),MARBST(100)
+      DIMENSION IGOOD1(500),OBJVE1(500),VARBS1(100),MARBS1(100)
+      DIMENSION IGOOD2(500),OBJVE2(500),VARBS2(100),MARBS2(100)
+      DIMENSION IGOOD3(500),OBJVE3(500),VARBS3(100),MARBS3(100)
+      DIMENSION IGOOD4(500),OBJVE4(500),VARBS4(100),MARBS4(100)
+      DIMENSION IGOOD5(500),OBJVE5(500),VARBS5(100),MARBS5(100)
+C     REAL MARBST,MARBS1,MARBS2,MARBS3,MARBS4,MARBS5
+C END NOV 2005
+C BEG FEB 2009
+      DIMENSION ISCPLT(500),CONPLT(500),ICNPLT(500)
+C END FEB 2009
+C BEG DEC 2004
+      DIMENSION ISLPRT(500,5,2),IEHILW(500,5,2),WABRUP(500)
+      CHARACTER*1 WABRUP
+      COMMON/EIGSLZ/SLPRAT(30,5,2),EHILOW(30,5,2)
+      COMMON/OBJBSX/OBJMN0
+      COMMON/IOBJAX/IOBJAL
+C END DEC 2004
+C BEG JUN 2004
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/IQSAVX/IQSAVE(5),NLOADX
+C END JUN 2004
+C BEG JULY 1995
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/LWRUPR/VARLOX(50),VARHIX(50),CLINX(50,5),VLINK(50),VBV(99)
+      COMMON/PARAMS/PAR(99),VARX(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/OPTVAR/IDV(50),ILVX(50),IDLINX(50,5),IEV(50),JTERMS(50)
+      COMMON/WORDS/WORDP(99),WORDVX(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/PARAM2/CPWR(50,5),CLINK0(50)
+      COMMON/GEOM2/BB(2),BB2(2),HH(2),WW(2),WW2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),TT(90),ANGLE(90)
+      CHARACTER*80 WORDP,WORDVX,WORDA,WORDC,WORDD
+      DIMENSION VUB(50),VLB(50),X(50)
+C END JULY 1995
+C BEG JAN 1996
+C BEG DEC 1998
+C BEG JUN 2004
+      COMMON/ISKIPY/ISKIPX(5,2),ISKIPZ(30,5,2),ISKIPW(30,5,2),
+     1 ISKIPV(30,5,2)
+C END JUN 2004
+      DIMENSION ILINE(500),DWORDX(500),DWORDY(500)
+      CHARACTER*15 DWORDX,DWORDY
+C END DEC 1998
+C END JAN 1996
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NNNCON,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,IMISCL(24)
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN,NITER,NTIT(5,2)
+C BEG NOV 1992
+      DIMENSION MITER(5,2)
+C END NOV 1992
+C BEG FEB 1991
+      COMMON/WORDSX/VARLEG(50),MARLEG(99),OBJLEG
+C BEG MAY 2004
+      CHARACTER*12 MARLEG,OBJLEG
+      CHARACTER*16 VARLEG
+C END MAY 2004
+      COMMON/GEOMN3/IBVAR,VARPLT(30)
+C END FEB 1991
+      DIMENSION IADDV(50),IDEC(50),ILV(50),IDLINK(50),ISCAPE(50)
+      DIMENSION IABP(5),IBPREL(5),IWCON(5),IWIDE(5),IQUICK(5),ISUB(100)
+C BEG SEPT 1990
+      DIMENSION IABT(5)
+C END SEPT 1990
+C BEG JUNE 1991
+      DIMENSION IADDD(50),PCWORD(99),IADDCC(99),CPLOT(99),DWORD(500)
+C END JUNE 1991
+C BEG NOV 1994
+      CHARACTER*80 DWORDM,DWRDM
+C END NOV 1994
+      DIMENSION WORDV(50),DDPLOT(500),OBJPLT(500),CCPLOT(500,99)
+      DIMENSION WIMPG(5),WIMPL(5),OBJ(30),NCAS(5),TITLES(5,2,99)
+      DIMENSION VAR(50,30),CLINK(50),VARLOW(50),VARHI(50),ECC(5)
+      DIMENSION IQUIC(500,5),INUMB(500,5),NCAR(30,5,2)
+C BEG MAY 1995
+      DIMENSION IDIFF(5)
+C END MAY 1995
+      CHARACTER*80 PCWORD,WORDV,WORDOB
+      CHARACTER*80 TITLES
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE7,CASE8,CASE9,CASE2,CASE3,CASE4,CASEU
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE7,CASE8,CASE9,CASE2,CASE3,CASE4,CASEU
+      CHARACTER*72 ARGSTR
+      integer lastch
+      logical exists
+C END UNIX
+      CHARACTER*1 CILOAD,CICASE
+      CHARACTER*15  DWORD
+      LOGICAL YEAH
+C
+      IFILE2 = 2
+      IFILE3 = 3
+      IFILE4 = 4
+      IFILE7 = 7
+      IFILE8 = 8
+      ifile9 = 9
+      I=INDEX(CASE,' ')
+      IX = I
+      IF(I.NE.0) THEN
+        CASE8 =CASE(:I-1)//'.OPP'
+        CASE9=CASE(:I-1)//'.PL1'
+        CASE2=CASE(:I-1)//'.PL2'
+        CASE3=CASE(:I-1)//'.PLD'
+        CASE4=CASE(:I-1)//'.TIT'
+        CASE7=CASE(:I-1)//'.CBL'
+C BEG FEB 1991
+        IF (ITYPE.EQ.2.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+           CASE8=CASE(:I-1)//'.OPI'
+           CASE9=CASE(:I-1)//'.SL1'
+           CASE4=CASE(:I-1)//'.TTT'
+        ENDIF
+C END FEB 1991
+      ELSE
+        CASE8 =CASE//'.OPP'
+        CASE9=CASE//'.PL1'
+        CASE2=CASE//'.PL2'
+        CASE3=CASE//'.PLD'
+        CASE4=CASE//'.TIT'
+        CASE7=CASE//'.CBL'
+C BEG FEB 1991
+        IF (ITYPE.EQ.2.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+           CASE8=CASE//'.OPI'
+           CASE9=CASE//'.SL1'
+           CASE4=CASE//'.TTT'
+        ENDIF
+C END FEB 1991
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG VMS
+C     OPEN(UNIT=8, FILE=CASE8, STATUS='UNKNOWN')
+C     OPEN(UNIT=9,FILE=CASE9,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=2,FILE=CASE2,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=3,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=4,FILE=CASE4,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case9(1:lastch(case9)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile9, FILE=case9(1:lastch(case9)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile9)
+#endif
+      else
+        OPEN(UNIT=ifile9, FILE=case9(1:lastch(case9)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile2, FILE=case2(1:lastch(case2)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile2)
+#endif
+      else
+        OPEN(UNIT=ifile2, FILE=case2(1:lastch(case2)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile3)
+#endif
+      else
+        OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile4)
+#endif
+      else
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+      IF (ITYPE.EQ.2) THEN
+         CLOSE(UNIT=3)
+         RETURN
+      ENDIF
+C
+C BEG APR 1991
+C BEG JULY 2011
+      WRITE(IFILE8,'(A)')
+     1' ************ JULY, 2011 VERSION OF PANDA2   ************'
+C END JULY 2011
+      IF (ITYPE.EQ.1) WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPP FILE ******************'
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPI FILE ******************'
+C END APR 1991
+      WRITE(IFILE8,4) CASE(1:NLET),CASE(1:NLET)
+    4 FORMAT(/
+     1' *********************** STORE PROCESSOR **********************'/
+     1' The purpose of STORE is to add the latest results for'/
+     1' margins, design variables, and objective to those for previous'/
+     1' iterations for the specific case called ',A,'.  Later, when'/
+     1' the final design has been obtained, the entire history of the'/
+     1' design evolution for the specific case ',A,' can be plotted.'/
+     1' ************************************************************'/)
+C
+      CALL MOVER(0,0,ISUB,1,100)
+      CALL MOVER(0,0,IADDD,1,50)
+      CALL MOVER(0,0,NTIT,1,10)
+C BEG NOV 1992
+      CALL MOVER(0,0,IQUIC,1,2500)
+C BEG DEC 2004
+      CALL MOVER(0,0,ISLPRT,1,5000)
+      CALL MOVER(0,0,IEHILW,1,5000)
+C END DEC 2004
+      CALL MOVER(0,0,INUMB,1,2500)
+      CALL MOVER(0,0,MITER,1,10)
+C END NOV 1992
+C BEG JAN 1996
+      CALL MOVER(0,0,ILINE,1,500)
+C END JAN 1996
+C BEG NOV 2005
+      CALL MOVER(0,0,ILINE2,1,500)
+C END NOV 2005
+      IRESET = 0
+      REWIND 9
+      REWIND 4
+      ITRLST = ITRTOT - NITER
+C BEG JULY 2011
+      ITERUP = NITER
+      IF (ITYPE.EQ.1.AND.ITRTOT.GT.470.AND.ITRLST.LT.ITRTOT) THEN
+         ITRTOT = 471
+         ITERUP = 471 - ITRLST
+      ENDIF
+C END JULY 2011
+C BEG FEB 1991
+      ITRPLT = ITRTOT
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+         ITRPLT = NITER
+         ITRLST = 0
+      ENDIF
+      WRITE(IFILE8,*) ' ITRTOT,NITER,ITRPLT,ITRLST =',
+     1                  ITRTOT,NITER,ITRPLT,ITRLST
+C BEG MAY 2006
+      IF (ITRLST.EQ.0) THEN
+         IITIGH(1) = 0
+         IITIGH(2) = 0
+         IITIGH(3) = 0
+         ITRMIN(1) = 100000
+         ITRMIN(2) = 100000
+         ITRMIN(3) = 100000
+      ENDIF
+      WRITE(IFILE8,*) ' IAUTOC,ITIGHT,IDESGN=',IAUTOC,ITIGHT,IDESGN
+      WRITE(IFILE8,*) ' IITIGH(i),i=1,3=',(IITIGH(I),I=1,3)
+      WRITE(IFILE8,*) ' ITRMIN(i),i=1,3=',(ITRMIN(I),I=1,3)
+C END MAY 2006
+C END FEB 1991
+C BEG NOV 1992
+      IF (ITRLST.GT.0) THEN
+C      READ ACCUMULATED TITLES FROM PREVIOUS ITERATIONS
+         READ(IFILE4) ((NTIT(I,J),J=1,2),I=1,5)
+         READ(IFILE4) ((MITER(I,J),J=1,2),I=1,5)
+         READ(IFILE4) ((IQUIC(I,J),I=1,ITRLST),J=1,5)
+C BEG DEC 2004
+         READ(IFILE4) (WABRUP(I),I=1,ITRLST)
+         READ(IFILE4) (((ISLPRT(I,J,K),I=1,ITRLST),J=1,5),K=1,2)
+         READ(IFILE4) (((IEHILW(I,J,K),I=1,ITRLST),J=1,5),K=1,2)
+C END DEC 2004
+         READ(IFILE4) ((INUMB(I,J),I=1,ITRLST),J=1,5)
+C BEG JAN 1996
+         READ(IFILE4) (ILINE(I),I=1,ITRLST)
+C BEG NOV 2005
+         READ(IFILE4) (ILINE2(I),I=1,ITRLST)
+C END NOV 2005
+         READ(IFILE4) (DWORDX(I),I=1,ITRLST)
+C END JAN 1996
+C BEG DEC 1998
+         READ(IFILE4) (DWORDY(I),I=1,ITRLST)
+C END DEC 1998
+         DO 8 J = 1,2
+         DO 7 I = 1,5
+            NTITL = NTIT(I,J)
+            IF (NTITL.GT.0)
+     1          READ(IFILE4) (TITLES(I,J,ITITL),ITITL=1,NTITL)
+    7    CONTINUE
+    8    CONTINUE
+      ENDIF
+C END NOV 1992
+C BEG JULY 2011
+C     DO 300 ITER = 1,NITER
+      DO 300 ITER = 1,ITERUP
+C END JULY 2011
+      ITERP = ITRLST + ITER
+C BEG DEC 2004
+      WABRUP(ITERP) = 'N'
+C END DEC 2004
+      READ(9) NLOADS
+C     WRITE(IFILE8,*) ' NLOADS =', NLOADS
+C BEG FEB 1991
+      ISLOAD = 1
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) ISLOAD = NLOADS
+      DO 200 ILOADS = ISLOAD,NLOADS
+      INUMB(ITERP,ILOADS) = 0
+      READ(9) NCASES
+      ISCASE = 1
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) ISCASE = NCASES
+      IF (ITER.EQ.1) NCAS(ILOADS) = NCASES
+C     WRITE(IFILE8,*) ' NCASES =', NCASES
+      DO 100 ICASES = ISCASE,NCASES
+C END FEB 1991
+C
+C BEG NOV 1992
+C     SEVERAL "READ(IFILE4)" STATEMENTS MOVED UP OUT OF LOOPS.
+      NTITL = NTIT(ILOADS,ICASES)
+C END NOV 1992
+      READ(9) JJJ,ILOAD,ICASE,NVAR,NCAR(ITER,ILOADS,ICASES),
+     1  IABP(ILOADS),IWCON(ILOADS),IBPREL(ILOADS),IFREEB,IQUICK(ILOADS),
+C BEG SEPT 1990
+     1  IWIDE(ILOADS),IABT(ILOADS)
+C
+      READ(9) FNX,FNY,FNXY,P,FNX0,FNY0,FNXY0,ECC(ILOADS),
+     1             WIMPG(ILOADS),WIMPL(ILOADS),TPMULT,EPSRUT,EPSTIP
+C END SEPT 1990
+C
+C     WRITE(IFILE8,*) ' ITERATION NO.,     JJJ =', JJJ
+C     WRITE(IFILE8,*) ' LOAD SET,         ILOAD=', ILOAD
+C     WRITE(IFILE8,*) '    CASE (1 or 2), ICASE=', ICASE
+C     WRITE(IFILE8,*) ' ANALYSIS TYPE,  IQUICK =', IQUICK(ILOADS)
+C     WRITE(IFILE8,*) ' NUMBER OF MARGINS, NCAR=',
+C                                          NCAR(ITER,ILOADS,ICASES)
+C     WRITE(IFILE8,*) ' WIDE COL. OPTION, IWIDE=', IWIDE(ILOADS)
+C     WRITE(IFILE8,*) ' AXIAL LOAD ECCEN.,  ECC=', ECC(ILOADS)
+C     WRITE(IFILE8,*) ' BOWING IMPERF.,   WIMPG=', WIMPG(ILOADS)
+C     WRITE(IFILE8,*) ' LOCAL  IMPERF.,   WIMPL=', WIMPL(ILOADS)
+C
+C BEG FEB 1991
+C BEG APR 2000 (NEXT TWO STATEMENTS MOVED OUT OF "IF" LOOP)
+      READ(9) OBJ(ITER),WORDOB
+      READ(9) (VAR(I,ITER),I=1,NVAR)
+C END APR 2000
+      IF ((ILOADS.EQ.1.AND.ICASES.EQ.1)
+     1        .OR.(ITYPE.EQ.4.OR.ITYPE.EQ.5)) THEN
+C BEG APR 2000 (NEXT TWO STATEMENTS MOVED UP)
+C         READ(9) OBJ(ITER),WORDOB
+C         READ(9) (VAR(I,ITER),I=1,NVAR)
+C END APR 2000
+          READ(9) (WORDV(I),I=1,NVAR)
+          READ(9) (IADDV(I),I=1,NVAR)
+          READ(9) (CLINK(I),I=1,NVAR)
+          READ(9) (IDEC(I),I=1,NVAR)
+          READ(9) (ILV(I),I=1,NVAR)
+          READ(9) (IDLINK(I),I=1,NVAR)
+          READ(9) (ISCAPE(I),I=1,NVAR)
+          READ(9) (VARLOW(I),I=1,NVAR)
+          READ(9) (VARHI(I),I=1,NVAR)
+      ENDIF
+C BEG  1 MAY 1989
+      NCARR = NCAR(ITER,ILOADS,ICASES)
+      IF (NCARR.GT.0) THEN
+         READ(9) (CPLOT(I),I=1,NCARR)
+         READ(9) (PCWORD(I),I=1,NCARR)
+         READ(9) (IADDCC(I),I=1,NCARR)
+      ENDIF
+C END  1 MAY 1989
+C
+      IUNIT = 10*ICASES + ILOADS
+      INQUIRE(UNIT=IUNIT,OPENED=YEAH)
+      IF (.NOT.YEAH)
+     1    OPEN(UNIT=IUNIT,STATUS='SCRATCH',FORM='UNFORMATTED')
+C
+C BEG  1 MAY 1989
+      IF (NCARR.GT.0) THEN
+         WRITE(IUNIT) NCARR
+         WRITE(IUNIT) ( CPLOT(I),I=1,NCARR)
+         WRITE(IUNIT) (PCWORD(I),I=1,NCARR)
+C
+C  FIND NEAR-CRITICAL MARGINS...
+C
+         DO 10 I = 1,NCARR
+         IF (CPLOT(I).LT.0.05) 
+     1      INUMB(ITERP,ILOADS) =INUMB(ITERP,ILOADS) +1
+   10 CONTINUE
+C
+      ENDIF
+C
+C END  1 MAY 1989
+C BEG JAN 1996
+C BEG JUN 2004
+C     DWORDX(ITERP) =       '               '
+      IF (ILOADS.EQ.1.AND.ICASES.EQ.1)
+     1                   DWORDX(ITERP) =       '               '
+C END JUN 2004
+      IF (ISKIPZ(ITER,ILOADS,ICASES).EQ.1
+C BEG JUN 2004
+C    1    .AND.ITER.GT.1.AND.ITER.LT.NITER)
+     1    .AND.ITER.GT.1.AND.ITER.LE.NITER)
+C END JUN 2004
+     1      DWORDX(ITERP) = 'UNKNOWN FEASIB.'
+C BEG DEC 1998
+C BEG JUN 2004
+      IF (ILOADS.EQ.1.AND.ICASES.EQ.1)
+     1                   DWORDY(ITERP) =       '               '
+C END JUN 2004
+      IF (ISKIPW(ITER,ILOADS,ICASES).EQ.1)
+     1      DWORDY(ITERP) = 'UNKNOWN FEASIB.'
+C END DEC 1998 
+C BEG JUN 2004
+      IF (ISKIPV(ITER,ILOADS,ICASES).EQ.1)
+     1      DWORDY(ITERP) = 'UNKNOWN FEASIB.'
+C END JUN 2004
+      ILINE(ITERP) = 0
+      IF (ITER.EQ.1) ILINE(ITERP) = 1
+C END JAN 1996
+C BEG NOV 2005
+      ILINE2(ITERP) = 0
+      IF (ITER.EQ.1.AND.IAUTOC.EQ.1) ILINE2(ITERP) = 1 
+C END NOV 2005
+C BEG MAY 2003
+C BEG JUN 2004
+C     WRITE(IFILE8,'(A,6I5)')' ITERP,ITER,ILOADS,ICASES,NITER,ISKIPZ=',
+C    1      ITERP,ITER,ILOADS,ICASES,NITER,ISKIPZ(ITER,ILOADS,ICASES)
+C     WRITE(IFILE8,'(A,A)') ' DWORDX(ITERP)=',DWORDX(ITERP)
+C END JUN 2004
+C END MAY 2003
+C
+C     IF (ILOADS.EQ.1.AND.ICASES.EQ.1) THEN
+C
+C     CALL OUTVAR(NVAR,VAR(1,ITER),WORDV,IADDV,'        CURRENT VALUES O
+C    1 F DESIGN VARIABLES                       ',IFILE8,80,1,ISUB)
+C
+C     ENDIF
+C
+C     IF (IABP(ILOADS).EQ.0) THEN
+C              WRITE(IFILE8,139)
+C    1             ILOADS,ICASES,FNX,FNY,FNXY,FNX0,FNY0,FNXY0,P
+C     ELSE
+C              WRITE(IFILE8,1391)
+C    1             ILOADS,ICASES,FNX,FNY,FNXY,P,FNX0,FNY0,FNXY0
+C     ENDIF
+C 139 FORMAT(/' *********** LOAD SET NO.',I2,'  **************'/
+C    1' ICASE = ',I2,'  (ICASE=1 MEANS PANEL MIDLENGTH)'/
+C    1'             (ICASE=2 MEANS PANEL ENDS)'//
+C    1'   APPLIED LOADS IN LOAD SET A ("eigenvalue" loads):'/
+C    1'         Applied     axial       stress resultant, N1=',1PE12.4/
+C    1'         Applied circumferential stress resultant, N2=',1PE12.4/
+C    1'         Applied    in-plane     shear  resultant,N12=',1PE12.4//
+C    1'   APPLIED LOADS IN LOAD SET B ( fixed uniform loads):'/
+C    1'         Applied     axial       stress resultant,N10=',1PE12.4/
+C    1'         Applied circumferential stress resultant,N20=',1PE12.4/
+C    1'         Applied    in-plane    shear  resultant,N120=',1PE12.4/
+C    1'         Applied pressure (positive for upward),   P =',1PE12.4//
+C    1'   NOTE...."F.S." means "Factor of Safety"')
+C1391 FORMAT(/' *********** LOAD SET NO.',I2,'  **************'/
+C    1' ICASE = ',I2,'  (ICASE=1 MEANS PANEL MIDLENGTH)'/
+C    1'             (ICASE=2 MEANS PANEL ENDS)'//
+C    1'   APPLIED LOADS IN LOAD SET A ("eigenvalue" loads):'/
+C    1'         Applied     axial       stress resultant, N1=',1PE12.4/
+C    1'         Applied circumferential stress resultant, N2=',1PE12.4/
+C    1'         Applied    in-plane     shear  resultant,N12=',1PE12.4/
+C    1'         Applied pressure (positive for upward),   P =',1PE12.4//
+C    1'   APPLIED LOADS IN LOAD SET B ( fixed uniform loads):'/
+C    1'         Applied     axial       stress resultant,N10=',1PE12.4/
+C    1'         Applied circumferential stress resultant,N20=',1PE12.4/
+C    1'         Applied    in-plane    shear  resultant,N120=',1PE12.4//
+C    1'   NOTE...."F.S." means "Factor of Safety"')
+C
+C     CALL OUTVAR(NCAR,CPLOT,PCWORD,IADDCC,' CURRENT VALUES OF MARGINS C
+C    1ORRESPONDING TO CURRENT DESIGN         ',IFILE8,80,1,ISUB)
+C
+C     IF (ILOADS.EQ.NLOADS.AND.ICASES.EQ.NCASES) THEN
+C        WRITE(IFILE8,19)
+C  19    FORMAT(/' ***************************************************'/
+C    1' ******************** DESIGN OBJECTIVE *******************'/
+C    1' *************                             ***********')
+C
+C     CALL OUTVAR(1,OBJ(ITER),WORDOB,IADDD,'   CURRENT VALUE OF THE OBJE
+C    1CTIVE FUNCTION:                       ',IFILE8,65,0,ISUB)
+C
+C        WRITE(IFILE8,21)
+C  21    FORMAT(/' *************                          ************'/
+C    1' ******************** DESIGN OBJECTIVE *******************'/
+C    1' *****************************************************')
+C
+C     ENDIF
+C
+      IQUIC(ITERP,ILOADS) = IQUICK(ILOADS)
+C BEG DEC 2004
+      ISLPRT(ITERP,ILOADS,ICASES) = SLPRAT(ITER,ILOADS,ICASES)
+      IEHILW(ITERP,ILOADS,ICASES) = EHILOW(ITER,ILOADS,ICASES)
+      IF (ITER.GT.1) THEN
+       ITERP1 = ITERP-1
+       IPROD1= ISLPRT(ITERP1,ILOADS,ICASES)*ISLPRT(ITERP,ILOADS,ICASES) 
+       IPROD2= IEHILW(ITERP1,ILOADS,ICASES)*IEHILW(ITERP,ILOADS,ICASES)
+       IF (IPROD1.LT.0.OR.IPROD2.LT.0) WABRUP(ITERP) = 'Y'
+      ENDIF
+C
+C END DEC 2004
+C
+  100 CONTINUE
+C end of loop over ICASES
+  200 CONTINUE
+C end of loop over ILOADS
+  300 CONTINUE
+C end of loop over ITER
+C
+C
+C  NEXT, ADD TO THE COLLECTION OF DESIGN VARIABLES...
+C
+C BEG FEB 1991
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFILE8,25) ITRTOT
+   25 FORMAT(/' ****** DESIGN VARIABLES FOR ',I3,' ITERATIONS ******')
+         IF (ITRTOT.GT.500) THEN
+         WRITE(IFILE8,*)' TOTAL NUMBER OF ITERATIONS CANNOT EXCEED 500'
+         WRITE(IFILE8,*)' USE CHOOSEPLOT NOW TO GET ALL PLOTS YOU NEED'
+         WRITE(IFILE8,*)' OF OBJECTIVE, DESIGN VARIABLES, AND MARGINS.'
+         WRITE(IFILE8,*)' TOTAL NUMBER OF ITERATIONS, ITRTOT, WILL BE'
+         WRITE(IFILE8,*)' RESET TO ZERO AFTER YOUR NEXT USE OF'
+         WRITE(IFILE8,*)' CHOOSEPLOT AND DIPLOT.'
+         IRESET = 1
+         ENDIF
+      ENDIF
+C END FEB 1991
+C
+      DO 40 IVAR = 1,NVAR
+        IF (ITRLST.GT.0) READ(IFILE2) (DDPLOT(I), I=1,ITRLST)
+C BEG JULY 2011
+C       DO 30 I = 1,NITER
+        DO 30 I = 1,ITERUP
+C END JUL 2011
+           ITERP = ITRLST + I
+           DDPLOT(ITERP) = VAR(IVAR,I)
+   30   CONTINUE
+C BEG FEB 1991
+        WRITE(IFILE3) (DDPLOT(I), I=1,ITRPLT)
+        CALL BLANKX(WORDV(IVAR),IEND)
+        WRITE(IFILE8,15) IVAR,
+     1    WORDV(IVAR)(1:IEND),(DDPLOT(I),I=1,ITRPLT)
+C END FEB 1991
+   15   FORMAT(/1X,I3,3X,A, ' = '/(1P,10E12.4))
+C BEG FEB 2009
+   16   FORMAT(/1X,I3,3X,A, ' = '/(10I6))
+C END FEB 2009
+   40 CONTINUE
+C
+C  NEXT, ADD TO THE COLLECTION OF OBJECTIVES...
+C
+C BEG FEB 1991
+      WRITE(IFILE8,45) ITRPLT
+C END FEB 1991
+   45 FORMAT(/' ********** OBJECTIVE FOR ',I3,' ITERATIONS *********')
+      IF (ITRLST.GT.0) READ(IFILE2) (OBJPLT(I), I=1,ITRLST)
+C BEG NOV 2005
+      IF (ITRLST.GT.0) READ(IFILE2) (GRDPLT(I), I=1,ITRLST)
+C END NOV 2005
+C BEG FEB 2009
+      IF (ITRLST.GT.0) READ(IFILE2) (ISCPLT(I), I=1,ITRLST)
+      IF (ITRLST.GT.0) READ(IFILE2) (ICNPLT(I), I=1,ITRLST)
+      IF (ITRLST.GT.0) READ(IFILE2) (CONPLT(I), I=1,ITRLST)
+C END FEB 2009
+C BEG JULY 2011
+C     DO 50 I = 1,NITER
+      DO 50 I = 1,ITERUP
+C END JULY 2011
+         ITERP = ITRLST + I
+         OBJPLT(ITERP) = OBJ(I)
+C BEG NOV 2005
+         GRDPLT(ITERP) = GRADMX(I)
+C END NOV 2005
+C BEG FEB 2009
+         ISCPLT(ITERP) = ISCAPX(I)
+         ICNPLT(ITERP) = ICNMAX(I)
+         CONPLT(ITERP) = CONMXJ(I)
+C END FEB 2009
+   50 CONTINUE
+C BEG FEB 1991
+      WRITE(IFILE3) (OBJPLT(I), I=1,ITRPLT)
+C END FEB 1991
+C BEG NOV 2005
+      WRITE(IFILE3) (GRDPLT(I), I=1,ITRPLT)
+C END NOV 2005
+C BEG FEB 2009
+      WRITE(IFILE3) (ISCPLT(I), I=1,ITRPLT)
+      WRITE(IFILE3) (ICNPLT(I), I=1,ITRPLT)
+      WRITE(IFILE3) (CONPLT(I), I=1,ITRPLT)
+C END FEB 2009
+      CALL BLANKX(WORDOB,IEND)
+      ITIT = 1
+C BEG FEB 1991
+      WRITE(IFILE8,15) ITIT,WORDOB(1:IEND),(OBJPLT(I),I=1,ITRPLT)
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFILE8,15) ITIT,
+     1' Absolute values of maximum constraint gradients, GRDPLT',
+     1 (GRDPLT(I),I=1,ITRPLT)
+C END NOV 2005
+C BEG FEB 2009
+      WRITE(IFILE8,16) ITIT,
+     1' "Escape" index: If index>0 "escape" strategy was used, ISCPLT',
+     1 (ISCPLT(I),I=1,ITRPLT)
+      WRITE(IFILE8,16) ITIT,
+     1' Number of times the maximum active constraint changed, ICNPLT',
+     1 (ICNPLT(I),I=1,ITRPLT)
+      WRITE(IFILE8,15) ITIT,
+     1' Maximum value of a design constraint judged as active, CONPLT',
+     1 (CONPLT(I),I=1,ITRPLT)
+C END FEB 2009
+C
+      IF (ITYPE.EQ.1) THEN
+C   COPY .PLD TO .PL2 FOR OPTIMIZATION (ITYPE=1) RUN...
+         REWIND IFILE2
+         REWIND IFILE3
+         DO 52 IVAR = 1,NVAR
+            READ(IFILE3) (DDPLOT(I),I=1,ITRTOT)
+           WRITE(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+   52    CONTINUE
+         READ(IFILE3) (OBJPLT(I),I=1,ITRTOT)
+        WRITE(IFILE2) (OBJPLT(I),I=1,ITRTOT)
+C BEG NOV 2005
+         READ(IFILE3)  (GRDPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (GRDPLT(I),I=1,ITRTOT)
+C END NOV 2005
+C BEG FEB 2009
+         READ(IFILE3)  (ISCPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (ISCPLT(I),I=1,ITRTOT)
+         READ(IFILE3)  (ICNPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (ICNPLT(I),I=1,ITRTOT)
+         READ(IFILE3)  (CONPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (CONPLT(I),I=1,ITRTOT)
+C END FEB 2009
+      ENDIF
+C END FEB 1991
+C
+C BEG NOV 1994
+C     CLOSE(UNIT=2)
+C END NOV 1994
+      CLOSE(UNIT=3)
+      CLOSE(UNIT=9)
+C
+C  NEXT, COLLECT AND STORE THE MARGINS IN THE PROPER ORDER
+C
+C BEG NOV 1992
+C     REWIND IFILE4 STATEMENT MOVED DOWN AFTER LOOPS
+C END NOV 1992
+C BEG FEB 1991
+      DO 600 ILOADS = ISLOAD,NLOADS
+      NCASES = NCAS(ILOADS)
+      DO 550 ICASES = ISCASE,NCASES
+C END FEB 1991
+      CALL MOVER(0.,0,CCPLOT,1,49500)
+      NTITL = NTIT(ILOADS,ICASES)
+      IUNIT = 10*ICASES + ILOADS
+      REWIND IUNIT
+C BEG JULY 2011
+C     DO 500 ITER   = 1,NITER
+      DO 500 ITER   = 1,ITERUP
+C END JULY 2011
+      ITERP = ITER + ITRLST
+C BEG  1 MAY 1989
+      NCARR = NCAR(ITER,ILOADS,ICASES)
+      IF (NCARR.GT.0) THEN
+         READ(IUNIT) NCARR
+         READ(IUNIT) ( CPLOT(I),I=1,NCARR)
+         READ(IUNIT) (PCWORD(I),I=1,NCARR)
+         IF (ITERP.EQ.1) THEN
+            DO 310 I = 1,NCARR
+               TITLES(ILOADS,ICASES,I) = PCWORD(I)
+               CCPLOT(1,I) = CPLOT(I)
+  310       CONTINUE
+            NTITL = NCARR
+         ELSE
+            DO 320 I = 1,NCARR
+            DO 315 J = 1,NTITL
+              IF (PCWORD(I).EQ.TITLES(ILOADS,ICASES,J)) THEN
+                 CCPLOT(ITERP,J) = CPLOT(I)
+                 GO TO 320
+              ENDIF
+  315       CONTINUE
+            NTITL = NTITL + 1
+            IF (NTITL.GT.99) THEN
+C BEG FEB 1991
+               WRITE(IFILE8,319) NTITL,ITRPLT,ILOADS,ICASES
+C END FEB 1991
+  319         FORMAT(/' TOO MANY DIFFERENT MARGINS FOR THIS LOAD CASE.'/
+     1 ' A MAXIMUM OF 99 DIFFERENT MARGINS IS ALLOWED. THERE ARE ',I3/
+     1 ' TOTAL NUMBER OF ITERATIONS,                      ITRTOT=',I3/
+     1 ' LOAD CASE NO.                                    ILOADS=',I3/
+     1 ' CASE NO. (1 = PANEL MIDLENGTH; 2 = PANEL ENDS),  ICASES=',I3/
+     1 ' WE WILL ABORT THIS PARTICULAR RUN. ITRTOT, THE'/
+     1 ' TOTAL NUMBER OF ITERATIONS, WILL BE SET TO ZERO'/
+     1 ' AT THE END OF YOUR NEXT USE OF CHOOSEPLOT AND DIPLOT.')
+               IRESET = 1
+               CALL EXIT(2)
+            ENDIF
+            TITLES(ILOADS,ICASES,NTITL) = PCWORD(I)
+            CCPLOT(ITERP,NTITL) = CPLOT(I)
+  320       CONTINUE
+         ENDIF
+      ENDIF
+C END  1 MAY 1989
+C
+  500 CONTINUE
+C
+C BEG NOV 1992
+C   SEVERAL "WRITE(IFILE4)" STATEMENTS MOVED DOWN OUT OF LOOPS.
+C END NOV 1992
+      CLOSE(IUNIT)
+C
+      CALL CONVR1(ILOADS,CILOAD)
+      CALL CONVR1(ICASES,CICASE)
+C BEG FEB 1991
+      IF (IX.NE.0) THEN
+         IF (ITYPE.EQ.1) CASEU = CASE(:IX-1)//'.P'//CICASE//CILOAD
+         IF (ITYPE.NE.1) CASEU = CASE(:IX-1)//'.L'//CICASE//CILOAD
+      ELSE
+         IF (ITYPE.EQ.1) CASEU = CASE//'.P'//CICASE//CILOAD
+         IF (ITYPE.NE.1) CASEU = CASE//'.L'//CICASE//CILOAD
+      ENDIF
+C END FEB 1991
+      INQUIRE(UNIT=IUNIT,OPENED=YEAH)
+C BEG VMS
+C     IF (.NOT.YEAH)
+C    1 OPEN(UNIT=IUNIT,FILE=CASEU,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      IF (.NOT.YEAH) then
+        inquire(FILE=caseu(1:lastch(caseu)), EXIST=exists)
+        if (exists) then
+          OPEN(UNIT=iunit, FILE=caseu(1:lastch(caseu)), STATUS='OLD',
+     1         FORM='UNFORMATTED')
+#if rs6k
+          rewind(iunit)
+#endif
+        else
+          OPEN(UNIT=iunit, FILE=caseu(1:lastch(caseu)), STATUS='NEW',
+     1         FORM='UNFORMATTED')
+        endif
+      endif
+C END UNIX
+C
+      REWIND IUNIT
+C
+C  NEXT, ADD TO THE COLLECTION OF DESIGN MARGINS FOR ILOADS, ICASES...
+C
+C BEG FEB 1991
+      IF (ITYPE.EQ.1) WRITE(IFILE8,26) ITRTOT, ILOADS, ICASES
+      IF (ITYPE.EQ.4) WRITE(IFILE8,261) ITRPLT,VARLEG(IBVAR),
+     1                                  ILOADS,ICASES
+      IF (ITYPE.EQ.5) WRITE(IFILE8,262) ITRTOT, ILOADS, ICASES
+   26 FORMAT(/' ****** DESIGN MARGINS FOR ',I3,' ITERATIONS ******'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+  261 FORMAT(/' ***** DESIGN MARGINS FOR ',I3,' VALUES OF',A,' *****'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+  262 FORMAT(/' **** DESIGN MARGINS FOR ',I3,' LOAD COMBINATIONS ***'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C END FEB 1991
+      IF (ITRLST.GT.0) THEN
+         NTITO = NTIT(ILOADS,ICASES)
+C BEG NOV 1992
+         MITRO = MITER(ILOADS,ICASES)
+         DO 41 ITIT = 1,NTITO
+           IF (MITRO.GT.0) READ(IUNIT) (CCPLOT(I,ITIT), I=1,MITRO)
+C END NOV 1992
+   41    CONTINUE
+      ENDIF
+      REWIND IUNIT
+      DO 42 ITIT = 1,NTITL
+C BEG FEB 1991
+        WRITE(IUNIT) (CCPLOT(I,ITIT), I=1,ITRPLT)
+        CALL BLANKX(TITLES(ILOADS,ICASES,ITIT),IEND)
+        WRITE(IFILE8,15) ITIT,
+     1   TITLES(ILOADS,ICASES,ITIT)(1:IEND),(CCPLOT(I,ITIT),I=1,ITRPLT)
+C END FEB 1991
+   42 CONTINUE
+      CLOSE(UNIT=IUNIT)
+      NTIT(ILOADS,ICASES) = NTITL
+C BEG NOV 1992
+      MITER(ILOADS,ICASES) = ITRPLT
+C END NOV 1992
+C
+C  INDICATE WHETHER DESIGN IS FEASIBLE, ALMOST FEASIBLE, NOT FEASIBLE.
+C
+C BEG FEB 1991
+      DO 520 I = 1,ITRPLT
+C END FEB 1991
+C BEG JAN 1996
+         IF (DWORDX(I).EQ.'UNKNOWN FEASIB.') THEN
+            DWORD(I) = DWORDX(I)
+            GO TO 520
+         ENDIF
+C END JAN 1996
+C BEG DEC 1998
+         IF (DWORDY(I).EQ.'UNKNOWN FEASIB.') THEN
+            DWORD(I) = DWORDY(I)
+            GO TO 520
+         ENDIF
+C END DEC 1998
+      IF (ILOADS.EQ.1.AND.ICASES.EQ.1) DWORD(I) = '    FEASIBLE   '
+      IF (DWORD(I).EQ.' NOT FEASIBLE  ') GO TO 520
+      DO 510 ITIT = 1,NTITL
+      IF (CCPLOT(I,ITIT).LT.-0.20) THEN
+         DWORD(I) = ' NOT FEASIBLE  '
+         GO TO 520
+      ENDIF
+C BEG NOV 2005
+      IF (DWORD(I).EQ.'MOSTLY UNFEASIB') GO TO 510 
+      IF (CCPLOT(I,ITIT).GT.-0.20.AND.CCPLOT(I,ITIT).LE.-0.15) THEN
+         DWORD(I) = 'MOSTLY UNFEASIB'
+         GO TO 510
+      ENDIF
+      IF (DWORD(I).EQ.'MORE UNFEASIBLE') GO TO 510 
+      IF (CCPLOT(I,ITIT).GT.-0.15.AND.CCPLOT(I,ITIT).LE.-0.10) THEN
+         DWORD(I) = 'MORE UNFEASIBLE'
+         GO TO 510
+      ENDIF
+      IF (DWORD(I).EQ.'MILDLY UNFEASIB') GO TO 510 
+      IF (CCPLOT(I,ITIT).GT.-0.10.AND.CCPLOT(I,ITIT).LE.-0.05) THEN
+         DWORD(I) = 'MILDLY UNFEASIB'
+         GO TO 510
+      ENDIF
+C END NOV 2005
+      IF (DWORD(I).EQ.'ALMOST FEASIBLE') GO TO 510
+      IF (CCPLOT(I,ITIT).GT.-0.05.AND.CCPLOT(I,ITIT).LT.-0.01) THEN
+         DWORD(I) = 'ALMOST FEASIBLE'
+      ENDIF
+  510 CONTINUE
+  520 CONTINUE
+  550 CONTINUE
+C end of loop over ICASES
+  600 CONTINUE
+C end of loop over ILOADS
+C
+C BEG NOV 1992
+C   UPDATE IFILE4 (TITLES) FILE...      
+C   WRITE ACCUMULATED TITLES FROM PREVIOUS ITERATIONS
+      REWIND IFILE4
+      WRITE(IFILE4) ((NTIT(I,J),J=1,2),I=1,5)
+      WRITE(IFILE4) ((MITER(I,J),J=1,2),I=1,5)
+      WRITE(IFILE4) ((IQUIC(I,J),I=1,ITRPLT),J=1,5)
+C BEG DEC 2004
+      WRITE(IFILE4) (WABRUP(I),I=1,ITRPLT)
+      WRITE(IFILE4) (((ISLPRT(I,J,K),I=1,ITRPLT),J=1,5),K=1,2)
+      WRITE(IFILE4) (((IEHILW(I,J,K),I=1,ITRPLT),J=1,5),K=1,2)
+C END DEC 2004
+      WRITE(IFILE4) ((INUMB(I,J),I=1,ITRPLT),J=1,5)
+C BEG JAN 1996
+      WRITE(IFILE4) (ILINE(I),I=1,ITRPLT)
+C BEG NOV 2005
+      WRITE(IFILE4) (ILINE2(I), I=1,ITRPLT)
+C END NOV 2005
+      WRITE(IFILE4) (DWORDX(I),I=1,ITRPLT)
+C END JAN 1996
+C BEG DEC 1998
+      WRITE(IFILE4) (DWORDY(I),I=1,ITRPLT)
+C END DEC 1998
+      DO 615 J = 1,2
+      DO 612 I = 1,5
+         NTITL = NTIT(I,J)
+         IF (NTITL.GT.0)
+     1      WRITE(IFILE4) (TITLES(I,J,ITITL),ITITL=1,NTITL)
+  612 CONTINUE
+  615 CONTINUE
+C END NOV 1992
+C BEG DEC 2004
+      WRITE(IFILE8,620)
+  620 FORMAT(/'        SUMMARY OF STATE OF THE DESIGN WITH EACH ITERATIO
+     1N'/
+     1' ================================================================
+     1===============================')
+      WRITE(IFILE8,630)
+C BEG FEB 2009 (the line with the string, See Items 525 and 596...added)
+  630 FORMAT( ' ITERA   WEIGHT                        FOR EACH LOAD SET.
+     1...            ANY ABRUPT CHANGES IN MODE?'/
+     1        ' TION      OF                     (IQUICK; NO. OF CRITICA
+     1L MARGINS)     SLOPE CHANGE? (m,n) CHANGE?'/
+     1        ' NO.     PANEL     LOAD SET NO.->  1       2       3     
+     1  4       5     EIG. RATIOS   EIG. RATIOS'/
+     1'                                                         LOAD SET 
+     1 NO.->   1   2   3     1   2   3 '/
+     1'                                                          SUBCASE
+     1 NO.->  1 2 1 2 1 2   1 2 1 2 1 2'/
+     1'                                                              See
+     1 Items 525 and 596 in panda2.news'/
+     1' ----------------------------------------------------------------
+     1-------------------------------')
+C END FEB 2009
+C BEG NOV 1994
+C BEG MAY 1995
+      DO 636 J = 1,5
+      IDIFF(J) = 0
+         DO 635 I = 2,ITRPLT
+            I1 = I - 1
+            IF (IQUIC(I,J).NE.IQUIC(I1,J)) THEN
+               IDIFF(J) = 1
+               GO TO 636
+            ENDIF
+  635    CONTINUE
+  636 CONTINUE
+C END MAY 1995
+C
+C BEG NOV 2005
+C
+      OBJMN0 = 10.E+25
+      OBJMN1 = 10.E+25
+      OBJMN2 = 10.E+25
+      OBJMN3 = 10.E+25
+      OBJMN4 = 10.E+25
+      OBJMN5 = 10.E+25
+C
+      KOUNT  = 0
+      KOUNT1 = 0
+C
+      DO 650 I = 1,ITRPLT
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ILINE2(I).EQ.1) WRITE(IFILE8,637)
+  637          FORMAT(
+     1' ----------------------------------------------------AUTOCHANGE')
+
+         IF (ILINE(I).EQ.1) WRITE(IFILE8,638)
+  638 FORMAT(
+     1' ------------------------------------------------------PANDAOPT')
+         WRITE(IFILE8,645) I,OBJPLT(I),DWORD(I),
+     1   (IQUIC(I,J),INUMB(I,J),J=1,5),
+     1   ISLPRT(I,1,1),ISLPRT(I,1,2),ISLPRT(I,2,1),ISLPRT(I,2,2),
+     1   ISLPRT(I,3,1),ISLPRT(I,3,2),WABRUP(I),
+     1   IEHILW(I,1,1),IEHILW(I,1,2),IEHILW(I,2,1),IEHILW(I,2,2),
+     1   IEHILW(I,3,1),IEHILW(I,3,2)
+  645    FORMAT(
+     1         I4,1PE11.4,2X,A,5('(',I1,';',I2,')',2X),6I2,1X,A1,6I2)
+         IF (IDIFF(1).EQ.1.AND.IQUIC(I,1).EQ.1) GO TO 650
+         IF (IDIFF(2).EQ.1.AND.IQUIC(I,2).EQ.1) GO TO 650
+         IF (IDIFF(3).EQ.1.AND.IQUIC(I,3).EQ.1) GO TO 650
+         IF (IDIFF(4).EQ.1.AND.IQUIC(I,4).EQ.1) GO TO 650
+         IF (IDIFF(5).EQ.1.AND.IQUIC(I,5).EQ.1) GO TO 650
+         IF (ITYPE.EQ.1.AND.DWORD(I).NE.' NOT FEASIBLE  '
+     1              .AND.DWORD(I).NE.'UNKNOWN FEASIB.') THEN
+            IF (KOUNT.EQ.0) OBJMN0 = OBJPLT(I)
+            KOUNT = KOUNT + 1
+            IGOOD(KOUNT) = I
+            OBJIVE(KOUNT) = OBJPLT(I)
+            DWORDM(KOUNT) = DWORD(I)
+            OBJMN0 = MIN(OBJMN0,OBJIVE(KOUNT))
+         ENDIF
+C
+         IF (ITYPE.EQ.1.AND.DWORD(I).EQ.'    FEASIBLE   ') THEN
+            IF (KOUNT1.EQ.0) OBJMN1 = OBJPLT(I)
+            KOUNT1 = KOUNT1 + 1
+            IGOOD1(KOUNT1) = I
+            OBJVE1(KOUNT1) = OBJPLT(I)
+            OBJMN1 = MIN(OBJMN1,OBJVE1(KOUNT1))
+         ENDIF
+C
+  650 CONTINUE
+C
+      IOBJAL = 0
+      IF (OBJMN0.LT.0.01*OBJPLT(ITRPLT).AND.ITRPLT.GT.50) IOBJAL = 1
+      WRITE(IFILE8,'(/,A,2I5,A,1P,2E12.4)')
+     1' IOBJAL,ITRPLT=',IOBJAL,ITRPLT,'; OBJMN0,OBJPLT(ITRPLT)=',
+     1                                   OBJMN0,OBJPLT(ITRPLT)
+      WRITE(IFILE8,660)
+  660 FORMAT(
+     1' ================================================================
+     1=====================')
+C
+      IF (ITYPE.EQ.1.AND.KOUNT.GT.0) THEN
+C
+         DO 658 I = 1,KOUNT
+            DIF = ABS(OBJIVE(I) - OBJMN0)/OBJMN0
+            IF (DIF.LT.0.00001) THEN
+               IBEST = IGOOD(I)
+               DWRDM = DWORDM(I)
+               GO TO 659
+            ENDIF
+  658    CONTINUE
+  659    CONTINUE
+C
+         IF (KOUNT1.GT.0) THEN
+            DO 662 I = 1,KOUNT1
+               DIF = ABS(OBJVE1(I) - OBJMN1)/OBJMN1
+               IF (DIF.LT.0.00001) THEN
+                  IBEST1 = IGOOD1(I)
+                  GO TO 663
+               ENDIF
+  662       CONTINUE
+  663       CONTINUE
+         ENDIF
+C
+         KOUNT2 = 0
+         DO 665 I = 1,ITRPLT
+            IF (IDIFF(1).EQ.1.AND.IQUIC(I,1).EQ.1) GO TO 665
+            IF (IDIFF(2).EQ.1.AND.IQUIC(I,2).EQ.1) GO TO 665
+            IF (IDIFF(3).EQ.1.AND.IQUIC(I,3).EQ.1) GO TO 665
+            IF (IDIFF(4).EQ.1.AND.IQUIC(I,4).EQ.1) GO TO 665
+            IF (IDIFF(5).EQ.1.AND.IQUIC(I,5).EQ.1) GO TO 665
+            IF (DWORD(I).EQ.'ALMOST FEASIBLE') THEN
+               IF (KOUNT2.EQ.0) OBJMN2 = OBJPLT(I)
+               KOUNT2 = KOUNT2 + 1
+               IGOOD2(KOUNT2) = I
+               OBJVE2(KOUNT2) = OBJPLT(I)
+               OBJMN2 = MIN(OBJMN2,OBJPLT(I))
+            ENDIF
+  665    CONTINUE
+         IF (KOUNT2.GT.0) THEN
+            DO 666 I = 1,KOUNT2
+               DIF = ABS(OBJVE2(I) - OBJMN2)/OBJMN2
+               IF (DIF.LT.0.00001) THEN
+                  IBEST2 = IGOOD2(I)
+                  GO TO 667
+               ENDIF
+  666       CONTINUE
+  667       CONTINUE
+         ENDIF
+C
+         KOUNT3 = 0
+         DO 669 I = 1,ITRPLT
+            IF (IDIFF(1).EQ.1.AND.IQUIC(I,1).EQ.1) GO TO 669
+            IF (IDIFF(2).EQ.1.AND.IQUIC(I,2).EQ.1) GO TO 669
+            IF (IDIFF(3).EQ.1.AND.IQUIC(I,3).EQ.1) GO TO 669
+            IF (IDIFF(4).EQ.1.AND.IQUIC(I,4).EQ.1) GO TO 669
+            IF (IDIFF(5).EQ.1.AND.IQUIC(I,5).EQ.1) GO TO 669
+            IF (DWORD(I).EQ.'MILDLY UNFEASIB') THEN
+               IF (KOUNT3.EQ.0) OBJMN3 = OBJPLT(I)
+               KOUNT3 = KOUNT3 + 1
+               IGOOD3(KOUNT3) = I
+               OBJVE3(KOUNT3) = OBJPLT(I)
+               OBJMN3 = MIN(OBJMN3,OBJPLT(I))
+            ENDIF
+  669    CONTINUE
+         IF (KOUNT3.GT.0) THEN
+            DO 670 I = 1,KOUNT3
+               DIF = ABS(OBJVE3(I) - OBJMN3)/OBJMN3
+               IF (DIF.LT.0.00001) THEN
+                  IBEST3 = IGOOD3(I)
+                  GO TO 671
+               ENDIF
+  670       CONTINUE
+  671       CONTINUE
+         ENDIF
+C
+         KOUNT4 = 0
+         DO 675 I = 1,ITRPLT
+            IF (IDIFF(1).EQ.1.AND.IQUIC(I,1).EQ.1) GO TO 675
+            IF (IDIFF(2).EQ.1.AND.IQUIC(I,2).EQ.1) GO TO 675
+            IF (IDIFF(3).EQ.1.AND.IQUIC(I,3).EQ.1) GO TO 675
+            IF (IDIFF(4).EQ.1.AND.IQUIC(I,4).EQ.1) GO TO 675
+            IF (IDIFF(5).EQ.1.AND.IQUIC(I,5).EQ.1) GO TO 675
+            IF (DWORD(I).EQ.'MORE UNFEASIBLE') THEN
+               IF (KOUNT4.EQ.0) OBJMN4 = OBJPLT(I)
+               KOUNT4 = KOUNT4 + 1
+               IGOOD4(KOUNT4) = I
+               OBJVE4(KOUNT4) = OBJPLT(I)
+               OBJMN4 = MIN(OBJMN4,OBJPLT(I))
+            ENDIF
+  675    CONTINUE
+         IF (KOUNT4.GT.0) THEN
+            DO 676 I = 1,KOUNT4
+               DIF = ABS(OBJVE4(I) - OBJMN4)/OBJMN4
+               IF (DIF.LT.0.00001) THEN
+                  IBEST4 = IGOOD4(I)
+                  GO TO 677
+               ENDIF
+  676       CONTINUE
+  677       CONTINUE
+         ENDIF
+C
+         KOUNT5 = 0
+         DO 682 I = 1,ITRPLT
+            IF (IDIFF(1).EQ.1.AND.IQUIC(I,1).EQ.1) GO TO 682
+            IF (IDIFF(2).EQ.1.AND.IQUIC(I,2).EQ.1) GO TO 682
+            IF (IDIFF(3).EQ.1.AND.IQUIC(I,3).EQ.1) GO TO 682
+            IF (IDIFF(4).EQ.1.AND.IQUIC(I,4).EQ.1) GO TO 682
+            IF (IDIFF(5).EQ.1.AND.IQUIC(I,5).EQ.1) GO TO 682
+            IF (DWORD(I).EQ.'MOSTLY UNFEASIB') THEN
+               IF (KOUNT5.EQ.0) OBJMN5 = OBJPLT(I)
+               KOUNT5 = KOUNT5 + 1
+               IGOOD5(KOUNT5) = I
+               OBJVE5(KOUNT5) = OBJPLT(I)
+               OBJMN5 = MIN(OBJMN5,OBJPLT(I))
+            ENDIF
+  682    CONTINUE
+         IF (KOUNT5.GT.0) THEN
+            DO 684 I = 1,KOUNT5
+               DIF = ABS(OBJVE5(I) - OBJMN5)/OBJMN5
+               IF (DIF.LT.0.00001) THEN
+                  IBEST5 = IGOOD5(I)
+                  GO TO 685
+               ENDIF
+  684       CONTINUE
+  685       CONTINUE
+         ENDIF
+C
+         CALL MOVER (0.,0,VARBST,1,100)
+         CALL MOVER (0.,0,VARBS1,1,100)
+         CALL MOVER (0.,0,VARBS2,1,100)
+         CALL MOVER (0.,0,VARBS3,1,100)
+         CALL MOVER (0.,0,VARBS4,1,100)
+         CALL MOVER (0.,0,VARBS5,1,100)
+C
+         REWIND IFILE2
+         DO 692 IVAR = 1,NVAR
+            READ(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+            IF (KOUNT1.GT.0) VARBS1(IVAR) = DDPLOT(IBEST1)
+            IF (KOUNT2.GT.0) VARBS2(IVAR) = DDPLOT(IBEST2)
+            IF (KOUNT3.GT.0) VARBS3(IVAR) = DDPLOT(IBEST3)
+            IF (KOUNT4.GT.0) VARBS4(IVAR) = DDPLOT(IBEST4)
+            IF (KOUNT5.GT.0) VARBS5(IVAR) = DDPLOT(IBEST5)
+  692    CONTINUE
+C
+         IDESGN = 2
+         OBJBST = 10.E+25
+         GO TO (710,720,730,740,750), IDESGN
+  710    CONTINUE
+C      Only the best FEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0) THEN
+            CALL MOVER(VARBS1,1,VARBST,1,100)
+            OBJBST = OBJMN1
+         ENDIF
+         GO TO 760
+  720    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0) THEN
+            IF (OBJMN2.LT.OBJMN1) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               OBJBST = OBJMN2
+            ELSE
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               OBJBST = OBJMN1
+            ENDIF
+         ENDIF
+         GO TO 760
+  730    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.KOUNT3.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               OBJBST = OBJMN3
+            ENDIF
+         ENDIF
+         GO TO 760
+  740    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       or MORE UNFEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.
+     1       KOUNT3.GT.0.OR.KOUNT4.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            OBJMIN = MIN(OBJMIN,OBJMN4)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               OBJBST = OBJMN3
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN4 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS4,1,VARBST,1,100)
+               OBJBST = OBJMN4
+            ENDIF
+         ENDIF
+         GO TO 760
+  750    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       or MORE UNFEASIBLE or MOSTLY UNFEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.
+     1       KOUNT3.GT.0.OR.KOUNT4.GT.0.OR.KOUNT5.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            OBJMIN = MIN(OBJMIN,OBJMN4)
+            OBJMIN = MIN(OBJMIN,OBJMN5)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               OBJBST = OBJMN3
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN4 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS4,1,VARBST,1,100)
+               OBJBST = OBJMN4
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN5 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS5,1,VARBST,1,100)
+               OBJBST = OBJMN5
+            ENDIF
+         ENDIF
+  760    CONTINUE
+C
+         CALL MOVER(0,0,ISUB,1,100)
+         ITRMAX = 470 
+         IF (ITYPE.EQ.1.AND.ITRTOT.GT.ITRMAX) THEN
+            IRESET = 1
+            ITRALL = ITRALL + ITRTOT
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOX,VARHIX,X,VLB,VUB,NDEC,
+     1                  WORDVX)
+            CALL SETUPV(NVAR,IDV,ILVX,IDLINX,CLINX,VARX,X,WORDVX,
+     1                  CPWR,JTERMS,CLINK0)
+            IZERO = 0
+            CALL SETUPC(NVAR,VARX,ISTIF,NSEG,NLAYER,LTYPE,
+     1                  BB,BB2,HH,WW,WW2,TT,ANGLE,MATL,IZERO,0,2,IFILE8)
+            WRITE(IFILE8,995) OBJBST,CASE
+  995       FORMAT(/' ******* NOTE ******** NOTE ******** NOTE *******'/
+     1   ' THE "BEST" DESIGN HAS JUST BEEN STORED IN THE PROPER COMMON'/
+     1    ' BLOCKS FOR THE NEXT "PANDAOPT". ITS WEIGHT IS',1PE12.4,'.'/
+     1   ' IF YOU WANT TO SEE THE MARGINS CORRESPONDING TO THIS DESIGN'/
+     1    ' RUN "SETUP" FOLLOWED BY "PANDAOPT" WITH THE ANALYSIS TYPE'/
+     1    ' INDEX "ITYPE" SET EQUAL TO 2 IN THE   ',A,'.OPT FILE. THE'/
+     1   ' FOLLOWING CONFIGURATION WILL BE THE STARTING DESIGN FOR THE'/
+     1    ' NEXT OPTIMIZATION RUN.'/
+     1   ' ***** END NOTE ******** END NOTE ******** END NOTE ********')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VARBST,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,19)
+   19    FORMAT(/' ***************************************************'/
+     1    ' ******************** DESIGN OBJECTIVE *******************'/
+     1    ' *************                             ***********')
+C
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+C
+            WRITE(IFILE8,21)
+   21    FORMAT(/' *************                          ************'/
+     1    ' ******************** DESIGN OBJECTIVE *******************'/
+     1    ' *****************************************************')
+C
+         ENDIF
+C        End of (ITYPE.EQ.1.AND.ITRTOT.GT.ITRMAX) condition
+C
+         IF (KOUNT1.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO BEST FEASIBLE DESIGN   '
+            CALL OUTVAR(NVAR,VARBS1,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN1,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT1.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT2.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO ALMOST FEASIBLE DESIGN '
+            CALL OUTVAR(NVAR,VARBS2,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN2,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT2.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT3.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MILDLY UNFEASIB DESIGN '
+            CALL OUTVAR(NVAR,VARBS3,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN3,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT3.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT4.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MORE UNFEASIBLE DESIGN '
+            CALL OUTVAR(NVAR,VARBS4,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN4,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT4.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT5.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MOSTLY UNFEASIB DESIGN '
+            CALL OUTVAR(NVAR,VARBS5,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN5,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT5.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  best design found so far and to set an index, ITIGHT, to unity. ITIGHT
+C  = 1 will tell the mainprocessor, main.src, to tighten the move limits
+C  in the neighborhood of the best design found after ITRMX2 iterations
+C  but before the end of a SUPEROPT run. IAUTOC is set equal to 1 in
+C  chauto.src (AUTOCHANGE) and ITIGHT is set equal to 0 in AUTOCHANGE.
+C  IAUTOC, ITIGHT and IITIGH(i) are all initialized to zero in BEGIN.
+C
+         ITRMX2 = 150
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(1).EQ.0) THEN
+            ITRMIN(1) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(1) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOX,VARHIX,X,VLB,VUB,NDEC,
+     1                  WORDVX)
+            CALL SETUPV(NVAR,IDV,ILVX,IDLINX,CLINX,VARX,X,WORDVX,
+     1                  CPWR,JTERMS,CLINK0)
+            IZERO = 0
+            CALL SETUPC(NVAR,VARX,ISTIF,NSEG,NLAYER,LTYPE,
+     1                  BB,BB2,HH,WW,WW2,TT,ANGLE,MATL,IZERO,0,2,IFILE8)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VARBST,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)=',
+     1               IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)
+         ENDIF
+C
+         ITRMX2 = 300 
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(2).EQ.0) THEN
+            CALL MOVER(0,0,ISUB,1,100)
+            ITRMIN(2) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(2) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOX,VARHIX,X,VLB,VUB,NDEC,
+     1                  WORDVX)
+            CALL SETUPV(NVAR,IDV,ILVX,IDLINX,CLINX,VARX,X,WORDVX,
+     1                  CPWR,JTERMS,CLINK0)
+            IZERO = 0
+            CALL SETUPC(NVAR,VARX,ISTIF,NSEG,NLAYER,LTYPE,
+     1                  BB,BB2,HH,WW,WW2,TT,ANGLE,MATL,IZERO,0,2,IFILE8)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VARBST,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)=',
+     1               IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)
+         ENDIF
+C
+         ITRMX2 = 430 
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(3).EQ.0) THEN
+            CALL MOVER(0,0,ISUB,1,100)
+            ITRMIN(3) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(3) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOX,VARHIX,X,VLB,VUB,NDEC,
+     1                  WORDVX)
+            CALL SETUPV(NVAR,IDV,ILVX,IDLINX,CLINX,VARX,X,WORDVX,
+     1                  CPWR,JTERMS,CLINK0)
+            IZERO = 0
+            CALL SETUPC(NVAR,VARX,ISTIF,NSEG,NLAYER,LTYPE,
+     1                  BB,BB2,HH,WW,WW2,TT,ANGLE,MATL,IZERO,0,2,IFILE8)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VARBST,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)=',
+     1               IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)
+         ENDIF
+C
+         IAUTOC = 0
+C END NOV 2005
+      ENDIF
+C     End of (ITYPE.EQ.1.AND.KOUNT.GT.0) condition
+C
+      CLOSE(UNIT=2)
+C
+      WRITE(IFILE8,700) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET)
+      WRITE(IFILE8,702)
+C
+  700 FORMAT(//' DESCRIPTION OF FILES USED AND GENERATED IN THIS RUN:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.OPP = Output data. Please list this file and inspect'/
+     1'            carefully before proceeding.'/
+     1 1X,A,'.CBL = Labelled common blocks for PANDA2 analysis.'/
+     1'            (This is an unformatted sequential file.)'/
+     1 1X,A,'.PL1 = Binary file containing important results for plots'/
+     1'            from all design iterations except those correspond-'/
+     1'            ing to the final PANDAOPT command.'/
+     1 1X,A,'.PL2 = Binary file containing important results for plots'/
+     1'            from all design iterations including those corres-'/
+     1'            ponding to the final PANDAOPT command.'/
+     1 1X,A,'.PLD = Binary file containing all design parameters that'/
+     1'            are decision variable candidates and the objective'/
+     1'            function for all design iterations.'/
+     1 1X,A,'.TIT = Binary file containing definitions of margins.'/
+     1 1X,A,'.Pij = Binary files containing margins for all design')
+  702 FORMAT(
+     1'            iterations. i = subcase (1 or 2);  j = load set'//
+     1' For further information about files used and generated'/
+     1' during operation of PANDA2, give the command HELPAN FILES.'//
+C BEG JULY 1995
+     1' Menu of commands: PANDAOPT, SUPEROPT, MAINSETUP, CHANGE,'/
+     1'                   DECIDE, CHOOSEPLOT, PANEL, STAGSMODEL '/)
+C END JULY 1995
+C END MARCH 1990
+C BEG JUL 2009
+      WRITE(IFILE8,202) CASE(1:NLET)
+  202 FORMAT(
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  PANDAOPT  MANY TIMES DURING AN OPTIMIZATION. INSPECT THE'/
+     1 1X,A,'.OPP  FILE AFTER EACH OPTIMIZATION RUN. OR BETTER YET,'/
+     1' RUN SUPEROPT.'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "PANDAOPT" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' "How many design iterations permitted in this run (5 to 25)?"'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' "5   $ How many design iterations in this run (5 to 25)?"'/)
+C END JUL 2009
+C
+C BEG APR 1991
+      IF (ITYPE.EQ.1) WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPP FILE ******************'
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPI FILE ******************'
+C END APR 1991
+      CLOSE(UNIT=4)
+      CLOSE(UNIT=8)
+C BEG NOV 1994
+C BEG JULY 1995
+C     IF (IRESET.EQ.1) THEN
+C        CALL EXIT(2)
+C     ENDIF
+C END JULY 1995
+C END NOV 1994
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      STORE2
+      SUBROUTINE STORE2(CASE)
+C
+C  PURPOSE IS TO READ BINARY RESULTS FROM *.SL1 THAT CONTAIN THE
+C  BEHAVIOR OF A PANEL AS IT IS LOADED INCREMENTALLY. PRINT THE
+C  RESULTS IN AN INTELLIGIBLE MANNER, REFORMAT FOR PLOTTING.
+C
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NNNCON,NDEC,NLINK,NESCAP,ITYPE
+      DIMENSION PBNX(23,8),PBNY(23,8),PBNXY(23,8),I5(8)
+C BEG MAY 1990
+      DIMENSION PEX(23,8,2),PEY(23,8,2),PEXY(23,8,2)
+      DIMENSION PEX45(23,8,2),PEY45(23,8,2),PEXY45(23,8,2)
+C END MAY 1990
+      DIMENSION PW(23,8),PU(23,8),PV(23,8),ZREF(23,8),CRACK(990)
+      DIMENSION PBW(23,8),PBU(23,8),PBV(23,8),XALL(200,31),YALL(200,31)
+      DIMENSION XWALL(500,30),YWALL(500,30),XDALL(200,31),YDALL(200,31)
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)  
+      COMMON/THICK/TX(5),TY(5)
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+C BEG MAY 1990
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       IMISCL(12)
+C BEG FEB 1991
+      COMMON/GENPRE/FBPRE,FMISC(29)
+C END FEB 1991
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+      DIMENSION TITLE5(26),TITLE6(26),TITLE7(26),DSPLOT(30,26,6)
+      DIMENSION TITL52(26),TITL62(26),TITL72(26),DSPLT2(30,26,6)
+C BEG SEPT 1990
+      DIMENSION FVECT(30,7),FMX(30),FMY(30)
+C END SEPT 1990
+      CHARACTER*80 TITLE5,TITLE6,TITLE7,TITLOD,TITL52,TITL62,TITL72
+C BEG JAN 1991
+      CHARACTER*80 WRDVTP
+C END JAN 1991
+      CHARACTER*1  CISEG,CI
+      CHARACTER*2  CI2
+      CHARACTER*7  CWLOAD
+C END MAY 1990
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN,NITER,NTIT(5,2)
+C BEG JULY 1989
+      COMMON/SEGSLP/MSLOPE(8)
+      REAL MSLOPE
+C END JULY 1989
+      DIMENSION IADDV(50),IDEC(50),ILV(50),IDLINK(50),ISCAPE(50)
+      DIMENSION IABP(5),ISUB(100),PCWORD(99,30),CPLOT(99,30),DWORD(99)
+C BEG SEPT 1990
+      DIMENSION IABT(5),TTMULT(30),EPSRUT(30),EPSTIP(30)
+      DIMENSION RNGHOP(30),RNGSHR(30),STRHOP(30)
+C END SEPT 1990
+      DIMENSION WORDV(50),IQUICK(5),IWIDE(5),X(24,8),Y(24,8),IADDCC(99)
+      DIMENSION VAR(50),CLINK(50),VARLOW(50),VARHI(50),ECC(5),TITLE4(30)
+      DIMENSION CCPLOT(30,99),TITLES(99),DDPLOT(30,23),TITLE2(23)
+      DIMENSION INUMB(30),NCARI(30),DUM1(200),DUM2(200),TITLE3(31)
+      DIMENSION FNX(30),FNY(30),FNXY(30),P(30),V(30,20),RESULT(3,5,2)
+      DIMENSION WCOORD(90),ITOTW(30),XOLD(24,8),YOLD(24,8)
+      DIMENSION XL(24,8),YL(24,8),ICNECT(24),X2ALL(500),Y2ALL(500)
+      DIMENSION X2DALL(500),Y2DALL(500),UTOT(23,8),WTOT(23,8)
+      DIMENSION XNEW(24,8),YNEW(24,8),UU(23,8),VV(23,8),WW(23,8)
+      CHARACTER*80 PCWORD,WORDV,WORDOB
+      CHARACTER*80 TITLES,TITLE2,TITLE3,TITLE4
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE17,CASE4,CASE7,CASE8,CASE9,CASEU
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE17,CASE4,CASE7,CASE8,CASE9,CASEU
+C END UNIX
+      CHARACTER*1 CILOAD,CICASE,upcase
+      CHARACTER*2 CSTEP,CK,CM
+      CHARACTER*15  DWORD
+      CHARACTER*7 CSCALE,CT,CA
+      CHARACTER*72 ARGSTR
+      REAL LENMOD,N1SKIN,N2SKIN,N12SKN
+      EQUIVALENCE (YDALL(1,1),YWALL(1,1))
+      EQUIVALENCE (XDALL(1,1),XWALL(1,1))
+C BEG UNIX
+      integer lastch
+      logical exists
+C END UNIX
+C
+      IFILE2 = 2
+      IFILE3 = 3
+      IFILE4 = 4
+      IFILE7 = 7
+      IFILE8 = 8
+      ifile9 = 9
+      IFIL17 = 17
+      I=INDEX(CASE,' ')
+      IX = I
+      IF(I.NE.0) THEN
+        CASE4=CASE(:I-1)//'.TTT' 
+        CASE8=CASE(:I-1)//'.OPI'
+C BEG JULY 1989
+        CASE9=CASE(:I-1)//'.SL1'
+C END JULY 1989
+        CASE7=CASE(:I-1)//'.CBL'
+        CASE17=CASE(:I-1)//'.PLD'
+      ELSE
+        CASE4=CASE//'.TTT' 
+        CASE8=CASE//'.OPI'
+C BEG JULY 1989
+        CASE9=CASE//'.SL1'
+C END JULY 1989
+        CASE7=CASE//'.CBL'
+        CASE17=CASE//'.PLD'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG VMS
+C     OPEN(UNIT=8, FILE=CASE8, STATUS='UNKNOWN')
+C     OPEN(UNIT=4,FILE=CASE4,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=9,FILE=CASE9,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=17,FILE=CASE17,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile4)
+#endif
+      else
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case9(1:lastch(case9)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile9, FILE=case9(1:lastch(case9)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile9)
+#endif
+      else
+        OPEN(UNIT=ifile9, FILE=case9(1:lastch(case9)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case17(1:lastch(case17)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifil17, FILE=case17(1:lastch(case17)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifil17)
+#endif
+      else
+        OPEN(UNIT=ifil17, FILE=case17(1:lastch(case17)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+      CLOSE(UNIT=17)
+C
+C BEG JULY 1989
+C BEG JULY 2011
+      WRITE(IFILE8,'(A)')
+     1' ************ JULY, 2011 VERSION OF PANDA2   ************'
+C END JULY 2011
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPI FILE ******************'
+C END JULY 1989
+      WRITE(IFILE8,4) CASE(1:NLET)
+    4 FORMAT(/
+     1' *********************** STORE2 PROCESSOR *********************'/
+     1' The purpose of STORE2 is to show the behavior of a given'/
+     1' design for several load increments. Only a single load case'/
+     1' is explored in a given run. The name of this case is ',A,'.'/
+     1' ************************************************************'/)
+C
+      CALL MOVER(0.,0,XWALL,1,15000)
+      CALL MOVER(0.,0,YWALL,1,15000)
+      CALL MOVER(0.,0,XALL,1,6200)
+      CALL MOVER(0.,0,YALL,1,6200)
+      CALL MOVER(0,0,ISUB,1,100)
+      IRESET = 0
+      REWIND 9
+C BEG SEPT 1990
+      READ(9) DNX,DNY,DNXY,DMX,DMY,DPIN,DTMULT
+      READ(9) ILOAD,ICASE
+      READ(9) NVAR,IABP(ILOAD),IQUICK(ILOAD),IWIDE(ILOAD),IABT(ILOAD)
+C END SEPT 1990
+      READ(9) OBJ,WORDOB
+      READ(9) (VAR(I),I=1,NVAR)
+      READ(9) (WORDV(I),I=1,NVAR)
+      READ(9) (IADDV(I),I=1,NVAR)
+      READ(9) (CLINK(I),I=1,NVAR)
+      READ(9) (IDEC(I),I=1,NVAR)
+      READ(9) (ILV(I),I=1,NVAR)
+      READ(9) (IDLINK(I),I=1,NVAR)
+      READ(9) (ISCAPE(I),I=1,NVAR)
+      READ(9) (VARLOW(I),I=1,NVAR)
+      READ(9) (VARHI(I),I=1,NVAR)
+C
+      ARGSTR = '        CURRENT VALUES OF DESIGN '//
+     $         'VARIABLES                        '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+C
+      CALL OUTWAL(IFILE8,ISTIF,NLAYER,NSEG,LTYPE,T,ANGLE,MATL,INTEXT,
+     1            CRACK,B2,W2)
+C 
+         WRITE(IFILE8,19)
+   19    FORMAT(/' ***************************************************'/
+     1' ******************** DESIGN OBJECTIVE *******************'/
+     1' *************                             ***********')
+      IADDD = 0
+      ARGSTR = '   CURRENT VALUE OF THE OBJECTIVE FU'//
+     $         'NCTION:                       '
+      CALL OUTVAR(1,OBJ,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB)
+C
+         WRITE(IFILE8,21)
+   21    FORMAT(/' *************                          ************'/
+     1' ******************** DESIGN OBJECTIVE *******************'/
+     1' *****************************************************')
+C
+  100 CONTINUE
+C
+         READ(9) NSTEPS,NCAR,ISTEP,ISTOPP,NSEGB5,(I5(I),I=1,NSEGB5)
+C BEG MAY 1990
+         READ(9) FNX(ISTEP),FNY(ISTEP),FNXY(ISTEP),FMX(ISTEP),
+     1           FMY(ISTEP),FNX0,FNY0,FNXY0,
+C BEG SEPT 1990
+     1           P(ISTEP),FXBEG,FXEND,FYBEG,FYEND,FXYBEG,FXYEND,
+     1           TTMULT(ISTEP),EPSRUT(ISTEP),EPSTIP(ISTEP)
+C END SEPT 1990
+C END MAY 1990
+C BEG AUGUST 1990
+         READ(9) WIMPG,WIMPL,WRESID,WPRESG,AMPLIT,ECC(ILOAD),LENMOD,
+     1           AXIAL,EIGLOC,PBNLOC,WDELKP,DUMX,DUMX,DUMX,DUMX,
+     1           DUMX,DUMX,DUMX,DUMX,DUMX
+C END AUGUST 1990
+         READ(9) PBSLOP,PBMWAV,PBA,PBF,E1AVE,E2AVE,E12AVE,
+     1           CTAN11,CTAN12,CTAN22,CTAN33,N1SKIN,N2SKIN,N12SKN
+C BEG JAN 1996
+         READ(9) CTN211,CTN212,CTN213,CTN222,CTN223,CTN233
+C END JAN 1996
+         READ(9) ((RESULT(I,J,1),I=1,3),J=1,5)
+         READ(9) ((RESULT(I,J,2),I=1,3),J=1,5)
+         READ(9) ((PBW(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PBU(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PBV(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PW(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PU(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PV(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PBNX(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PBNY(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((PBNXY(I,J),I=1,23),J=1,NSEGB5)
+         READ(9) ((ZREF(I,J),I=1,23),J=1,NSEGB5)
+C BEG MAY 1990
+         READ(9) ((PEX(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEY(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEXY(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEX(I,J,2),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEY(I,J,2),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEXY(I,J,2),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEX45(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEY45(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEXY45(I,J,1),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEX45(I,J,2),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEY45(I,J,2),I=1,23),J=1,NSEGB5)
+         READ(9) ((PEXY45(I,J,2),I=1,23),J=1,NSEGB5)
+C
+         FVECT(ISTEP,1) = FNX(ISTEP)
+         FVECT(ISTEP,2) = FNY(ISTEP)
+         FVECT(ISTEP,3) = FNXY(ISTEP)
+         FVECT(ISTEP,4) = FMX(ISTEP)
+         FVECT(ISTEP,5) = FMY(ISTEP)
+         FVECT(ISTEP,6) = P(ISTEP)
+C BEG SEPT 1990
+         FVECT(ISTEP,7) = TTMULT(ISTEP)
+C END SEPT 1990
+C END MAY 1990
+C BEG  1 MAY 1989
+         IF (NCAR.GT.0) THEN
+            READ(9) (CPLOT(I,ISTEP),I=1,NCAR)
+            READ(9) (PCWORD(I,ISTEP),I=1,NCAR)
+            READ(9) (IADDCC(I),I=1,NCAR)
+         ENDIF
+C END  1 MAY 1989
+C
+      IF (ISTEP.EQ.1) THEN
+C  GET X,Y COORDINATES OF UNDEFORMED SECTION (SEGMENT BY SEGMENT)
+         XORIG = 0.
+         YORIG = 0.
+         CALL XYCORD(NSEGB5,I5,ISTIF(1),B(1),B2(1),H(1),W(1),W2(1),
+C BEG MAY 1997
+     1               ZREF,X,Y,XORIG,YORIG,0,IZSTIF(1))
+C END MAY 1997
+         CALL MOVER(X,1,XOLD,1,192)
+         CALL MOVER(Y,1,YOLD,1,192)
+C
+C  GET X,Y COORDINATES OF UNDEFORMED SECTION (COMBINED IN XALL,YALL)
+C
+         ITOT = 0
+         DO 135 ISEG = 1,NSEGB5
+  135    ITOT = ITOT + I5(ISEG) + 1
+         CALL MOVER(0.,0,DUM1,1,200)
+         CALL MOVER(0.,0,DUM2,1,200)
+C BEG AUG 1996
+         IF (IQUICK(ILOAD).EQ.1) WMAX = 1.
+C END AUG 1996
+         SCALED = 0.2*B(1)/WMAX
+         WRITE(IFILE8,136) WMAX
+  136    FORMAT(/' MAXIMUM NORMAL DEFLECTION=', 1PE12.4/)
+         CALL CONVRF(SCALED,CSCALE)
+         CALL XYALL(ISTIF(1),NSEGB5,I5,X,Y,DUM1,DUM2,SCALED,
+     1              XALL(1,1),YALL(1,1),0,ICNECT,I2ALL)
+         AXEFF = LENMOD*AXIAL
+         WRITE(IFILE8,137) AXIAL, LENMOD, AXEFF, CIRC, R
+  137 FORMAT(/' OVERALL DIMENSIONS OF THE PANEL:'/
+     1' Physical axial length of the panel,           AXIAL =',1PE12.4/
+     1' Multiplier for axial length in order'/
+     1'  to compensate for possible clamping, if any, LENMOD=',1PE12.4/
+     1' Effective axial length used for overall'/
+     1'  behavior (bowing, overall buckling),   AXIAL*LENMOD=',1PE12.4/
+     1' Length of arc in circumferential direction,    CIRC =',1PE12.4/
+     1' Radius of curvature of the panel,                 R =',1PE12.4)
+C BEG JULY 1989
+         IF (ISTIF(1).NE.5.AND.ISTIF(2).NE.5) THEN
+            WRITE(IFILE8,138) B(1),B(2),B2(1),H(1),W(1),W2(1)
+  138 FORMAT(/' STIFFENER SPACINGS AND STRINGER CROSS SECTION:'/
+     1' Spacing between stringers,                     b(1) =',1PE12.4/
+     1' Spacing between rings,                         b(2) =',1PE12.4/
+     1' Width of base under the stringer,             b2(1) =',1PE12.4/
+     1' Height of stringer (from top surface of stringer'/
+     1'  base to refer. surface of outstanding flange),h(1) =',1PE12.4/
+     1' Width of outstanding flange, if any,           w(1) =',1PE12.4/
+     1' Width between webs of hat at stringer base,   w2(1) =',1PE12.4)
+         ENDIF
+         IF (ISTIF(1).EQ.5) THEN
+            WRITE(IFILE8,1381) B(1),B(2),H(1)
+ 1381 FORMAT(/' TRUSS-CORE SANDWICH DIMENSIONS:'/
+     1' Pitch of the truss core,                       b(1) =',1PE12.4/
+     1' Spacing between rings,                         b(2) =',1PE12.4/
+     1' Height of truss core (from refer. surface of'/
+     1'  lower face to refer. surface of upper face,   h(1) =',1PE12.4)
+         ENDIF
+C
+         IF (ISTIF(2).EQ.5) THEN
+            WRITE(IFILE8,1382) B(2),B(1),H(2)
+ 1382 FORMAT(/' TRUSS-CORE SANDWICH DIMENSIONS:'/
+     1' Pitch of the truss core,                       b(2) =',1PE12.4/
+     1' Spacing between stringers,                     b(1) =',1PE12.4/
+     1' Height of truss core (from refer. surface of'/
+     1'  lower face to refer. surface of upper face,   h(2) =',1PE12.4)
+         ENDIF
+C END JULY 1989
+C
+C BEG SEPT 1990
+      WRITE(IFILE8,1383) DNX,DNY,DNXY,DMX,DMY,DPIN,DTMULT
+ 1383 FORMAT(/
+     1' LOAD/LENGTH INCREMENTS, DNX, DNY, DNXY, DMX, DMY, DP, DTMULT:'/
+     1'  Applied axial load/length increment,         DNX   =',1PE12.4/
+     1'  Applied hoop  load/length increment,         DNY   =',1PE12.4/
+     1'  Applied in-plane shear load/length increment,DNXY  =',1PE12.4/
+     1'  Applied axial moment/length increment,       DMX   =',1PE12.4/
+     1'  Applied hoop  moment/length increment,       DMY   =',1PE12.4/
+     1'  Applied normal pressure increment (pos."up"),DP    =',1PE12.4/
+     1'  Temperature multiplier increment,            DTMULT=',1PE12.4)
+C END SEPT 1990
+      ENDIF
+C
+C  FIND NEAR-CRITICAL MARGINS...
+C
+C BEG  1 MAY 1989
+      IF (NCAR.GT.0) THEN
+         DO 10 I = 1,NCAR
+            IF (CPLOT(I,ISTEP).LT.0.05) INUMB(ISTEP) =INUMB(ISTEP) +1
+   10    CONTINUE
+      ENDIF
+C END  1 MAY 1989
+C
+      IF (IABP(ILOAD).EQ.0) THEN
+               WRITE(IFILE8,139)
+     1             ILOAD,ICASE,FNX(ISTEP),FNY(ISTEP),FNXY(ISTEP),
+     1             FNX0,FNY0,FNXY0,P(ISTEP)
+      ELSE
+              WRITE(IFILE8,1391)
+     1             ILOAD,ICASE,FNX(ISTEP),FNY(ISTEP),FNXY(ISTEP),
+     1             P(ISTEP),FNX0,FNY0,FNXY0
+      ENDIF
+  139 FORMAT(/' *********** LOAD SET NO.',I2,'  **************'/
+     1' ICASE = ',I2,'  (ICASE=1 MEANS PANEL MIDLENGTH)'/
+     1'             (ICASE=2 MEANS PANEL ENDS)'//
+     1'   APPLIED LOADS IN LOAD SET A ("eigenvalue" loads):'/
+     1'         Applied     axial       stress resultant, N1=',1PE12.4/
+     1'         Applied circumferential stress resultant, N2=',1PE12.4/
+     1'         Applied    in-plane     shear  resultant,N12=',1PE12.4//
+     1'   APPLIED LOADS IN LOAD SET B ( fixed uniform loads):'/
+     1'         Applied     axial       stress resultant,N10=',1PE12.4/
+     1'         Applied circumferential stress resultant,N20=',1PE12.4/
+     1'         Applied    in-plane    shear  resultant,N120=',1PE12.4/
+     1'         Applied pressure (positive for upward),   P =',1PE12.4//
+     1'   NOTE...."F.S." means "Factor of Safety"')
+ 1391 FORMAT(/' *********** LOAD SET NO.',I2,'  **************'/
+     1' ICASE = ',I2,'  (ICASE=1 MEANS PANEL MIDLENGTH)'/
+     1'             (ICASE=2 MEANS PANEL ENDS)'//
+     1'   APPLIED LOADS IN LOAD SET A ("eigenvalue" loads):'/
+     1'         Applied     axial       stress resultant, N1=',1PE12.4/
+     1'         Applied circumferential stress resultant, N2=',1PE12.4/
+     1'         Applied    in-plane     shear  resultant,N12=',1PE12.4/
+     1'         Applied pressure (positive for upward),   P =',1PE12.4//
+     1'   APPLIED LOADS IN LOAD SET B ( fixed uniform loads):'/
+     1'         Applied     axial       stress resultant,N10=',1PE12.4/
+     1'         Applied circumferential stress resultant,N20=',1PE12.4/
+     1'         Applied    in-plane    shear  resultant,N120=',1PE12.4//
+     1'   NOTE...."F.S." means "Factor of Safety"')
+C
+         IF (ABS(PBSLOP).GT.20.) PBSLOP = 0.
+         WBEND = -AMPLIT*ECC(ILOAD)
+C BEG AUGUST 1990
+C BEG FEB 1991
+         WPDEN = 1.0
+         IBPRE = FBPRE
+         IF (IBPRE.EQ.1) WPDEN = AMPLIT
+C BEG NOV 1994
+         WBOW  = (WIMPG+WRESID+WPRESG/WPDEN-ECC(ILOAD))*AMPLIT+WDELKP
+     1                                     +ECC(ILOAD)
+C END NOV 1994
+C END FEB 1991
+         WRITE(IFILE8,53) WIMPG,WIMPL,WRESID,WPRESG,AMPLIT,ECC(ILOAD),
+     1                    WBEND,WDELKP,WBOW
+   53 FORMAT(/' PANEL OVERALL AND LOCAL IMPERFECTIONS AND DEFORMATION'/
+     1' Bowing initial imperfection amplitude, Wimp(global) =',1PE12.4/
+     1' Local  initial imperfection amplitude, Wimp(local)  =',1PE12.4/
+     1' Bowing due to curing,                  W(residual)  =',1PE12.4/
+     1' Bowing due to normal pressure (global model),    Wp =',1PE12.4/
+     1' Amplitude factor for all bowing quantities,  AMPLIT =',1PE12.4/
+     1' Eccentricity of application of axial loads,     ECC =',1PE12.4/
+     1' Bowing from axial load with eccentricity ECC: WBEND =',1PE12.4/
+     1' Bowing from postbuckling neutral axis shift, WDELKP =',1PE12.4/
+     1' Total axial bowing of the panel under load:    WBOW =',1PE12.4)
+C END AUGUST 1990
+C
+C BEG JULY 1989
+      PBWMAX = 0.
+      DO 535 ISEG = 1,NSEGB5
+         I5I = I5(ISEG)
+         DO 532 I = 1,I5I
+            PSUM   = ABS(PBW(I,ISEG)) + ABS(PW(I,ISEG))
+            PBWMAX = MAX(PBWMAX,PSUM)
+  532    CONTINUE
+  535 CONTINUE
+      IPBWMX = 1
+      ISEGPW = 1
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      IF (PBWMAX.GT.0.) THEN
+         DO 538 ISEG = 1,NSEGB5
+            I5I = I5(ISEG)
+            DO 536 I = 1,I5I
+               PSUM   = ABS(PBW(I,ISEG)) + ABS(PW(I,ISEG))
+               DIFF = (PBWMAX - PSUM)/PBWMAX
+               IF (DIFF.LT.0.0001) THEN
+                  IPBWMX = I
+                  ISEGPW = ISEG
+                  GO TO 539
+               ENDIF
+  536       CONTINUE
+  538    CONTINUE
+  539    CONTINUE
+      ENDIF
+C
+      WRITE(IFILE8,54) EIGLOC,PBNLOC,PBSLOP,PBMWAV,PBF,PBA,PBWMAX,
+     1                 ISEGPW,IPBWMX
+   54 FORMAT(/' LOCAL BUCKLING LOAD FACTOR AND AXIAL HALFWAVES;'/
+     1        '  POST-BUCKLING PARAMETERS FROM KOITER THEORY'/
+     1' Load factor for local buckling from BOSOR model,eig =',1PE12.4/
+     1' Half-waves between adjacent rings at bifurcation, m =',1PE12.4/
+     1' Slope of post-local buckling nodal lines,         c =',1PE12.4/
+     1' Half-waves between adjacent rings, post-buckling, m =',1PE12.4/
+     1' Amplitude factor, f,  in  f*(phi +a*phi**3),      f =',1PE12.4/
+     1' Factor, a, in the formula f*(phi +a*phi**3),      a =',1PE12.4/
+     1' Maximum local normal deflection in panel module,'/
+     1'   including the effect of normal pressure,        w =',1PE12.4/
+     1'   Segment no. and nodal point no. of maximum w, loc =',2I5)
+C
+      IF (ISTIF(1).NE.5.AND.ISTIF(2).NE.5) THEN
+         WRITE(IFILE8,55) E1AVE,E2AVE,E12AVE,N1SKIN,N2SKIN,N12SKN
+   55 FORMAT(/' AVERAGE STRAINS AND RESULTANTS IN PANEL SKIN FOR THE'/
+     1' PANEL IN ITS LOCALLY POSTBUCKLED STATE (reference surface is'/
+     1' refer. surface of the panel skin midway between stringers)'/
+     1' Average axial strain (panel skin + in b2),eps1(ave) =',1PE12.4/
+     1' Average hoop  strain (panel skin + in b2),eps2(ave) =',1PE12.4/
+     1' Average shear strain (panel skin + in b2),eps12(ave)=',1PE12.4/
+     1' Average axial resultant in panel skin,     Nx(skin) =',1PE12.4/
+     1' Average hoop  resultant in panel skin,     Ny(skin) =',1PE12.4/
+     1' Average shear resultant in panel skin,    Nxy(skin) =',1PE12.4)
+C
+         WRITE(IFILE8,56) CTAN11,CTAN12,CTAN22,CTAN33
+C BEG JAN 1996
+   56 FORMAT(/
+     1' AVERAGE TANGENT STIFFNESSES IN PANEL SKIN (PANDA2 version)'/
+     1        ' (BASE UNDER THE STRINGER INCLUDED IN THE AVERAGES)'/
+     1' Average axial stiffness/circ. arc length, CTAN(1,1) =',1PE12.4/
+     1' Average C(1,2)stiffness/circ. arc length, CTAN(1,2) =',1PE12.4/
+     1' Average hoop  stiffness/axial arc length, CTAN(2,2) =',1PE12.4/
+     1' Average shear stiffness/circ. arc length, CTAN(3,3) =',1PE12.4)
+C
+         WRITE(IFILE8,562) CTN211,CTN222,CTN233,CTN212,CTN213,CTN223
+  562 FORMAT(/
+     1' AVERAGE NORMALIZED TANGENT STIFF. IN PANEL SKIN (for STAGS)'/
+     1          ' NORMALIZED AVERAGE SKIN TANGENT STIFFNESS MATRIX'/
+     1          ' (CTAN(i,i)/CX(i,i,1), i=1,2,3) = ',1P,3E12.4/
+     1          ' TANGENT POISSON RATIO'/
+     1          ' CTAN(1,2)/CTAN(1,1) = ',1P,E12.4/
+     1          ' NORMALIZED AVERAGE (N1skin,N12skn) COUPLING'/
+     1          ' CTAN(1,3)/CX(1,1,1) = ',1P,E12.4/
+     1          ' NORMALIZED AVERAGE (N2skin,N12skn) COUPLING'/
+     1          ' CTAN(2,3)/CX(2,2,1) = ',1P,E12.4)
+C END JAN 1996
+C
+      ENDIF
+C
+      IF (ISTIF(1).EQ.5.OR.ISTIF(2).EQ.5) THEN
+         WRITE(IFILE8,551) E1AVE,E2AVE,E12AVE,N1SKIN,N2SKIN,N12SKN
+  551 FORMAT(/' AVERAGE STRAINS AND RESULTANTS IN PANEL FOR THE'/
+     1' PANEL IN ITS LOCALLY POSTBUCKLED STATE (reference surface is'/
+     1' refer. surface of the entire truss core sandwich)'/
+     1' Average axial strain in the panel,        eps1(ave) =',1PE12.4/
+     1' Average hoop  strain in the panel,        eps2(ave) =',1PE12.4/
+     1' Average shear strain in the panel,        eps12(ave)=',1PE12.4/
+     1' Average axial resultant in the panel,   Nx(overall) =',1PE12.4/
+     1' Average hoop  resultant in the panel,   Ny(overall) =',1PE12.4/
+     1' Average shear resultant in the panel,  Nxy(overall) =',1PE12.4)
+C
+         WRITE(IFILE8,561) CTAN11,CTAN12,CTAN22,CTAN33
+C BEG JAN 1996
+  561 FORMAT(/
+     1' AVERAGE TANGENT STIFFNESSES IN PANEL SKIN (PANDA2 version)'/
+     1' Average axial stiffness/circ. arc length, CTAN(1,1) =',1PE12.4/
+     1' Average C(1,2)stiffness/circ. arc length, CTAN(1,2) =',1PE12.4/
+     1' Average hoop  stiffness/axial arc length, CTAN(2,2) =',1PE12.4/
+     1' Average shear stiffness/circ. arc length, CTAN(3,3) =',1PE12.4)
+C
+         WRITE(IFILE8,563) CTN211,CTN222,CTN233,CTN212,CTN213,CTN223
+  563 FORMAT(/
+     1' AVERAGE NORMALIZED TANGENT STIFF. IN PANEL SKIN (for STAGS)'/
+     1          ' NORMALIZED AVERAGE OVERALL TANGENT STIFFNESS MATRIX'/
+     1          ' (CTAN(i,i)/CSN(i,i), i=1,2,3) = ',1P,3E12.4/
+     1          ' TANGENT POISSON RATIO'/
+     1          ' CTAN(1,2)/CTAN(1,1) = ',1P,E12.4/
+     1          ' NORMALIZED AVERAGE (N1,N12) COUPLING'/
+     1          ' CTAN(1,3)/CSN(1,1)  = ',1P,E12.4/
+     1          ' NORMALIZED AVERAGE (N2,N12) COUPLING'/
+     1          ' CTAN(2,3)/CSN(2,2)  = ',1P,E12.4)
+C END JAN 1996
+C
+      ENDIF
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+C
+      IF (ISTIF(1).NE.0.AND.ISTIF(1).NE.5) THEN
+         WRITE(IFILE8,57)
+   57 FORMAT(/' AVERAGE RESULTANTS IN VARIOUS SEGMENTS OF THE SKIN-STRIN
+     1GER CROSS SECTION')
+         WRITE(IFILE8,572) ((RESULT(I,J,1),I=1,3),J=1,4)
+  572 FORMAT(
+     1' Average axial resultant in panel skin,      Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in panel skin,      Ny(ave) =',1PE12.4/
+     1' Average shear resultant in panel skin,     Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in STRINGER base,   Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in STRINGER base,   Ny(ave) =',1PE12.4/
+     1' Average shear resultant in STRINGER base,  Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in STRINGER web(s), Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in STRINGER web(s), Ny(ave) =',1PE12.4/
+     1' Average shear resultant in STRINGER web(s),Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in STRINGER flange, Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in STRINGER flange, Ny(ave) =',1PE12.4/
+     1' Average shear resultant in STRINGER flange,Nxy(ave) =',1PE12.4)
+      ENDIF
+C
+      IF (ISTIF(1).EQ.5) THEN
+         WRITE(IFILE8,573)
+  573 FORMAT(/' AVERAGE RESULTANTS IN SEGMENTS OF THE TRUSS-CORE BEFORE 
+     1LOCAL BUCKLING OCCURS')
+         WRITE(IFILE8,574) ((RESULT(I,J,1),I=1,3),J=1,3)
+  574 FORMAT(
+     1' Average axial resultant in panel LOWER skin,Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in panel LOWER skin,Ny(ave) =',1PE12.4/
+     1' Average shear resultant in panel LOWER skin,Nxy(ave)=',1PE12.4/
+     1' Average axial resultant in STRINGER web(s), Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in STRINGER web(s), Ny(ave) =',1PE12.4/
+     1' Average shear resultant in STRINGER web(s),Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in panel UPPER skin,Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in panel UPPER skin,Ny(ave) =',1PE12.4/
+     1' Average shear resultant in panel UPPER skin,Nxy(ave)=',1PE12.4)
+      ENDIF
+C
+      IF (ISTIF(2).NE.0.AND.ISTIF(2).NE.5) THEN
+C BEG SEPT 1990
+         WRITE(IFILE8,58) ((RESULT(I,J,2),I=1,3),J=2,4),
+     1                    EPSRUT(ISTEP),EPSTIP(ISTEP)
+C END SEPT 1990
+   58 FORMAT(/' AVERAGE RESULTANTS IN VARIOUS SEGMENTS OF THE SKIN-RING 
+     1CROSS SECTION'/
+     1' Average axial resultant in   RING   base,   Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in   RING   base,   Ny(ave) =',1PE12.4/
+     1' Average shear resultant in   RING   base,  Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in   RING   web(s), Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in   RING   web(s), Ny(ave) =',1PE12.4/
+     1' Average shear resultant in   RING   web(s),Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in   RING   flange, Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in   RING   flange, Ny(ave) =',1PE12.4/
+     1' Average shear resultant in   RING   flange,Nxy(ave) =',1PE12.4/
+     1' Strain along axis of ring at web root,      EPSROOT =',1PE12.4/
+     1' Strain along axis of ring at web tip,       EPSTIP  =',1PE12.4)
+      ENDIF
+C
+      IF (ISTIF(2).EQ.5) THEN
+         WRITE(IFILE8,583)
+  583 FORMAT(/' AVERAGE RESULTANTS IN SEGMENTS OF THE TRUSS-CORE BEFORE 
+     1LOCAL BUCKLING OCCURS')
+         WRITE(IFILE8,584) ((RESULT(I,J,2),I=1,3),J=1,3)
+  584 FORMAT(
+     1' Average axial resultant in panel LOWER skin,Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in panel LOWER skin,Ny(ave) =',1PE12.4/
+     1' Average shear resultant in panel LOWER skin,Nxy(ave)=',1PE12.4/
+     1' Average axial resultant in   RING   web(s), Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in   RING   web(s), Ny(ave) =',1PE12.4/
+     1' Average shear resultant in   RING   web(s),Nxy(ave) =',1PE12.4/
+     1' Average axial resultant in panel UPPER skin,Nx(ave) =',1PE12.4/
+     1' Average hoop  resultant in panel UPPER skin,Ny(ave) =',1PE12.4/
+     1' Average shear resultant in panel UPPER skin,Nxy(ave)=',1PE12.4)
+      ENDIF
+C END JULY 1989
+C
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      WRITE(IFILE8,550) NSEGB5
+  550 FORMAT(//
+     1'         LOCALLY DEFORMED STATE IN THE PANEL MODULE SHOWN ABOVE'/ 
+     1'                  PANEL MODULE HAS',I2,' SEGMENTS'/
+     1' Nodal Coordinates       Post-local-buckling displac. Post-local-
+     1buckling resultants   Local displ. due to pressure'/
+     1'                        (includes local imperfection)'/
+     1' Point  x         y         w         u         v         Nx       
+     1   Ny       Nxy        w(p)      u(p)      v(p)')
+C     
+      DO 800 ISEG = 1,NSEGB5
+      I5I = I5(ISEG)    
+      WRITE(IFILE8,600) ISEG
+  600  FORMAT(/
+     1'                  Locally Deformed State for Segment Number',I2)
+      DO 620 I = 1,I5I
+        WRITE(IFILE8,610) I,X(I,ISEG),Y(I,ISEG),PBW(I,ISEG),PBU(I,ISEG),
+     1    PBV(I,ISEG),PBNX(I,ISEG),PBNY(I,ISEG),PBNXY(I,ISEG),
+     1    PW(I,ISEG),PU(I,ISEG),PV(I,ISEG)
+  610 FORMAT(I3,1P,11E10.2)
+  620 CONTINUE
+C     
+  800 CONTINUE    
+C
+C BEG MAY 1990
+      WRITE(IFILE8,805)
+  805 FORMAT(//
+     1'       PEAK EXTREME FIBER STRAIN COMPONENTS IN THE PANEL MODULE'/ 
+     1'            IN GLOBAL (AXIAL, CIRCUMFERENTIAL) COORDINATES'/
+     1'        (Note: Peak shear strains occur at different axial'/
+     1'               stations from peak axial and circumf. strains.)'//
+     1' Module  Node    Layer no. 1 extreme fiber          Opposite extr
+     1eme fiber'/
+     1'  Seg.  Point   Axial     Circumf.    Shear        Axial    Circu
+     1mf.    Shear'/
+     1'                Strain     Strain    Strain        Strain    Stra
+     1in    Strain')
+C
+      IPOINT = 0
+      DO 850 ISEG = 1,NSEGB5
+      I5I = I5(ISEG)    
+      IF (ISEG.GT.1) WRITE(IFILE8,810)
+  810  FORMAT(' ')
+      DO 830 I = 1,I5I
+        PNORM = SQRT(PEX(I,ISEG,1)**2 +PEY(I,ISEG,1)**2
+     1             +PEXY(I,ISEG,1)**2)
+C BEG AUG 1992
+        IF (ISTIF(1).EQ.4.AND.NSEGB5.EQ.8
+     1                   .AND.ISEG.EQ.7.AND.I.EQ.(I5I/2+1)) PNORM = 0.
+C END AUG 1992
+        IF (PNORM.LT.10.E-8) GO TO 830
+        WRITE(IFILE8,820) ISEG,I,PEX(I,ISEG,1),PEY(I,ISEG,1),
+     1            PEXY(I,ISEG,1),PEX(I,ISEG,2),PEY(I,ISEG,2),
+     1            PEXY(I,ISEG,2)
+  820 FORMAT(I3,I6,1PE14.3,1P,2E11.3,1PE13.3,1P,2E11.3)
+      IPOINT = IPOINT + 1
+      DSPLOT(ISTEP,IPOINT,1) = PEX(I,ISEG,1)
+      DSPLOT(ISTEP,IPOINT,2) = PEX(I,ISEG,2)
+      DSPLOT(ISTEP,IPOINT,3) = PEY(I,ISEG,1)
+      DSPLOT(ISTEP,IPOINT,4) = PEY(I,ISEG,2)
+      DSPLOT(ISTEP,IPOINT,5) = PEXY(I,ISEG,1)
+      DSPLOT(ISTEP,IPOINT,6) = PEXY(I,ISEG,2)
+      IF (ISTEP.EQ.1) THEN
+         CALL CONVR1(ISEG,CISEG)
+         IF (I.LT.10) THEN
+            CALL CONVR1(I,CI)
+            CI2(1:1) = CI(1:1)
+            CI2(2:2) = ' '
+         ENDIF
+         IF (I.GE.10) CALL CONVR2(I,CI2)
+         TITLE5(IPOINT) = 'Extreme fiber AXIAL strains at seg. '
+     1                    //CISEG//', node '//CI2
+         TITLE6(IPOINT) = 'Extreme fiber HOOP  strains at seg. '
+     1                    //CISEG//', node '//CI2
+         TITLE7(IPOINT) = 'Extreme fiber SHEAR strains at seg. '
+     1                    //CISEG//', node '//CI2
+      ENDIF
+  830 CONTINUE
+C     
+  850 CONTINUE    
+C
+C  PRINT OUT "DIAGONAL" (45-DEGREE) EXTREME FIBER STRAINS...
+      WRITE(IFILE8,905)
+  905 FORMAT(//
+     1'       PEAK EXTREME FIBER STRAIN COMPONENTS IN THE PANEL MODULE'/ 
+     1'            IN GLOBAL "DIAGONAL" (+,-)45-DEGREE COORDINATES'/
+     1' Module  Node    Layer no. 1 extreme fiber          Opposite extr
+     1eme fiber'/
+     1'  Seg.  Point  +45-deg.   -45-deg.   45-deg.      +45-deg.  -45-d
+     1eg.   45-deg.'/
+     1'                Normal     Normal    Shear         Normal    Norm
+     1al    Shear'/
+     1'                Strain     Strain    Strain        Strain    Stra
+     1in    Strain')
+C
+      IPOINT = 0
+      DO 950 ISEG = 1,NSEGB5
+      I5I = I5(ISEG)    
+      IF (ISEG.GT.1) WRITE(IFILE8,910)
+  910  FORMAT(' ')
+      DO 930 I = 1,I5I
+        PNORM = SQRT(PEX45(I,ISEG,1)**2 +PEY45(I,ISEG,1)**2
+     1             +PEXY45(I,ISEG,1)**2)
+C BEG AUG 1992
+        IF (ISTIF(1).EQ.4.AND.NSEGB5.EQ.8
+     1                   .AND.ISEG.EQ.7.AND.I.EQ.(I5I/2+1)) PNORM = 0.
+C END AUG 1992
+        IF (PNORM.LT.10.E-8) GO TO 930
+        WRITE(IFILE8,920) ISEG,I,PEX45(I,ISEG,1),PEY45(I,ISEG,1),
+     1            PEXY45(I,ISEG,1),PEX45(I,ISEG,2),PEY45(I,ISEG,2),
+     1            PEXY45(I,ISEG,2)
+  920 FORMAT(I3,I6,1PE14.3,1P,2E11.3,1PE13.3,1P,2E11.3)
+      IPOINT = IPOINT + 1
+      DSPLT2(ISTEP,IPOINT,1) = PEX45(I,ISEG,1)
+      DSPLT2(ISTEP,IPOINT,2) = PEX45(I,ISEG,2)
+      DSPLT2(ISTEP,IPOINT,3) = PEY45(I,ISEG,1)
+      DSPLT2(ISTEP,IPOINT,4) = PEY45(I,ISEG,2)
+      DSPLT2(ISTEP,IPOINT,5) = PEXY45(I,ISEG,1)
+      DSPLT2(ISTEP,IPOINT,6) = PEXY45(I,ISEG,2)
+      IF (ISTEP.EQ.1) THEN
+         CALL CONVR1(ISEG,CISEG)
+         IF (I.LT.10) THEN
+            CALL CONVR1(I,CI)
+            CI2(1:1) = CI(1:1)
+            CI2(2:2) = ' '
+         ENDIF
+         IF (I.GE.10) CALL CONVR2(I,CI2)
+         TITL52(IPOINT) = 'Extreme fiber +45deg strain at seg. '
+     1                    //CISEG//', node '//CI2
+         TITL62(IPOINT) = 'Extreme fiber -45deg strain at seg. '
+     1                    //CISEG//', node '//CI2
+         TITL72(IPOINT) = 'Extreme fiber +45-deg shear at seg. '
+     1                    //CISEG//', node '//CI2
+      ENDIF
+  930 CONTINUE
+  950 CONTINUE    
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+C
+      NSTRNS = IPOINT
+C
+      IF (ISTEP.EQ.1) THEN
+         TITLOD = ' '
+         IF (DNX.NE.0.) THEN
+            CALL CONVRF(DNX,CWLOAD)
+            TITLOD = 'DNX='//CWLOAD
+         ENDIF
+C BEG JAN 1991
+         IF (DNY.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DNY,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DNY='//CWLOAD
+         ENDIF
+         IF (DNXY.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DNXY,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DNXY='//CWLOAD
+         ENDIF
+         IF (DMX.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DMX,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DMX='//CWLOAD
+         ENDIF
+         IF (DMY.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DMY,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DMY='//CWLOAD
+            ENDIF
+         IF (DPIN.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DPIN,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DP='//CWLOAD
+         ENDIF
+         IF (DTMULT.NE.0.) THEN
+            CALL LENWRD(TITLOD,J)
+            CALL CONVRF(DTMULT,CWLOAD)
+            WRDVTP = TITLOD
+            TITLOD = WRDVTP(1:J)//',DT='//CWLOAD
+         ENDIF
+C END JAN 1991
+      ENDIF
+C     WRITE(IFILE8,'(A,A)')' TITLOD=',TITLOD
+C END MAY 1990
+C
+      ARGSTR = ' CURRENT VALUES OF MARGINS CORRES'//
+     $         'PONDING TO CURRENT DESIGN        '
+C BEG APR 2007
+      CALL OUTVAR(NCAR,CPLOT(1,ISTEP),PCWORD(1,ISTEP),IADDCC,ARGSTR,
+     $            IFILE8,80,1,ISUB)
+C END APR 2007
+C
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      V(ISTEP,1) = EIGLOC
+      V(ISTEP,2) = PBNLOC
+C BEG JULY 1989
+      V(ISTEP,3) = PBWMAX
+C END JULY 1989
+      V(ISTEP,4) = PBMWAV
+      V(ISTEP,5) = PBSLOP
+      V(ISTEP,6) = WBOW
+      V(ISTEP,7) = E1AVE*AXIAL
+C BEG AUG 1990
+      IF (ABS(WBOW).GT.0.3*B(2)) V(ISTEP,6) = 0.
+      IF (ABS(PBWMAX).GT.0.3*B(1)) V(ISTEP,3) = 0.
+      IF (ABS(E1AVE*AXIAL).GT.0.2*AXIAL) V(ISTEP,7) = 0.
+C END AUG 1990
+C BEG JAN 1996
+C     V(ISTEP,8) = CTAN11
+C     V(ISTEP,9) = CTAN22
+C     V(ISTEP,10)= CTAN33
+      V(ISTEP,8) = CTN211
+      V(ISTEP,9) = CTN222
+      V(ISTEP,10)= CTN233
+C END JAN 1996
+      V(ISTEP,11)= E12AVE
+      DDPLOT(ISTEP,1) = EIGLOC
+C BEG JULY 1989
+      DDPLOT(ISTEP,2) = PBWMAX
+C END JULY 1989
+      DDPLOT(ISTEP,3) = WBOW
+      DDPLOT(ISTEP,4) = E1AVE
+      DDPLOT(ISTEP,5) = E2AVE
+      DDPLOT(ISTEP,6) = E12AVE
+C BEG AUG 1990
+      IF (ABS(WBOW).GT.0.3*B(2)) DDPLOT(ISTEP,3) = 0.
+      IF (ABS(PBWMAX).GT.0.3*B(1)) DDPLOT(ISTEP,2) = 0.
+      IF (ABS(E1AVE).GT.0.2) DDPLOT(ISTEP,4) = 0.
+      IF (ABS(E2AVE).GT.0.2) DDPLOT(ISTEP,5) = 0.
+      IF (ABS(E12AVE).GT.0.2) DDPLOT(ISTEP,6) = 0.
+C END AUG 1990
+C BEG JAN 1996
+C     DDPLOT(ISTEP,7) = CTAN11
+C     DDPLOT(ISTEP,8) = CTAN22
+C     DDPLOT(ISTEP,9) = CTAN33
+      DDPLOT(ISTEP,7) = CTN211
+      DDPLOT(ISTEP,8) = CTN222
+      DDPLOT(ISTEP,9) = CTN233
+C END JAN 1996
+      DDPLOT(ISTEP,10)= PBSLOP
+      DDPLOT(ISTEP,11)= RESULT(1,1,1)
+      DDPLOT(ISTEP,12)= RESULT(2,1,1)
+      DDPLOT(ISTEP,13)= RESULT(3,1,1)
+C BEG JAN 1996
+C     DDPLOT(ISTEP,14)= RESULT(1,2,1)
+C     DDPLOT(ISTEP,15)= RESULT(2,2,1)
+C     DDPLOT(ISTEP,16)= RESULT(3,2,1)
+      DDPLOT(ISTEP,14)= CTN212
+      DDPLOT(ISTEP,15)= CTN213
+      DDPLOT(ISTEP,16)= CTN223
+C END JAN 1996
+      STRHOP(ISTEP)   = RESULT(2,2,1)
+C BEG AUG 1990
+      IF (ABS(RESULT(1,1,1)).GT.ABS(CTAN11)) THEN
+         DDPLOT(ISTEP,11)= 0.
+         DDPLOT(ISTEP,12)= 0.
+         DDPLOT(ISTEP,13)= 0.
+C BEG JAN 1996
+C        DDPLOT(ISTEP,14)= 0.
+C        DDPLOT(ISTEP,15)= 0.
+C        DDPLOT(ISTEP,16)= 0.
+C END JAN 1996
+      ENDIF
+C BEG JULY 1989
+      IF (ISTIF(1).NE.5.AND.ISTIF(2).NE.5) THEN
+         DDPLOT(ISTEP,17)= RESULT(1,3,1)
+         DDPLOT(ISTEP,18)= RESULT(1,4,1)
+         IF (ABS(RESULT(1,1,1)).GT.ABS(CTAN11)) THEN
+            DDPLOT(ISTEP,17)= 0.
+            DDPLOT(ISTEP,18)= 0.
+         ENDIF
+C END AUG 1990
+C BEG MAY 1990
+         IF (ISTIF(2).NE.0) THEN
+C BEG SEPT 1990
+C BEG JAN 1996
+C           DDPLOT(ISTEP,15)= EPSTIP(ISTEP)
+C END JAN 1996
+            DDPLOT(ISTEP,19)= RESULT(1,2,2)
+C           DDPLOT(ISTEP,20)= RESULT(2,2,2)
+C           DDPLOT(ISTEP,21)= RESULT(3,2,2)
+            RNGHOP(ISTEP)   = RESULT(2,2,2)
+            RNGSHR(ISTEP)   = RESULT(3,2,2)
+            STRHOP(ISTEP)   = RESULT(2,2,1)
+            DDPLOT(ISTEP,20)= EPSRUT(ISTEP)
+            DDPLOT(ISTEP,21)= PBMWAV
+C END SEPT 1990
+            DDPLOT(ISTEP,22)= RESULT(1,3,2)
+            DDPLOT(ISTEP,23)= RESULT(1,4,2)
+         ELSE
+            DDPLOT(ISTEP,19)= PEX(1,1,1)
+            DDPLOT(ISTEP,20)= PEX(1,1,2)
+C BEG JUNE 1990
+            DDPLOT(ISTEP,21) = PBMWAV
+            IF (ISTIF(1).EQ.4) THEN
+               IUNDER = 3
+               IF (NSEGB5.EQ.6) IUNDER = 2
+               INODE = I5(IUNDER)/2 + 1
+               DDPLOT(ISTEP,22) = PEX(INODE,IUNDER,2)
+               DDPLOT(ISTEP,23) = PEY(INODE,IUNDER,1)
+            ELSE
+               IF (ISTIF(1).NE.0) THEN
+                  INODE = I5(3)
+                  DDPLOT(ISTEP,22) = PEX(INODE,3,2)
+               ELSE
+                  DDPLOT(ISTEP,22) = PEY(1,1,2)
+               ENDIF
+C END JUNE 1990
+               DDPLOT(ISTEP,23) = PEXY(1,1,1)
+            ENDIF
+         ENDIF
+C END MAY 1990
+      ENDIF
+      IF (ISTIF(1).EQ.5) THEN
+         DDPLOT(ISTEP,17)= RESULT(1,3,1)
+         DDPLOT(ISTEP,18)= RESULT(2,3,1)
+         DDPLOT(ISTEP,19)= RESULT(3,3,1)
+         DDPLOT(ISTEP,20)= PBW(6,1) + PW(6,1)
+         DDPLOT(ISTEP,21)= PBW(6,2) + PW(6,2)
+         DDPLOT(ISTEP,22)= PBW(6,3) + PW(6,3)
+         DDPLOT(ISTEP,23)= PBW(6,4) + PW(6,4)
+      ENDIF
+C END JULY 1989
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+      NCARI(ISTEP) = NCAR
+C
+C  NOW GET XALL,YALL: VECTORS FOR DEFORMED PANEL MODULE CROSS SECTION...
+C
+      ISTEP1 = ISTEP + 1
+C  ADD LOCAL DEFORMATION DUE TO PRESSURE TO THE LOCAL BUCKLING
+C  DEFORMATION...
+C   
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      DO 199 ISEG = 1,NSEGB5
+      DO 199 I = 1,23
+      UTOT(I,ISEG) = PBU(I,ISEG) + PU(I,ISEG)
+  199 WTOT(I,ISEG) = PBW(I,ISEG) + PW(I,ISEG)
+C
+C  CALCULATE (X,Y) COORDINATES OF THE DEFORMED SKIN-STRINGER MODULE..
+C
+      CALL XYALL(ISTIF(1),NSEGB5,I5,X,Y,UTOT,WTOT,SCALED,
+     1           XALL(1,ISTEP1),YALL(1,ISTEP1),0,ICNECT,I2ALL)
+C
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+      IF (NSTEPS.GT.ISTEP) GO TO 100
+C
+C  STORE LEGENDS FOR PLOTS OF DDPLOT QUANTITIES V LOAD STEP NO...
+C
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      TITLE2(1)='Load factor for local buckling from BOSOR model,eig'
+C BEG JULY 1989
+C BEG SEP 2006
+C     TITLE2(2)=
+C    1      'Maximum normal deflection, w, in panel module, w(max)  '
+      TITLE2(2)=
+     1'Max.disp.w in panel module, w(max)='//
+     1'Wimplocal+Wpostbuck+Wpillow'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END SEP 2006
+      TITLE2(3)='Total axial bowing of the panel under load:    WBOW'
+      IF (ISTIF(1).NE.5.AND.ISTIF(2).NE.5) THEN
+      TITLE2(4)='Average axial strain (panel skin + in b2),eps1(ave)'
+      TITLE2(5)='Average hoop  strain,(panel skin + in b2),eps2(ave)'
+      TITLE2(6)='Average shear strain,(panel skin + in b2),eps12(ave)'
+C BEG JAN 1996
+C     TITLE2(7)='Average axial stiffness/circ. arc length, CTAN(1,1)'
+C     TITLE2(8)='Average hoop  stiffness/circ. arc length, CTAN(2,2)'
+C     TITLE2(9)='Average shear stiffness/circ. arc length, CTAN(3,3)'
+      TITLE2(7)='Normalized average axial skin stiff:  Ctan11/C0(1,1)'
+      TITLE2(8)='Normalized average hoop  skin stiff:  Ctan22/C0(2,2)'
+      TITLE2(9)='Normalized average shear skin stiff:  Ctan33/C0(3,3)'
+C END JAN 1996
+      TITLE2(10)='Slope of post-local-buckling nodal lines,         c'
+      TITLE2(11)='Average axial resultant in panel skin,      Nx(ave)'
+      TITLE2(12)='Average hoop  resultant in panel skin,      Ny(ave)'
+      TITLE2(13)='Average shear resultant in panel skin,     Nxy(ave)'
+C BEG JAN 1996
+C     TITLE2(14)='Average axial resultant in STRINGER base,   Nx(ave)'
+C     TITLE2(15)='Average hoop  resultant in STRINGER base,   Ny(ave)'
+C     TITLE2(16)='Average shear resultant in STRINGER base,  Nxy(ave)'
+      TITLE2(14)='Norm. ave. tangent Poisson ratio:    Ctan12/Ctan11'
+      TITLE2(15)='Norm. ave. (N1skin,N12skn) coupling: Ctan13/C0(1,1)'
+      TITLE2(16)='Norm. ave. (N2skin,N12skn) coupling: Ctan23/C0(2,2)'
+C END JAN 1996
+      TITLE2(17)='Average axial resultant in STRINGER web(s), Nx(ave)'
+      TITLE2(18)=
+     1  'Ave. axial resultant in STRINGER outstanding flange, Nx(ave)'
+C BEG SEPT 1990
+      TITLE2(21)='Number of axial half-waves between rings, MWAVES   '
+C END SEPT 1990
+C BEG MAY 1990
+      IF (ISTIF(2).NE.0) THEN
+C BEG SEPT 1990
+C BEG JAN 1996
+C     TITLE2(15)='Average axial strain at tip  of RING web, EPSTIP   '
+C END JAN 1996
+      TITLE2(19)='Average axial resultant in   RING   base,   Nx(ave)'
+C     TITLE2(20)='Average hoop  resultant in   RING   base,   Ny(ave)'
+C     TITLE2(21)='Average shear resultant in   RING   base,  Nxy(ave)'
+      TITLE2(20)='Average axial strain at root of RING web, EPSROOT  '
+C END SEPT 1990
+      TITLE2(22)='Average axial resultant in   RING   web(s), Nx(ave)'
+      TITLE2(23)=
+     1  'Ave. axial resultant in   RING   outstanding flange, Nx(ave)'
+      ELSE
+      TITLE2(19)='Peak top layer axial strain midway betwn stringers '
+      TITLE2(20)='Peak bottom layer axial strain mid. betwn stringers'
+C BEG JUNE 1990
+      TITLE2(21)='Number of axial half-waves in postbuckled panel    '
+      IF (ISTIF(1).EQ.4) THEN
+      TITLE2(22)='Peak bottom layer axial strain under hat           '
+      TITLE2(23)='Peak top layer hoop strain under hat               '
+      ELSE
+      IF (ISTIF(1).NE.0) THEN
+      TITLE2(22)='Peak rightmost layer axial strain at tip of web    '
+      ELSE
+C END JUNE 1990
+      TITLE2(22)='Peak bottom layer hoop strain at buckle crest      '
+      ENDIF
+      TITLE2(23)='Peak top layer shear strain midway betwn stringers '
+      ENDIF
+      ENDIF
+C END MAY 1990
+      ENDIF
+C
+      IF (ISTIF(1).EQ.5.OR.ISTIF(2).EQ.5) THEN
+      TITLE2(4)='Average axial strain in panel,  eps1(ave)          '
+      TITLE2(5)='Average hoop  strain in panel,  eps2(ave)          '
+      TITLE2(6)='Average shear strain in penel, eps12(ave)          '
+C BEG JAN 1996
+C     TITLE2(7)='Average axial stiffness/circ. arc length, CTAN(1,1)'
+C     TITLE2(8)='Average hoop  stiffness/circ. arc length, CTAN(2,2)'
+C     TITLE2(9)='Average shear stiffness/circ. arc length, CTAN(3,3)'
+      TITLE2(7)='Normalized average axial total stiff: Ctan11/CS(1,1)'
+      TITLE2(8)='Normalized average hoop  total stiff: Ctan22/CS(2,2)'
+      TITLE2(9)='Normalized average shear total stiff: Ctan33/CS(3,3)'
+C END JAN 1996
+      TITLE2(10)='Slope of post-local-buckling nodal lines,         c'
+      TITLE2(11)='Prebuckling axial load in LOWER panel skin, Nx(ave)'
+      TITLE2(12)='Prebuckling  hoop load in LOWER panel skin, Ny(ave)'
+      TITLE2(13)='Prebuckling shear load in LOWER panel skin,Nxy(ave)'
+C BEG JAN 1996
+C     TITLE2(14)='Prebuckling axial load in TRUSS WEB,        Nx(ave)'
+C     TITLE2(15)='Prebuckling  hoop load in TRUSS WEB,        Ny(ave)'
+C     TITLE2(16)='Prebuckling shear load in TRUSS WEB,       Nxy(ave)'
+      TITLE2(14)='Norm. ave. tangent Poisson ratio:   Ctan12/Ctan11'
+      TITLE2(15)='Norm. ave. total (N1,N12) coupling: Ctan13/CS(1,1)'
+      TITLE2(16)='Norm. ave. total (N2,N12) coupling: Ctan23/CS(2,2)'
+C END JAN 1996
+      TITLE2(17)='Prebuckling axial load in UPPER panel skin, Nx(ave)'
+      TITLE2(18)='Prebuckling  hoop load in UPPER panel skin, Ny(ave)'
+      TITLE2(19)='Prebuckling shear load in UPPER panel skin,Nxy(ave)'
+      TITLE2(20)='Lower skin midwidth w (postbuckling + pressure)    '
+      TITLE2(21)='Left truss web midwidth w (postbuckling + pressure)'
+      TITLE2(22)='Upper skin midwidth w (postbuckling + pressure)    '
+      TITLE2(23)='Right truss web midwidth w (postbucklng + pressure)'
+      ENDIF
+C END JULY 1989
+C
+C  STORE LEGENDS FOR PLOTS OF UNDEFORMED AND DEFORMED PANEL MODULE
+C  CROSS SECTION...
+C
+      TITLE3(1)=
+     1'Undeformed panel module. Deflection scale factor='//CSCALE
+      DO 200 ISTEP = 1,NSTEPS
+         ISTEP1 = ISTEP + 1
+         CALL CONVR2(ISTEP,CSTEP)
+         TITLE3(ISTEP1)=
+     1'Panel module deformed by loads in step no. '//CSTEP
+  200 CONTINUE
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+C
+C  NEXT, STORE BEHAVIOR AND MARGINS FOR LATER PLOTTING VIA DIPLOT
+      IUNIT = 10*ICASE + ILOAD
+      CALL CONVR1(ILOAD,CILOAD)
+      CALL CONVR1(ICASE,CICASE)
+      IF (IX.NE.0) THEN
+         CASEU = CASE(:IX-1)//'.L'//CICASE//CILOAD
+      ELSE
+         CASEU = CASE//'.L'//CICASE//CILOAD
+      ENDIF
+C
+C BEG VMS
+C     OPEN(UNIT=IUNIT,FILE=CASEU,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      inquire(FILE=caseu(1:lastch(caseu)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=iunit, FILE=caseu(1:lastch(caseu)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(iunit)
+#endif
+      else
+        OPEN(UNIT=iunit, FILE=caseu(1:lastch(caseu)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+C  NEXT, STORE THE COLLECTION OF MISCELLANEOUS BEHAVIOR QUANTITIES,
+C  DDPLOT, AND DESIGN MARGINS CCPLOT FOR ILOAD, ICASE...
+C
+C     WRITE(IFILE8,24) NSTEPS, ILOAD, ICASE
+C  24 FORMAT(/' ****** VARIOUS BEHAVIORS FOR ',I3,' LOAD STEPS ******'/
+C    1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+C    1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+      REWIND IUNIT
+C
+C  FIRST, STORE TITLE2 AND DDPLOT...
+      NBEH = 23
+C BEG MAY 1990
+      WRITE(IUNIT) TITLOD
+C BEG SEPT 1990
+      DO 30 JVECT = 1,7
+C END SEPT 1990
+      WRITE(IUNIT) (FVECT(I,JVECT),I=1,NSTEPS)
+   30 CONTINUE
+C END MAY 1990
+      WRITE(IUNIT) (TITLE2(I),I=1,NBEH)
+      DO 39 IBEH = 1,NBEH
+        WRITE(IUNIT) (DDPLOT(I,IBEH), I=1,NSTEPS)
+        CALL BLANKX(TITLE2(IBEH),IEND)
+C       WRITE(IFILE8,41) IBEH,
+C    1   TITLE2(IBEH)(1:IEND),(DDPLOT(I,IBEH),I=1,NSTEPS)
+   39 CONTINUE
+C BEG MAY 1990
+C  NEXT, STORE AXIAL, HOOP, IN-PLANE SHEAR STRAINS...
+C
+C  AXIAL...
+      WRITE(IUNIT) TITLOD
+      WRITE(IUNIT) (TITLE5(I),I=1,NSTRNS)
+C     WRITE(IFILE8,*) NSTRNS,NSTEPS
+      DO 392 ICOMP = 1,2
+      DO 391 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,3911)
+C    1     IPOINT,TITLE5(IPOINT),(DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+C3911   FORMAT(/' IPOINT=',I3,A/(1P,6E12.4))
+  391 CONTINUE
+  392 CONTINUE 
+C  HOOP...
+      WRITE(IUNIT) (TITLE6(I),I=1,NSTRNS)
+      DO 394 ICOMP = 3,4
+      DO 393 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,3911)
+C    1     IPOINT,TITLE6(IPOINT),(DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+  393 CONTINUE
+  394 CONTINUE 
+C  IN-PLANE SHEAR...
+      WRITE(IUNIT) (TITLE7(I),I=1,NSTRNS)
+      DO 396 ICOMP = 5,6
+      DO 395 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,3911)
+C    1     IPOINT,TITLE7(IPOINT),(DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+  395 CONTINUE
+  396 CONTINUE 
+C  NEXT, STORE +45-DEG NORMAL, -45-DEG NORMAL, 45-DEG IN-PLANE SHEAR:
+C
+C  +45-DEG NORMAL STRAIN...
+      WRITE(IUNIT) TITLOD
+      WRITE(IUNIT) (TITL52(I),I=1,NSTRNS)
+C     WRITE(IFILE8,*) NSTRNS,NSTEPS
+      DO 492 ICOMP = 1,2
+      DO 491 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,4911)
+C    1     IPOINT,TITL52(IPOINT),(DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+C4911   FORMAT(/' IPOINT=',I3,A/(1P,6E12.4))
+  491 CONTINUE
+  492 CONTINUE 
+C  -45-DEG NORMAL STRAIN...
+      WRITE(IUNIT) (TITL62(I),I=1,NSTRNS)
+      DO 494 ICOMP = 3,4
+      DO 493 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,4911)
+C    1     IPOINT,TITL62(IPOINT),(DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+  493 CONTINUE
+  494 CONTINUE 
+C  45-DEG. IN-PLANE SHEAR...
+      WRITE(IUNIT) (TITL72(I),I=1,NSTRNS)
+      DO 496 ICOMP = 5,6
+      DO 495 IPOINT = 1,NSTRNS
+         WRITE(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I = 1,NSTEPS)
+C        WRITE(IFILE8,4911)
+C    1     IPOINT,TITL72(IPOINT),(DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+  495 CONTINUE
+  496 CONTINUE 
+C END MAY 1990
+C
+      CALL MOVER(0.,0,CCPLOT,1,2970)
+C
+      DO 500 ISTEP = 1,NSTEPS
+         IF (ISTEP.EQ.1) THEN
+            NCAR1 = NCARI(1)
+            DO 310 I = 1,NCAR1
+            TITLES(I) = PCWORD(I,1)
+            CCPLOT(1,I) = CPLOT(I,1)
+  310       CONTINUE
+            NTITL = NCARI(1)
+         ELSE
+            NCARS = NCARI(ISTEP)
+            DO 320 I = 1,NCARS
+            DO 315 J = 1,NTITL
+               IF (PCWORD(I,ISTEP).EQ.TITLES(J)) THEN
+                  CCPLOT(ISTEP,J) = CPLOT(I,ISTEP)
+                  GO TO 320
+               ENDIF
+  315       CONTINUE
+            NTITL = NTITL + 1
+            IF (NTITL.GT.99) THEN
+               WRITE(IFILE8,319) NTITL,NSTEPS,ILOAD,ICASE
+  319       FORMAT(/' TOO MANY DIFFERENT MARGINS FOR THIS LOAD CASE.'/
+     1 ' A MAXIMUM OF 99 DIFFERENT MARGINS IS ALLOWED. THERE ARE ',I3/
+     1 ' TOTAL NUMBER OF LOAD STEPS,                      NSTEPS=',I3/
+     1 ' LOAD CASE NO.                                    ILOAD =',I3/
+     1 ' CASE NO. (1 = PANEL MIDLENGTH; 2 = PANEL ENDS),  ICASE =',I3/
+     1 ' WE WILL ABORT THIS PARTICULAR RUN. NSTEPS, THE'/
+     1 ' TOTAL NUMBER OF LOAD STEPS, SHOULD BE REDUCED.')
+            CALL EXIT
+            ENDIF
+         TITLES(NTITL) = PCWORD(I,ISTEP)
+         CCPLOT(ISTEP,NTITL) = CPLOT(I,ISTEP)
+  320    CONTINUE
+C
+         ENDIF
+C
+  500 CONTINUE
+C
+C     WRITE(IFILE8,26) NSTEPS, ILOAD, ICASE
+C  26 FORMAT(/' ****** DESIGN MARGINS FOR ',I3,' LOAD STEPS ******'/
+C    1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+C    1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C
+C  NEXT, STORE THE MARGINS....
+      DO 42 ITIT = 1,NTITL
+        WRITE(IUNIT) (CCPLOT(I,ITIT), I=1,NSTEPS)
+        CALL BLANKX(TITLES(ITIT),IEND)
+C       WRITE(IFILE8,41) ITIT,
+C    1   TITLES(ITIT)(1:IEND),(CCPLOT(I,ITIT),I=1,NSTEPS)
+C  41   FORMAT(/1X,I3,3X,A, ' = '/(1P,10E12.4))
+   42 CONTINUE
+      NTIT(ILOAD,ICASE) = NTITL
+      REWIND IFILE4
+      WRITE(IFILE4) NTITL
+      WRITE(IFILE4) (TITLES(ITITL),ITITL=1,NTITL)
+C
+C  NEXT, DO PANEL MODULE DEFORMATION..
+C
+      NSTEP1 = NSTEPS+1
+C     WRITE(IFILE8,63) NSTEP1, ILOAD, ICASE
+C  63 FORMAT(/' ****** PANEL MODULE FOR ',I3,' LOAD STEPS ******'/
+C    1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+C    1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C
+C  NEXT, STORE THE UNDEFORMED AND DEFORMED PANEL MODULE GEOMETRY..
+C
+      WRITE(IUNIT) ITOT, (TITLE3(ISTEP),ISTEP=1,NSTEP1)
+      DO 68 ISTEP = 1,NSTEP1
+        WRITE(IUNIT) (XALL(I,ISTEP), I=1,ITOT)
+        WRITE(IUNIT) (YALL(I,ISTEP), I=1,ITOT)
+        CALL BLANKX(TITLE3(ISTEP),IEND)
+C       WRITE(IFILE8,66) ISTEP,
+C    1   TITLE3(ISTEP)(1:IEND),(XALL(I,ISTEP),I=1,ITOT)
+C  66   FORMAT(/1X,'ISTEP=',I3,3X,A/'   X-COORDINATES = '/(1P,10E12.4))
+C       WRITE(IFILE8,67) (YALL(I,ISTEP),I=1,ITOT)
+C  67   FORMAT(/'   Y-COORDINATES = '/(1P,10E12.4))
+C
+   68 CONTINUE
+C
+C  CALCULATE AND STORE (X,Y) COORDINATES FOR MIDDLE OF EACH LAYER OF
+C  EACH SEGMENT OF THE SKIN-STRINGER MODULE...
+C
+      CALL XYCORD(NSEGB5,I5,ISTIF(1),B(1),B2(1),H(1),W(1),W2(1),
+C BEG MAY 1997
+     1            ZREF,XL,YL,XORIG,YORIG,1,IZSTIF(1))
+C END MAY 1997
+      TMAX = 0.
+      DO 70 I = 1,5
+   70 TMAX = MAX(TMAX,TX(I))
+      SCALE = 0.2*B(1)/TMAX
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,*)' ==============================================='
+      WRITE(IFILE8,*)' SCALE FACTOR FOR THICKNESS PLOTS =',SCALE
+      IEND = NSEG(1)
+      NOPLOT = 0
+      Y0 = SCALE*TMAX
+      DO 72 I = 1,30
+      DO 72 J = 1,80
+   72 TITLE4(I)(J:J) = ' '
+C
+      CALL MOVER(0,0,ITOTW,1,30)
+      KMAX = 0
+C
+      ISTF1 = 3
+      ISTF2 = NSEGB5 - 1
+      IF (ISTIF(1).EQ.4.AND.B2(1).GT.W2(1)) THEN
+         ISTF1 = 4
+         ISTF2 = NSEGB5 - 2
+      ENDIF
+C BEG JULY 1989
+      IWEB = 3
+      IF (ISTIF(1).EQ.5) THEN
+         IWEB = 2
+         ISTF1 = 2
+         ISTF2 = 4
+      ENDIF
+      IWEBM = IWEB - 1
+C END JULY 1989
+      DO 86 ISEG = 1,NSEGB5
+         I5I = I5(ISEG) +1
+         I51 = I5I - 1
+         DX = XL(I51,ISEG) - XL(1,ISEG)
+         DY = YL(I51,ISEG) - YL(1,ISEG)
+         DEN= SQRT(DX*DX + DY*DY)
+         C  = DX/DEN
+         S  = DY/DEN
+C BEG JUN 2004
+         CALL IDSEG(ISTIF(1),ISEG,NSEGB5,B2(1),W2(1),ISEGP,IFAY)
+C END JUN 2004
+         NLAY = NLAYER(ISEGP,1)
+         DO 84 ILAYER = 1,NLAY
+            K = LTYPE(ILAYER,ISEGP,1)
+            KMAX = MAX(KMAX,K)
+            M = MATL(K)
+            IF (KMAX.GT.30) THEN
+               WRITE(IFILE8,*)' TOO MANY DIFFERENT LAYER TYPES.'
+               WRITE(IFILE8,*)' MODIFY SUBROUTINE STORE2. '
+               NOPLOT = 1
+            ENDIF
+            IF (upcase(TITLE4(K)(1:1)).NE.'L') THEN
+               CALL CONVR2(K,CK)
+               CALL CONVR2(M,CM)
+               CALL CONVRF(T(K),CT)
+               CALL CONVRF(ANGLE(K),CA)
+               TITLE4(K) ='Layer type '//CK//': Thickness='//CT//
+     1                    ', Winding angle='//CA//', Matl='//CM
+            ENDIF
+            IF (ILAYER.EQ.1) THEN
+               WCOORD(1) = -TX(ISEGP)/2. + T(K)/2.
+C BEG JULY 1989
+               IF (ISEG.EQ.2.AND.ISTIF(1).NE.0.AND.ISTIF(1).NE.5)
+     1             YSHIFT = -SCALE*WCOORD(1)
+C END JULY 1989
+               YADD = 0.
+               IF (ISEG.GE.ISTF1.AND.ISEG.LE.ISTF2) YADD = YSHIFT
+            ELSE
+               I1 = ILAYER - 1
+               K1= LTYPE(I1,ISEGP,1)
+               WCOORD(ILAYER) = WCOORD(I1) +.5*(T(K1)+T(K))
+            ENDIF
+            DO 74 I = 1,I5I
+               ITOTW(K) = ITOTW(K) + 1
+               IK = ITOTW(K)
+               IK1= IK - 1
+               IF (T(K).NE.0.0) THEN
+                  XWALL(IK,K) = XL(I,ISEG) +SCALE*WCOORD(ILAYER)*S
+                  YWALL(IK,K) = YL(I,ISEG) -SCALE*WCOORD(ILAYER)*C
+     1                         +Y0 +YADD
+                  IF (I.EQ.I5I) THEN
+                     XWALL(IK,K) = XWALL(IK1,K)
+                     YWALL(IK,K) = 0.
+                  ENDIF
+               ENDIF
+   74       CONTINUE
+   84    CONTINUE
+   86 CONTINUE
+C
+      WRITE(IFILE8,90) KMAX
+   90 FORMAT(/' ***** SCHEMATIC OF LAYUP OF SKIN-STRINGER MODULE *****'/
+     1        ' ***** TOTAL NUMBER OF DIFFERENT LAYER TYPES =',I3)
+      WRITE(IUNIT) KMAX,Y0
+      WRITE(IUNIT) (ITOTW(K),K=1,KMAX),(TITLE4(K),K=1,KMAX)
+      DO 95 K = 1,KMAX
+        IK = ITOTW(K)
+        WRITE(IUNIT) (XWALL(I,K), I=1,IK)
+        WRITE(IUNIT) (YWALL(I,K), I=1,IK)
+        CALL BLANKX(TITLE4(K),IEND)
+C       WRITE(IFILE8,93) K, TITLE4(K)(1:IEND),(XWALL(I,K),I=1,IK)
+C  93   FORMAT(/1X,'LAYER INDEX=',I3,3X,A/
+C    1          '   X-COORDINATES = '/(1P,10E12.4))
+C       WRITE(IFILE8,94) (YWALL(I,K),I=1,IK)
+C  94   FORMAT(/'   Y-COORDINATES = '/(1P,10E12.4))
+C
+   95 CONTINUE
+C
+C  NEXT, COMPUTE AND STORE DISPLACEMENT FIELDS FOR SEVERAL STATIONS
+C  ALONG THE LENGTH OF ONE FULL AXIAL WAVE OF THE LOCAL BUCKLING
+C  PATTERN...
+C
+      CALL MOVER(0.,0,XDALL,1,6200)
+      CALL MOVER(0.,0,YDALL,1,6200)
+      CALL MOVER(0.,0,XALL,1,6200)
+      CALL MOVER(0.,0,YALL,1,6200)
+C
+C  GET X,Y COORDINATES OF UNDEFORMED SECTION (COMBINED IN XALL,YALL)
+C
+C BEG AUG 1996
+      INTV1 = 1
+      ITOT = 1
+      IALL = 1
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      ITOT = 0
+      DO 243 ISEG = 1,NSEGB5
+  243 ITOT = ITOT + I5(ISEG) + 1
+      CALL MOVER(0.,0,DUM1,1,200)
+      CALL MOVER(0.,0,DUM2,1,200)
+      SCALEC = 0.1*B(1)/WMAX
+      WRITE(IFILE8,245) SCALEC
+  245 FORMAT(/' ***** START CALCULATIONS FOR 3-D PLOTS *****'/
+     1' SCALE FACTOR FOR POSTBUCKLING DISPLACEMENT='1PE12.4)
+      CALL XYALL(ISTIF(1),NSEGB5,I5,XOLD,YOLD,DUM1,DUM2,SCALEC,
+     1            XALL(1,1),YALL(1,1),1,ICNECT,I2ALL)
+      Z = 0.
+      CALL UW3D(B(2),B(1),NSEGB5,I5,PBMWAV,PBSLOP,PBW,PBU,PBV,PW,PU,
+     1          PV,Z,XOLD,YOLD,UU,VV,WW)
+      CALL XYALL(ISTIF(1),NSEGB5,I5,XOLD,YOLD,UU,WW,SCALEC,
+     1           XDALL(1,1),YDALL(1,1),1,ICNECT,I2ALL)
+C
+      IF (PBMWAV.GT.1.5) THEN
+         INTVAL = 13
+         FINT   = INTVAL
+         INTV1  = INTVAL + 1
+         DZ     = 2.0*(B(2)/PBMWAV)/FINT
+         NODLIN = 2
+      ELSE
+         INTVAL = 7
+         FINT   = INTVAL
+         INTV1  = INTVAL + 1
+         DZ     = (B(2)/PBMWAV)/FINT
+         NODLIN = 1
+      ENDIF
+      ZLONG  = DZ*FINT
+      Z      = 0.
+      DO 250 IZ = 2,INTV1
+         Z = Z + DZ
+         XORIG = .707*Z
+         YORIG = .707*Z
+         DO 220 I = 1,ITOT
+            XALL(I,IZ) = XALL(I,1) + XORIG
+            IF (YALL(I,1).NE.0.) YALL(I,IZ) = YALL(I,1) + YORIG
+  220    CONTINUE
+         CALL UW3D(B(2),B(1),NSEGB5,I5,PBMWAV,PBSLOP,PBW,PBU,PBV,PW,PU,
+     1             PV,Z,XOLD,YOLD,UU,VV,WW)
+C
+C  ADD ORIGIN (XORIG,YORIG)...
+C
+         DO 240 J = 1,NSEGB5
+         DO 240 I = 1,24
+            XNEW(I,J) = XOLD(I,J) + XORIG
+            IF (YOLD(I,J).NE.0.) YNEW(I,J) = YOLD(I,J) + YORIG
+  240    CONTINUE
+C
+         CALL XYALL(ISTIF(1),NSEGB5,I5,XNEW,YNEW,UU,WW,SCALEC,
+     1              XDALL(1,IZ),YDALL(1,IZ),1,ICNECT,I2ALL)
+C
+C        WRITE(IFILE8, 241) IZ,Z,XORIG,YORIG,XALL(1,IZ),XDALL(1,IZ),
+C    1                      YALL(1,IZ),YDALL(1,IZ),
+C    1                      PBW(1,1),PBW(9,NSEGB5),WW(1,1),WW(9,NSEGB5)
+C 241    FORMAT(/' RESULTS IN IZ LOOP FOR IZ=',I3,', Z =',1PE12.4,':'/
+C    1' Coordinates of the origin of slice:(XORIG,YORIG)  =',1P,2E12.4/
+C    1' (Undeformed,Deformed) x-coordinate (XALL,XDALL)   =',1P,2E12.4/
+C    1' (Undeformed,Deformed) y-coordinate (YALL,YDALL)   =',1P,2E12.4/
+C    1' Unscaled postb. def.ections,  [PBW(1,1),PBW(8,9)] =',1P,2E12.4/
+C    1' Unscaled postbuckling deflections [w(1,1),w(8,9)] =',1P,2E12.4)
+C
+  250 CONTINUE
+C
+C  NEXT, CONNECT THE INTV1 CROSS SECTIONS AT THE STATIONS GIVEN
+C  BY ICNECT(I), I = 1,I2ALL...
+C
+      IALL = 0
+      DO 265 I = 1,I2ALL
+         ISTA = ICNECT(I)
+         DO 260 IZ = 1,INTV1
+            IALL = IALL + 1
+            X2ALL(IALL) = XALL(ISTA,IZ)
+            Y2ALL(IALL) = YALL(ISTA,IZ)
+           X2DALL(IALL) = XDALL(ISTA,IZ)
+           Y2DALL(IALL) = YDALL(ISTA,IZ)
+  260    CONTINUE
+         IALL = IALL + 1
+         X2ALL(IALL) = X2ALL(IALL-1)
+         Y2ALL(IALL) = 0.
+         X2DALL(IALL)= X2DALL(IALL-1)
+         Y2DALL(IALL)= 0.
+  265 CONTINUE
+C
+C     Y2MIN = 0.
+C     X2MIN = 0.
+C     Y2MAX = 0.
+C     X2MAX = 0,
+C     DO 2655 I = 1,IALL
+C        Y2MIN = MIN(Y2MIN,Y2DALL(I))
+C        X2MIN = MIN(X2MIN,X2DALL(I))
+C        Y2MAX = MAX(Y2MAX,Y2DALL(I))
+C        X2MAX = MAX(X2MAX,X2DALL(I))
+C2655 CONTINUE
+C
+C PLOT BUCKLING NODAL LINES:
+C
+C BEG JULY 1989
+         PBSLPP = PBSLOP*MSLOPE(1)
+         IF (ABS(PBSLPP).LT.(B(2)/B(1))) THEN
+            IALL = IALL + 1
+            IAST = IALL
+            IF (PBSLPP.GE.0.) THEN
+               X2ALL(IALL) = 0.
+               Y2ALL(IALL) = 0.000001
+            ELSE
+               X2ALL(IALL) = 0.707*ZLONG
+               Y2ALL(IALL) = 0.707*ZLONG
+            ENDIF
+            IALL = IALL + 1
+            X2ALL(IALL) = X2ALL(IALL-1) +B(1) + 0.707*B(1)*PBSLPP
+            Y2ALL(IALL) = Y2ALL(IALL-1) +0.707*B(1)*PBSLPP
+            IALL = IALL + 1
+            X2ALL(IALL) = X2ALL(IALL-1)
+            Y2ALL(IALL) = 0.
+C
+C SECOND BUCKLING NODAL LINE...
+            IF (NODLIN.EQ.2) THEN
+               IALL = IALL + 1
+               X2ALL(IALL) = 0.707*ZLONG/2.
+               Y2ALL(IALL) = 0.707*ZLONG/2.
+               IALL = IALL + 1
+               X2ALL(IALL) = B(1) + 0.707*B(1)*PBSLPP +0.707*ZLONG/2.
+               Y2ALL(IALL) =        0.707*B(1)*PBSLPP +0.707*ZLONG/2.
+               IALL = IALL + 1
+               X2ALL(IALL) = X2ALL(IALL-1)
+               Y2ALL(IALL) = 0.
+            ENDIF
+C
+C FILL X2DALL, Y2DALL...
+            DO 266 I = IAST,IALL
+               X2DALL(I) = X2ALL(I)
+               Y2DALL(I) = Y2ALL(I)
+  266       CONTINUE
+C BEG AUG 1996 ("ENDIF" SHIFTED RIGHT THREE SPACES)
+         ENDIF
+C END AUG 1996
+C
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+      MWAVEP = PBMWAV
+      WRITE(IUNIT) INTV1,ITOT,IALL
+      WRITE(IFILE8,273) INTV1,ITOT,ZLONG,SCALEC,SCALEC,PBSLPP,MWAVEP
+  273 FORMAT(/' ************** 3-D PLOT INPUT DATA ******************'/
+     1' Undeformed and deformed panel module plotted for ',I2,' z.'/
+     1' Total number of nodes in panel module cross section, ITOT =',I3/
+     1' Length of one full axial wave of local buckling pattern, ZLONG='
+     1  ,1PE12.4/
+     1' One full axial wave of the local buckling pattern is covered'/
+     1' by the "3-D" plot. The pattern shown on the plot repeats'/
+     1' throughout the entire panel.'/
+     1' Scale factor for plotting deformatons:, SCALEC = ',1PE12.4/
+     1' The buckling displacements shown on the plot are given by'/
+     1'   DISPLACEMENTS SHOWN ON THE PLOT = ',1PE12.4,' X THE ACTUAL DIS
+     1PLACEMENTS.'/
+     1' Slope of the buckling nodal lines (due to shear, C(1,6),etc.=',
+     1 1PE12.4/
+     1' Number of half-waves in the axial direction,      MWAVE = ',I3/)
+      IF (ABS(PBSLPP).LT.(B(2)/B(1))) WRITE(IFILE8,274)
+  274 FORMAT(/' TWO BUCKLING NODAL LINES WILL BE SHOWN ON THE "3-D" PLOT
+     1')
+      DO 280 I = 1,INTV1
+         WRITE(IUNIT) (XALL(J,I),J=1,ITOT)
+         WRITE(IUNIT) (YALL(J,I),J=1,ITOT)
+         WRITE(IUNIT) (XDALL(J,I),J=1,ITOT)
+         WRITE(IUNIT) (YDALL(J,I),J=1,ITOT)
+         IF (I.EQ.INTV1) THEN
+            WRITE(IUNIT) (X2ALL(J),J=1,IALL)
+            WRITE(IUNIT) (Y2ALL(J),J=1,IALL)
+            WRITE(IUNIT) (X2DALL(J),J=1,IALL)
+            WRITE(IUNIT) (Y2DALL(J),J=1,IALL)
+         ENDIF
+C
+C        WRITE(IFILE8,275) I, (XALL(J,I),J=1,ITOT)
+C        WRITE(IFILE8,276) I, (YALL(J,I),J=1,ITOT)
+C        WRITE(IFILE8,277) I, (XDALL(J,I),J=1,ITOT)
+C        WRITE(IFILE8,278) I, (YDALL(J,I),J=1,ITOT)
+C 275    FORMAT(/' Undeformed module x-coordinates, z station no. ',I2/
+C    1   (1P,10E12.4))
+C 276    FORMAT(/' Undeformed module y-coordinates, z station no. ',I2/
+C    1   (1P,10E12.4))
+C 277    FORMAT(/'   Deformed module x-coordinates, z station no. ',I2/
+C    1   (1P,10E12.4))
+C 278    FORMAT(/'   Deformed module y-coordinates, z station no. ',I2/
+C    1   (1P,10E12.4))
+C
+  280 CONTINUE
+      WRITE(IFILE8,279)
+  279 FORMAT(/' ******************* END OF 3-D PLOT DATA ***********'/)
+C
+      CLOSE(UNIT=IUNIT)
+      CLOSE(UNIT=IFILE4)
+C
+C  INDICATE WHETHER DESIGN IS FEASIBLE, ALMOST FEASIBLE, NOT FEASIBLE.
+C
+      DO 520 I = 1,NSTEPS
+      DWORD(I) = '    FEASIBLE   '
+      DO 510 ITIT = 1,NTITL
+      IF (CCPLOT(I,ITIT).LT.-0.05) THEN
+         DWORD(I) = ' NOT FEASIBLE  '
+         GO TO 520
+      ENDIF
+      IF (DWORD(I).EQ.'ALMOST FEASIBLE') GO TO 510
+      IF (CCPLOT(I,ITIT).GT.-0.05.AND.CCPLOT(I,ITIT).LT.-0.01) THEN
+         DWORD(I) = 'ALMOST FEASIBLE'
+      ENDIF
+  510 CONTINUE
+  520 CONTINUE
+C
+      WRITE(IFILE8,630)
+  630 FORMAT(/'        SUMMARY OF STATE OF THE DESIGN WITH EACH LOAD STE
+     1P'/
+     1' ================================================================
+     1=============')
+      WRITE(IFILE8,640) ILOAD,ICASE
+  640 FORMAT( 
+     1' LOAD         COMBINATION OF LOADS ON PANEL                      
+     1    NUMBER OF'/
+     1' STEP          FOR (LOAD SET, CASE)= (',I1,',',I1,')              
+     1              CRITICAL'/
+     1' NO.       Nx         Ny          Nxy          p      DESIGN IS..
+     1.   MARGINS'/
+     1' ----------------------------------------------------------------
+     1-------------')
+      DO 650 I = 1,NSTEPS
+      WRITE(IFILE8,645) I,FNX(I),FNY(I),FNXY(I),P(I),DWORD(I),INUMB(I)
+  645 FORMAT(I3,2X,1P,4E12.4,2X,A,I3)
+  650 CONTINUE
+      WRITE(IFILE8,660)
+  660 FORMAT(
+     1' ================================================================
+     1=============')
+C
+C BEG AUG 1996
+      IF (IQUICK(ILOAD).EQ.0) THEN
+C END AUG 1996
+      WRITE(IFILE8,665) ILOAD,ICASE
+  665 FORMAT(/' CONTINUATION OF SUMMARY OF STATE OF THE DESIGN WITH EACH
+     1 LOAD STEP FOR (LOAD SET, CASE)= (',I1,',',I1,')'/
+     1' ================================================================
+     1====================================================')
+C BEG JULY 1989
+      IF (ISTIF(1).NE.5.AND.ISTIF(2).NE.5) WRITE(IFILE8,667)
+      IF (ISTIF(1).EQ.5.OR.ISTIF(2).EQ.5)  WRITE(IFILE8,6672)
+  667 FORMAT( 
+     1' LOAD  LOAD FACTOR           MAXIMUM            BOWING        END
+     1      AVE. SHEAR   AXIAL SKIN   HOOP SKIN  SHEAR SKIN'/
+     1' STEP   FOR LOCAL       POST-LOCAL-BUCKLING    AMPLITUDE   SHORTE
+     1NING   STRAIN IN    TANGENT     TANGENT     TANGENT'/
+     1' NO.    BUCKLING            DEFLECTION        UNDER LOAD    e1*AX
+     1IAL   PANEL SKIN   STIFFNESS   STIFFNESS   STIFFNESS'/
+     1'     EIG(ax.waves)     w(ax.halfwaves,slope)     WBOW       Delta
+     1 L     e12(ave)    CTAN(1,1)   CTAN(2,2)   CTAN(3,3)'/
+     1' ----------------------------------------------------------------
+     1----------------------------------------------------')
+ 6672 FORMAT( 
+     1' LOAD  LOAD FACTOR           MAXIMUM            BOWING        END
+     1      AVE. SHEAR   AXIAL TOTAL  HOOP TOTAL SHEAR TOTAL'/
+     1' STEP   FOR LOCAL       POST-LOCAL-BUCKLING    AMPLITUDE   SHORTE
+     1NING   STRAIN IN    TANGENT     TANGENT     TANGENT'/
+     1' NO.    BUCKLING            DEFLECTION        UNDER LOAD    e1*AX
+     1IAL      PANEL     STIFFNESS   STIFFNESS   STIFFNESS'/
+     1'     EIG(ax.waves)     w(ax.halfwaves,slope)     WBOW       Delta
+     1 L     e12(ave)    CTAN(1,1)   CTAN(2,2)   CTAN(3,3)'/
+     1' ----------------------------------------------------------------
+     1----------------------------------------------------')
+C END JULY 1989
+      DO 669 I = 1,NSTEPS
+      MBIF   = V(I,2)
+      MPOST  = V(I,4)
+C BEG JUNE 1990
+      WRITE(IFILE8,668) I,V(I,1),MBIF,V(I,3),V(I,4),V(I,5),V(I,6),
+     1                    V(I,7),V(I,11),V(I,8),V(I,9),V(I,10)
+  668 FORMAT(I3,1PE12.4,'(',I3,')',1PE10.2,'(',0PF5.1,',',0PF7.3,')',
+     1 1P,6E12.4)
+C END JUNE 1990
+  669 CONTINUE
+      WRITE(IFILE8,671)
+  671 FORMAT(
+     1' ================================================================
+     1===================================================')
+C
+C BEG JULY 1989
+      IF (ISTIF(1).NE.5) THEN
+         WRITE(IFILE8,675) ILOAD,ICASE
+  675 FORMAT(/' AVERAGE LOADS/LENGTH (RESULTANTS) IN THE SEGMENTS OF THE
+     1 SKIN-STRINGER CROSS SECTION FOR (LOAD SET, CASE)= (',
+     1 I1,',',I1,')'/
+     1' ================================================================
+     1======================================')
+         WRITE(IFILE8,677)
+  677    FORMAT( 
+     1' LOAD     RESULTANTS IN THE PANEL SKIN      RESULTANTS IN THE STR
+     1INGER BASE     STRINGER    STRINGER'/
+     1' STEP                                                            
+     1                 WEB        FLANGE'/
+     1' NO.   Nx(skin)    Ny(skin)    Nxy(skin)   Nx(base)    Ny(base)  
+     1  Nxy(base)    Nx(web)    Nx(flange)'/
+     1' ----------------------------------------------------------------
+     1--------------------------------------')
+         DO 680 I = 1,NSTEPS
+C BEG SEPT 1990
+         WRITE(IFILE8,679) I,(DDPLOT(I,J),J=11,14),STRHOP(I),
+     1                       (DDPLOT(I,J),J=16,18)
+C END SEPT 1990
+  679    FORMAT(I3,1P,6E12.4,2X,1P,2E12.4)
+  680    CONTINUE
+         WRITE(IFILE8,690)
+  690    FORMAT(
+     1' ================================================================
+     1====================================')
+      ENDIF
+C
+      IF (ISTIF(1).EQ.5) THEN
+         WRITE(IFILE8,6752) ILOAD,ICASE
+ 6752 FORMAT(/' AVERAGE PREBUCKLING RESULTANTS IN THE SEGMENTS OF THE TR
+     1USS-CORE SANDWICH CROSS SECTION FOR (LOAD SET, CASE)= (',
+     1 I1,',',I1,')'/
+     1' ================================================================
+     1===================================================')
+         WRITE(IFILE8,6772)
+ 6772    FORMAT( 
+     1' LOAD     RESULTANTS IN THE LOWER SKIN         RESULTANTS IN EACH
+     1 TRUSS WEB          RESULTANTS IN THE UPPER SKIN'/
+     1' STEP      (l.skin means "lower skin")                           
+     1                     (u.skin means "upper skin")'/
+     1' NO.   Nx(l.skin)  Ny(l.skin)  Nxy(l.skin)    Nx(web)     Ny(web)  
+     1     Nxy(web)    Nx(u.skin)  Ny(u.skin)  Nxy(u.skin)'/
+     1' ----------------------------------------------------------------
+     1---------------------------------------------------')
+         DO 6802 I = 1,NSTEPS
+         WRITE(IFILE8,6792) I,(DDPLOT(I,J),J=11,19)
+ 6792    FORMAT(I3,2X,1P,3E12.4,2X,1P,3E12.4,2X,1P,3E12.4)
+ 6802    CONTINUE
+         WRITE(IFILE8,6902)
+ 6902    FORMAT(
+     1' ================================================================
+     1====================================================')
+      ENDIF
+C
+      IF (ISTIF(2).NE.0.AND.ISTIF(2).NE.5) THEN
+C END JULY 1989
+         WRITE(IFILE8,695) ILOAD,ICASE
+C BEG SEPT 1990
+  695 FORMAT(/' AVERAGE LOADS/LENGTH (RESULTANTS) IN THE SEGMENTS OF THE
+     1 SKIN-RING CROSS SECTION FOR (LOAD SET, CASE)= (',I1,',',I1,')'/
+     1' AND AVERAGE AXIAL STRAIN AT ROOT AND TIP OF RING WEB'/
+     1' ================================================================
+     1======================================')
+         WRITE(IFILE8,697)
+  697    FORMAT( 
+     1' LOAD     AXIAL STRAIN IN THE RING WEB      RESULTANTS IN THE   R
+     1ING   BASE       RING        RING  '/
+     1' STEP       WEB ROOT     WEB TIP                                 
+     1                 WEB        FLANGE'/
+     1' NO.        EPSROOT       EPSTIP           Nx(base)    Ny(base)  
+     1  Nxy(base)    Nx(web)    Nx(flange)'/
+     1' ----------------------------------------------------------------
+     1-------------------------------------')
+         DO 700 I = 1,NSTEPS
+         WRITE(IFILE8,699) I,EPSRUT(I),EPSTIP(I),DDPLOT(I,19),RNGHOP(I),
+     1                     RNGSHR(I),DDPLOT(I,22),DDPLOT(I,23)
+  699    FORMAT(I3,1PE19.4,1PE13.4,4X,1P,3E12.4,2X,1P,2E12.4)
+C END SEPT 1990
+  700    CONTINUE
+         WRITE(IFILE8,710)
+  710    FORMAT(
+     1' ================================================================
+     1====================================')
+C
+      ENDIF
+C BEG AUG 1996
+      ENDIF
+C END AUG 1996
+C
+      WRITE(IFILE8,760) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C
+  760 FORMAT(//' DESCRIPTION OF FILES USED AND GENERATED IN THIS RUN:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.OPI = Output data. Please list this file and inspect'/
+     1'            carefully before proceeding.'/
+     1 1X,A,'.TTT = File that contains the definitions of the margins.'/
+     1 1X,A,'.CBL = Labelled common blocks for PANDA2 analysis.'/
+     1'            (This is an unformatted sequential file.)'/
+     1 1X,A,'.SL1 = Binary file containing results from PANDAOPT'//
+     1 1X,A,'.Lij = Binary files containing various behaviors and'/
+     1'             all margins for all load steps in (i,j), with'/
+     1'             i = subcase (1 or 2);  j = load set'//
+     1' For further information about files used and generated'/
+     1' during operation of PANDA2, give the command HELPAN FILES.'//
+     1' Next, type the command,  CHOOSEPLOT'/)
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPI FILE ******************'
+C END JULY 1989
+C
+      CLOSE(UNIT=8)
+      CLOSE(UNIT=9)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      XYCORD
+      SUBROUTINE XYCORD(NSEGB5,I5,ISTIF,B,B2,H,W,W2,Z,X,Y,XORIG,YORIG,
+C BEG MAY 1997
+     1                  IBREAK,IZSTIF)
+C END MAY 1997
+C
+C  PURPOSE IS TO FIND (X,Y) COORDINATES OF PANEL MODULE CROSS SECTION
+C  FOR LATER PLOTTING.  THIS SUBROUTINE IS CALLED BY STORE2.
+C
+C BEG MAY 1997
+      COMMON/THICK/TX(5),TY(5)
+C END MAY 1997
+      DIMENSION I5(*),Z(23,8),X(24,8),Y(24,8)
+C
+      DO 10 J = 1,NSEGB5
+      DO 10 I = 1,23
+   10 Y(I,J) = -Z(I,J) + 0.000001
+C
+      I51 = I5(1)
+      I511= I51 + 1
+      FI1 = I51 - 1
+      X(1,1) = 0.
+C
+      IF (ISTIF.EQ.0) THEN
+         DX = 0.5*B/FI1
+C BEG JUNE 1990
+         J = 2
+C END JUNE 1990
+         X(1,2) = 0.5*B
+         DO 20 I = 2,I51
+           I1 = I - 1
+           X(I,1) = X(I1,1) + DX
+           X(I,2) = X(I1,2) + DX
+   20    CONTINUE
+         X(I511,1) = X(I51,1)
+         IF (IBREAK.EQ.1) Y(I511,1) = 0.
+         IF (IBREAK.EQ.0) Y(I511,1) = Y(I51,1)
+C BEG JUNE 1990
+         Y(I511,J) = 0.
+C END JUNE 1990
+         GO TO 1000
+      ENDIF
+C
+      IF (ISTIF.GT.0.AND.ISTIF.LT.4) THEN
+C BEG MAY 1997
+         IF (IZSTIF.EQ.0) DX = 0.5*(B-B2)/FI1
+         IF (IZSTIF.EQ.1) DX = 0.5*B/FI1
+C END MAY 1997
+         J = 5
+         IF (ISTIF.EQ.3) J = 4
+         X(1,J) = B - FI1*DX
+         DO 30 I = 2,I51
+           I1 = I - 1
+           X(I,1) = X(I1,1) + DX
+           X(I,J) = X(I1,J) + DX
+   30    CONTINUE
+         X(I511,1) = X(I51,1)
+         X(I511,J) = X(I51,J)
+         IF (IBREAK.EQ.1) Y(I511,1) = 0.
+         IF (IBREAK.EQ.0) Y(I511,1) = Y(I51,1)
+         Y(I511,J) = 0.
+C
+         I52 = I5(2)
+         I521= I52 + 1
+         FI2 = I52 - 1
+         DX = B2/FI2
+C BEG MAY 1997
+         IF (IZSTIF.EQ.0) X(1,2) = X(I51,1)
+         IF (IZSTIF.EQ.1) THEN
+            X(1,2) = X(I51,1) - 0.5*B2
+            Y(1,2) = 0.5*(TX(1)+TX(2))
+         ENDIF
+C END MAY 1997
+         DO 40 I = 2,I52
+           I1 = I - 1
+           X(I,2) = X(I1,2) + DX
+C BEG MAY 1997
+           IF (IZSTIF.EQ.1) Y(I,2) = Y(1,2)
+C END MAY 1997
+   40    CONTINUE
+         X(I521,2) = X(I52,2)
+         Y(I521,2) = 0.
+C
+         I53 = I5(3)
+         I531= I53 + 1
+         DO 50 I = 1,I53
+C BEG MAY 1997
+         IF (IZSTIF.EQ.0) X(I,3) = 0.5*B
+         IF (IZSTIF.EQ.1) X(I,3) = 0.5*B + 0.5*B2
+   50    CONTINUE
+C END MAY 1997
+         X(I531,3) = X(I53,3)
+         Y(I531,3) = 0.
+         IF (IBREAK.EQ.0.AND.ISTIF.NE.3) Y(I531,3) = Y(I53,3)
+C
+         IF (W.EQ.0.) GO TO 1000
+C
+         I54 = I5(4)
+         I541= I54 + 1
+         FI4 = I54 - 1
+         DX  = W/FI4
+         IF (ISTIF.EQ.1) X(1,4) = 0.5*(B-W)
+C BEG MAY 1997
+         IF (ISTIF.EQ.2) THEN
+            IF (IZSTIF.EQ.0) X(1,4) = 0.5*B
+            IF (IZSTIF.EQ.1) X(1,4) = 0.5*B + 0.5*B2
+         ENDIF
+C END MAY 1997
+         DO 60 I = 2,I54
+           I1 = I - 1
+           X(I,4) = X(I1,4) + DX
+   60    CONTINUE
+         X(I541,4) = X(I54,4)
+         Y(I541,4) = 0.
+         GO TO 1000
+      ENDIF
+C
+C  VARIOUS HAT SECTIONS...
+C
+      IF (ISTIF.EQ.4.AND.B2.EQ.W2) THEN
+         DX = 0.5*(B-B2)/FI1
+         X(1,6) = B - FI1*DX
+         DO 70 I = 2,I51
+           I1 = I - 1
+           X(I,1) = X(I1,1) + DX
+           X(I,6) = X(I1,6) + DX
+   70    CONTINUE
+         X(I511,1) = X(I51,1)
+         X(I511,6) = X(I51,6)
+         IF (IBREAK.EQ.1) Y(I511,1) = 0.
+         IF (IBREAK.EQ.0) Y(I511,1) = Y(I51,1)
+         Y(I511,6) = 0.
+C
+         I52 = I5(2)
+         I521= I52 + 1
+         FI2 = I52 - 1
+         DX = B2/FI2
+         X(1,2) = X(I51,1)
+         DO 80 I = 2,I52
+           I1 = I - 1
+           X(I,2) = X(I1,2) + DX
+   80    CONTINUE
+         X(I521,2) = X(I52,2)
+         Y(I521,2) = 0.
+C
+         I54 = I5(4)
+         I541= I54 + 1
+         FI4 = I54 - 1
+         DX  = W/FI4
+         X(1,4) = 0.5*(B-W)
+         DO 90 I = 2,I54
+           I1 = I - 1
+           X(I,4) = X(I1,4) + DX
+   90    CONTINUE
+         X(I541,4) = X(I54,4)
+         IF (IBREAK.EQ.1) Y(I541,4) = 0.
+         IF (IBREAK.EQ.0) Y(I541,4) = Y(I54,4)
+C
+         I53 = I5(3)
+         I531= I53 + 1
+         FI3 = I53 - 1
+         DX  = 0.5*(W2 - W)/FI3
+         X(1,3) = X(1,2)
+         X(1,5) = X(I54,4)
+         DO 100 I = 2,I53
+           I1 = I - 1
+           X(I,3) = X(I1,3) + DX
+           X(I,5) = X(I1,5) + DX
+  100    CONTINUE
+         X(I531,3) = X(I53,3)
+         X(I531,5) = X(I53,5)
+         IF (IBREAK.EQ.1) Y(I531,3) = 0.
+         IF (IBREAK.EQ.0) Y(I531,3) = Y(I53,3)
+         IF (IBREAK.EQ.1) Y(I531,5) = 0.
+         IF (IBREAK.EQ.0) Y(I531,5) = Y(I53,5)
+         GO TO 1000
+      ENDIF
+C
+      IF (ISTIF.EQ.4.AND.B2.NE.W2) THEN
+         DX = 0.5*(B-B2)/FI1
+         X(1,8) = B - FI1*DX
+         DO 110 I = 2,I51
+           I1 = I - 1
+           X(I,1) = X(I1,1) + DX
+           X(I,8) = X(I1,8) + DX
+  110    CONTINUE
+         X(I511,1) = X(I51,1)
+         IF (IBREAK.EQ.1) Y(I511,1) = 0.
+         IF (IBREAK.EQ.0) Y(I511,1) = Y(I51,1)
+         Y(I511,8) = 0.
+C
+         I53 = I5(3)
+         I531 = I53 + 1
+         FI3 = I53 - 1
+         DX = W2/FI3
+         X(1,3) = 0.5*(B-W2)
+         DO 120 I = 2,I53
+           I1 = I - 1
+           X(I,3) = X(I1,3) + DX
+  120    CONTINUE
+         X(I531,3) = X(I53,3)
+         Y(I531,3) = 0.
+C
+         I52 = I5(2)
+         I521 = I52 + 1
+         FI2 = I52 - 1
+         DX = 0.5*(B2-W2)/FI2
+         X(1,2) = X(I51,1)
+         X(1,7) = X(I53,3)
+         DO 130 I = 2,I52
+           I1 = I - 1
+           X(I,2) = X(I1,2) + DX
+           X(I,7) = X(I1,7) + DX
+  130    CONTINUE
+         X(I521,2) = X(I52,2)
+         X(I521,7) = X(I52,7)
+         IF (IBREAK.EQ.1) Y(I521,2) = 0.
+         IF (IBREAK.EQ.0) Y(I521,2) = Y(I52,2)
+         IF (IBREAK.EQ.1) Y(I521,7) = 0.
+         IF (IBREAK.EQ.0) Y(I521,7) = Y(I52,7)
+C
+         I55 = I5(5)
+         I551 = I55 + 1
+         FI5 = I55 - 1
+         DX  = W/FI5
+         X(1,5) = 0.5*(B-W)
+         DO 140 I = 2,I55
+           I1 = I - 1
+           X(I,5) = X(I1,5) + DX
+  140    CONTINUE
+         X(I551,5) = X(I55,5)
+         IF (IBREAK.EQ.1) Y(I551,5) = 0.
+         IF (IBREAK.EQ.0) Y(I551,5) = Y(I55,5)
+C
+         I54 = I5(4)
+         I541= I54 + 1
+         FI4 = I54 - 1
+         DX  = 0.5*(W2 - W)/FI4
+         X(1,4) = X(1,3)
+         X(1,6) = X(I55,5)
+         DO 150 I = 2,I54
+           I1 = I - 1
+           X(I,4) = X(I1,4) + DX
+           X(I,6) = X(I1,6) + DX
+  150    CONTINUE
+         X(I541,4) = X(I54,4)
+         X(I541,6) = X(I54,6)
+         IF (IBREAK.EQ.1) Y(I541,4) = 0.
+         IF (IBREAK.EQ.0) Y(I541,4) = Y(I54,4)
+         IF (IBREAK.EQ.1) Y(I541,6) = 0.
+         IF (IBREAK.EQ.0) Y(I541,6) = Y(I54,6)
+         GO TO 1000
+      ENDIF
+C
+C  TRUSS-CORE SANDWICH CONSTRUCTION...
+C
+      IF (ISTIF.EQ.5) THEN
+C BEG NOV 1995
+         DX = (B-B2)/FI1
+C END NOV 1995
+         DO 170 I = 2,I51
+           I1 = I - 1
+           X(I,1) = X(I1,1) + DX
+  170    CONTINUE
+         X(I511,1) = X(I51,1)
+         IF (IBREAK.EQ.1) Y(I511,1) = 0.
+         IF (IBREAK.EQ.0) Y(I511,1) = Y(I51,1)
+C
+         I53 = I5(3)
+         I531= I53 + 1
+         FI3 = I53 - 1
+C BEG NOV 1995
+         DX  = (B-B2)/FI3
+C END NOV 1995
+         X(1,3) = 0.5*B
+         DO 190 I = 2,I53
+           I1 = I - 1
+           X(I,3) = X(I1,3) + DX
+  190    CONTINUE
+         X(I531,3) = X(I53,3)
+         IF (IBREAK.EQ.1) Y(I531,3) = 0.
+         IF (IBREAK.EQ.0) Y(I531,3) = Y(I53,3)
+C
+         I52 = I5(2)
+         I521= I52 + 1
+         FI2 = I52 - 1
+C BEG NOV 1995
+         DX  = -0.5*(B-2.*B2)/FI2
+         X(1,2) = (B - B2)
+         X(1,4) = 1.5*B - B2
+C END NOV 1995
+         DO 200 I = 2,I52
+           I1 = I - 1
+           X(I,2) = X(I1,2) + DX
+           X(I,4) = X(I1,4) + DX
+  200    CONTINUE
+         X(I521,2) = X(I52,2)
+         X(I521,4) = X(I52,4)
+         IF (IBREAK.EQ.1) Y(I521,2) = 0.
+         IF (IBREAK.EQ.0) Y(I521,2) = Y(I52,2)
+         Y(I521,4) = 0.
+C BEG NOV 1995
+         IF (B2.GT.0.0) THEN
+            I55 = I5(5)
+            I551 = I55 + 1
+            FI5 = I55 - 1
+            DX = B2/FI5
+            X(1,5) = B
+            X(1,6) = 0.5*B - B2
+            DO 210 I = 2,I55
+              I1 = I - 1
+              X(I,5) = X(I1,5) - DX
+              X(I,6) = X(I1,6) + DX
+  210       CONTINUE
+            X(I551,5) = X(I55,5)
+            X(I551,6) = X(I55,6)
+            Y(I551,5) = 0.
+            Y(I551,6) = 0.
+         ENDIF
+      ENDIF
+C
+ 1000 CONTINUE
+C
+C  ADD ORIGIN (XORIG,YORIG)...
+C
+      DO 1100 J = 1,8
+      DO 1100 I = 1,24
+         X(I,J) = X(I,J) + XORIG
+         IF (Y(I,J).NE.0.) Y(I,J) = Y(I,J) + YORIG
+ 1100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      XYALL
+      SUBROUTINE XYALL(ISTIF,NSEGB5,I5,X,Y,U,W,SCALE,XALL,YALL,
+     1                 I3D,ICNECT,I2ALL)
+C
+C  PURPOSE IS TO GENERATE XALL,YALL VECTORS FOR PLOTTING OF
+C  UNDEFORMED AND DEFORMED PANEL MODULE SKIN-STRINGER CROSS SECTION.
+C  
+C  INPUT..
+C          U, W IS MERIDIONAL, NORMAL POST-LOCAL BUCKLING DISPLACEMENTS
+C          X, Y ARE LOCATIONS OF NODES OF UNDEFORMED CROSS SECION
+C          SCALE IS A SCALE FACTOR FORS MAGNIFYING THE DEFORMATIONS
+C                SO THAT THEY SHOW UP WELL ON THE PLOTS.
+C          NSEGB5 = NUMBER OF "BOSOR" SEGMENTS INTO WHICH THE
+C                   STRUCTURE IS DIVIDED
+C          I5     = NUMBER OF NODAL POINTS IN EACH SEGMENT.
+C
+       DIMENSION I5(*),X(24,8),Y(24,8),U(23,8),W(23,8),XALL(*),YALL(*)
+       DIMENSION ICNECT(*)
+       LOGICAL ISEGL1,ISEGL2,ISEGL3,ILOGC0,ILOGC1,ILOGC2
+C
+       IALL = 0
+       IF (I3D.EQ.1) THEN
+          I2ALL= 0
+          IFLNG= 4
+          IF (ISTIF.NE.1) IFLNG = 0
+       ENDIF
+       DO 100 ISEG = 1,NSEGB5
+          I5I = I5(ISEG)
+          DX  = X(I5I,ISEG) - X(1,ISEG)
+          DY  = Y(I5I,ISEG) - Y(1,ISEG)
+          DEN = SQRT(DX*DX + DY*DY)
+          C   = DX/DEN
+          S   = DY/DEN
+          I52 = I5I/2 + 1
+          ISEGL1 = ISEG.EQ.1
+          ISEGL2 = ISEG.EQ.IFLNG
+          ISEGL3 = ISEG.NE.1.AND.ISEG.NE.IFLNG
+          DO 80 I = 1,I5I
+             IALL = IALL + 1
+             XALL(IALL) = X(I,ISEG) + SCALE*(U(I,ISEG)*C + W(I,ISEG)*S)
+             YALL(IALL) = Y(I,ISEG) + SCALE*(U(I,ISEG)*S - W(I,ISEG)*C)
+             IF (I3D.EQ.1) THEN
+                ILOGC0 = ISEGL1.AND.(I.EQ.1.OR.I.EQ.I52.OR.I.EQ.I5I)
+                ILOGC1 = ISEGL3.AND.(I.EQ.I52.OR.I.EQ.I5I)
+                ILOGC2 = ISEGL2.AND.(I.EQ.1.OR.I.EQ.I5I)
+                IF (ILOGC0.OR.ILOGC1.OR.ILOGC2) THEN
+                   I2ALL = I2ALL + 1
+                   ICNECT(I2ALL) = IALL
+                ENDIF
+             ENDIF
+   80     CONTINUE
+          IALL = IALL + 1
+          XALL(IALL) = XALL(IALL-1)
+          I5I1 = I5I + 1
+          IF (Y(I5I1,ISEG).EQ.0.) YALL(IALL) = 0.
+          IF (Y(I5I1,ISEG).NE.0.) YALL(IALL) = YALL(IALL-1)
+  100  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      UW3D
+      SUBROUTINE UW3D(AXIAL,B,NSEGB5,I5,FM,C,PBW,PBU,PBV,PW,PU,PV,
+     1                X,Y,Z,U,V,W)
+C
+C  PURPOSE IS TO CALCULATE MERIDIONAL AND NORMAL DISPLACEMENT COMPONENTS,
+C  (U,W) CORRESPONDING TO THE AXIAL STATION Z. IT IS ASSUMED THAT IN THE
+C  PANEL SKIN (WHEN Y = 0) THAT:
+C
+C  1. U = 0.
+C  2. W = PBW*sin[m(x-cy)] + PW    (PW is local normal disp. from pressure)
+C
+C  AND IN THE STRINGER PARTS:
+C
+C  1. U = PBU*sin(mx) + PU         (PU is local merid. disp. from pressure)
+C  2. W = PBW*sin(mx) + PW
+C
+C BEG JULY 1989
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/SEGSLP/MSLOPE(8)
+      REAL MSLOPE
+C END JULY 1989
+      DIMENSION I5(*),PBW(23,8),PBU(23,8),PW(23,8),PU(23,8),PV(23,8)
+      DIMENSION U(23,8),V(23,8),W(23,8),Y(24,8),Z(24,8),PBV(23,8)
+C
+      PI = 3.1415927
+      FMM= FM*PI/AXIAL
+C
+      DO 100 ISEG = 1,NSEGB5
+      I5I = I5(ISEG)
+      DO 50 I = 1,I5I
+C BEG JULY 1989
+         IF (ISTIF(1).NE.5) THEN
+            IF (ABS(Z(I,ISEG)).LT.0.00001) THEN
+               ARG = FMM*(X - C*Y(I,ISEG))
+            ELSE
+               ARG = FMM*X
+            ENDIF
+         ELSE
+            ARG = FMM*(X - C*MSLOPE(ISEG)*Y(I,ISEG))
+         ENDIF
+C END JULY 1989
+         SARG = SIN(ARG)
+         CARG = COS(ARG)
+         U(I,ISEG) = PBU(I,ISEG)*SARG + PU(I,ISEG)
+         V(I,ISEG) = PBV(I,ISEG)*CARG + PV(I,ISEG)
+         W(I,ISEG) = PBW(I,ISEG)*SARG + PW(I,ISEG)
+   50 CONTINUE
+  100 CONTINUE
+      RETURN
+      END

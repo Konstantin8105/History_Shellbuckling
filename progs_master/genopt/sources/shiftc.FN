@@ -1,0 +1,54 @@
+C=DECK      SHIFTC
+      SUBROUTINE SHIFTC(ANS)
+C
+C  PURPOSE IS TO REMOVE LEADING BLANKS FROM CHARACTER STRING.
+C  THIS TROUBLE HAS TO BE ENDURED BECAUSE OF STUPID FORTRAN
+C  CARRIAGE CONTROL BUSINESS.
+C
+C ===========================================
+C     ALL NEW CODE WRITTEN SEPTEMBER 21, 2011
+C ===========================================
+      CHARACTER  ANS*(*)
+      CHARACTER  NEW*16
+      INTEGER    I, IB, IE
+
+C     1ST, CHECK FOR BEGINING OF CHARACTERS
+
+      IB = 0
+      DO 10 I = 1,LEN(ANS)
+        IF (ANS(I:I) .NE. " ") THEN
+          IB = I
+          GO TO 20
+        ENDIF
+   10 CONTINUE
+
+   20 IF (IB .EQ. 0) THEN
+        WRITE(6,3000)
+        RETURN
+      ENDIF
+
+C     2ND, CHECK FOR ENDING OF CHARACTERS
+
+      IE = 0
+      DO 30 I = IB,LEN(ANS)
+        IF (ANS(I:I) .EQ. " ") THEN
+          IE = I - 1
+          GO TO 40
+        ENDIF
+   30 CONTINUE
+      IE = LEN(ANS)
+
+   40 IF (IE .EQ. 0) THEN
+        WRITE(6,3001) ANS
+        RETURN
+      ENDIF
+
+      NEW = ANS(IB:IE)//' '
+      ANS = NEW
+
+      RETURN
+
+ 3000 FORMAT('SHIFTC ERROR:  ANS = all blanks')
+ 3001 FORMAT('SHIFTC ERROR:  cannot find end of ANS = ',A)
+
+      END

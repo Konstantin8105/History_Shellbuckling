@@ -1,0 +1,176 @@
+#
+# updateobj splits the FORTRAN source file ending with "name".src into
+# subroutine and compiles each subroutine to its own *.o file.  Then,
+# each *.o is archived into an object library "name".a containing only
+# those routines in "name".src.
+
+# $0 = 'updateobj'
+# $1 = FORTRAN compiler name
+# $2 = flags passed to the FORTRAN compiler
+# $3 = source file
+# $4 = object library
+
+# $5 = extra pre-Processor name definiitons
+
+echo "------------------------------------------"
+echo "Executing updateobj."
+
+set fortran = "$1"
+set fflags  = "$2"
+set ppnames = "$5"
+
+set workspace = "${TEMPDIR}/$$"
+mkdir $workspace
+
+# Establish absolute pathnames for input (source) files (= $3)
+# and output (object library) file (= $4), and dbx sources directory.
+
+set startdir   = "$cwd"
+set sourcepath = $3
+set sourcedir  = $sourcepath:h
+set sourcetail = $sourcepath:t
+
+#echo " startdir   = ${startdir}"
+#echo " sourcepath = ${sourcepath}"
+#echo " sourcedir  = ${sourcedir}"
+#echo " sourcetail = ${sourcetail}"
+
+if ($sourcedir == $sourcepath) then  # $sourcedir is $cwd.
+  set sourcefile = "${cwd}/$sourcepath"
+  set sourcedir  = $cwd
+else  # $sourcedir is the head of $sourcefile.
+  cd $sourcedir
+  set sourcefile = "${cwd}/$sourcetail"
+endif
+
+#echo "-sourcedir  = ${sourcedir}"
+#echo "-sourcefile = ${sourcefile}"
+
+cd $startdir
+
+set objpath  = $4
+set objdir   = $objpath:h
+set objtail  = $objpath:t
+if ($objdir == $objpath) then  # $objdir is $cwd.
+  set objlib = "${cwd}/$objpath"
+  set objdir = $cwd
+else  # $objdir is the head of $objlib.
+  if (!(-e $objdir)) then  #If objdir doesn't exist, then make it.
+    mkdir $objdir
+  endif
+  cd $objdir
+  set objlib = "${cwd}/$objtail"
+endif
+
+set dbxdir = "${startdir}/../dbx_sources"
+
+cd $workspace
+echo "Using temporary directory: $workspace"
+
+if ($MACHINE == "cray") then
+  set root = $sourcefile:r
+  set root = $root:t
+  cp $sourcefile $root.F
+  echo "Preprocessing ${root}.F to ${root}.f"
+  gpp -P -D${MACHINE} $ppnames $root.F $root.f
+  echo "Compiling ${root}.f source file with flags: $fflags"
+  $fortran $fflags ${root}.f
+else
+  echo "Splitting source file: $sourcefile"
+  fsplit $sourcefile
+  if (`'ls' zzz[0-9][0-9][0-9].f | wc -l` > 0) then
+    'rm' zzz[0-9][0-9][0-9].f
+  endif
+
+  # Rename files from *.f to *.F on sun3, sun4, sol, alpha,
+  # and apol machines so that -cpp pre-processes them first.
+
+  switch ($MACHINE)
+
+    case "sun3":
+    case "sun4":
+    case "dec":
+    case "alpha":
+    case "apol":
+    case "sol":
+      foreach file (*.f)
+	set root = $file:r
+	set root = $root:t
+	mv $root.f $root.F
+      end
+      echo "Compiling all *.F source files with flags: $fflags"
+      $fortran -D${MODULE} $fflags -c *.F
+      breaksw
+
+    case "hp700":
+    case "rs6k":
+      echo "Process each .f file with cpp."
+      foreach file (*.f)
+	set root = $file:r
+	set root = $root:t
+	mv $root.f $root.F
+	echo "Preprocessing ${root}.F to ${root}.f"
+	/lib/cpp -P -D${MACHINE} $ppnames $root.F $root.f
+	echo "Compiling ${root}.f source file with flags: $fflags"
+	if ($MACHINE == "cray") then
+	  $fortran $fflags ${root}.f
+	else
+	  $fortran -c $fflags ${root}.f
+	endif
+      end
+      breaksw
+
+    case "linux":
+    case "mac":
+    case "x86_64":
+      echo "Process each .f file with fpp."
+      foreach file (*.f)
+	set root = $file:r
+	set root = $root:t
+	mv -f $root.f dumi.F
+	echo "Preprocessing ${root}.F to ${root}.f"
+	fpp -P -D${MACHINE} $ppnames dumi.F $root.f
+	/bin/rm -f dumi.F
+	echo "Compiling ${root}.f source file with flags: $fflags"
+	$fortran -c $fflags ${root}.f
+      end
+      breaksw
+
+    default:
+      echo "Compiling all *.f source files with flags: $fflags"
+      $fortran $fflags -c *.f
+
+  endsw
+endif
+
+echo "Archiving all *.o files to: $objlib"
+/bin/rm -f $objlib
+if      ($MACHINE == "cray") then
+  bld rv $objlib *.o
+else if ($MACHINE == "sol") then
+  ar rsv $objlib *.o
+else
+  ar rv $objlib *.o
+endif
+
+if ($MACHINE == "mac") then
+  ranlib $lib
+endif
+
+# added 3/29/91
+if (-e $dbxdir) then
+  mv -f *.[fF] $dbxdir
+  if ($MACHINE == "star") then
+    mv -f *.o $dbxdir
+  endif
+endif
+# end 3/29/91
+
+cd $startdir
+
+echo "Remove temporary directory: $workspace"
+/bin/rm -rf $workspace
+
+echo "Exiting updateobj."
+echo "------------------------------------------"
+

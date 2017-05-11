@@ -1,0 +1,227 @@
+C=DECK      GLOBST
+C
+C  PURPOSE IS TO TRANSFER THE PARAMETERS FOR THE GLOBAL BUCKLING
+C  (DISCRETE) MODEL FROM THE BOSOR4 DATA BASE TO THE PANDA2 DATA BASE.
+C
+      PROGRAM GLOBST
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/TOTPTS/M3
+      COMMON/TOTPTG/M3G
+      COMMON/SEGSG/NSEGG,M2G,I5G(95),I2GG,I2GGG   
+      COMMON/LOCATG/ILOCPG,ILOCBG,IRWCPG(98),IRWCBG(98),IIWPG,IIWBG 
+      COMMON/DSPACE/IDS
+      COMMON/DSPACG/IDSG
+      COMMON/ILOCGG/ILOCG(600),IWG(210),DSG(200)
+      COMMON/UNITNO/IU
+      COMMON/IDHIGH/IDMAX
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5,fname
+      common/caseblock/case
+      integer lastch
+      logical exists
+C END UNIX
+      LOGICAL ANSL1     
+C BEG UNIX
+C     write(6,*) 'before the entire program'
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     IUNAME = 12
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMS
+C     write(6,*) 'before the crap with the case name'
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.ERR'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.ERR'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C   RETRIEVE GENERAL INSTABILITY DISCRETE MODEL PARAMETERS FIRST, SO
+C   WE CAN OVERWRITE THE COMMON BLOCKS WITH THE PANEL MODULE STUFF NEXT.
+C
+C     write(6,*) 'before assigning file numbers'
+      IU = 11
+      IFILE9 = 9
+      IFILE7 = 7
+      IFILE6 = 6
+C BEG VMS
+C     OPEN(UNIT=6,FILE=CASE2,STATUS='SCRATCH')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+C     write(6,*) 'before opening ifile6'
+c     OPEN(UNIT=ifile6,FILE=CASE2(1:lastch(case2)),STATUS='NEW')
+c
+C     write(6,*) 'before open case3 file'
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+	OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c 
+C     write(6,*) 'before open .BL2 file'
+      fname = case(1:lastch(case))//'.BL2'
+      inquire(FILE=fname, EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IFILE9, FILE=fname(1:lastch(fname)),
+     1       FORM='UNFORMATTED', STATUS='OLD')
+      else
+        OPEN(UNIT=IFILE9, FILE=fname(1:lastch(fname)),
+     1       FORM='UNFORMATTED', STATUS='NEW')
+      endif
+C END UNIX
+      REWIND IFILE9
+C     write(6,*) 'before CALL GETCM1(IFILE9)'
+      CALL GETCM1(IFILE9)
+C     write(6,*) 'before CALL GETCM2(IFILE9)'
+      CALL GETCM2(IFILE9)
+C BEG UNIX
+      CLOSE(IFILE9)
+C END UNIX
+C
+C   READ IN THE PANDA2 COMMON BLOCKS....
+C
+C     write(6,*) 'before CALL GETCOM(IFILE7)'
+      CALL GETCOM(IFILE7)
+C
+C   STORE THE NEEDED GENERAL INSTABILITY COMMON BLOCKS IN BLOCKS WITH
+C   NEW NAMES (WITH "G" APPENDED TO THE OLD NAMES)...
+C
+C     write(6,*) 'before CALL STOGLB'
+      CALL STOGLB
+C
+C
+C   INITIALIZE THE IO ROUTINE GASP...
+C
+C     write(6,*) 'idmax = ', idmax
+C     write(6,*) 'before the first gasp call.'
+C BEG 08 NOV 2011
+*     CALL GASP(iDUM1,iDUM2,-1,iDUM3)
+      CALL GASP(iDUM1,iDUM2, 0,iDUM3)
+C END 08 NOV 2011
+C
+      IIBG = I2GG + 2*NSEGG
+C
+C     write(6,*)'before CALL GASP(IWG,IIBG,3,IIWBG)'
+C     write(6,*)'iDUM3 = ', idum3
+C     write(6,*)'iwg=', iwg
+C     write(6,*) 'iibg=', iibg
+C     write(6,*) 'iiwbg=', iiwbg
+C     write(6,*) 'nsegg=', nsegg
+C     write(6,*) 'i2gg=', i2gg
+      CALL GASP(IWG,IIBG,3,IIWBG)
+C     write(6,*)'before CALL GASP(ILOCG,M3G,3,ILOCBG)'
+C     write(6,*)'iwg=', iwg
+C     write(6,*) 'iibg=', iibg
+C     write(6,*) 'iiwbg=', iiwbg
+C     write(6,*) 'nsegg=', nsegg
+C     write(6,*) 'i2gg=', i2gg
+      CALL GASP(ILOCG,M3G,3,ILOCBG)
+C     write(6,*)'before CALL GASP(DSG,I2GG,3,IDSG)'
+      CALL GASP(DSG,I2GG,3,IDSG)
+C      CALL GASP(YLOCG,2*M3G,1,IDMODE(J))
+C
+C     WRITE(6,*)' I2GG,NSEGG,IIBG,IIWBG=',I2GG,NSEGG,IIBG,IIWBG
+C     WRITE(6,11) (IWG(I),I=1,IIBG)
+   11 FORMAT(//' IWG(I)='/(10I10))
+C     WRITE(6,12) IDSG, (DSG(I),I=1,I2GG)
+   12 FORMAT(//' IDSG=',I10,'   DSG(I)='/(1P10E12.4))
+C     WRITE(6,13) M3G,ILOCBG,(ILOCG(I),I=1,M3G)
+   13 FORMAT(//' M3G,ILOCBG=',2I10,'   ILOCG(I)='/(10I10))
+C
+C  STORE PANDA2 COMMON BLOCKS...
+C
+C     write(6,*) 'before CALL STORCM(IFILE7)'
+      CALL STORCM(IFILE7)
+C
+C BEG 26 JAN 1989
+      CLOSE(UNIT=7)
+C END 26 JAN 1989
+C
+C BEG UNIX
+c     close(unit=ifile6, status='DELETE')
+C END UNIX
+C     write(6,*) 'at end of globst'
+      END
+C
+C
+C
+C=DECK      STOGLB
+      SUBROUTINE STOGLB
+C
+C  PURPOSE IS TO STORE TEMPLATES FOR GLOBAL BUCKLING OBTAINED FROM
+C  THE BOSOR4 PREPROCESSOR INTO COMMON BLOCKS FOR USE BY ARRAYS AND
+C  EBAND2...
+C
+      COMMON/TOTPTS/M3
+      COMMON/TOTPTG/M3G
+      COMMON/DSPACE/IDS
+      COMMON/DSPACG/IDSG
+      COMMON/SEGS/NSEG(1),M2,I5(95),I2,I2G   
+      COMMON/SEGSG/NSEGG(1),M2G,I5G(95),I2GG,I2GGG   
+      COMMON/BLK/IBLK(1),NGBK(20),NKF(20)    
+      COMMON/BLKG/IBLKG(1),NGBKG(20),NKFG(20)    
+      COMMON/BCK/IDRW(100)   
+      COMMON/BCKG/IDRWG(100)   
+      COMMON/LOCATN/ILOCP(1),ILOCB,IROWCP(98),IROWCB(98),IIWP,IIWB   
+      COMMON/LOCATG/ILOCPG(1),ILOCBG,IRWCPG(98),IRWCBG(98),IIWPG,IIWBG 
+      COMMON/NCONDS/NCOND     
+      COMMON/NCONDG/NCONDG     
+      COMMON/RING3/D1(98),D2(98)    
+      COMMON/RING3G/D1G(98),D2G(98)    
+      COMMON/JUNCTB/IFIXB(588),IFXB(588),ITYPEB(98) 
+      COMMON/JUNCTG/IFIXBG(588),IFXBG(588),ITYPEG(98) 
+      COMMON/BKSIZE/IMAXP(1),IMAXB,KMAXP(20),KMAXB(20)   
+      COMMON/BKSIZG/IMAXPG(1),IMAXBG,KMAXPG(20),KMAXBG(20)   
+      COMMON/IDHIGH/IDMAX
+      COMMON/IDHIGG/IDMAXG
+C
+      M3G = M3
+      IDSG= IDS
+      IDMAXG = IDMAX
+      DO 5 I = 1,99
+    5 NSEGG(I) = NSEG(I)
+      DO 10 I = 1,41
+   10 IBLKG(I) = IBLK(I)
+      DO 15 I = 1,100
+   15 IDRWG(I) = IDRW(I)
+      DO 20 I = 1,200
+   20 ILOCPG(I) = ILOCP(I)
+      NCONDG = NCOND
+      DO 25 I = 1,196
+   25 D1G(I) = D1(I)
+      DO 30 I = 1,1274
+   30 IFIXBG(I) = IFIXB(I)
+      DO 35 I = 1,42
+   35 IMAXPG(I) = IMAXP(I)
+C
+      RETURN
+      END

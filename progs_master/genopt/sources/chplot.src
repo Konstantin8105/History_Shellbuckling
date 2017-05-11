@@ -1,0 +1,763 @@
+C=DECK      CHPLOT
+C  PURPOSE IS TO CHOOSE WHICH VARIABLES TO GET PLOTS OF.
+C
+      PROGRAM CHPLOT
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFIL44,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/ADDRSS/IADDV(98),IADDP(99),IADDA(99),IADDC(99),IADDD(98)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDC(99),WORDD(98)
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN
+      COMMON/NUMPR2/ILAR,NCAR,IOAR,IFLAT,NCASES,NPRINT
+      COMMON/WORDS5/PCWORD(99)
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+      COMMON/WORDS6/WORDPL(98),WORDCL(99)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+C BEG DEC 1990
+C BEG JAN 1998
+      COMMON/ITRSNX/ITRSEN,ITRALL,IRESET
+C END JAN 1998
+      COMMON/GEOMN3/IBVAR,VARPLT(30)
+      DIMENSION VARLEG(98)
+      CHARACTER*12 VARLEG
+C END DEC 1990
+      DIMENSION ISUBP1(98),ISUBP2(98),ISUBC1(99),ISUBC2(99),LENGTH(99)
+      DIMENSION VPLT(98),FMARGN(99),IADDPL(98),IADDCL(99)
+C BEG JAN 1998
+C BEG NOV 2005
+      DIMENSION NAMEV(98),NAMEM(99),CCPLOT(500),CCCPLT(500,19),FI(500)
+C END NOV 2005
+C END JAN 1998
+      CHARACTER*80 WORDV,PHRASE,WORDPL,WORDCL,PCWORD
+      CHARACTER*80 WORDP,WORDA,WORDC,WORDD,WORDF,WORDB,WORDOB,WORDS
+C BEG OCT 2005
+C     CHARACTER*4 ANSOUT,ANSWER,QUAL
+C     CHARACTER*12 CASE,NAMEV,NAMEM,NAMEOB
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE9,CASE10,CASE11
+      CHARACTER*4 ANSOUT,ANSWER,QUAL,CHARAC
+      CHARACTER*28 CASE,NAMEV,NAMEM,NAMEOB
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE9,CASE10,CASE11
+C END OCT 2005
+      LOGICAL ANSL1     
+C BEG NOV 2005
+      DIMENSION ILINE2(500)
+C BEG DEC 1997
+      DIMENSION ILINE(500)
+      DIMENSION NAMEVX(30),LSTRNG(30),TITLE0(3)
+      CHARACTER*80 NAMEVX,TITLE0
+      CHARACTER*2 CIVAR
+      CHARACTER*72 ARGSTR
+C END DEC 1997
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      CALL CASSPC(5,CASE)
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPL'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE4=CASE(:I-1)//'.PL2'
+         CASE9=CASE(:I-1)//'.PL3'
+         CASE10=CASE(:I-1)//'.PL4'
+         CASE11=CASE(:I-1)//'.PL5'
+      ELSE
+         CASE2=CASE//'.OPL'
+         CASE3=CASE//'.CBL'
+         CASE4=CASE//'.PL2'
+         CASE9=CASE//'.PL3'
+         CASE10=CASE//'.PL4'
+         CASE11=CASE//'.PL5'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28
+C END OCT 2005
+C
+      IFILE = 2   
+      IFILE4= 4
+      IFILE7= 7
+      IFILE8 = 8
+      IFILE9 = 9
+      IFIL10 = 12
+      IFIL11 = 11
+C
+C BEG AUG 1990
+      IOUTFL = 3
+C BEG VMS
+c     OPEN(UNIT=2,FILE='GENOPT:URPROMPT.DAT',STATUS='OLD',READONLY)
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='GENOPT/URPROMPT.DAT',STATUS='OLD')
+C END UNIX
+      OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+      OPEN(UNIT=4,FILE=CASE4,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+      OPEN(UNIT=9,FILE=CASE9,STATUS='UNKNOWN')
+      OPEN(UNIT=12,FILE=CASE10,STATUS='UNKNOWN')
+      OPEN(UNIT=11,FILE=CASE11,STATUS='UNKNOWN')
+C END AUG 1990
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET)
+C BEG JULY 1989
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(A,A,A)')
+     1' ******** BEGINNING OF THE  ',CASE(1:NLET),'.OPL  FILE *********'
+      WRITE(IFILE8,*)' '
+C END JULY 1989
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET)
+    5 FORMAT(//' ***************** CHOOSEPLOT  *******************'/
+     1' The purpose of CHOOSEPLOT is to permit you to choose:'//
+     1'    1. Which design parameters (Role 1 variables) are to be'/
+     1'       plotted v. design iterations;'//
+     1'    2. Which design margins are to be plotted v. design'/
+     1'       iterations.'//
+     1' The results of the interactive session are saved in a file'/
+     1' called ',A,'.CPL, in which ',A,' is your name for the case.'/
+     1' You may find this file useful for future runs of CHOOSEPLOT'/
+     1' in which you want to avoid answering many questions'/
+     1' interactively. CHOOSEPLOT also generates the four files:'/
+     1' ',A,'.OPL, ',A,'.PL3, ',A,'.PL4, and ',A,'.PL5 , which are'/
+     1' described briefly at the end of this run.'/
+     1' If you choose the tutorial option, ',A,'.OPL contains a'/
+     1' complete list of the interactive session, including prompting'/
+     1' questions, all "help" paragraphs, your responses to the'/
+     1' prompting questions, and evolving lists of which parameters'/
+     1' are to be plotted as they are chosen by you.  In addition to'/
+     1' the parameters chosen here for plotting, CHOOSEPLOT auto-'/
+     1' matically sets up a file of the objective for plotting.'/)
+C
+      QUAL = '.CPL'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C
+      CALL GETCOM(IFILE7)
+C
+C BEG DEC 1990 (FOLLOWING STATEMENT COMMENTED OUT)
+C     ITYPE = 1
+      IF (ITYPE.NE.1.AND.ITYPE.NE.3) THEN
+         WRITE(6,*)' ILLEGAL VALUE OF ANALYSIS TYPE, ITYPE. YOU MUST'
+         WRITE(6,*)' HAVE JUST RUN "OPTIMIZE" WITH EITHER ITYPE=1 OR 3'
+         CALL ERREX
+      ENDIF
+C END DEC 1990
+C
+      CALL MOVERX(0,0,IPV,1,NVAR)
+      CALL MOVERX(0,0,ICV,1,NCAR)
+      CALL MOVERX(1,0,ISUBP1,1,NVAR)
+      CALL MOVERX(0,0,ISUBP2,1,NVAR)
+      CALL MOVERX(1,0,ISUBC1,1,NCAR)
+      CALL MOVERX(0,0,ISUBC2,1,NCAR)
+C
+      NPLT = 0
+      NMARGN = 0
+      IF (ITRTOT.LT.2) THEN
+         WRITE(6,*)' NO DESIGN ITERATIONS HAVE BEEN PERFORMED.'
+         WRITE(6,*)' PLEASE DO SOME OPTIMIZATION BEFORE USING'
+         WRITE(6,*)' CHOOSEPLOT.'
+         CALL EXIT
+      ENDIF
+C
+C     DO 7 IVAR = 1,NVAR
+C        IF (VAR(IVAR).EQ.0.) ISUBP2(IVAR) = 1
+C   7 CONTINUE
+C
+      ITER1 = ITER + 1
+      DO 8 ICAR = 1,NCAR
+         IF (CPLOT(ICAR,ITER1).EQ.0.) ISUBC2(ICAR) = 1
+         IF (CPLOT(ICAR,ITER1).GT.1000.) ISUBC2(ICAR) = 1
+    8 CONTINUE
+C BEG DEC 1990
+      IPLT = 0
+      NPLT = 0
+      IF (ITYPE.EQ.3) GO TO 32
+C END DEC 1990
+C
+      CALL DATUM(IFILE,514,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 32
+C
+   10 CONTINUE
+      IF (IPLT.GT.19) THEN
+         WRITE(6,*)' NO MORE ALLOWED IN THIS RUN. CHOOSE ADDITIONAL'
+         WRITE(6,*)' DESIGN PARAMETERS IN ANOTHER RUN.'
+         GO TO 32
+      ENDIF
+      IF (IPLT.GT.0) THEN
+
+C     CALL OUTVAR(NVAR,VAR,WORDV,IADDV,'      DESIGN VARIABLES CHOSEN SO
+C    1FAR FOR PLOTTING v. ITERATIONS   ',6,62,1,ISUBP1,1)
+        ARGSTR = '      DESIGN VARIABLES CHOSEN SO'//
+     $           'FAR FOR PLOTTING v. ITERATIONS  '
+        CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,62,1,ISUBP1,1)
+
+C
+        IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVAR(NVAR,VAR,WORDV,IADDV,'      DESIGN VARIABLES CHOSEN SO
+C    1FAR FOR PLOTTING v. ITERATIONS   ',IPROMP,65,1,ISUBP1,1)
+          ARGSTR = '      DESIGN VARIABLES CHOSEN SO'//
+     $             'FAR FOR PLOTTING v. ITERATIONS  '
+          CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,65,1,ISUBP1,1)
+
+        ENDIF
+      ENDIF
+C
+
+C     CALL OUTVAR(NVAR,VAR,WORDV,IADDV,'    LIST FROM WHICH A VARIABLE T
+C    1O BE PLOTTED MUST NOW BE CHOSEN  ',6,62,1,ISUBP2,1)
+      ARGSTR = '    LIST FROM WHICH A VARIABLE TO'//
+     $         ' BE PLOTTED MUST NOW BE CHOSEN  '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,62,1,ISUBP2,1)
+
+      IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVAR(NVAR,VAR,WORDV,IADDV,'    LIST FROM WHICH A VARIABLE T
+C    1O BE PLOTTED MUST NOW BE CHOSEN  ',IPROMP,65,1,ISUBP2,1)
+        ARGSTR = '    LIST FROM WHICH A VARIABLE TO'//
+     $           ' BE PLOTTED MUST NOW BE CHOSEN  '
+        CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,65,1,ISUBP2,1)
+
+      ENDIF
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,515,1,2,IVAR,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (ISUBP2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR DESIGN VARIABLE, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 10
+      ENDIF
+C
+      DO 20 J = 1,60
+   20 PHRASE(J:J) = WORDV(IVAR)(J:J)
+      FVAR = IVAR
+      IPV(IVAR) = 1
+      ISUBP1(IVAR) = 0
+      ISUBP2(IVAR) = 1
+      CALL GETVAR(0,0,FVAR,IPLT,VPLT,WORDPL,IADDPL)
+      CALL DATUM(IFILE,544,1,1,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+      NPLT = IPLT
+C
+
+C     CALL OUTVAR(NVAR,VAR,WORDV,IADDV,'    DESIGN PARAMETERS TO BE PLOT
+C    1TED v. DESIGN ITERATIONS         ',IFILE8,65,1,ISUBP1,1)
+      ARGSTR = '    DESIGN PARAMETERS TO BE PLOTT'//
+     $         'ED v. DESIGN ITERATIONS         '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,65,1,ISUBP1,1)
+
+C
+   32 CONTINUE
+C BEG DEC 1990
+      IF (ITYPE.EQ.3) CALL VARNAM(6,1,NVAR,WORDV,VARLEG)
+C END DEC 1990
+C
+C  NEXT, CHOOSE WHICH DESIGN MARGINS TO PLOT V. ITERATIONS...
+C
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,516,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 42
+C
+      IMAR = 0
+      ITER1 = ITER + 1
+C BEG DEC 1990
+      DO 28 I = 1,NCAR
+      IF (CPLOT(I,ITER1).GT.1000000.0) ISUBC2(I) = 1
+   28 CONTINUE
+C END DEC 1990
+   30 CONTINUE
+      IF (IMAR.GT.19) THEN
+         WRITE(6,*)' NO MORE ALLOWED IN THIS RUN. CHOOSE ADDITIONAL'
+         WRITE(6,*)' MARGINS IN ANOTHER RUN.'
+         GO TO 42
+      ENDIF
+      IF (IMAR.GT.0) THEN
+C BEG DEC 1990
+        IF (ITYPE.EQ.1) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1CHOSEN SO FAR FOR PLOTTING v. ITERATIONS      ',6,62,1,ISUBC1,1)
+          ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR'//
+     $             ' FOR PLOTTING v. ITERATIONS     '
+          CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $                ARGSTR,6,62,1,ISUBC1,1)
+        ENDIF
+
+        IF (ITYPE.EQ.3) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1CHOSEN SO FAR FOR PLOTTING v. DESIGN VARIABLE ',6,62,1,ISUBC1,1)
+          ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR '//
+     $             'FOR PLOTTING v.  DESIGN VARIABLE'
+          CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $                ARGSTR,6,62,1,ISUBC1,1)
+        ENDIF
+C
+        IF (IPROMP.GT.1) THEN
+          IF (ITYPE.EQ.1) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1CHOSEN SO FAR FOR PLOTTING v. ITERATIONS      ',IPROMP,65,1,
+C    1ISUBC1,1)
+            ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR'//
+     $               ' FOR PLOTTING v. ITERATIONS     '
+            CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $                  ARGSTR,IPROMP,65,1,ISUBC1,1)
+          ENDIF
+
+          IF (ITYPE.EQ.3) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1CHOSEN SO FAR FOR PLOTTING v. DESIGN VARIABLE ',IPROMP,65,1,
+C    1ISUBC1,1)
+            ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR'//
+     $               ' FOR PLOTTING v. DESIGN VARIABLE'
+            CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $                  ARGSTR,IPROMP,65,1,ISUBC1,1)
+          ENDIF
+
+        ENDIF
+C END DEC 1990
+      ENDIF
+C
+
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    LIST FROM WHICH
+C    1 A MARGIN TO BE PLOTTED MUST NOW BE CHOSEN    ',6,62,1,ISUBC2,1)
+      ARGSTR = '    LIST FROM WHICH A MARGIN TO B'//
+     $         'E PLOTTED MUST NOW BE CHOSEN    '
+      CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $            ARGSTR,6,62,1,ISUBC2,1)
+
+      IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    LIST FROM WHICH
+C    1 A MARGIN TO BE PLOTTED MUST NOW BE CHOSEN    ',IPROMP,65,1,
+C    1 ISUBC2,1)
+        ARGSTR = '    LIST FROM WHICH A MARGIN TO B'//
+     $           'E PLOTTED MUST NOW BE CHOSEN    '
+        CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $              ARGSTR,IPROMP,65,1,ISUBC2,1)
+      ENDIF
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,517,1,2,IVAR,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (ISUBC2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR DESIGN MARGIN, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 30
+      ENDIF
+C
+      DO 40 J = 1,60
+   40 PHRASE(J:J) = PCWORD(IVAR)(J:J)
+      FVAR = IVAR
+      ICV(IVAR) = 1
+      ISUBC1(IVAR) = 0
+      ISUBC2(IVAR) = 1
+      CALL GETVAR(0,0,FVAR,IMAR,FMARGN,WORDCL,IADDCL)
+      CALL DATUM(IFILE,545,1,1,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 30
+      NMARGN = IMAR
+C BEG DEC 1990
+      CALL DATUM(IFILE,547,1,2,INT,CONMAX,CHARAC,IOUT,0,0,0,IPROMP)
+C END DEC 1990
+      IF (ITYPE.EQ.1) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1TO BE PLOTTED v. DESIGN ITERATIONS            ',IFILE8,65,1,
+C    1ISUBC1,1)
+        ARGSTR = '    DESIGN MARGINS TO BE PLOTTED'//
+     $           ' v. DESIGN ITERATIONS           '
+        CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $              ARGSTR,IFILE8,65,1,ISUBC1,1)
+      ENDIF
+
+
+      IF (ITYPE.EQ.3) THEN
+C     CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,'    DESIGN MARGINS 
+C    1TO BE PLOTTED v. DESIGN VARIABLE              ',IFILE8,65,1,
+C    1ISUBC1,1)
+        ARGSTR = '    DESIGN MARGINS TO BE PLOTTED'//
+     $           ' v. DESIGN VARIABLE             '
+        CALL OUTVAR(NCAR,CPLOT(1,ITER1),PCWORD,IADDCL,
+     $              ARGSTR,IFILE8,65,1,ISUBC1,1)
+      ENDIF
+
+
+C END DEC 1990
+C
+   42 CONTINUE
+C BEG FEB 1998
+      IF (ITRTOT.EQ.0) GO TO 300
+C     ITRPLT = ITRALL
+      ITRPLT = ITRTOT
+C BEG NOV 2005
+      IF (ITRTOT.GT.500) THEN
+         WRITE(6,*)' TOO MANY ITERATIONS. THE MAXIMUM IS 500.'
+         WRITE(6,*)' ONLY THE FIRST 500 ITERATIONS WILL BE PLOTTED.'
+         ITRPLT = 500
+C END NOV 2005
+         IRESET = 1
+C END FEB 1998
+      ENDIF
+C
+C  Next, generate a file, *.PL3, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL3, contains the selected design margins.
+C
+      REWIND IFILE4
+C
+C BEG DEC 1997
+      READ(IFILE4) (ILINE(I), I=1,ITRTOT)
+C END DEC 1997
+C BEG NOV 2005
+      READ(IFILE4) (ILINE2(I), I=1,ITRTOT)
+C END NOV 2005
+      IF (NMARGN.EQ.0) THEN
+         DO 45 ICAR = 1,NCAR
+            READ(IFILE4) (CCPLOT(I),I=1,ITRTOT)
+   45    CONTINUE
+         GO TO 100
+      ENDIF
+C
+      WRITE(IFILE8,50) ITRPLT
+   50 FORMAT(/' ************ MARGINS FOR ',I3,' ITERATIONS ***********')
+      REWIND IFILE9
+      CALL NAMES(IFILE8,2,NCAR,PCWORD,NAMEM,LENGTH)
+      DO 52 I = 1,ITRPLT
+   52 FI(I) = I - 1
+      NMARG1 = NMARGN + 1
+C BEG DEC 1990
+C BEG DEC 1997
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFILE9,920)
+     1   '# Global directives, design margins vs design iterations'
+         TITLE0(1)=
+     1  'GENOPT '//CASE(1:NLET)//': design margins vs design iterations'
+         WRITE(IFILE9,920) '=title('//TITLE0(1)//')'
+         WRITE(IFILE9,920) '=xlabel(Design Iterations)'
+         WRITE(IFILE9,920) '=ylabel(Design Margins)'
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         WRITE(IFILE9,920)
+     1   '# Global directives, design margins vs design parameter'
+         TITLE0(1)=
+     1  'GENOPT '//CASE(1:NLET)//': design margins vs '//VARLEG(IBVAR)
+         WRITE(IFILE9,920) '=title('//TITLE0(1)//')'
+         WRITE(IFILE9,920)
+     1     '=xlabel(Design Parameter, '//VARLEG(IBVAR)//')'
+         WRITE(IFILE9,920) '=ylabel(Design Margins)'
+      ENDIF
+C     IF (ITYPE.EQ.1)
+C    1 WRITE(IFILE9,920) ' DESIGN MARGINS V. DESIGN ITERATIONS             
+C    1          '
+C     IF (ITYPE.EQ.3)
+C    1 WRITE(IFILE9,920) ' DESIGN MARGINS V. '//VARLEG(IBVAR)//'             
+C    1          '
+C     WRITE(IFILE9,910) NMARG1
+C     IF (ITYPE.EQ.1) WRITE(IFILE9,920) ' ITERATIONS '
+C     IF (ITYPE.EQ.3) WRITE(IFILE9,920) VARLEG(IBVAR)
+C END DEC 1990
+C END DEC 1997
+      KOUNT = 0
+      DO 60 ICAR = 1,NCAR
+        READ(IFILE4) (CCPLOT(I), I=1,ITRTOT)
+        IF (ICV(ICAR).NE.0) THEN
+           KOUNT = KOUNT + 1
+           DO 55 I = 1,ITRPLT
+C BEG DEC 1990
+           FACTM = 1.0
+           IF (ABS(CCPLOT(I)).GT.ABS(CONMAX)) FACTM = 0.0
+   55      CCCPLT(I,KOUNT) = CCPLOT(I)*FACTM
+C BEG DEC 1997
+C          WRITE(IFILE9,920) PCWORD(ICAR)
+           NAMEVX(KOUNT) = PCWORD(ICAR)
+           LSTRNG(KOUNT) = LENGTH(ICAR)
+C END DEC 1997
+        ENDIF
+   60 CONTINUE
+C BEG DEC 1997
+C BEG DEC 1990
+      DO 703 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFILE9,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 70 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFILE9,920)
+     1             '+legend('//NAMEVX(J)(1:LSTRNG(J))//')'
+                  WRITE(IFILE9,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               CCCCPT = CCCPLT(I,J)
+               IF (ITYPE.EQ.1.AND.CCCCPT.LT.-1.0) CCCCPT = -1.
+               IF (ITYPE.EQ.1) WRITE(IFILE9,930) FI(I),CCCCPT
+               IF (ITYPE.EQ.3) WRITE(IFILE9,930) VARPLT(I),CCCCPT
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFILE9,920) '  '
+                  WRITE(IFILE9,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+   70    CONTINUE
+         WRITE(IFILE9,920) '  '
+  703 CONTINUE
+C
+C     DO 70 I = 1,ITRPLT
+C        IF (ITYPE.EQ.1)
+C    1      WRITE(IFILE9,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C        IF (ITYPE.EQ.3)
+C    1      WRITE(IFILE9,930) VARPLT(I),(CCCPLT(I,J),J=1,KOUNT)
+C  70 CONTINUE
+C END DEC 1990
+C END DEC 1997
+  100 CONTINUE
+      CLOSE(UNIT=9)
+C
+C  Next, generate a file, *.PL4, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL4, contains the selected design parameters.
+C
+      IF (NPLT.EQ.0) THEN
+         DO 125 IVAR = 1,NVAR
+            READ(IFILE4) (CCPLOT(I),I=1,ITRTOT)
+  125    CONTINUE
+         GO TO 200
+      ENDIF
+C
+      WRITE(IFILE8,150) ITRPLT
+  150 FORMAT(/' ***** DESIGN PARAMETERS FOR ',I3,' ITERATIONS ******')
+      REWIND IFIL10
+      CALL NAMES(IFILE8,1,NVAR,WORDV,NAMEV,LENGTH)
+      DO 152 I = 1,ITRPLT
+  152 FI(I) = I - 1
+      NPLT1 = NPLT + 1
+C BEG DEC 1997
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL10,920)
+     1'# Global directives, design variables vs design iterations'
+      TITLE0(2) = 'GENOPT '
+     1  //CASE(1:NLET)//': design variables vs design iterations'
+      WRITE(IFIL10,920) '=title('//TITLE0(2)//')'
+      WRITE(IFIL10,920) '=xlabel(Design Iterations)'
+      WRITE(IFIL10,920) '=ylabel(Design Parameters)'
+C
+C     WRITE(IFIL10,920) ' DESIGN PARAMETERS V. DESIGN ITERATIONS           
+C    1          '
+C     WRITE(IFIL10,910) NPLT1
+C     WRITE(IFIL10,920) ' ITERATIONS '
+C END DEC 1997
+      KOUNT = 0
+      DO 160 IVAR = 1,NVAR
+        READ(IFILE4) (CCPLOT(I), I=1,ITRTOT)
+        IF (IPV(IVAR).NE.0) THEN
+           KOUNT = KOUNT + 1
+           DO 155 I = 1,ITRPLT
+  155      CCCPLT(I,KOUNT) = CCPLOT(I)
+C BEG DEC 1997
+           NAMEVX(KOUNT) = WORDV(IVAR)
+           LSTRNG(KOUNT) = LENGTH(IVAR)
+C BEG JULY 1989
+C          WRITE(IFIL10,920) WORDV(IVAR)
+C END JULY 1989
+C END DEC 1997
+        ENDIF
+  160 CONTINUE
+C BEG DEC 1997
+      DO 171 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFIL10,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 170 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFIL10,920)
+     1             '+legend('//NAMEVX(J)(1:LSTRNG(J))//')'
+                  WRITE(IFIL10,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               WRITE(IFIL10,930) FI(I),CCCPLT(I,J)
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFIL10,920) '  '
+                  WRITE(IFIL10,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+  170    CONTINUE
+         WRITE(IFIL10,920) '  '
+  171 CONTINUE
+C     DO 170 I = 1,ITRPLT
+C 170 WRITE(IFIL10,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C END DEC 1997
+  200 CONTINUE
+      CLOSE(UNIT=12)
+C
+C  Next, generate a file, *.PL5, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL5, contains the design objective v. design iterations.
+C
+      WRITE(IFILE8,250) ITRPLT
+  250 FORMAT(/' ***** DESIGN OBJECTIVE FOR ',I3,' ITERATIONS ******')
+      REWIND IFIL11
+      CALL NAMES(IFILE8,1,1,WORDOB,NAMEOB,LENGTH)
+      DO 252 I = 1,ITRPLT
+  252 FI(I) = I - 1
+      NOB = 1
+      NOB1 = NOB + 1
+C BEG DEC 1997
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFIL11,920)
+     1   '# Global directives, objective vs design iterations'
+         TITLE0(3)=
+     1  'GENOPT '//CASE(1:NLET)//': objective vs design iterations'
+         WRITE(IFIL11,920) '=title('//TITLE0(3)//')'
+         WRITE(IFIL11,920) '=xlabel(Design Iterations)'
+         WRITE(IFIL11,920) '=ylabel(Objective)'
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         WRITE(IFIL11,920)
+     1   '# Global directives, objective vs design parameter'
+         TITLE0(3)=
+     1  'GENOPT '//CASE(1:NLET)//': objective vs '//VARLEG(IBVAR)
+         WRITE(IFIL11,920) '=title('//TITLE0(3)//')'
+         WRITE(IFIL11,920)
+     1     '=xlabel(Design Parameter, '//VARLEG(IBVAR)//')'
+        WRITE(IFIL11,920) '=ylabel(Objective)'
+      ENDIF
+C BEG DEC 1990
+C     IF (ITYPE.EQ.1)
+C    1 WRITE(IFIL11,920) ' OBJECTIVE FUNCTION V. DESIGN ITERATIONS             
+C    1          '
+C     IF (ITYPE.EQ.3)
+C    1 WRITE(IFIL11,920) ' OBJECTIVE FUNCTION V. '//VARLEG(IBVAR)//'          
+C    1          '
+C     WRITE(IFIL11,910) NOB1
+C     IF (ITYPE.EQ.1) WRITE(IFIL11,920) ' ITERATIONS '
+C     IF (ITYPE.EQ.3) WRITE(IFIL11,920) VARLEG(IBVAR)
+C END DEC 1990
+C END DEC 1997
+      READ(IFILE4) (CCPLOT(I), I=1,ITRTOT)
+C BEG DEC 1997
+C     WRITE(IFIL11,920) WORDOB(1)
+      WRITE(IFIL11,920) '# data set 1'
+      IFLAG1 = 0
+      IFLAG2 = 0
+C BEG NOV 2005
+      IF (ITYPE.EQ.1.AND.ITRPLT.GE.500) THEN
+C END NOV 2005
+         CCPSUM = 0.
+         DO 2695 I = 1,ITRPLT
+            CCPSUM = CCPSUM + CCPLOT(I)
+ 2695    CONTINUE
+         CCPAVE = CCPSUM/FLOAT(ITRPLT)
+         DO 2696 I = 1,ITRPLT
+            IF (CCPLOT(I).GT.(2.0*CCPAVE)) CCPLOT(I) = 0.0
+ 2696    CONTINUE
+      ENDIF
+      DO 270 I = 1,ITRPLT
+         IF (CCPLOT(I).NE.0.) THEN
+            IF (IFLAG1.EQ.0) THEN
+               WRITE(IFIL11,920) '+legend('//WORDOB(1)(1:72)//')'
+               WRITE(IFIL11,'(A,I2,A)') '+setmarker(0)'
+               IFLAG1 = 1
+            ENDIF
+            IFLAG2 = 0
+            IF (ITYPE.EQ.1) WRITE(IFIL11,930) FI(I),CCPLOT(I)
+            IF (ITYPE.EQ.3) WRITE(IFIL11,930) VARPLT(I),CCPLOT(I)
+         ELSE
+            IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+               WRITE(IFIL11,920) '  '
+               WRITE(IFIL11,'(A,I2,A)') '+setmarker(0)'
+               IFLAG2 = 1
+            ENDIF
+         ENDIF
+  270 CONTINUE
+      WRITE(IFIL11,920) '  '
+C BEG DEC 1990
+C     DO 270 I = 1,ITRPLT
+C        IF (ITYPE.EQ.1)
+C    1      WRITE(IFIL11,930) FI(I),CCPLOT(I)
+C        IF (ITYPE.EQ.3)
+C    1      WRITE(IFIL11,930) VARPLT(I),CCPLOT(I)
+C 270 CONTINUE
+C END DEC 1990
+C END DEC 1997
+      CLOSE(UNIT=11)
+  300 CONTINUE
+C
+  910 FORMAT(I4)
+  920 FORMAT(A)
+  930 FORMAT(8E12.5)
+C
+C BEG JAN 1998
+      IF (IRESET.EQ.1) THEN
+         REWIND IFILE
+         CALL DATUM(IFILE,850,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            ITRALL = ITRALL + ITRTOT
+            ITRTOT = 0
+            IRESET = 0
+         ENDIF
+      ENDIF
+C END JAN 1998
+      CALL STORCM(IFILE7)
+C
+      WRITE(6,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1             CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1             CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,402) CASE(1:NLET)
+C
+  400 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.CPL = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of CHOOSEPLOT.'/
+     1 1X,A,'.CBL = Contains the ',A,' data base.'/
+     1 1X,A,'.OPL = Output from CHOOSEPLOT. Please list this file and'/
+     1'          inspect it and the ',A,'.CPL file carefully before'/
+     1'          proceeding.'/
+     1 1X,A,'.PL3 = File for margin plots via DIPLOT'/
+     1 1X,A,'.PL4 = File for design parameter plots via DIPLOT'/
+     1 1X,A,'.PL5 = File for objective plot via DIPLOT'//
+     1' For further information about files generated during operation'/
+     1' of GENOPT give the command HELPG FILES.'//
+     1' NEXT, GIVE THE COMMAND:  DIPLOT   .')
+C
+  402 FORMAT(
+     1' ********************* END OF ',A,'.OPL FILE *****************'/)
+C
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=4)
+      CLOSE(UNIT=8)
+C
+      END

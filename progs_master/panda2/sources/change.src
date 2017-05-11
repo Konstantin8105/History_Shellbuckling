@@ -1,0 +1,690 @@
+C=DECK      CHANGE
+C
+C  PURPOSE IS TO PERMIT USER TO ASSIGN NEW VALUES FOR THOSE PARAMETERS
+C  FROM WHICH DECISION VARIABLES CAN BE CHOSEN...
+C
+      PROGRAM CHANGE
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+C END JULY 1989
+C BEG JUNE 1992
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+C END JUNE 1992
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      DIMENSION ISUB(100)
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE,PHRASE
+      CHARACTER*4 ANSOUT,QUAL
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      CHARACTER*13 KEYWRD
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+      CHARACTER*72 ARGSTR
+C END UNIX
+      LOGICAL ANSL1     
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+       external signal_handler
+       integer dummyint, signal
+       dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+       integer signal_handler
+       external signal_handler
+       integer dummyint, signal
+       dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+       integer signal_handler
+       external signal_handler
+       call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPC'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPC'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+C BEG JULY 1989
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(IOUTFL)
+#endif
+      else
+        OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IFILE7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+C END UNIX
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPC FILE ******************'
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+    5 FORMAT(//' ******************   CHANGE   *******************'//
+     1' You use CHANGE to change parameters without having to go back'/
+     1' to BEGIN. The parameters you can change are segregated into'/
+     1' three groups:'//
+     1'    1. parameters elegible to be decision variables'/
+     1'    2. parameters not elegible to be decision variables'/
+     1'    3. allowables (for example, max. strain).'//
+     1' Your interactive input is saved on a file called ',A,'.CHG, in'/
+     1' which ',A,' is the same name you used for BEGIN, SETUP, etc.'/
+     1' A summary of the output from CHANGE is stored in ',A,'.OPC.'//
+     1' ************************************************************'/)
+      QUAL = '.CHG'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C END JULY 1989
+C
+      CALL GETCOM(IFILE7)
+      CALL MOVER(0,0,ISUB,1,100)
+C
+      CALL DATUM(IFILE,836,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,838,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 100
+C
+   10 CONTINUE
+C
+      ARGSTR = 'PARAMETERS WHICH CAN BE CHANGED. '//
+     $         '  CHOOSE ONE OF THE FOLLOWING   '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUB)
+C
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+      ARGSTR = 'PARAMETERS WHICH CAN BE CHANGED. '//
+     $         '  CHOOSE ONE OF THE FOLLOWING   '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUB)
+C END 26 JAN 1989
+C
+      ENDIF
+      REWIND IFILE
+      CALL DATUM(IFILE,840,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (IVAR.GT.NVAR.OR.IVAR.LT.1) THEN
+         WRITE(6,*)' BAD CHOICE FOR PARAMETER, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 10
+      ENDIF
+C
+C BEG JUNE 1992
+   20 CONTINUE
+      CALL DATUM(IFILE,850,1,2,INT,VAR(IVAR),CHARAC,IOUT,0,IPROMP)
+      IF (IDV(IVAR).EQ.1) THEN
+C BEG NOV 1992
+         IF (VAR(IVAR).LT.0.9999*VLB(IVAR)) THEN
+C END NOV 1992
+C BEG JUNE 1993
+            ILET = INDEX(WORDV(IVAR),'thickness for layer index')
+            IF (ILET.NE.0.AND.VAR(IVAR).EQ.0.0) GO TO 27
+C END JUNE 1993
+            WRITE(6,25) IVAR,VLB(IVAR),VLB(IVAR),VLB(IVAR),VAR(IVAR)
+   25       FORMAT(/' BAD VALUE FOR VARIABLE NO.',I3/
+     1     ' Value must be greater than the lower bound established'/
+     1     ' in DECIDE. (Lower bound = ',1PE12.4,'). Try again.'/
+     1     ' Set the value greater than',1PE12.4,' or use'/
+C BEG AUG 1995
+     1     ' DECIDE to lower the value of the lower bound from'/
+     1       1PE12.4,' to your input here, which is',1PE12.4,'.'/)
+C END AUG 1995
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 20
+C BEG JUNE 1993
+   27       CONTINUE
+C END JUNE 1993
+         ENDIF
+C BEG NOV 1992
+         IF (VAR(IVAR).GT.1.0001*VUB(IVAR)) THEN
+C END NOV 1992
+            WRITE(6,30) IVAR,VUB(IVAR),VUB(IVAR),VUB(IVAR),VAR(IVAR)
+   30       FORMAT(/' BAD VALUE FOR VARIABLE NO.',I3/
+     1     ' Value must be less than the upper bound established'/
+     1     ' in DECIDE. (Upper bound = ',1PE12.4,'). Try again.'/
+     1     ' Set the value less than',1PE12.4,' or use'/
+C BEG AUG 1995
+     1     ' DECIDE to raise the value of the upper bound from'/
+     1       1PE12.4,' to your input here, which is',1PE12.4,'.'/)
+C END AUG 1995
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 20
+         ENDIF
+      ENDIF
+C END JUNE 1992
+C
+      CALL DATUM(IFILE,860,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+C
+  100 CONTINUE
+C
+      CALL DATUM(IFILE,870,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 210
+C
+      KEYWRD ='Identify type'
+  110 CONTINUE
+      ARGSTR = 'PARAMETERS WHICH CAN BE CHANGED. '//
+     $         '  CHOOSE ONE OF THE FOLLOWING   '
+      CALL OUTVAR(NPAR,PAR,WORDP,IADDP,ARGSTR,6,46,1,ISUB)
+C
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+        ARGSTR = 'PARAMETERS WHICH CAN BE CHANGED. '//
+     $           '  CHOOSE ONE OF THE FOLLOWING   '
+        CALL OUTVAR(NPAR,PAR,WORDP,IADDP,ARGSTR,IPROMP,80,1,ISUB)
+C END 26 JAN 1989
+C
+      ENDIF
+      REWIND IFILE
+      CALL DATUM(IFILE,840,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (IVAR.GT.NPAR.OR.IVAR.LT.1) THEN
+         WRITE(6,*)' BAD CHOICE FOR PARAMETER, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 110
+      ENDIF
+C
+      IKEY = INDEX(WORDP(IVAR),KEYWRD)
+      IF (IKEY.NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR PARAMETER, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 110
+      ENDIF
+C
+      CALL DATUM(IFILE,850,1,2,INT,PAR(IVAR),CHARAC,IOUT,0,IPROMP)
+C
+      CALL DATUM(IFILE,860,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 110
+C
+  210 CONTINUE
+C
+      CALL DATUM(IFILE,880,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 310
+C
+  220 CONTINUE
+      ARGSTR = 'ALLOWABLES WHICH CAN BE CHANGED. '//
+     $         'CHOOSE ONE OF THE FOLLOWING     '
+      CALL OUTVAR(NALLOW,ALLOW,WORDA,IADDA,ARGSTR,6,46,1,ISUB)
+C
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+        ARGSTR = 'ALLOWABLES WHICH CAN BE CHANGED. '//
+     $           'CHOOSE ONE OF THE FOLLOWING     '
+        CALL OUTVAR(NALLOW,ALLOW,WORDA,IADDA,ARGSTR,IPROMP,80,1,ISUB)
+C END 26 JAN 1989
+C
+      ENDIF
+      REWIND IFILE
+      CALL DATUM(IFILE,840,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (IVAR.GT.NALLOW.OR.IVAR.LT.1) THEN
+         WRITE(6,*)' BAD CHOICE FOR PARAMETER, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 220
+      ENDIF
+C
+      CALL DATUM(IFILE,850,1,2,INT,ALLOW(IVAR),CHARAC,IOUT,0,IPROMP)
+C
+      CALL DATUM(IFILE,860,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 220
+C
+  310 CONTINUE
+C
+      CALL NEWPAR
+C
+C  REESTABLISH BASELINE VALUES...
+C BEG JUNE 1992
+      IZERO = 0
+C BEG OCT 1996
+      CALL SETUPC(NVAR,VAR,ISTIF,NSEG,NLAYER,LTYPE,B,B2,H,W,W2,T,
+     1                  ANGLE,MATL,IZERO,0,0,IFILE8)
+C END OCT 1996
+C
+C BEG MAR 1993 (COMMENT OUT THE "MOVER". MUST NOT DO IT HERE BECAUSE IT
+C               WILL SCREW UP THE ARC LENGTH ELEMENTS IN IQUICK=0
+C               TYPE OF ANALYSIS.)
+C     CALL MOVER(B,1,B0,1,10)
+C END JUNE 1992
+C
+      CALL OUTOPT(IFILE8,NVAR,IDV,IEV,ILV,CLINK,IDLINK,VLB,VUB,VAR,WORDV
+     1,'         SUMMARY OF INFORMATION FOR OPTIMIZATION ANALYSIS       
+     1  ',57)
+C
+C BEG 26 JAN 1989
+      ARGSTR = 'PARAMETERS WHICH ARE ALWAYS FIXED'//
+     $         '.  NONE CAN BE DECISION VARIAB. '
+      CALL OUTVAR(NPAR,PAR,WORDP,IADDP,ARGSTR,IFILE8,80,1,ISUB)
+C END 26 JAN 1989
+C
+C BEG 26 JAN 1989
+      ARGSTR = '                  ALLOWABLES     '//
+     $         '                                '
+      CALL OUTVAR(NALLOW,ALLOW,WORDA,IADDA,ARGSTR,IFILE8,80,1,ISUB)
+C END 26 JAN 1989
+C
+      CALL STORCM(IFILE7)
+C BEG 26 JAN 1989
+      CLOSE(UNIT=IOUT)
+C BEG JULY 1989
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+C END JULY 1989
+      CLOSE(UNIT=7)
+C END 26 JAN 1989
+C
+      WRITE(6,200) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,200) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                  CASE(1:NLET),CASE(1:NLET)
+  200 FORMAT(/' DESCRIPTION OF FILES GENERATED BY THIS CASE:'/
+     1 1X,A,'.CHG = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of CHANGE.'/
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'/
+     1 1X,A,'.OPC = Output from CHANGE. Please list this file and'/
+     1'          inspect it and the ',A,'.CHG file carefully before'/
+     1'          proceeding.'/
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'/
+C    1' Next, give the commands  SETUP, BOSMODEL, etc.   .')
+     1' Next, give the commands  SETUP, etc.   .')
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPC FILE ******************'
+      CLOSE(UNIT=8)
+C END JULY 1989
+C
+      END
+C
+C
+C
+C=DECK      NEWPAR
+      SUBROUTINE NEWPAR
+C
+C  PURPOSE IS TO ESTABLISH MODIFIED VALUES FOR AXIAL, CIRC, AND OTHER
+C  PARAMETERS AND ALLOWABLES THAT ARE NEVER DECISION VARIABLES.
+C
+C BEG FEB 2007
+      COMMON/ISBSTF/KLAYER(4,2),NSURF(2,4,2),NB2(2,4,2),
+     1              ISOSUB(2,4,2),ISOTYP(2,4,2),MATSUB(2,4,2)
+C END FEB 2007
+C BEG DEC 1998
+      COMMON/INTRGX/INTRNG
+C END DEC 1998
+C BEG JAN 1997
+      COMMON/XFOUN5/KCORE(4,2),ISANDM(20),MMATL(4,2)
+      COMMON/XSANDW/ISANDW(4,2),ICORE(4,2)
+      COMMON/XFOUN1/WOVERL(20),FPULL(20),SIGMAA(20),PULTAB(12,20),
+     1              FSGTRV(20),SIGCOR(20)
+      COMMON/XFOUN9/KOUNTP(20),KOUNTT(20),IUSEHC(20)
+C END JAN 1997
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/GEOM4/IWIND(4,2)
+      COMMON/GEOM5/RAD2,CURV2
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATRAN/G13(20),G23(20)
+      COMMON/MATER2/STRAIN(20,20),STRESS(20,20)
+      COMMON/MATER3/STSMAX(10),STNMAX(5,10)
+      COMMON/MATER4/TAPE(20),TMINUM(20),FAILSC(100)
+      COMMON/MATER6/SIGLUE(20)
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/WORDS2/WORDL(50),WORDE(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+C END JULY 1989
+      COMMON/ROTALW/CHIALW,PHIMAX
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+C BEG MARCH 1990
+      COMMON/GNNSTB/EIGGEN,EIGLOC,FNLOC,FBOUND,EIGMOD
+C END MARCH 1990
+C  19 NOVEMBER, 1988 MODIFICATION:
+      COMMON/GENPRE/FBPRE,PRELEN,FMISC(28)
+C  END 19 NOVEMBER, 1988 MODIFICATION.
+      CHARACTER*4 ANSOUT,CHARAC,ANSWER
+C     REAL LENMOD
+C
+C BEG AUG 1994
+      RTEST1 = 10000.*SQRT(AXIAL**2 +CIRC**2)
+C END AUG 1994
+      IALLOW = 0
+      AXIAL = PAR(1)
+      CIRC  = PAR(2)
+      IF (NSEG(2).EQ.1) B(2) = AXIAL
+      IF (NSEG(1).EQ.1) B(1) = CIRC
+C
+C     WRITE(6,*)' AXIAL,CIRC,B(1),B(2)=',AXIAL,CIRC,B(1),B(2)
+C     WRITE(6,*)' NSEG(1),NSEG(2)=',NSEG(1),NSEG(2)
+      IPAR = 2
+      KBIG = 0
+      DO 100 ILOOP = 1,2
+      IPAR = IPAR + 1
+C BEG AUG 1992
+      IF (ILOOP.EQ.1.AND.ISOGRD.EQ.1) THEN
+         IPAR = IPAR + 1
+         ISOANG = PAR(IPAR)
+      ENDIF
+C END AUG 1992
+C
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+C     WRITE(6,*)' ILOOP,IEND=',ILOOP,IEND
+C BEG JULY 1989
+      IF (ILOOP.EQ.2) THEN
+         ISTART = 2
+         IF (B2(ILOOP).EQ.0.) ISTART = 3
+      ENDIF
+C END JULY 1989
+      IF (ISTART.GT.IEND) GO TO 100
+      IF (ISTIF(ILOOP).EQ.0) GO TO 10
+C
+      IF (ISTIF(ILOOP).NE.5) THEN
+         IPAR = IPAR + 1
+         ICOCUR(ILOOP) = PAR(IPAR)
+      ENDIF
+C     WRITE(6,*)' IPAR,ICOCUR(ILOOP),PAR(IPAR)=',IPAR,ICOCUR(ILOOP),
+C    1             PAR(IPAR)
+      IF (ILOOP.EQ.1) THEN
+         IALLOW = IALLOW + 1
+         SIGLUE(1) = ALLOW(IALLOW)
+C        WRITE(6,*)' IALLOW,SIGLUE(1)=',IALLOW,SIGLUE(1)
+      ENDIF
+C
+   10 CONTINUE
+C
+      DO 60 I = ISTART,IEND
+         IF (IWIND(I,ILOOP).EQ.0) THEN
+            NLAY = NLAYER(I,ILOOP)
+            DO 30 J = 1,NLAY
+               KBIGS = KBIG
+               K = LTYPE(J,I,ILOOP)
+               KBIG = MAX(K,KBIGS)
+               IF (K.LE.KBIGS) GO TO 30
+               IPAR = IPAR + 1
+               ANGLE(K) = PAR(IPAR)
+   30       CONTINUE
+C     C     WRITE(6,*)' NLAY,K,ANGLE(K),IPAR=',NLAY,K,ANGLE(K),IPAR
+         ENDIF
+   60 CONTINUE
+C
+      IF (ISTIF(ILOOP).NE.0.AND.ISTIF(ILOOP).NE.5) THEN
+         IPAR = IPAR + 1
+         INTEXT(ILOOP) = PAR(IPAR)
+C BEG DEC 1998
+         IF (ILOOP.EQ.2) INTRNG = INTEXT(2)
+C END DEC 1998
+      ENDIF
+C
+  100 CONTINUE
+C
+         IPAR = IPAR + 1
+         R = PAR(IPAR)
+C BEG MAY 1993
+         RSAVE = R
+         RTEST = 10000.*SQRT(AXIAL**2 +CIRC**2)
+C BEG AUG 1994
+         IF (R.EQ.0.) R = RTEST1
+         IF (ABS(R).GT.0.5*RTEST1) R = RTEST1
+         IF (ABS(R).GT.0.5*RTEST)  R = RTEST1
+         DIFR  = ABS(RTEST1 -ABS(R))/RTEST1
+         IF (DIFR.LT.0.5) THEN
+            R = RTEST
+            PAR(IPAR+1) = RTEST
+            CURV2=0.
+         ENDIF
+C END AUG 1994
+C END MAY 1993
+         IF (INTEXT(1).EQ.1) R = - ABS(R)
+         IF (INTEXT(1).EQ.0) R =   ABS(R)
+C BEG MAY 1993
+         IF (ABS(R).LT.0.5*RTEST) THEN
+            IF (RSAVE*R.LT.0.0) THEN
+               WRITE(6,105)
+               WRITE(IFILE8,105)
+            ENDIF
+  105       FORMAT(/' ******* WARNING ******** WARNING ********'/
+     1    ' YOU HAVE CHANGED THE LOCATION OF STRINGERS FROM INSIDE'/
+     1    ' TO OUTSIDE OR OUTSIDE TO INSIDE THE CYLINDRICAL PANEL.'/
+     1    ' THIS CHANGE CAUSES PANDA2 TO CHANGE THE SIGN OF THE'/
+     1    ' RADIUS OF CURVATURE, AS SHOWN IN Figs. 8(b,c) ON PAGE 490'/
+     1    ' OF THE LONG 1987 PANDA2 PAPER IN THE "COMPUTERS AND'/
+     1    ' STRUCTURES" JOURNAL. IF YOUR PANEL IS LOADED BY PRESSURE'/
+     1    ' YOU WILL HAVE TO CHANGE THE SIGN OF THE PRESSURE IN THE'/
+     1    ' *.OPT FILE FOR ALL LOAD CASES IN WHICH THERE IS PRESSURE.'/
+     1    ' *********** END WARNING ********* END WARNING **********')
+         ENDIF
+C END MAY 1993
+C
+         IF (INTEXT(2).EQ.INTEXT(1)) THEN
+            INTEXT(2) = 0
+         ELSE
+            INTEXT(2) = 1
+         ENDIF
+C
+         INTEXT(1) = 0
+         PAR(IPAR) = R
+C        WRITE(6,*)' IPAR,R=',IPAR,R
+         IPAR = IPAR + 1
+         RAD2 = PAR(IPAR)
+C        WRITE(6,*)' IPAR,RAD2=',IPAR,RAD2
+C
+      MAXMAT = 1
+      DO 110 I = 1,90
+      MAXMAT = MAX(MAXMAT,MATL(I))
+  110 CONTINUE
+C BEG FEB 2007
+      DO 120 I = 1,2
+      DO 118 J = 1,4
+      DO 115 K = 1,2
+C      WRITE(6,'(A,4I10)')' i,j,k,MATSUB(i,j,k)=',I,J,K,MATSUB(I,J,K)
+       MAXMAT = MAX(MAXMAT,MATSUB(I,J,K))
+  115 CONTINUE
+  118 CONTINUE
+  120 CONTINUE
+C END FEB 2007
+C
+C     WRITE(6,*)' IPAR,MAXMAT=',IPAR,MAXMAT
+C     WRITE(6,*)' AXIAL,CIRC,INTEXT(1),INTEXT(2)=',
+C    1            AXIAL,CIRC,INTEXT(1),INTEXT(2)
+C     WRITE(6,*)' ANGLE(I)=', ANGLE(1),ANGLE(2),ANGLE(3),ANGLE(4)
+C
+C BEG FEB 2007
+C     WRITE(6,*)' MAXMAT,IPAR=',MAXMAT,IPAR
+C END FEB 2007
+      DO 200 I = 1,MAXMAT
+      E1(I) = PAR(IPAR+1)
+      E2(I) = PAR(IPAR+2)
+       G(I) = PAR(IPAR+3)
+      FNU(I) = PAR(IPAR+4)
+      G13(I) = PAR(IPAR+5)
+      G23(I) = PAR(IPAR+6)
+      ALPHA1(I) = PAR(IPAR+7)
+      ALPHA2(I) = PAR(IPAR+8)
+      CURETP(I) = PAR(IPAR+9)
+      DENS(I) = PAR(IPAR +10)
+      TAPE(I) = PAR(IPAR +11)
+      IPAR = IPAR +11
+C     WRITE(6,*)' I,E1(I),E2(I),G(I)=',I,E1(I),E2(I),G(I)
+C     WRITE(6,*)' FNU(I),G13(I),G23(I)=',FNU(I),G13(I),G23(I)
+C     WRITE(6,*)' ALPHA1(I),ALPHA2(I),CURETP(I)=',
+C    1            ALPHA1(I),ALPHA2(I),CURETP(I)
+C     WRITE(6,*)' DENS(I),TAPE(I),IPAR=',DENS(I),TAPE(I),IPAR
+C
+C  ALLOWABLES NEXT...
+C
+      IF (ISOMAT(I).EQ.1.AND.ISOEFF(I).EQ.1) THEN
+        STSMAX(I) =   ALLOW(IALLOW+1)
+C BEG MAY 1990
+        EMAX = STSMAX(I)
+        STNMAX(1,I) = EMAX
+        STNMAX(2,I) = EMAX
+        STNMAX(3,I) = EMAX
+        STNMAX(4,I) = EMAX
+        STNMAX(5,I) = EMAX/SQRT(3.)
+C END MAY 1990
+        IALLOW = IALLOW + 1
+      ELSE
+        STNMAX(1,I) = ALLOW(IALLOW+1)
+        STNMAX(2,I) = ALLOW(IALLOW+2)
+        STNMAX(3,I) = ALLOW(IALLOW+3)
+        STNMAX(4,I) = ALLOW(IALLOW+4)
+        STNMAX(5,I) = ALLOW(IALLOW+5)
+        IALLOW = IALLOW + 5
+      ENDIF
+C     WRITE(6,*)' STSMAX(I),STNMAX(1,I)=',STSMAX(I),STNMAX(1,I)
+C     WRITE(6,*)' STNMAX(2,I),STNMAX(3,I),I=',STNMAX(2,I),STNMAX(3,I),I
+C     WRITE(6,*)' IALLOW=',IALLOW
+C
+  200 CONTINUE
+C BEG JAN 1997
+C   add honeycomb core stuff...
+      MBIG = 0
+      ISAND = 0
+      DO 300 ILOOP = 1,2
+        ISTART = 1
+        IEND   = NSEG(ILOOP)
+        IF (ILOOP.EQ.2) THEN
+           ISTART = 2
+           IF (B2(2).EQ.0.) ISTART = 3
+        ENDIF
+        IF (ISTART.GT.IEND) GO TO 300
+        DO 250 I = ISTART,IEND
+          NLAY = NLAYER(I,ILOOP)
+          IF (ISANDW(I,ILOOP).LE.1.OR.ISANDW(I,ILOOP).EQ.NLAY) GO TO 250
+          ISAND = 1
+          M = ICORE(I,ILOOP)
+          IF (ICORE(I,ILOOP).EQ.0) M = MMATL(I,ILOOP)
+          MBIGS = MBIG
+          MBIG = MAX(M,MBIGS)
+          IF (M.LE.MBIGS) GO TO 230
+          IPAR = IPAR + 1
+          WOVERL(M) = PAR(IPAR)
+          IF (ICORE(I,ILOOP).NE.0) THEN
+             IPAR = IPAR + 1
+             IUSEHC(M) = PAR(IPAR)
+C            WRITE(6,'(A,3I3,1PE12.4)') ' M,IUSEHC(M),IPAR,PAR(IPAR)=',
+C    1                                    M,IUSEHC(M),IPAR,PAR(IPAR)
+          ENDIF
+  230     CONTINUE
+  250   CONTINUE
+  300 CONTINUE
+C END JAN 1997
+C
+C  19 NOVEMBER, 1988 MODIFICATION:
+C
+      FBPRE = PAR(IPAR+1)
+      FBOUND= PAR(IPAR+2)
+C BEG FEB 2007
+C     WRITE(6,'(/,A,I10)') 'IPAR=',IPAR
+C END FEB 2007 
+C
+C  END 19 NOVEMBER, 1988 MODIFICATION.
+C
+C     LENMOD = 1.0
+      IBOUND = FBOUND
+C     IF (IBOUND.EQ.1) LENMOD = 1./SQRT(3.85)
+C
+C     PHIMAX = ALLOW(IALLOW+1)
+C
+      RETURN
+      END

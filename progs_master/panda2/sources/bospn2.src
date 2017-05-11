@@ -1,0 +1,1392 @@
+C=DECK      BOSPN2
+C
+C  PURPOSE IS TO SET UP BOSOR4 INPUT FILE FOR ENTIRE CYL. SHELL, NOT JUST
+C  A "SKIN"-RING MODULE OF THE RING STIFFENED CYLINDRICAL SHELL.
+C
+      PROGRAM BOSPN2
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+      COMMON/XFOUND/EFOUND,HXSIDE,WFOUND(4,2),HEXSID(4,2)
+      COMMON/XSANDW/ISANDW(4,2),ICORE(4,2)
+      COMMON/ISOGR/ISOGRD,ISOANG
+      COMMON/IZSTIX/IZSTIF(2)
+C BEG MAR 2009
+      COMMON/NEUTRL/DNEUTX,DNEUTY,DSURF
+      DIMENSION CPROPR(6,6)
+C END MAR 2009
+C BEG JAN 2005
+      COMMON/CSKINX/CSKIN(6,6),TSKINX(5),TSKINY(5)
+C END JAN 2005
+C BEG OCT 2004
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FFNU(20),DENS(20)
+C BEG MAR 2007
+      DIMENSION DRK(295),DZK(295),CNEW(6,6)
+C END MAR 2007
+C END OCT 2004
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIFF(2),NLAYER(4,2),NNNN(2),INTEXT(2)
+      COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+      DIMENSION NXVAR1(23,8),NYVAR1(23,8),NXYVR1(23,8)
+      COMMON/LINCIJ/CX0(6,6,5),NXVAR0(23,8),NYVAR0(23,8),NXYVR0(23,8)
+      REAL NXVAR0,NYVAR0,NXYVR0,NXVAR1,NYVAR1,NXYVR1
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/PRERNG/PNXVAR(23,8),PNYVAR(23,8),PNXFIX(23,8),PNYFIX(23,8)
+C BEG OCT 2004
+C BEG MAR 2007
+      COMMON/BOSGS2/NSEGB5,IPOINT(295)
+C END MAR 2007
+C END OCT 2004
+      COMMON/INTRGX/INTRNG
+      COMMON/GNNSTB/EIGGEN(1),EIGLOC,FNLOC,FBOUND,LENMOD
+      COMMON/UNITNO/IU
+      COMMON/THICK/TX(5),TY(5)
+      DIMENSION NMESH(10),R1(10),Z1(10),R2(10),Z2(10)
+      DIMENSION NMESH0(10)
+C BEG OCT 2004
+C BEG MAR 2007
+      DIMENSION R1TOT(295),Z1TOT(295),R2TOT(295),Z2TOT(295)
+      DIMENSION RCTOT(295),ZCTOT(295),NSHAPE(295),SROT(295)
+C END MAR 2007
+C END OCT 2004
+      DIMENSION NTYPEH(10),NX(46),NY(46),NXY(46)
+      REAL LENMOD,NX,NY,NXY
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5
+C END UNIX
+      CHARACTER*4 QUAL
+      CHARACTER*4 CHARAC
+C BEG UNIX
+      integer lastch
+      common/caseblock/case
+      logical exists
+c
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMX
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.ALL'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.ALL'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+      IDDATA = 1
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=14,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=3, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(3)
+#endif
+      else
+        OPEN(UNIT=3, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=14, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(14)
+#endif
+      else
+        OPEN(UNIT=14, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(7)
+#endif
+      else
+        OPEN(UNIT=7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+      IU = 11
+      IFILE = 2
+      IOUTFL = 3
+      IFIL14 = 14
+      IFILE7 = 7
+      CALL GETCOM(IFILE7)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(6,5)
+    5 FORMAT(//'  ****************  PANEL2  *******************'/
+     1'  The purpose of PANEL2 is to set up an input file, NAME.ALL,'/
+     1'  for a multi-module model of a panel. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BIGBOSOR4 input "deck" used'/
+     1'  by the batch run you launch next via the command BIGBOSORALL.'/
+     1'  PANEL2 applies only to ring-stiffened cylindrical panels.'/
+     1'  ***********************************************'/)
+C
+      QUAL = '.PAN'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+      AR = ABS(R)
+      DIF = ABS(AR - 10000.*SQRT(AXIAL**2 +CIRC**2))/AR
+      IF (DIF.LT.0.5) GO TO 5000
+      IF (                  ISTIFF(2).GT.3) GO TO 5000
+      IF (IBEAM.EQ.1) DIF = 0.0
+      CALL DATUM(IFILE,99,1,2,INT,AXIAL,CHARAC,IOUT,0,1)
+      IMODEL = 2
+      IMESH = 2*IPOINT(1) - 1
+C
+C BEG MAR 2009
+      INDIC = 1
+      IF (ISTIFF(2).NE.0)
+     1CALL DATUM(IFILE,689,1,2,INDIC,REALL,CHARAC,IOUT,0,1)
+C END MAR 2009
+      IF (INDIC.EQ.1) THEN
+         CALL DATUM(IFILE,690,0,0,INT,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,692,1,2,INT,FNX,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,694,1,2,INT,FNX0,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,696,1,2,INT,PRESS,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,698,1,2,IABP,REAL,CHARAC,IOUT,0,1)
+      ENDIF
+C BEG FEB 2009
+      IEDGE = 0
+C     CALL DATUM(IFILE,821,1,2,IEDGE,REALL,CHARAC,IOUT,0,1)
+C END FEB 2009
+C
+      ISYM = 0
+      IUSTAR = 0
+      IVSTAR = 0
+      IWSTAR = 0
+      IBETA  = 0
+      IF (IEDGE.EQ.0.AND.IBEAM.EQ.0) THEN
+         IF (ISTIFF(2).NE.0.OR.INDIC.NE.4) THEN
+            CALL DATUM(IFILE,824,1,2,ISYM,REALL,CHARAC,IOUT,0,1)
+         ELSE
+            CALL DATUM(IFILE,826,1,2,ISYM,REALL,CHARAC,IOUT,0,1)
+            IF (ISYM.NE.2.AND.ISYM.NE.3) THEN
+               WRITE(6,'(A,A)')' ILLEGAL VALUE FOR ISYM.',
+     1                         ' ISYM MUST BE EITHER 2 OR 3'
+            ENDIF
+         ENDIF
+         IF (ISYM.EQ.1) THEN
+            IUSTAR = 1
+            IBETA  = 1
+         ENDIF
+         IF (ISYM.EQ.2) THEN
+            IWSTAR = 1
+            IVSTAR = 1
+         ENDIF
+         IF (ISYM.EQ.3) THEN
+            IUSTAR = 1
+            IWSTAR = 1
+            IVSTAR = 1
+            IBETA  = 1
+         ENDIF
+      ENDIF
+C
+      CALL MOVER(PNXVAR,1,NXVAR1,1,184)
+      CALL MOVER(PNYVAR,1,NYVAR1,1,184)
+      CALL MOVER(0.,0,NXYVR1,1,184)
+C
+      CALL DATUM(IFILE,832,1,2,N0B,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,833,1,2,NMAXB,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,834,1,2,INCRB,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE,835,1,2,NVEC,REALL,CHARAC,IOUT,0,1)
+C
+      MULT = 1
+C
+C  GET END POINTS OF segmentS IN A SINGLE MODULE OF THE PANEL...
+C
+      ISTIF = ISTIFF(2)
+      B2S = B2(2)
+      IF (B2(2).EQ.0.) B2(2) = 0.25*B(2)
+C
+      IF (ISTIF.LT.4) THEN
+         HEFF = 0.
+C BEG JAN 2005
+         IF (ISTIF.GT.0) HEFF = H(2) + 0.5*TSKINY(2)
+C END JAN 2005
+C BEG OCT 2004
+C        CALL RZTJR2(IMESH,ISTIF,B(2),B2(2),H(2),W(2),NSEG,
+         CALL RZTJR2(IMESH,ISTIF,B(2),B2(2),HEFF,W(2),NSEG,
+C END OCT 2004
+     1      NMESH,NTYPEH,INTRNG,R1,Z1,R2,Z2,R0,IZSTIF(2),ABS(R))
+         NMESH(2) = IPOINT(2)
+      ENDIF
+      NTEST = 6
+      IF (ISTIFF(2).EQ.4.AND.B2(2).GT.W2(2)) NTEST = 8
+      IFINE = 1
+      IF (ISTIF.EQ.4) CALL RZHAT2(IMESH,B(2),B2(2),H(2),W(2),W2(2),NSEG,
+     1                           NMESH,NTYPEH,INTRNG,R1,Z1,R2,Z2,R0,
+     1                           IFINE,ABS(R))
+      IF (ISTIF.EQ.5) CALL RZTRS2(IMESH,B(2),B2(2),H(2),NSEG,
+     1                           NMESH,NTYPEH,R1,Z1,R2,Z2,R0,ABS(R))
+      IF (ISTIF.NE.4) THEN
+         DO 9 I = 1,10
+    9    NMESH0(I) = NMESH(I)
+      ENDIF
+C
+C  DETERMINE THE NUMBER OF STIFFENERS IN THE PANEL...
+C
+   10 CONTINUE
+      NSTIF = AXIAL/B(2) + .01
+      WRITE(6,'(A,1P,E12.4,/,A,1P,E12.4)')
+     1' Your input for axial length of the cylindrical panel=',AXIAL,
+     1' Spacing between adjacent rings,                 B(2)=',B(2)
+      IF (NSTIF.EQ.0)
+     1   WRITE(6,'(A,/,A,/,A,/,A,1P,E12.4,/,A,1P,E12.4,/,A)')
+     1 ' ******* ILLEGAL INPUT DATA ****** ILLEGAL INPUT DATA ******',
+     1 ' Your input for the axial length of the cylindrical panel is',
+     1 ' shorter than the spacing between adjacent rings:',
+     1 '  Your input for axial length of the panel, AXIAL=',AXIAL,
+     1 '  Spacing between adjacent rings,            B(2)=',B(2),
+     1 ' ******* ILLEGAL INPUT DATA ****** ILLEGAL INPUT DATA ******'
+      B1 = AXIAL/FLOAT(NSTIF)
+      B22 = AXIAL/FLOAT(NSTIF+1)
+      DIF1 = ABS(B1-B(2))/B(2)
+      DIF2 = ABS(B(2)-B22)/B(2)
+      B(2) = B1
+      IF (DIF2.LT.DIF1) THEN
+         B(2) = B22
+         NSTIF = NSTIF + 1
+      ENDIF
+      IF (IEDGE.EQ.1) NSTIF = NSTIF + 1
+C
+      FLONG = 1.0
+      RAVE =  ABS(R)
+      RBEG = RAVE
+C     WRITE(6,*)' NSTIF,RAVE, RBEG, AR=', NSTIF, RAVE, RBEG, AR
+C     WRITE(6,*)' IEDGE,CIRC,AXIAL,LENMOD=',IEDGE,CIRC,AXIAL,LENMOD
+C     WRITE(6,*)' R0,R1(1),Z1(1),R2(1),Z2(1)=',
+C    1            R0,R1(1),Z1(1),R2(1),Z2(1)
+C     WRITE(6,*)' R0,R1(2),Z1(2),R2(2),Z2(2)=',
+C    1            R0,R1(2),Z1(2),R2(2),Z2(2)
+      CALL ALLMD2(IEDGE,ISTIF,R,CIRC,NSTIF,B(2),R0,RBEG,R1,Z1,R2,Z2,
+     1    R1TOT,Z1TOT,R2TOT,Z2TOT,RCTOT,ZCTOT,NSHAPE,SROT,NSEGST,NSEGTL,
+     1    B2(2),W2(2),AXIAL,DRK,DZK,INTRNG)
+C
+C     WRITE(6,*)' R1TOT(1),RCTOT(1),ZCTOT(1)=',
+C    1            R1TOT(1),RCTOT(1),ZCTOT(1)
+C     WRITE(6,*)' R2TOT(1),Z1TOT(1),Z2TOT(1)=',
+C    1            R2TOT(1),Z1TOT(1),Z2TOT(1)
+C     WRITE(6,*)' R1TOT(2),RCTOT(2),ZCTOT(2)=',
+C    1            R1TOT(2),RCTOT(2),ZCTOT(2)
+C     WRITE(6,*)' R2TOT(2),Z1TOT(2),Z2TOT(2)=',
+C    1            R2TOT(2),Z1TOT(2),Z2TOT(2)
+C
+C BEG OCT 2004 (this routine to be used with bigbosor4)
+C BEG DEC 2006 (max. allowable NSEGTL increased from 150 to 190)
+C BEG APR 2007 (max. allowable NSEGTL increased from 190 to 290)
+      IF (NSEGTL.GT.290) THEN
+         AXNEW = AXIAL*180./FLOAT(NSEGTL)
+         WRITE(6,15) AXIAL, NSEGTL, AXNEW
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   15    FORMAT(/' TOO MANY SEGMENTS. CURRENT CYL. LENGTH OF',1P,E12.4/
+     1   ' REQUIRES A TOTAL OF'I4,' SEGMENTS. THERE MUST BE LESS THAN'/
+     1   ' 290 SEGMENTS IN THE OVERALL MODEL.  CUT CYL. LENGTH TO LESS'/
+     1   ' THAN',1P,E12.4//)
+C END APR 2007
+C END DEC 2006
+         REWIND IFILE
+         CALL DATUM(IFILE,99,1,2,INT,AXIAL,CHARAC,IOUT,0,1)
+         GO TO 10
+      ENDIF
+C BEG OCT 2004
+      ILESS = 0
+      IF (INDIC.NE.4.AND.ISTIF.GE.1.AND.ISTIF.LE.3) THEN
+         IF (NSTIF.GT.20) THEN
+            BLL = SQRT(ABS(R)*TX(1))
+            ARC = 0.75*B(2)
+            IF (B2(2).GT.0.) ARC = B(2) - B2(2)
+            ARCOBL = ARC/BLL
+            IF (ARCOBL.LT.2.) ILESS = 1
+         ENDIF
+         IF (ILESS.GT.0) THEN
+            IMESH = IMESH/2 + 1
+            NMESH(1) = IMESH 
+            NMESH0(1) = NMESH(1)
+            IF (ISTIF.EQ.3) THEN
+               NMESH(3) = NMESH(3)/2 + 1
+               NMESH0(3) = NMESH(3)
+               NMESH(4) = IMESH
+               NMESH0(4) = NMESH(4)
+            ENDIF
+            IF (ISTIF.EQ.1.OR.ISTIF.EQ.2) THEN
+               NMESH(4) = NMESH(4)/2 + 1
+               NMESH0(4)= NMESH(4)
+               NMESH(5) = IMESH
+               NMESH0(5) = NMESH(5)
+            ENDIF
+         ENDIF
+      ENDIF
+      ZVAL = TX(1)/2.
+C END OCT 2004
+C
+C  NOW WRITE TO THE OUTPUT FILE..
+C
+      WRITE(IFIL14,'(A)')' BOSOR4 INPUT FOR A RING-STIFF CYL. SHELL'
+      IF (INDIC.EQ.1) WRITE(IFIL14,'(A,I4,A)')
+     1        ' 1,2,0,', NSEGTL,' $ INDIC,NUMBER OF SEGS IN PANEL '
+      IF (INDIC.EQ.4) WRITE(IFIL14,'(A,I4,A)')
+     1        ' 4,2,0,0,', NSEGTL,' $ NUMBER OF SEGS IN PANEL '
+C
+C BEG MAR 2009
+C  get proper Cij constitutive matrix:
+      CALL MOVER(CX(1,1,5),1,CPROPR,1,36)
+      IF (ISTIFF(1).EQ.5) CALL CSHIFT(CX(1,1,5),DNEUTX,CPROPR)
+C END MAR 2009
+      I2 = 0
+      IF (IEDGE.EQ.0) THEN
+       EFOUND = 0.
+       IF (ISANDW(1,2).EQ.1.OR.ISANDW(1,2).EQ.NLAYER(1,2))
+     1  EFOUND = WFOUND(1,2)
+C BEG MAR 2009
+C      CALL MOVER(CX(1,1,5),1,CNEW,1,36)
+       CALL MOVER(CPROPR,1,CNEW,1,36)
+C END MAR 2009
+       IF (R.GT.0.) THEN
+         CNEW(1,4) = -CNEW(1,4)
+         CNEW(4,1) = CNEW(1,4)
+         CNEW(1,5) = -CNEW(1,5)
+         CNEW(5,1) = CNEW(1,5)
+         CNEW(2,4) = -CNEW(2,4)
+         CNEW(4,2) = CNEW(2,4)
+         CNEW(2,5) = -CNEW(2,5)
+         CNEW(5,2) = CNEW(2,5)
+       ENDIF
+       IF (R.LT.0.) THEN
+         CNEW(3,6) = -CNEW(3,6)
+         CNEW(6,3) = CNEW(3,6)
+       ENDIF
+C BEG OCT 2004
+       NWALL = 1
+       IF (ISTIFF(1).EQ.0.AND.NLAYER(1,1).EQ.1) THEN
+          DIFFC = ABS(CX(1,1,1) - CX(2,2,1))/CX(1,1,1)
+          IF (DIFFC.LT.0.001) THEN
+C    The material is isotropic and there is only one layer. Use NWALL=2
+            FNU = CX(1,2,1)/CX(1,1,1)
+            EMOD = CX(1,1,1)*(1. - FNU**2)/TX(1)
+            KTYPE = LTYPE(1,1,1)
+            MTYPE = MATL(KTYPE)
+            RHO   = DENS(MTYPE)
+            GMOD = 0.5*EMOD/(1. + FNU)
+            NWALL = 2
+          ENDIF
+       ENDIF
+C END OCT 2004
+       IF (INDIC.EQ.1) CALL SEGMN3(IFIL14,1,NMESH(1),R1TOT(1),Z1TOT(1),
+     1 R2TOT(1),Z2TOT(1),RCTOT(1),ZCTOT(1),NSHAPE(1),SROT(1),CNEW,
+     1 IPOINT(1),1,NXVAR1(1,1),NYVAR1(1,1),NXYVR1(1,1),I2,NMESH0(1),
+C BEG OCT 2004
+     1 EFOUND,1,1,FNX,PRESS,FNX0,ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+       IF (INDIC.EQ.4) CALL SEGMN2(IFIL14,1,NMESH(1),R1TOT(1),Z1TOT(1),
+     1 R2TOT(1),Z2TOT(1),RCTOT(1),ZCTOT(1),NSHAPE(1),SROT(1),CNEW,
+     1 IPOINT(1),1,NXVAR1(1,1),NYVAR1(1,1),NXYVR1(1,1),I2,NMESH0(1),
+C BEG OCT 2004
+     1 EFOUND,ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+      ENDIF
+C
+      IMINUS = 1
+      IF (ISTIF.EQ.5) IMINUS = 0
+C
+      DO 200 JSTIF = 1,NSTIF
+C
+      ITOT = (JSTIF-1)*(NSEGST+ 1)
+      NSEG1 = NSEG - IMINUS
+C
+      K = ITOT + 1 - IEDGE
+C
+      DO 100 I = 2,NSEG1
+C
+C BEG JUN 2004
+      CALL IDSEG(ISTIF,I,NSEGB5,B2(2),W2(2),J,IFAY)
+C END JUN 2004
+C BEG OCT 2004
+      ZVAL = TY(J)/2.
+      NWALL = 1
+      LAY1 = J
+      LAY2 = 2
+      IF (B2S.EQ.0.) THEN
+         LAY1 = 1
+         LAY2 = 1
+      ENDIF
+C     IF (JSTIF.EQ.1) WRITE(6,'(A,3I5,1P,2E12.4)')
+C    1 ' NSEG1,J,NLAYER(LAY1,LAY2),CY(1,1,J),CY(2,2,J)=',
+C    1   NSEG1,J,NLAYER(LAY1,LAY2),CY(1,1,J),CY(2,2,J)
+      IF (ISTIFF(1).EQ.0.AND.NLAYER(LAY1,LAY2).EQ.1) THEN
+         DIFFC = ABS(CY(1,1,J) - CY(2,2,J))/CY(1,1,J)
+         IF (DIFFC.LT.0.001) THEN
+C    The material is isotropic and there is only one layer. Use NWALL=2
+           FNU = CY(1,2,J)/CY(1,1,J)
+           EMOD = CY(1,1,J)*(1. - FNU**2)/TY(J)
+           GMOD = 0.5*EMOD/(1. + FNU)
+           KTYPE = LTYPE(J,1,1)
+           MTYPE = MATL(KTYPE)
+           RHO   = DENS(MTYPE)
+           NWALL = 2
+         ENDIF
+      ENDIF
+C END OCT 2004
+      K = ITOT + I - IEDGE
+      CALL CHGCIJ(CY(1,1,J),CNEW)
+      IF (I.EQ.2.AND.IZSTIF(2).EQ.0
+     1             .AND.(ISTIFF(1).NE.0.OR.B2S.LE.0.0)) THEN
+C BEG MAR 2009
+C         CALL MOVER(CX(1,1,5),1,CNEW,1,36)
+          CALL MOVER(CPROPR,1,CNEW,1,36)
+C END MAR 2009
+         IF (B2(2).GT.0.0) THEN
+            CNEW(1,1) = CNEW(1,1) + CY(2,2,J) - CX(1,1,1)
+            CNEW(4,4) = CNEW(4,4) + CY(5,5,J) - CX(4,4,1)
+            CNEW(3,3) = CNEW(3,3) + CY(3,3,J) - CX(3,3,1)
+            CNEW(6,6) = CNEW(6,6) + CY(6,6,J) - CX(6,6,1)
+            CNEW(2,2) = CNEW(2,2) + CY(1,1,J) - CX(2,2,1)
+            CNEW(5,5) = CNEW(5,5) + CY(4,4,J) - CX(5,5,1)
+            IF (ISOGRD.EQ.0) THEN
+               CNEW(2,2) = CY(1,1,J)
+               CNEW(5,5) = CY(4,4,J)
+            ENDIF
+         ENDIF
+         IF (R.GT.0.) THEN
+            CNEW(1,4) = -CNEW(1,4)
+            CNEW(4,1) = CNEW(1,4)
+            CNEW(1,5) = -CNEW(1,5)
+            CNEW(5,1) = CNEW(1,5)
+            CNEW(2,4) = -CNEW(2,4)
+            CNEW(4,2) = CNEW(2,4)
+            CNEW(2,5) = -CNEW(2,5)
+            CNEW(5,2) = CNEW(2,5)
+         ENDIF
+         IF (R.LT.0.) THEN
+            CNEW(3,6) = -CNEW(3,6)
+            CNEW(6,3) = CNEW(3,6)
+         ENDIF
+      ENDIF
+C
+      EFOUND = 0.
+      IF (ISANDW(J,2).EQ.1.OR.ISANDW(J,2).EQ.NLAYER(J,2))
+     1  EFOUND = WFOUND(J,2)
+      NCALL = 2
+      IF (I.EQ.2) NCALL = IPOINT(2)
+      NPRESS = 0
+      IF (I.EQ.2) NPRESS = 1
+      IF (INDIC.EQ.1) CALL SEGMN3(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),
+     1   R2TOT(K),Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CNEW,
+     1   NCALL,I,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+C BEG OCT 2004
+     1 NMESH0(I),EFOUND,0,NPRESS,0.,PRESS,0.,
+     1 ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+      IF (INDIC.EQ.4) CALL SEGMN2(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),
+     1   R2TOT(K),Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CNEW,
+     1   NCALL,I,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+C BEG OCT 2004
+     1   NMESH0(I),EFOUND,ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+  100 CONTINUE
+  105 CONTINUE
+C
+      IF (JSTIF.LT.NSTIF.OR.IEDGE.EQ.0) THEN
+C
+         IF (JSTIF.EQ.NSTIF) THEN
+            NCALL = IPOINT(1)
+            DO 110 II = 1,NCALL
+               J = NCALL + 1 - II
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+  110       CONTINUE
+         ELSE
+            NCALL = IMESH
+            IP1   = IPOINT(1)
+            DO 120 II = 1,IP1
+               J = IP1 + 1 - II
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+  120       CONTINUE
+            DO 130 II = IP1,NCALL
+               J = II + 1 - IP1
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+  130       CONTINUE
+         ENDIF
+C
+         M = K + 1
+C
+       EFOUND = 0.
+       IF (ISANDW(1,2).EQ.1.OR.ISANDW(1,2).EQ.NLAYER(1,2))
+     1  EFOUND = WFOUND(1,2)
+C BEG MAR 2009
+C      CALL MOVER(CX(1,1,5),1,CNEW,1,36)
+       CALL MOVER(CPROPR,1,CNEW,1,36)
+C END MAR 2009
+       IF (R.GT.0.) THEN
+         CNEW(1,4) = -CNEW(1,4)
+         CNEW(4,1) = CNEW(1,4)
+         CNEW(1,5) = -CNEW(1,5)
+         CNEW(5,1) = CNEW(1,5)
+         CNEW(2,4) = -CNEW(2,4)
+         CNEW(4,2) = CNEW(2,4)
+         CNEW(2,5) = -CNEW(2,5)
+         CNEW(5,2) = CNEW(2,5)
+       ENDIF
+       IF (R.LT.0.) THEN
+         CNEW(3,6) = -CNEW(3,6)
+         CNEW(6,3) = CNEW(3,6)
+       ENDIF
+C BEG OCT 2004
+       ZVAL = TX(1)/2.
+       NWALL = 1
+       IF (ISTIFF(1).EQ.0.AND.NLAYER(1,1).EQ.1) THEN
+          DIFFC = ABS(CX(1,1,1) - CX(2,2,1))/CX(1,1,1)
+          IF (DIFFC.LT.0.001) THEN
+C    The material is isotropic and there is only one layer. Use NWALL=2
+            FNU = CX(1,2,1)/CX(1,1,1)
+            EMOD = CX(1,1,1)*(1. - FNU**2)/TX(1)
+            GMOD = 0.5*EMOD/(1. + FNU)
+            KTYPE = LTYPE(1,1,1)
+            MTYPE = MATL(KTYPE)
+            RHO   = DENS(MTYPE)
+            NWALL = 2
+          ENDIF
+       ENDIF
+C END OCT 2004
+       IF (INDIC.EQ.1) CALL SEGMN3(IFIL14,M,NMESH(1),R1TOT(M),Z1TOT(M),
+     1 R2TOT(M),Z2TOT(M),RCTOT(M),ZCTOT(M),NSHAPE(M),SROT(M),CNEW,
+C BEG OCT 2004
+     1 NCALL,1,NX,NY,NXY,I2,NMESH0(1),EFOUND,0,1,0.,PRESS,0.,
+     1 ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+       IF (INDIC.EQ.4) CALL SEGMN2(IFIL14,M,NMESH(1),R1TOT(M),Z1TOT(M),
+     1 R2TOT(M),Z2TOT(M),RCTOT(M),ZCTOT(M),NSHAPE(M),SROT(M),CNEW,
+C BEG OCT 2004
+     1 NCALL,1,NX,NY,NXY,I2,NMESH0(1),EFOUND,
+     1 ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+      ENDIF
+C
+  200 CONTINUE
+C
+C  CONSTRAINT CONDITION INPUT FOR BOSOR4...
+C
+      WRITE(IFIL14,'(A)')' H $ END OF SEGMENT DATA; GLOBAL DATA BEGINS.'
+      WRITE(IFIL14,'(A)')' 0                           $ geometry plots'
+      WRITE(IFIL14,'(A)') ' N'
+      WRITE(IFIL14,'(4I7,I3,A)')
+     1 N0B,N0B,NMAXB,INCRB,NVEC,' $ circ.waves n, no. of eigenvalues/n'
+      IF (INDIC.EQ.1) THEN
+         IF (IABP.EQ.1) WRITE(IFIL14,'(A)')
+     1       ' 0., 1., 0., 0., 0., 0.  $ P,DP,TEMP,DTEMP..'
+         IF (IABP.EQ.0) WRITE(IFIL14,'(A)')
+     1       ' 1., 0., 0., 0., 0., 0.  $ P,DP,TEMP,DTEMP..'
+      ENDIF
+      WRITE(IFIL14,'(I4,A)') NSEGTL,' $ no. of segments'
+C
+      NCOND = 0
+      IF (IEDGE.EQ.0) THEN
+         IUEND = IUSTAR
+         IWEND = IWSTAR
+         IF (INDIC.EQ.1) THEN
+            WRITE(IFIL14,'(A,2I3,A)')
+     1      ' 0,1,1,0,',IVSTAR,IWEND,',1,0,0      $ prebuckling b.c.'
+            WRITE(IFIL14,'(A)')' N'
+            WRITE(IFIL14,'(4I3,A)')
+     1                 IUEND,IVSTAR,IWEND,IBETA,' $ bifurcation b.c.'
+         ENDIF
+         IF (INDIC.EQ.4) THEN
+            IF (ISTIF.NE.0) THEN
+               WRITE(IFIL14,'(A,4I3,A)')
+     1           ' 0,1,1,',IUEND,IVSTAR,IWEND,IBETA,',0,0'
+               WRITE(IFIL14,'(A)')' Y'
+            ELSE
+               WRITE(IFIL14,'(A)')
+     1           ' 0,1,1,1,0,0,1,0,0     $ symmetry at bottom of model'
+               WRITE(IFIL14,'(A)')' Y'
+            ENDIF
+         ENDIF
+         NCOND = NCOND + 1
+         WRITE(IFIL14,'(A)')' N'
+      ENDIF
+C
+      IF (B2(2).GT.W2(2)) THEN
+         IC2 = 2
+         IC3 = 3
+         IC4 = 4
+         IC5 = 5
+         IC6 = 6
+         IC7 = 7
+      ELSE
+         IC2 = 1
+         IC3 = 2
+         IC4 = 3
+         IC5 = 4
+         IC6 = 5
+         IC7 = 6
+      ENDIF
+C
+C
+      DO 400 JSTIF = 1,NSTIF
+C
+      ITOT = (JSTIF-1)*(NSEGST+1)
+      NSEG1= NSEG - IMINUS
+C
+      K = ITOT + 1 - IEDGE
+C
+      DO 300 I = 2,NSEG1
+C
+      K = ITOT + I - IEDGE
+      IF (ISTIF.NE.0.OR.I.NE.2.OR.INDIC.NE.4) THEN
+        WRITE(IFIL14,'(A,I3,A,I3)')
+     1  ' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF,
+     1  ';Seg.no.',I
+      ELSE
+         WRITE(IFIL14,'(A,I3,A,I3)')
+     1   ' 0,1  $ no poles, one connect. to ground;STR.no.',JSTIF,
+     1   ';Seg.no.',I
+         INODE = NMESH(I)/2 + 1
+         WRITE(IFIL14,'(I3,A)') INODE,
+     1   ', 0,1,1,1,0.,0.    $ prebuckling clamping at symmetry plane'
+         WRITE(IFIL14,'(A)')' N'
+         WRITE(IFIL14,'(I3,A,I3,A)')
+     1              IUEND,',1,1,',IBETA,'  $ bifurcation b.c., symplane'
+      ENDIF
+      IF (K.EQ.1) THEN
+         WRITE(IFIL14,'(A)') ' N $ no connection to lower-numbered seg.'
+      ELSE
+         WRITE(IFIL14,'(A)') ' Y     $ yes, connection to lower segment'
+         IF (ISTIF.LT.4) THEN
+            INODE = 1
+            IF (ISTIF.EQ.1.AND.I.EQ.4) INODE = NMESH(I)/2 + 1
+            DR = 0.
+            DZ = 0.
+            IF (IZSTIF(2).EQ.1.AND.I.EQ.2) THEN
+               INODE = NMESH(I)/2 + 1
+               DR = -DRK(K)
+               DZ =  DZK(K)
+            ENDIF
+            JSEG = I - 1
+            KSEG = K - 1
+            IF (KSEG.EQ.0) GO TO 300
+            JNODE = NMESH(JSEG)
+            IF (I.EQ.3.AND.IZSTIF(2).EQ.0) JNODE = NMESH(JSEG)/2 + 1
+            WRITE(IFIL14,'(A,3I4,A,1P,2E14.6)')
+     1          ' 1,',INODE,KSEG,JNODE,',1,1,1,1,',DR,DZ
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ELSE
+            IF (ISTIF.EQ.4) THEN
+               INODE = 1
+               JSEG = I - 1
+               IF (I.EQ.IC4) JSEG = IC2
+               IF (I.EQ.IC7) JSEG = IC3
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.EQ.IC6) NNODE = 2
+               IF (KSEG.EQ.0.AND.I.EQ.2) GO TO 300
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               WRITE(IFIL14,'(4I4,A)')
+     1               NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.EQ.IC6) THEN
+                  INODE = NMESH(I)
+                  JSEG  = IC3
+                  KSEG = ITOT + JSEG - IEDGE
+                  JNODE = NMESH(JSEG)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                   INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+            ENDIF
+            IF (ISTIF.EQ.5) THEN
+             IF (B2(2).LE.0.0) THEN
+               INODE = 1
+               JSEG  = I - 1
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.EQ.3.AND.KSEG.GT.3) NNODE = 2
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.EQ.3.AND.NNODE.GT.1) THEN
+                  INODE = 1
+                  JSEG = KSEG - 3
+                  KSEG = JSEG
+                  JNODE = NMESH(3)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                     INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+             ELSE
+               INODE = 1
+               JSEG  = I - 1
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.GT.4.AND.KSEG.GT.3) NNODE = 2
+               IF (I.EQ.6.AND.JSTIF.EQ.1) NNODE = 1
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               IF (I.LT.6) WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               IF (I.EQ.6.AND.JSTIF.GT.1) THEN
+                  KSEG = K - 9
+                  JNODE = NMESH(3)
+                  WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               ENDIF
+               IF (I.EQ.6.AND.JSTIF.EQ.1) THEN
+                  INODE = NMESH(I)
+                  KSEG = K - 4
+                  JNODE = NMESH(2)
+                  WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               ENDIF
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.GT.4.AND.NNODE.GT.1) THEN
+                  INODE = NMESH(I)
+                  KSEG = K - 4
+                  JNODE = NMESH(1)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                     INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+             ENDIF
+            ENDIF
+         ENDIF
+      ENDIF
+  300 CONTINUE
+  305 CONTINUE
+C
+C  PROVIDE CONSTRAINT CONDITION FOR THIN SHEET BETWEEN RINGS...
+C
+      ISEG = K + 1
+      INODE = NMESH(1)
+      JSEG = ISEG - NSEGST
+      IF (IZSTIF(2).EQ.1) THEN
+         IF (JSTIF.GT.1.OR.IEDGE.EQ.0) JSEG = ISEG - 4
+      ENDIF
+      IF (ISTIF.EQ.4.AND.B2(2).GT.W2(2)) JSEG = ISEG - 1
+      IF (ISTIF.EQ.0) JSEG = ISEG - 1
+      IF (ISTIF.EQ.5) JSEG = ISEG - 4
+      MSEG = 2
+      IF (ISTIF.EQ.4.AND.B2(2).GT.W2(2)) MSEG = 7
+      IF (ISTIF.EQ.5) MSEG = 1
+      IF (IZSTIF(2).EQ.1) MSEG = 1
+      NNODE = 1
+      IF (ISTIF.EQ.5.AND.B2(2).LE.0.0) NNODE = 2
+      JNODE = NMESH(MSEG)
+      DR = 0.
+      DZ = 0.
+      IF (IZSTIF(2).EQ.1.AND.JSTIF.EQ.1.AND.IEDGE.EQ.1) THEN
+         JNODE = NMESH(2)/2 + 1
+         DZ = -DZK(1)
+      ENDIF
+      IF (JSTIF.LT.NSTIF) THEN
+         WRITE(IFIL14,'(A,I3,A,I3)')
+     1   ' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF+1,
+     1   ';Seg.no.',ISEG-JSTIF*NSEG
+         WRITE(IFIL14,'(A)')' Y           $ connection to lower seg.'
+         IF (ISTIF.NE.5.OR.B2(2).LE.0.0) THEN
+            WRITE(IFIL14,'(I4,A,2I4,A,1P,2E14.6)')
+     1              NNODE,',1,',JSEG,JNODE,',1,1,1,1,',DR,DZ
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ENDIF
+         IF (NNODE.GT.1.OR.(ISTIF.EQ.5.AND.B2(2).GT.0.0)) THEN
+            ISEGM = 1
+            IF (ISTIF.EQ.5.AND.B2(2).GT.0.0) ISEGM = 3
+            JSEG1 = ISEG - ISEGM
+            JNODE1= NMESH(4)
+            IF (NNODE.GT.1)
+     1       WRITE(IFIL14,'(A,2I4,A)')' 1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            IF (NNODE.EQ.1.AND.ISTIF.EQ.5.AND.B2(2).GT.0.0)
+     1       WRITE(IFIL14,'(I4,A,2I4,A)')
+     1               NNODE,',1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ENDIF
+      ENDIF
+C
+      IF (IEDGE.EQ.1) GO TO 400
+      IF (JSTIF.EQ.NSTIF) THEN
+C
+C         TOPMOST SEGMENT...
+C
+         IUEND = IUSTAR
+         IWEND = IWSTAR
+         NNODE = 1
+         IF (ISTIF.EQ.5.AND.B2(2).LE.0.0) NNODE = 2
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (INDIC.EQ.1) THEN
+            WRITE(IFIL14,'(A,I4,A,2I4,A)')
+     1' 0,1,',INODE,', 1,',IVSTAR,IWEND,',1,0,0    $ prebuckling b.c.'
+            WRITE(IFIL14,'(A)')' N'
+            WRITE(IFIL14,'(4I4,A)')
+     1                 IUEND,IVSTAR,IWEND,IBETA,'  $ bifurcation b.c.'
+         ENDIF
+         IF (INDIC.EQ.4) THEN
+            IF (ISTIF.NE.0) THEN
+               WRITE(IFIL14,'(A,5I4,A)')
+     1                 ' 0,1,',INODE,IUEND,IVSTAR,IWEND,IBETA,',0,0'
+               WRITE(IFIL14,'(A)')' Y'
+            ELSE
+               WRITE(IFIL14,'(A,I3,A)')
+     1           ' 0,1,',INODE,',1,0,0,1,0,0 $ symmetry, top of model'
+               WRITE(IFIL14,'(A)')' Y'
+            ENDIF
+         ENDIF
+         NCOND = NCOND + 1
+       WRITE(IFIL14,'(A)')' Y              $ connection to lower seg.'
+         IF (ISTIF.NE.5.OR.B2(2).LE.0.0) THEN
+           WRITE(IFIL14,'(I4,A,2I4,A)')
+     1                 NNODE,',1,',JSEG,JNODE,',1,1,1,1,0,0'
+           WRITE(IFIL14,'(A)')' Y'
+           NCOND = NCOND + 1
+         ENDIF
+         IF (NNODE.GT.1.OR.(ISTIF.EQ.5.AND.B2(2).GT.0.0)) THEN
+            ISEGP = 3
+            IF (ISTIF.EQ.5.AND.B2(2).GT.0.0) ISEGP = 1
+            JSEG1 = JSEG + ISEGP
+            JNODE1= NMESH(4)
+            IF (NNODE.GT.1)
+     1       WRITE(IFIL14,'(A,2I4,A)')' 1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            IF (NNODE.EQ.1.AND.ISTIF.EQ.5.AND.B2(2).GT.0.0)
+     1       WRITE(IFIL14,'(I4,A,2I4,A)')
+     1               NNODE,',1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ENDIF
+      ENDIF
+C
+  400 CONTINUE
+C
+      WRITE(IFIL14,'(A)')' N  $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      DO 20 ISEG = 1,NSEGTL
+   20 WRITE(IFIL14,'(A)')' Y'
+      WRITE(IFIL14,'(A)')' N'
+C
+      WRITE(IFIL14,'(A)')' H   $ END OF DATA FOR PANEL '
+C
+      WIDTH1 = AXIAL
+      IREDUC= 0
+      NDOF = 3*NCOND + 3*(NSEGTL + 1) + 2*I2
+C BEG AUG 2006 (increase max NDOF from 2000 to 10000 for use with bigbosor4)
+C BEG MAR 2007 (increase max NDOF from 10000 to 20000 for use with bigbosor4)
+      IF (NDOF.GT.20000) THEN
+         REDUCE = 20000./FLOAT(NDOF)
+         WIDTH1  = 0.90*AXIAL*REDUCE
+         WRITE(6,450) NDOF,AXIAL,WIDTH1
+  450  FORMAT(/' PREBUCKLING NUMBER OF DEGREES IN THIS BOSOR4 MODEL'/
+     1 ' (NDOF=',I5,')'/
+     1 ' EXCEEDS THE MAXIMUM OF 20000 ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' PREBUCKLING ANALYSIS. YOU MUST REDUCE THE LENGTH OF THE CYL.'/
+     1 ' FROM ITS PRESENT VALUE, AXIAL=',1P,E12.4/
+     1 ' TO A LENGTH WHICH IS LESS THAN',1P,E12.4/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 PREBUCKLING ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C END MAR 2007
+C END AUG 2006
+C
+      WIDTH2 = AXIAL
+      NDOF = 4*NCOND + 4*(NSEGTL + 1) + 3*I2
+C BEG AUG 2006 (increase max NDOF from 3000 to 15000 for use with bigbosor4)
+C BEG MAR 2007 (increase max NDOF from 15000 to 30000 for use with bigbosor4)
+      IF (NDOF.GT.30000) THEN
+         REDUCE = 30000./FLOAT(NDOF)
+         WIDTH2  = 0.90*AXIAL*REDUCE
+         WRITE(6,460) NDOF,AXIAL,WIDTH2
+  460  FORMAT(/' BIFURCATION BUCKLING NUMBER OF DEGREES IN THIS BOSOR4'/
+     1 ' MODEL (NDOF=',I5,')'/
+     1 ' EXCEEDS THE MAXIMUM OF 30000 ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' BIFURCATION ANALYSIS. YOU MUST REDUCE THE LENGTH OF THE CYL.'/
+     1 ' FROM ITS PRESENT VALUE, AXIAL=',1P,E12.4/
+     1 ' TO A LENGTH WHICH IS LESS THAN',1P,E12.4/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 BIFURCATION ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C END MAR 2007
+C END AUG 2006
+C
+      IF (IREDUC.EQ.1) THEN
+         WIDMIN = MIN(WIDTH1,WIDTH2)
+         WRITE(6,470) WIDMIN
+  470    FORMAT(' RUN "PANEL" AGAIN.  REDUCE THE LENGTH OF THE CYL.'/
+     1' ("length in the L1 direction") TO LESS THAN LENGTH=',1P,E12.4/)
+         CALL EXIT
+      ENDIF
+C
+      CLOSE(UNIT=7)
+C     CLOSE(UNIT=0)
+C
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(6,30) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+   30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.ALL = Input data for BIGBOSOR4-type of preprocessor.'/
+     1'           correponding to discretized entire cyl. shell.'/
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' Next, give the command  BIGBOSOR4LOG followed by BIGBOSORALL.'//
+     1' BIGBOSOR4 to be used to find buckling of the entire cyl. with'/
+     1' all ring parts modelled as flexible shell segments. The'/
+     1' buckling load factors from this rather elaborate model should'/
+     1' be compared with those calculated from PANDA2 for general'/
+     1' instability and various ring buckling modes.')
+C END JAN 2010
+C
+ 5000 CONTINUE
+      END
+C
+C
+C
+C=DECK      ALLMD2
+      SUBROUTINE ALLMD2(IEDGE,ISTIF,R,CIRC,NSTIF,B,R0,RBEG,R1,Z1,R2,Z2,
+     1    R1TOT,Z1TOT,R2TOT,Z2TOT,RCTOT,ZCTOT,NSHAPE,SROT,NSEGST,NSEG,
+     1    B2,W2,AXIAL,DRK,DZK,INTRNG)
+C
+C  PURPOSE IS TO SET UP GEOMETRY (END POINT LOCATIONS) FOR MULTI-
+C  MODULE RING-STIFFENED CYLINDRICAL PANEL...
+C
+      COMMON/IZSTIX/IZSTIF(2)
+      COMMON/THICK/TX(5),TY(5)
+      DIMENSION DRK(*),DZK(*)
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+      DIMENSION R1(*),Z1(*),R2(*),Z2(*)
+      DIMENSION R1TOT(*),Z1TOT(*),R2TOT(*),Z2TOT(*)
+      DIMENSION RCTOT(*),ZCTOT(*),NSHAPE(*),SROT(*)
+C
+C BEG OCT 2004
+C BEG MAR 2007
+      CALL MOVER(0.,0,DRK,1,295)
+      CALL MOVER(0.,0,DZK,1,295)
+C END MAR 2007
+C END OCT 2004
+      FMULT = 1.0
+      IF (IZSTIF(2).EQ.1.AND.INTRNG.EQ.0) FMULT = -1.0
+      IEND = 4
+      NSEGST = 3
+      IF (ISTIF.EQ.0) THEN
+         IEND = 2
+         NSEGST = 1
+      ENDIF
+      IF (ISTIF.EQ.3) THEN
+         IEND = 3
+         NSEGST = 2
+      ENDIF
+      IF (ISTIF.EQ.4) THEN
+         IF (B2.GT.W2) THEN
+            IEND = 7
+            NSEGST = 6
+         ELSE
+            IEND = 5
+            NSEGST = 4
+         ENDIF
+      ENDIF
+      IF (ISTIF.EQ.5) THEN
+         IEND = 4
+         NSEGST = 3
+         IF (B2.GT.0.0) THEN
+            IEND = 6
+            NSEGST = 5
+         ENDIF
+      ENDIF
+C
+      NSEG = NSTIF*NSEGST + NSTIF - 1
+      IF (IEDGE.EQ.0) NSEG = NSEG + 2
+C BEG OCT 2004
+C BEG MAR 2007
+      IF (NSEG.GT.295) RETURN
+C END MAR 2007
+c END OCT 2004
+C
+      AR = ABS(R)
+C
+      DO 200 JSTIF = 1,NSTIF
+C
+      FJ = JSTIF
+      RN  = RBEG
+      ZN  = (FJ-1.)*B + B/2.
+C
+      ITOT = (JSTIF-1)*(NSEGST + 1)
+C
+C
+      DO 100 ISEG = 2,IEND
+C
+      K = ITOT + ISEG - IEDGE
+C
+      RDIF = R1(ISEG) - R0
+      R1TOT(K) = RN + RDIF
+      Z1TOT(K) = ZN + Z1(ISEG)
+      RDIF = R2(ISEG) - R0
+      R2TOT(K) = RN + RDIF
+      Z2TOT(K) = ZN + Z2(ISEG)
+C
+      RCTOT(K) = 0.
+      ZCTOT(K) = 0.
+      SROT(K)  = 0.
+      NSHAPE(K) = 1
+C
+  100 CONTINUE
+C
+  200 CONTINUE
+C
+C  NEXT, ADD THE THIN SKIN SEGMENTS BETWEEN THE STIFFENERS...
+C
+      IF (NSTIF.GE.2) THEN
+         DO 300 JSTIF = 2,NSTIF
+         ITOT = (JSTIF-1)*(NSEGST + 1)
+         K = ITOT - IEDGE + 1
+         KM= K - NSEGST
+         IF (ISTIF.GE.4) KM = K - 1
+         IF (ISTIF.EQ.5.AND.B2.GT.0.) KM = K - 3
+         IF (ISTIF.EQ.0) KM = K - 1
+         KP = K + 1
+         IF (IZSTIF(2).EQ.1) KM = K - 4
+         R1TOT(K) = R2TOT(KM)
+         Z1TOT(K) = Z2TOT(KM)
+         R2TOT(K) = R1TOT(KP)
+         Z2TOT(K) = Z1TOT(KP)
+         IF (IZSTIF(2).EQ.1) THEN
+            RAVE = 0.5*(R1TOT(KP) + R2TOT(KP))
+            ZAVE = 0.5*(Z1TOT(KP) + Z2TOT(KP))
+            TAVE = FMULT*0.5*(TX(1) + TY(2))
+            DRK(KP) = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+            DZK(KP) = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+            TAVE = 0.
+            DR   = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+            DZ   = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+            R2TOT(K) = RAVE + DR
+            Z2TOT(K) = ZAVE - DZ
+            IF (JSTIF.EQ.2) THEN
+               K3 = K - 3
+               RAVE = 0.5*(R1TOT(K3) + R2TOT(K3))
+               ZAVE = 0.5*(Z1TOT(K3) + Z2TOT(K3))
+               TAVE = FMULT*0.5*(TX(1) + TY(2))
+               DRK(K3) = TAVE*(Z2TOT(K3) - Z1TOT(K3))/B2
+               DZK(K3) = TAVE*(R2TOT(K3) - R1TOT(K3))/B2
+               TAVE = 0.
+               DR   = TAVE*(Z2TOT(K3) - Z1TOT(K3))/B2
+               DZ   = TAVE*(R2TOT(K3) - R1TOT(K3))/B2
+               R1TOT(K) = RAVE + DR
+               Z1TOT(K) = ZAVE - DZ
+            ENDIF
+         ENDIF
+C
+         RCTOT(K) = 0.
+         ZCTOT(K) = 0.
+         SROT(K)  = 0.
+         NSHAPE(K) = 1
+  300    CONTINUE
+      ENDIF
+C
+C  NEXT, ADD BEGINNING AND END SEGMENTS IF STIFFENERS ARE NOT AT EDGE.
+C
+      IF (IEDGE.EQ.1) GO TO 400
+C
+C  RINGS ARE NOT AT EDGES:
+C
+      R1TOT(1) = RBEG
+      Z1TOT(1) = 0.
+      RCTOT(1) = 0.
+      ZCTOT(1) = 0.
+      SROT(1)  = 0.
+      NSHAPE(1)= 1
+C
+      KP = 2
+      IF (IZSTIF(2).EQ.1) KP = 5
+      IF (IZSTIF(2).EQ.0.OR.NSTIF.GE.2) THEN
+         R2TOT(1) = R1TOT(KP)
+         Z2TOT(1) = Z1TOT(KP)
+      ELSE
+         KP = 2
+         RAVE = 0.5*(R1TOT(KP) + R2TOT(KP))
+         ZAVE = 0.5*(Z1TOT(KP) + Z2TOT(KP))
+         TAVE = FMULT*0.5*(TX(1) + TY(2))
+         DRK(KP) = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+         DZK(KP) = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+         TAVE = 0.
+         DR   = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+         DZ   = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+         R2TOT(1) = RAVE + DR
+         Z2TOT(1) = ZAVE - DZ
+      ENDIF
+C
+      ITOT = NSTIF*(NSEGST + 1) + 1
+      ITOTM= ITOT - NSEGST
+      IF (ISTIF.GE.4) ITOTM = ITOT - 1
+      IF (ISTIF.EQ.5.AND.B2.GT.0.0) ITOTM = ITOT - 3
+      IF (ISTIF.EQ.0) ITOTM = ITOT - 1
+      IF (IZSTIF(2).EQ.1) ITOTM = ITOT - 4
+      R1TOT(ITOT) = R2TOT(ITOTM)
+      Z1TOT(ITOT) = Z2TOT(ITOTM)
+      FACTR = 0.
+      IF (ISTIF.EQ.5) FACTR = 1.
+      R2TOT(ITOT) = RBEG
+      IF (ISTIF.EQ.5.AND.B2.GT.0.0) R2TOT(ITOT) = R1TOT(ITOT)
+      Z2TOT(ITOT) = AXIAL
+      RCTOT(ITOT) = 0.
+      ZCTOT(ITOT) = 0.
+      SROT(ITOT)  = 0.
+      NSHAPE(ITOT) = 1
+C
+  400 CONTINUE
+      IF (IZSTIF(2).EQ.1) THEN
+         KM = -2
+         IF (IEDGE.EQ.1) KM = -3
+         DO 500 K = 1,NSTIF
+            KM = KM + 4
+            KP = KM + 2
+            DO 450 JSEG = KM,KP
+              R1TOT(JSEG) = R1TOT(JSEG) - DRK(KM)
+              R2TOT(JSEG) = R2TOT(JSEG) - DRK(KM)
+              Z1TOT(JSEG) = Z1TOT(JSEG) + DZK(KM)
+              Z2TOT(JSEG) = Z2TOT(JSEG) + DZK(KM)
+  450       CONTINUE
+  500    CONTINUE
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      SEGMN3
+      SUBROUTINE SEGMN3(IOUT,ISEG,NMESH,R1,Z1,R2,Z2,RC,ZC,NSHAPE,
+     1      SROT,C,NCALL,LOCSEG,NX,NY,NXY,I2,NMESH0,EFOUND,
+C BEG OCT 2004
+     1      IRING,IDIST,FNX,PRESS,FNX0,
+     1      ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+C  PURPOSE IS TO GENERATE BOSOR4-TYPE INPUT FOR A PANEL SEGMENT...
+C
+      DIMENSION NX(*),NY(*),NXY(*),C(6,6),CALOUT(23)
+      REAL NX,NY,NXY
+C
+      N2 = NMESH + 2 
+      I2 = I2 + N2
+      N2L = NMESH0 + 2
+      WRITE(IOUT,'(A,I4)')' H $ BEGINNING OF DATA FOR SEGMENT',ISEG
+      WRITE(IOUT,'(I4,A,I4)') NMESH,',3,',NSHAPE
+      WRITE(IOUT,'(1P,4E14.6,A)') R1,Z1,R2,Z2,' $ END POINTS'
+      IF (NSHAPE.EQ.2) WRITE(IOUT,'(1P,3E14.6,A)')
+     1                          RC,ZC,SROT,' $ CENTER OF CURV.'
+C BEG OCT 2004
+      WRITE(IOUT,'(A,1P,E14.6,A)')' 0,3,',ZVAL,' $ IMP,NTYPEZ,ZVAL'
+C END OCT 2004
+      IF (IRING.EQ.0)
+     1   WRITE(IOUT,'(A)')' N,0 $ NO PRINTOUT OF r,etc., no rings'
+      IF (IRING.EQ.1)
+     1   WRITE(IOUT,'(A)')' N,1,2,0.,0 $ NO PRINTOUT OF r,NRINGS,etc.'
+      WRITE(IOUT,'(1P,E14.6,A)') EFOUND,' $ ELASTIC FOUNDATION MODULUS'
+      IF (IRING.EQ.0)  WRITE(IOUT,'(A)') ' 0      $ LINTYP'
+      IF (IRING.EQ.1) THEN
+         WRITE(IOUT,'(A)') ' 1      $ LINTYP'
+         WRITE(IOUT,'(A,E12.4,A)') ' 1,0,0,0,',FNX0,' $ NLOAD(1-4),Nxo'
+         WRITE(IOUT,'(A,E12.4,A)') ' 1,0,0,0,',FNX,'  $ NLOAD(1-4),Nx'
+      ENDIF
+      IF (IDIST.EQ.0) WRITE(IOUT,'(A)') ' 0      $ IDISAB'
+      IF (IDIST.EQ.1) THEN
+         WRITE(IOUT,'(A)') ' 1      $ IDISAB'
+         WRITE(IOUT,'(A,2E12.4,A)') ' 1,2,0,0,1,',PRESS,PRESS,
+     1                       ' $ NLTYPE,NPSTAT,NLOAD(1-3),PN1,PN2'
+C BEG OCT 2004
+         WRITE(IOUT,'(A,2E14.6,A)') ' 2,',Z1,Z2,' $ NTYPE,Z1,Z2'
+C END OCT 2004
+      ENDIF
+C
+C BEG OCT 2004
+      IF (NWALL.NE.2) THEN
+C END OCT 2004
+      WRITE(IOUT,'(A)') ' 1,0                       $ start C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(1,1),C(1,2),C(1,4),C(1,5),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(2,2),C(2,4),C(2,5),C(3,3),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(4,4),C(4,5),C(5,5),C(6,6),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,E14.6,A)')
+     1              C(3,6),' 0                              $ C(i,j)'
+      WRITE(IOUT,'(A)')' N'
+      WRITE(IOUT,'(A)')' N'
+C BEG OCT 2004
+      ELSE
+      WRITE(IOUT,'(A,1P,3E12.4,A)')
+     1   ' 2,',EMOD,FNU,RHO/386.0,',0. $ NWALL,E,NU,RHO,ALPHA'
+      WRITE(IOUT,'(A)') ' 0, 0            $ NRS, NSUR'
+      WRITE(IOUT,'(A)')' N       $ Print ref. surf. location?'
+      WRITE(IOUT,'(A)')' N       $ Print C(i,j)?'
+      WRITE(IOUT,'(A)')' N       $ Print distributed loads?'
+      ENDIF
+C END OCT 2004
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SEGMN2
+      SUBROUTINE SEGMN2(IOUT,ISEG,NMESH,R1,Z1,R2,Z2,RC,ZC,NSHAPE,
+C BEG OCT 2004
+     1    SROT,C,NCALL,LOCSEG,NX,NY,NXY,I2,NMESH0,EFOUND,
+     1    ZVAL,NWALL,EMOD,GMOD,FNU,RHO)
+C END OCT 2004
+C
+C  PURPOSE IS TO GENERATE BOSOR4-TYPE INPUT FOR A PANEL SEGMENT...
+C
+      DIMENSION NX(*),NY(*),NXY(*),C(6,6),CALOUT(23)
+      REAL NX,NY,NXY
+C
+      N2 = NMESH + 2 
+      I2 = I2 + N2
+      N2L = NMESH0 + 2
+      WRITE(IOUT,'(A,I4)')' H $ BEGINNING OF DATA FOR SEGMENT',ISEG
+      WRITE(IOUT,'(I4,A,I4)') NMESH,',3,',NSHAPE
+      WRITE(IOUT,'(1P,4E14.6,A)') R1,Z1,R2,Z2,' $ END POINTS'
+      IF (NSHAPE.EQ.2) WRITE(IOUT,'(1P,3E14.6,A)')
+     1                          RC,ZC,SROT,' $ CENTER OF CURV.'
+C BEG OCT 2004
+      WRITE(IOUT,'(A,1P,E14.6,A)')' 0,3,',ZVAL,' $ IMP,NTYPEZ,ZVAL'
+C END OCT 2004
+      WRITE(IOUT,'(A)')' N,0 $ NO PRINTOUT OF r,etc., no rings'
+      WRITE(IOUT,'(1P,E14.6,A)') EFOUND,' $ ELASTIC FOUNDATION MODULUS'
+      NSTRES = NCALL
+      WRITE(IOUT,'(I4,A)')
+     1           NSTRES,'   $ NSTRES = number of stations for input'
+      WRITE(IOUT,'(A)')' 0     $ NRLOAD = number of preloaded rings'
+C
+      NTYPE = 3
+      P1 = R1
+      P2 = R2
+      IF (ABS(Z2 - Z1).GT.ABS(R2-R1)) THEN
+         NTYPE = 2
+         P1 = Z1
+         P2 = Z2
+      ENDIF
+      IF (LOCSEG.GT.2) THEN
+         WRITE(IOUT,'(I3,1P,2E14.6,A)')
+     1              NTYPE,P1,P2,'  $ CALLOUT TYPE AND LOCATIONS'
+         WRITE(IOUT,'(1P,4E14.6,A)')
+     1              NX(1),NX(N2L),NY(1),NY(N2L),'   $ RESULTANTS'
+C BEG NOV 2011
+         WRITE(IOUT,'(A)') ' 0.  0.  0.  0.  $ FIXED RESULTANTS'
+C END NOV 2011
+      ELSE
+         CALOUT(1) = P1
+         CALOUT(NCALL)= P2
+         NCALL1 = NCALL - 1
+         DCALL = (P2-P1)/FLOAT(NCALL1)
+         DO 10 I = 2,NCALL
+   10    CALOUT(I) = CALOUT(I-1) + DCALL
+         WRITE(IOUT,'(I3,A)')
+     1             NTYPE,'    $ CALLOUT TYPE (2 means Z; 3 means R)'
+         WRITE(IOUT,20) (CALOUT(I), I=1,NCALL)
+   20    FORMAT(1P,4E15.6,' $ CALLOUTS'/
+     1         (1P,5E15.6))
+         WRITE(IOUT,30) (NX(I),I=1,NCALL)
+   30    FORMAT(1P,4E15.6,' $ MERIDIONAL LOAD'/
+     1         (1P,5E15.5))
+         WRITE(IOUT,40) (NY(I),I=1,NCALL)
+   40    FORMAT(1P,4E15.6,' $ HOOP LOAD'/
+     1         (1P,5E15.5))
+C BEG NOV 2011
+         DO 42 I = 1,NCALL
+         WRITE(IOUT,'(A)') ' 0. $ FIXED MERIDIONAL RESULTANT'
+   42    CONTINUE
+         DO 43 I = 1,NCALL
+         WRITE(IOUT,'(A)') ' 0. $ FIXED CIRCUMFER. RESULTANT'
+   43    CONTINUE
+C END NOV 2011
+C
+      ENDIF
+C BEG OCT 2004
+      IF (NWALL.NE.2) THEN
+C END OCT 2004
+C
+      WRITE(IOUT,'(A)') ' N,1,0                       $ start C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(1,1),C(1,2),C(1,4),C(1,5),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(2,2),C(2,4),C(2,5),C(3,3),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(4,4),C(4,5),C(5,5),C(6,6),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,E14.6,A)')
+     1              C(3,6),' 0                              $ C(i,j)'
+      WRITE(IOUT,'(A)')' N'
+      WRITE(IOUT,'(A)')' N'
+C
+C BEG OCT 2004
+      ELSE
+      WRITE(IOUT,'(A,1P,3E12.4,A)')
+     1 ' N,2,',EMOD,FNU,RHO/386.0,',0. $ NWALL,E,NU,RHO,ALPHA'
+      WRITE(IOUT,'(A)') ' 0, 0            $ NRS, NSUR'
+      WRITE(IOUT,'(A)')' N       $ Print ref. surf. location?'
+      WRITE(IOUT,'(A)')' N       $ Print C(i,j)?'
+      WRITE(IOUT,'(A)')' N       $ Print distributed loads?'
+      ENDIF
+C END OCT 2004
+C
+      RETURN
+      END

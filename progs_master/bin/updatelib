@@ -1,0 +1,79 @@
+#
+# updatelib updates the library archive created specifically for the
+# executable program.  Subroutines from the object libraries are
+# merged with the library file, and the library file is randomized.
+# $0 = 'updatelib'
+# $1 = library to update (lib)
+# $2 - $#argv = object libraries
+
+echo "------------------------------------------"
+echo "Executing updatelib."
+
+set workspace = "${TEMPDIR}/$$"
+mkdir $workspace
+set startdir = "$cwd"
+
+set library = $1
+set libdir = "$library:h"
+if ($libdir == $library) then  # $libdir is $cwd.
+  set lib = $cwd/$library:t
+  set libdir = $cwd
+else  # $libdir is the head of $lib.
+  if (!(-e $libdir)) then  #If $libdir doesn't exist, then make it.
+    mkdir $libdir
+  endif
+  cd $libdir
+  set lib = $cwd/$library:t
+endif
+
+shift
+
+echo "Using temporary directory: $workspace"
+foreach obj ($argv[*])
+  cd $startdir
+  set objdir = $obj:h
+  if ($objdir == $obj) then  # $objdir is $cwd.
+    set object = $cwd/$obj:t
+  else  # $objdir is the head of $obj.
+    cd $objdir
+    set object = $cwd/$obj:t
+  endif
+  cd $workspace
+
+  echo "Now extracting *.o files from $object into directory $cwd"
+  if ($MACHINE == "cray") then
+    bld xv $object
+  else if ($MACHINE == "sol") then
+    ar xv $object
+  else
+    ar xv $object
+  endif
+  /bin/rm -f __* >& /dev/null
+end
+
+echo "Now archiving all *.o files into $lib"
+if ($MACHINE == "dec"   || \
+    $MACHINE == "sgi"   || \
+    $MACHINE == "alpha" || \
+    $MACHINE == "star"  || \
+    $MACHINE == "hp700" || \
+    $MACHINE == "rs6k") then
+  ar rvsl $lib *.o
+else if ($MACHINE == "cray") then
+  bld rv $lib *.o
+else if ($MACHINE == "sol") then
+  ar rsv $lib *.o
+else
+  ar rv $lib *.o
+  echo "Now randomizing library $lib"
+  ranlib $lib
+endif
+
+cd $startdir
+
+echo "Remove temporary directory: $workspace"
+/bin/rm -rf $workspace
+
+echo "Exiting updatelib."
+echo "------------------------------------------"
+

@@ -1,0 +1,2764 @@
+C=DECK      PLOTLIB
+C
+C
+C  THIS IS THE PLOT  LIBRARY (SOURCE FILE)
+C
+C
+C
+C=DECK      PLOT
+      SUBROUTINE PLOT (X,Y,IPEN)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+c     WRITE (53, 100) 'PLOT   ',X,Y,FLOAT(IPEN)
+      RETURN
+100   FORMAT (' ',A7,9E13.5)
+      END
+C
+C
+C
+C=DECK      GEOPLT
+      SUBROUTINE GEOPLT (X, Y, XP, YP)
+C*****
+C     THIS SUBROUTINE MODIFIED BY HAC IN AUGUST,1974 BY INCORPORATING
+C     CHANGES MADE BY CHICAGO BRIDGE AND IRON INTO ORIGINAL SUBROUTINE.
+C*****
+C
+C
+C BEG MAR 2007
+      DIMENSION  X(*),Y(*),XP(*),YP(*),XPE(10000),YPE(10000)
+      DIMENSION XSAVE(10000),YSAVE(10000)
+C END MAR 2007
+C BEG JUL 2003
+      CHARACTER*4  BMTITL, HOLLER, TITLE
+      CHARACTER*28 STRPLT(2)
+C END JUL 2003
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/SEGS/NSEG,M2,I5(295),I2,I2G
+      COMMON/PLTSIG/IPLOT,JPLOT,KPLOT(20),LPLOT(20),MPLOT,RN(20),ZN(20)
+      COMMON/ALLRNG/NTOT,IPRE
+      COMMON/GLOBAL/IDZ,IZRING(198),ISAVE(20),INOTE
+      COMMON/RING2/GAM(198),GJ(198),YC(198),
+     1             XC(198),E1(198),E2(198),PHI(200)
+      DIMENSION E1G(198),E2G(198)
+C BEG OCT 2005
+      COMMON/HED/TITLE(18)
+C END OCT 2005
+      COMMON/STEPS/STEP,STEP1(198),STEP2(198),STEP3(198)
+C     'OLD' VERSION OF GEOPLT ON FILE 1 HAD FOLLOWING STATEMENT:
+      COMMON/FOSAVE/V(198),HF(198),FM(198)
+C     NOTE: ORIGINAL VALUES FOR V, HF, AND FM ARE SAVED IN /FOSAVE/
+C           IN SUBROUTINE OUTIN2
+      COMMON/BUCKMD/BMTITL(11)
+      COMMON/INSTAB/INDIC
+      COMMON/SINDIC/XINDIC
+      DIMENSION HOLLER(20)
+C
+      DATA IFIRST / 0 /
+
+      DATA STRPLT(1) /'INITIAL UNDEFORMED STRUCTURE'/
+      DATA STRPLT(2) /'DEFORMED STRUCTURE          '/
+
+C     IPLOT = 1  PLOT UNDEFORMED STRUCTURE
+C     IPLOT = 2  PLOT DEFORMED STRUCTURE
+C     JPLOT = NUMBER OF R, Z PAIRS
+C
+C     DEBUG:  EITHER USE X0 AND Y0 OR INSERT CALL GASP(ZAX,...)
+C             BEFORE EACH CALL TO GEOPLT IN PLOTIT - AS DONE HERE
+      IF (IPLOT .EQ. 1)  GO TO 2
+C     WRITE(IFILE4, 1110)
+      GO TO 4
+    2 CONTINUE
+C     WRITE(IFILE4, 1112)
+4     CONTINUE
+1110  FORMAT(' WE ARE ENTERING S-R GEOPLT TO'
+     1' PLOT THE DEFORMED STRUCTURE' //)
+1112  FORMAT (' WE ARE ENTERING S-R GEOPLT TO'
+     1' PLOT THE UNDEFORMED STRUCTURE' //)
+C
+      IF (LDONE .EQ. 999)  GO TO 220
+      IF (IFIRST .EQ. 1)  GO TO 10
+      IFIRST = 1
+10    CONTINUE
+      INTSTR = 0
+      ILDFRM = 0
+      NFIXLD = 0
+      NVARLD = 0
+      LODPLT = 0
+      NFIXV = 0
+      NFIXH = 0
+      NFIXM = 0
+      NVARV = 0
+      NVARH = 0
+      NVARM = 0
+C
+      IJPLOT = JPLOT + 1
+      DO 15 I = 1,I2
+      XSAVE(I) = X(I)
+      YSAVE(I) = Y(I)
+   15 CONTINUE
+C
+      DO 210 IP=1,IJPLOT
+      IEP = 0
+C
+C     IF INTSTR = 0  PLOT THE WHOLE STRUCTURE
+C
+      IF (INTSTR .EQ. 0)  GO TO 90
+C
+      IF (IPLOT.EQ.1) LODPLT = 0
+      IF (IPLOT.EQ.1) ILDFRM = 0
+      DO 25 I = 1,I2
+      X(I) = XSAVE(I)
+      Y(I) = YSAVE(I)
+   25 CONTINUE
+C
+C     LPLOT(IP - 1) = THE SIZE OF EXPANSION FOR AN R, Z LOCATION.
+C
+C     DEBUG
+      IF(IP.EQ.1) WRITE(IFILE4,1300)
+1300  FORMAT(//,60('* '),/,10X,'WARNING: SUBSCRIPT IP-1 IS ZERO',
+     1/,60('* '),/)
+      BIGGER = LPLOT(IP - 1)
+C     WRITE(IFILE4,*) ' IN GEOPLT--BIGGER=', BIGGER
+C
+C     KPLOT(IP-1) =  INTEGER LOCATION OF R, Z IN THE X AND Y ARRAYS
+C
+      INDX = KPLOT(IP-1)
+C     WRITE(IFILE4,*) ' IN GEOPLT--INDX = KPLOT(IP-1)=', INDX
+C     WRITE(IFILE4,*) ' IN GEOPLT--COUNTER, IP, =', IP
+C
+C     CALL PLOT (10.0, -31.0, -3)
+C     CALL PLOT (0.0, 0.8, -3)
+C
+      XMID = XLMAX + (XRMAX - XLMAX) * 0.5
+      YMID = YBMAX + (YTMAX - YBMAX) * 0.5
+      XDIF = X(INDX) - XMID
+      YDIF = Y(INDX) - YMID
+C
+      XL = XLMAX + XDIF
+      XR = XRMAX + XDIF
+      YB = YBMAX + YDIF
+      YT = YTMAX + YDIF
+C
+C     WRITE(IFILE4,*)' XLMAX,XRMAX,YBMAX,YTMAX=  ',XLMAX,XRMAX,YBMAX,YTMAX
+C     WRITE(IFILE4,*)' XMID,YMID,X(INDX),Y(INDX)=',XMID,YMID,X(INDX),Y(INDX)
+C     WRITE(IFILE4,*)' XDIF,YDIF                =',XDIF,YDIF
+C     WRITE(IFILE4,*)' XL,XR,YB,YT              =',XL,XR,YB,YT
+C
+      XMID = XL + (XR - XL) * 0.5
+      YMID = YB + (YT - YB) * 0.5
+C
+      IF (BIGGER .LE. 0.0)  BIGGER = 1.0
+      XL = XMID - (XMID - XL) / BIGGER
+      XR = XMID + (XR - XMID) / BIGGER
+      YB = YMID - (YMID - YB) / BIGGER
+      YT = YMID + (YT - YMID) / BIGGER
+C
+C     WRITE(IFILE4,*)' AFTER NEW XMID,YMID...   =',XMID,YMID
+C     WRITE(IFILE4,*)' AFTER NEW XL,XR,YB,YT    =',XL,XR,YB,YT
+C
+85    CONTINUE
+C
+      GO TO 103
+C
+C     SEARCH ALL ARRAYS AT START OF PLOTTING FOR MAX AND MIN DATA VALUES
+C        - THIS INCLUDES THE DEFORMED AND UNDEFORMED DATA ARRAYS AS
+C        THEY APPLY.  ON ALL EXPANDED PLOTS THE MAX AND MIN VALUES
+C        ARE SET AUTOMATICALLY.
+C
+90    XL = X(1)
+      XR=X(1)
+      YB=Y(1)
+      YT = Y(1)
+C
+      DO 100  J = 2, I2
+      XL = AMIN1(XL, X(J))
+      XR = AMAX1(XR, X(J))
+      YT = AMAX1(YT, Y(J))
+      YB = AMIN1(YB, Y(J))
+100   CONTINUE
+C
+1310  FORMAT(/,5X,'NTOT =',I5)
+      IF (NTOT .EQ. 0)  GO TO 103
+C
+      DO 102  I = 1, NTOT
+      J = IZRING(I)
+      XPT = X(J) + E1(I)
+      YPT = Y(J) + E2(I)
+      XL = AMIN1(XL, XPT)
+      XR = AMAX1(XR, XPT)
+      YB = AMIN1(YB, YPT)
+      YT = AMAX1(YT, YPT)
+102   CONTINUE
+C
+103   CONTINUE
+C
+      AX = ABS(XR - XL)
+      AY = ABS(YT - YB)
+      IXCH = 0
+      IF (AX .GT. AY)  GO TO 106
+      IXCH = 1
+      XLT=XL
+      XRT=XR
+      XL = YB
+      XR = YT
+      YB = XLT
+      YT = XRT
+C
+106   CONTINUE
+C
+C     WRITE(IFILE4,*)' AFTER 106 C..XL,XR,YB,YT =',XL,XR,YB,YT
+C
+1320  FORMAT(//,5X,'XL =',E14.8,/,5X,'XR =',E14.8,
+     1/,5X,'YB =',E14.8,/,'YT =',E14.8,/)
+C     NOW WE SELECT THE PROPER SCALE VALUES WHICH ARE MULTIPLES OF 1, 2,
+C     OR 5.
+C
+      DR = XR - XL
+      ADR = ABS(DR)
+      FACT = 0.1 * ADR
+      IF (IPLOT .EQ. 1)  GO TO 105
+C
+      DO 99  I = 1, I2
+      XPE(I) = X(I) + FACT * XP(I)
+      YPE(I) = Y(I) + FACT * YP(I)
+99    CONTINUE
+C
+      IF (IP .GT. 1)  GO TO 105
+      DO 104  I = 1, I2
+      IF (IXCH .EQ. 1)  GO TO 101
+      XL = AMIN1(XL, XPE(I))
+      XR = AMAX1(XR, XPE(I))
+      YB = AMIN1(YB, YPE(I))
+      YT = AMAX1(YT, YPE(I))
+      GO TO 104
+101   CONTINUE
+      XL = AMIN1(XL,YPE(I))
+      XR = AMAX1(XR,YPE(I))
+      YB = AMIN1(YB,XPE(I))
+      YT = AMAX1(YT,XPE(I))
+104   CONTINUE
+C
+105   CONTINUE
+C
+      DR = ALOG10(DR)
+      IDR = DR
+      DR = DR - IDR
+      IF (DR .GT. 0.0)  GO TO 107
+      DR = 1.0 - DR
+      IDR = IDR - 1
+107   IF (DR .GT. 0.30102994)  GO TO 108
+      DX = 2.0 * 10.0**(IDR-1)
+      GO TO 110
+108   IF (DR .GT. 0.69896995)  GO TO 109
+      DX = 5.0 * 10.0**(IDR-1)
+      GO TO 110
+109   DX = 10.0**IDR
+C     NEXT WE MODIFY THE X AND Y LIMITS TO START ON AN EVEN INCREMENT
+C     OF 1, 2, OR 5.
+C
+110   ADX = XR / DX + 0.49999995 * (1.0 + SIGN(1.0,XR))
+      IF (XR .LT. 0.0) ADX = XR / DX + 0.49999995 * (1.0 - SIGN(1.0,XR))
+      IF (XR .EQ. 0.0)  ADX = 1.0
+      XR = DX * AINT(ADX)
+      ADX = XL / DX - 0.49999995 * (1.0 + SIGN(1.0,XL))
+      IF (XL .LT. 0.0) ADX = XL / DX - 0.49999995 * (1.0 - SIGN(1.0,XL))
+      IF (XL .EQ. 0.0)  ADX = -1.0
+      XL = DX * AINT(ADX)
+      ADY = YT / DX + 0.49999995 * (1.0 + SIGN(1.0, YT))
+      IF (YT .LT. 0.0) ADY = YT / DX + 0.49999995 * (1.0 - SIGN(1.0,YT))
+      IF (YT .EQ. 0.0)  ADY = 1.0
+      YT = DX * AINT(ADY)
+      ADY = YB / DX - 0.49999995 * (1.0 + SIGN(1.0, YB))
+      IF (YB .LT. 0.0) ADY = YB / DX - 0.49999995 * (1.0 - SIGN(1.0,YB))
+      IF (YB .EQ. 0.0)  ADY = -1.0
+      YB = DX * AINT(ADY)
+C
+C     WRITE(IFILE4,*)' AFTER 110..XL,XR,YB,YT   =',XL,XR,YB,YT
+C
+C
+C     THIS IS WHERE WE MAKE THE X AND Y AXIS HAVE THE SAME NUMBER OF
+C     UNITS WITH THE SCALE FACTOR THE SAME ON BOTH X AND Y.
+C
+      IDXRL = ABS(XR - XL)/DX  + 0.001
+      IDYTB = ABS(YT - YB)/DX  + 0.001
+C
+C     WRITE(IFILE4,*)' SAME SCALE? IDXRL,IDYTB,DX=',IDXRL,IDYTB,DX
+C
+      JNDX = 1
+      IF (IDXRL - IDYTB)  111, 116, 113
+111   IXPL = IDYTB - IDXRL
+112   XL = XL - DX
+      IF (JNDX .EQ. IXPL)  GO TO 116
+      JNDX = JNDX + 1
+      XR = XR + DX
+      IF (JNDX .EQ. IXPL)  GO TO 116
+      JNDX = JNDX + 1
+      GO TO 112
+113   IYPL = IDXRL - IDYTB
+114   YB = YB - DX
+      IF (JNDX .EQ. IYPL)  GO TO 116
+      JNDX = JNDX + 1
+      YT = YT + DX
+      IF (JNDX .EQ. IYPL)  GO TO 116
+      JNDX = JNDX + 1
+      GO TO 114
+116   CONTINUE
+C
+C     WRITE(IFILE4,*)' AFTER 116.. XL,XR,YB,YT  =',XL,XR,YB,YT
+C
+C
+      IF (IXCH .EQ. 0)  GO TO 115
+      XLT = XL
+      XRT = XR
+      XL = YB
+      XR=YT
+      YB=XLT
+      YT = XRT
+115   CONTINUE
+C
+C     WRITE(IFILE4,*)' AFTER 115.. XL,XR,YB,YT  =',XL,XR,YB,YT
+C
+C
+      IF (IP .GT. 1)  GO TO 118
+      XLMAX = XL
+      XRMAX = XR
+      YBMAX = YB
+      YTMAX = YT
+C
+C     WE NOW HAVE OUR MAX AND MIN VALUES FOR THE TOTAL STRUCTURE PLOT.
+C     WRITE A MODIFIED GRID.
+C
+118   CONTINUE
+C
+      XLLAST = XL
+      XRLAST = XR
+      YBLAST = YB
+      YTLAST = YT
+C
+C     WRITE TITLES
+C
+      IF (IPLOT .EQ. 2)  GO TO 120
+C
+      CALL SYMBOL (0.0, 9.5, 0.14, STRPLT(1), 0.0, 28)
+      XINDIC=INDIC
+      GO TO 125
+C
+120   CALL SYMBOL (0.0, 9.5, 0.14, STRPLT(2), 0.0, 20)
+      CALL SYMBOL (0.0, 9.2, 0.14, BMTITL, 0.0, 44)
+C
+125   CALL SYMBOL (0.0, 9.8, 0.14, TITLE, 0.0, 44)
+      CALL SYMBOL(0.0,8.2,0.1,'INDIC = ',0.0,8)
+      CALL NUMBER(0.8,8.2,0.1,XINDIC,0.0,-1)
+      IF (IP .GT. 1)  GO TO 126
+      IF (LODPLT .EQ. 1)  CALL SYMBOL (0.0, 8.9, 0.14,
+     1'RINGS HAVE NO LOADS',0.0,19)
+      IF (LODPLT .EQ. 2)  CALL SYMBOL (0.0, 8.9, 0.14,
+     1'RINGS HAVE FIXED LOADS ONLY', 0.0, 27)
+      IF (LODPLT.EQ. 3)  CALL SYMBOL (0.0, 8.9, 0.14,
+     1'RINGS HAVE VARIABLE LOADS ONLY', 0.0, 30)
+      IF (LODPLT .EQ. 4)  CALL SYMBOL (0.0, 8.9, 0.14,
+     1'RINGS HAVE BOTH FIXED AND VARIABLE LOADS', 0.0, 40)
+C
+126   IF (INTSTR .EQ. 0)  GO TO 127
+C
+      IF (IPLOT .EQ. 1)  CALL SYMBOL (0.0, 9.5, 0.14,
+     1'                             IS EXPANDED' ,
+     20.0,40)
+      IF (IPLOT .EQ. 2)  CALL SYMBOL (3.92, 9.5, 0.14,
+     1'IS EXPANDED', 10.0, 11)
+C
+127   CONTINUE
+      CALL PLOT(0.,8.,3)
+      CALL PLOT(0.,0.,2)
+      CALL PLOT(8.,0.,2)
+      CALL SYMBOL(-1.3,4.,0.2,'Z',0.0,1)
+      CALL SYMBOL(4.,-0.75,0.2,'R',0.0,1)
+C
+C     SELECT GRID SCALES.
+C     SCALE THE GRID IN THE X DIRECTION AND PRINT THE X UNITS.
+C
+      XRNGE = XR - XL
+      YRNGE = YT - YB
+      XL1=XL
+      AX=AMAX1(ABS(XL),ABS(XR))*1.00005
+      NX=ALOG10(AX)+.999999
+      NX=4-NX
+      IF(NX.LT.-1) NX=-1
+      XLPT=-0.2
+      IF(XL.LT.0.) XLPT=XLPT-6./7.*0.14
+      IF(NX.EQ.1) NX=0
+      CALL NUMBER(XLPT,-0.35,0.14,XL,0.0,NX)
+      IF (DX .GE. XR)  XL = XR - DX
+130   CONTINUE
+      XL = DX + XL
+      IF (XL .GT. XR)  GO TO 135
+      XLPT=(XL-XL1)/XRNGE*8.0
+      CALL PLOT(XLPT,0.,3)
+      CALL PLOT(XLPT,.2,2)
+      CALL PLOT(XLPT,7.8,3)
+      CALL PLOT(XLPT,8.0,2)
+      XLPT=XLPT-0.2
+      IF(XL.LT.0) XLPT=XLPT-6./7.*0.14
+      CALL NUMBER(XLPT,-0.35,0.14,XL,0.0,NX)
+      GO TO 130
+135   CONTINUE
+C     SCALE THE GRID IN THE Y DIRECTION AND PRINT THE Y UNITS.
+C
+      YB1=YB
+      IF(YB.NE.0.) NYB=MAX1(ALOG10(ABS(YB)*1.00005)+.999999,1.0)
+      IF(YB.EQ.0.) NYB=1
+      AY=AMAX1(ABS(YB),ABS(YT))*1.00005
+      NY0=MAX1(ALOG10(AY)+.999999,1.0)
+      NY=4-NY0
+      IF(NY.LT.-1) NY=-1
+      XLPT=-0.9+(NY0-NYB)*6./7.*0.14
+      IF(YB.LT.0.) XLPT=XLPT-6./7.*0.14
+      IF(NY.EQ.1) NY=0
+      CALL NUMBER(XLPT,0.,0.14,YB,0.0,NY)
+      IF (DX .GE. YT)  YB = YT - DX
+140   CONTINUE
+      YB = DX + YB
+      IF (YB .GT. YT)  GO TO 145
+      IF(YB.NE.0.) NYB=MAX1(ALOG10(ABS(YB)*1.00005)+.999999,1.0)
+      IF(YB.EQ.0.) NYB=1
+      YBPT=(YB-YB1)/YRNGE*8.0
+      CALL PLOT(0.,YBPT,3)
+      CALL PLOT(.2,YBPT,2)
+      CALL PLOT(7.8,YBPT,3)
+      CALL PLOT(8.0,YBPT,2)
+      XLPT=-0.9+(NY0-NYB)*6./7.*0.14
+      IF(YB.LT.0.) XLPT=XLPT-6./7.*0.14
+      CALL NUMBER(XLPT,YBPT,0.14,YB,0.0,NY)
+      GO TO 140
+145   CONTINUE
+      CALL PLOT (0.0, 8.0, 3)
+      CALL PLOT (8.0, 8.0, 2)
+      CALL PLOT (8.0, 0.0, 2)
+      CALL PLOT (0.0, 0.0, 3)
+C     DO ACTUAL PLOTS FROM HERE.
+C     THIS PORTION PLOTS THE UNDEFORMED STRUCTURE.
+C
+      IF (IPLOT .EQ. 2)  GO TO 170
+C
+      IF(LODPLT.NE.0) GO TO 148
+C*    NEED TO MAKE TEST ON IP ALSO?????????
+      XL=XL1
+      YB=YB1
+      XRANGE = XR - XL
+      YRANGE = YT - YB
+C
+C     WRITE(IFILE4,*)' AFTER 145.. XL,XR,YB,YT  =',XL,XR,YB,YT
+C     WRITE(IFILE4,*)'             XRANGE,YRANGE=',XRANGE,YRANGE
+C
+      DO 146  IC = 1, I2
+      XDELX = X(IC) - XL
+      YDELY = Y(IC) - YB
+      X(IC) = XDELX / XRANGE * 8.0
+      Y(IC) = YDELY / YRANGE * 8.0
+146   CONTINUE
+      IF(NTOT.LE.0) GO TO 148
+      DO 149  IE = 1, NTOT
+      E1G(IE)=E1(IE)/XRANGE*8.0
+      E2G(IE)=E2(IE)/YRANGE*8.0
+149   CONTINUE
+148   CONTINUE
+C
+      IST = 1
+      IPT = 0
+C
+      DO 155  K = 1, NSEG
+      IPT = IPT + I5(K)
+      CALL PLOT (X(IST), Y(IST), 3)
+      ISTP1 = IST + 1
+C
+      DO 150 J = ISTP1, IPT
+      IF (X(J).LT.0.0.OR.X(J).GT.8.0) GO TO 150
+      IF (Y(J).LT.0.0.OR.Y(J).GT.8.0) GO TO 150
+C
+      CALL PLOT (X(J), Y(J), 2)
+150   CONTINUE
+C
+      IST = IPT + 1
+155   CONTINUE
+C
+      IF (LODPLT .EQ. 0)  GO TO 158
+      IF (IP .GT. 1)  GO TO 158
+      GO TO 157
+C
+C     PLOT MESH POINTS ON STRUCTURE.
+C
+158   CONTINUE
+      INC=1+I2/180
+      IF (IP.GT.1) INC = 1 + I2/(180*LPLOT(IP-1))
+C**** PLOT MESH POINT SYMBOL (NO. 1 - HEXAGON)
+      REWIND 40
+      NUSYM=1
+      IF(INC.EQ.1) WRITE(40,1001)
+1001  FORMAT('  INDICATES EACH MESH POINT            ')
+      IF(INC.EQ.2) WRITE(40,1002)
+1002  FORMAT ('  INDICATES EVERY SECOND MESH POINT   ')
+      IF(INC.EQ.3) WRITE(40,1003)
+1003  FORMAT('  INDICATES EVERY THIRD MESH POINT   ')
+      IF (INC.GT.3) WRITE(40,1031)
+1031  FORMAT('  INDICATES EVERY MTH MESH PT.(M>3)  ')
+      REWIND 40
+      READ(40,1004) (HOLLER(I),I=1,9)
+1004  FORMAT(20A4)
+      CALL SYMBOL(4.5,8.2,0.1,HOLLER,0.0,36)
+      CALL SYMBOL(4.5,8.25,0.07,NUSYM,0.0,-1)
+      DO 159 I=1,I2,INC
+      IF (X(I).LT.0.0.OR.X(I).GT.8.0) GO TO 159
+      IF (Y(I).LT.0.0.OR.Y(I).GT.8.0) GO TO 159
+C
+      CALL SYMBOL(X(I),Y(I),0.07,NUSYM,0.0,-1)
+1305  FORMAT(5X,'X(I) =',E14.8,5X,'Y(I) =',E14.8)
+159   CONTINUE
+C
+160   CONTINUE
+C
+      IF (NTOT .EQ. 0)  GO TO 195
+C
+C     PLOT RINGS AND ATTACHMENT POINTS HERE.
+C
+      DO 161  I = 1, NTOT
+      IF (V(I) .NE. 0.0)  NFIXLD = 1
+      IF (HF(I) .NE. 0.0)  NFIXLD = 1
+      IF (FM(I) .NE. 0.0)  NFIXLD = 1
+      IF (STEP1(I) .NE. 0.0)  NVARLD = 1
+      IF (STEP2(I) .NE. 0.0)  NVARLD = 1
+      IF (STEP3(I) .NE. 0.0)  NVARLD = 1
+161   CONTINUE
+C
+157   CONTINUE
+C
+      DO 165 I = 1, NTOT
+      IF (LODPLT .EQ. 0)  GO TO 166
+      J = IZRING(I)
+      IF (X(J).LT.0.0.OR.X(J).GT.8.0) GO TO 165
+      IF (Y(J).LT.0.0.OR.Y(J).GT.8.0) GO TO 165
+C
+      XPT=X(J)+E1G(I)
+      YPT=Y(J)+E2G(I)
+      IF (XPT .EQ. 0.0 .OR. YPT .EQ. 0.0)  GO TO 165
+C**** PLOT ATTACHMENT POINT SYMBOL (NO. 0 - SQUARE)
+      NUSYM=0
+      CALL SYMBOL (X(J), Y(J), 0.07, NUSYM, 0.0, -1)
+C**** PLOT RING CENTROID SYMBOL (NO.5 - DIAMOND)
+      NUSYM=5
+      CALL SYMBOL (XPT, YPT, 0.07, 5, 0.0, -1)
+C
+      IF (ILDFRM .EQ. 1)  GO TO 163
+      IF (ILDFRM .EQ. 2)  GO TO 164
+C
+      GO TO (165, 163, 164, 163), LODPLT
+C
+166   IF (NFIXLD .EQ. 0 .AND. NVARLD .EQ. 0)  LODPLT = 1
+      IF (NFIXLD .EQ. 1 .AND. NVARLD .EQ. 0)  LODPLT = 2
+      IF (NFIXLD .EQ. 0 .AND. NVARLD .EQ. 1)  LODPLT = 3
+      IF (NFIXLD .EQ. 1 .AND. NVARLD .EQ. 1)  LODPLT = 4
+C
+      NLDTYP = 1
+      IF (LODPLT .EQ. 4)  NLDTYP = 2
+C
+      IF (ILDFRM .EQ. 0)  GO TO 195
+C
+163   CONTINUE
+      IF (V(I) .EQ. 0.0)  GO TO 151
+      NFIXV = 2
+      IF (V(I) .LT. 0.0)  NFIXV = 5
+      CALL ARROW (XPT, YPT, NFIXV, 0)
+151   IF (HF(I) .EQ. 0.0)  GO TO 152
+      NFIXH = 1
+      IF (HF(I) .LT. 0.0)  NFIXH = 4
+      CALL ARROW (XPT, YPT, NFIXH, 0)
+152   IF (FM(I) .EQ. 0.0)  GO TO 165
+      NFIXM = 3
+      IF (FM(I) .LT. 0.0)  NFIXM = 6
+      CALL ARROW (XPT, YPT, NFIXM, 0)
+      GO TO 165
+164   IF (STEP1(I) .EQ. 0.0)  GO TO 153
+      NVARV = 2
+      IF (STEP1(I) .LT. 0.0)  NVARV = 5
+      CALL ARROW (XPT, YPT, NVARV, 1)
+153   IF (STEP2(I) .EQ. 0.0)  GO TO 154
+      NVARH = 1
+      IF (STEP2(I) .LT. 0.0)  NVARH = 4
+      CALL ARROW (XPT, YPT, NVARH, 1)
+154   IF (STEP3(I) .EQ. 0.0)  GO TO 165
+      NVARM = 3
+      IF (STEP3(I) .LT. 0.0)  NVARM = 6
+      CALL ARROW (XPT, YPT, NVARM, 1)
+165   CONTINUE
+C
+      GO TO 195
+C
+170   CONTINUE
+C
+C     PLOT DEFORMED STRUCTURE HERE.  THE DASHED LINE IS THE UNDEFORMED
+C        STRUCTURE AND THE SOLID LINE IS THE DEFORMED STRUCTURE.
+C
+      XL=XL1
+      YB=YB1
+      XRANGE=XR-XL
+      YRANGE=YT-YB
+      DO 171 IC=1,I2
+      X(IC)=(X(IC)-XL)/XRANGE*8.0
+      Y(IC)=(Y(IC)-YB)/YRANGE*8.0
+      XPE(IC)=(XPE(IC)-XL)/XRANGE*8.0
+      YPE(IC)=(YPE(IC)-YB)/YRANGE*8.0
+171   CONTINUE
+      IST = 1
+      IPT = 0
+C
+      INC=1
+      IF(I2.GT.181) INC=2
+      IF(I2.GT.361) INC=3
+      DO 180  K = 1, NSEG
+      IDSHSW = 0
+      IPT = IPT + I5(K)
+      CALL PLOT (X(IST), Y(IST), 3)
+      ISTP1 = IST + INC
+C
+      IPTU=((IPT-ISTP1)/INC)*INC+ISTP1
+      IF(IPTU.NE.IPT) IPTU=IPTU+INC
+      DO 175 JJ=ISTP1,IPTU,INC
+      J=JJ
+      IF(J.GT.IPT) J=IPT
+      I1=INC-(JJ-J)
+      IF (X(J).LT.0.0.OR.X(J).GT.8.0) GO TO 175
+      IF (Y(J).LT.0.0.OR.Y(J).GT.8.0) GO TO 175
+C
+      DIFFX = (X(J) - X(J-I1)) / 3.0
+      DIFFY = (Y(J) - Y(J-I1)) / 3.0
+      IF (IDSHSW .EQ. 1)  GO TO 173
+      XIST  = X(J-I1) + DIFFX
+      YIST  = Y(J-I1) + DIFFY
+      CALL PLOT (XIST, YIST, 2)
+      XIST = X(J) - DIFFX
+      YIST = Y(J) - DIFFY
+      CALL PLOT (XIST, YIST, 3)
+      CALL PLOT (X(J), Y(J), 2)
+      IDSHSW = 1
+      GO TO 175
+173   CONTINUE
+      XIST  = X(J-I1) + DIFFX
+      YIST  = Y(J-I1) + DIFFY
+      CALL PLOT (XIST, YIST, 3)
+      XIST = XIST + DIFFX
+      YIST = YIST + DIFFY
+      CALL PLOT (XIST, YIST, 2)
+      IDSHSW = 0
+175   CONTINUE
+      IST = IPT + INC
+180   CONTINUE
+C
+      IST = 1
+      IPT = 0
+C
+      DO 190  K = 1, NSEG
+      IPT = IPT + I5(K)
+      CALL PLOT (XPE(IST), YPE(IST), 3)
+      ISTP1 = IST + 1
+C
+      DO 185  J = ISTP1, IPT
+      IF (XPE(J).LT.0.0.OR.XPE(J).GT.8.0) GO TO 185
+      IF (YPE(J).LT.0.0.OR.YPE(J).GT.8.0) GO TO 185
+C
+      CALL PLOT (XPE(J), YPE(J), 2)
+185   CONTINUE
+C
+      IST = IPT + 1
+190   CONTINUE
+C
+      IF (NTOT .EQ. 0) GO TO 193
+C
+C     PLOT THE RING POINTS ON THE UNDEFORMED STRUCTURE.
+C
+      DO 191  IRING = 1, NTOT
+      J = IZRING(IRING)
+      IF (X(J).LT.0.0.OR.X(J).GT.8.0) GO TO 191
+      IF (Y(J).LT.0.0.OR.Y(J).GT.8.0) GO TO 191
+C
+      CALL SYMBOL (X(J), Y(J), 0.07, 0, 0.0, -1)
+191   CONTINUE
+C
+193   CONTINUE
+C
+      GO TO 200
+C
+195   CONTINUE
+C
+      IF (NTOT .EQ. 0)  GO TO 200
+      IF(ILDFRM.NE.0) GO TO 197
+      ILDFRM=1
+      IF(LODPLT.EQ.3) ILDFRM=2
+      GO TO 198
+197   IF(ILDFRM.EQ.2) GO TO 200
+      IF(LODPLT.LE.2) GO TO 200
+      ILDFRM=2
+198   CONTINUE
+      XL = XLLAST
+      XR = XRLAST
+      YB = YBLAST
+      YT = YTLAST
+      CALL FRAMEV(1)
+C
+      GO TO 118
+C
+200   CONTINUE
+      CALL FRAMEV(1)
+C
+      INTSTR = 1
+C
+210   CONTINUE
+C
+      RETURN
+C
+220   CONTINUE
+      CALL PLOT (0.0, 0.0, LDONE)
+C
+      RETURN
+C
+      END
+C
+C
+C
+C=DECK      ARROW
+C     OVERLAY(4,0)
+      SUBROUTINE ARROW(XA,YA,IPOS,LODTYP)
+C*****
+C     THIS SUBROUTINE MODIFIED BY HAC IN AUGUST,1974 BY INCORPORATING
+C     CHANGES MADE BY CHICAGO BRIDGE AND IRON INTO ORIGINAL SUBROUTINE.
+C*****
+C
+C     XA AND YA ARE COORDINATES OF A POINT ABOUT WHICH AN
+C     ARROW WILL BE DRAWN
+C
+C     IPOS IS THE DIRECTION THE ARROW IS TO BE DRAWN
+C
+C     LODTYP IS THE TYPE OF LOAD SO THAT THE PROPER LABEL WILL BE USED
+C
+C     LODTYP = 0  FIXED LOAD
+C     LODTYP = 1  VARIABLE LOAD
+C
+C     IPOS = 1  HORIZONTAL ARROW - POINT RIGHT
+C     IPOS = 2  VERTICAL ARROW - POINT DOWN
+C     IPOS = 3  CURVED ARROW - POINT CLOCKWISE
+C     IPOS = 4  HORIZONTAL ARROW - POINT LEFT
+C     IPOS = 5  VERTICAL ARROW - POINT UP
+C     IPOS = 6  CURVED ARROW - POINT COUNTER CLOCKWISE
+C
+C
+      GO TO (100, 200, 300, 400, 500, 600), IPOS
+C
+100   CONTINUE
+C
+C     DRAW A HORIZONTAL ARROW WITH THE POINT RIGHT
+C
+      XLA = XA + 0.093842
+      XRA = XLA + 0.117302
+      CALL PLOT (XLA, YA, 3)
+      CALL PLOT (XRA, YA, 2)
+      XTA = XRA - 0.078201
+      YTA = YA + 0.046921
+      CALL PLOT (XTA, YTA, 2)
+      YBA = YA - 0.046921
+      CALL PLOT(XRA,YA,3)
+      CALL PLOT (XTA, YBA, 2)
+      XH = XA + 0.351906
+      IF (LODTYP .EQ. 1)  GO TO 110
+      CALL SYMBOL (XH, YA, 0.07, 'H', 0.0, 1)
+C
+      RETURN
+C
+110   CONTINUE
+      CALL SYMBOL (XH, YA, 0.07, 'DH', 0.0, 2)
+C
+      RETURN
+C
+200   CONTINUE
+C
+C     DRAW A VERTICAL ARROW WITH THE POINT DOWN
+C
+      YTA = YA - 0.117302
+      YBA = YTA - 0.117302
+      CALL PLOT (XA, YTA, 3)
+      CALL PLOT (XA, YBA, 2)
+      YLA = YBA + 0.078201
+      XLA = XA - 0.046921
+      CALL PLOT (XA, YBA, 3)
+      CALL PLOT (XLA, YLA, 2)
+      XRA = XA + 0.046921
+      CALL PLOT (XA, YBA, 3)
+      CALL PLOT (XRA, YLA, 2)
+      YV = YA - 0.391006
+      IF (LODTYP .EQ. 1)  GO TO 210
+      CALL SYMBOL (XA, YV, 0.07, 'V', 0.0, 1)
+C
+      RETURN
+C
+210   CONTINUE
+      CALL SYMBOL( XA, YV, 0.07, 'DV', 0.0, 2)
+C
+      RETURN
+C
+300   CONTINUE
+C
+C     DRAW A CLOCKWISE CURVED ARROW
+C
+      XCAL = XA - 0.078201
+      YCAL = YA + 0.195503
+      XCAR = XA - 0.062501
+      YCAR = YA + 0.226783
+      CALL PLOT (XCAL, YCAL, 3)
+      CALL PLOT (XCAR, YCAR, 2)
+      XCAL = XA - 0.031280
+      YCAL = YA + 0.258064
+      CALL PLOT (XCAL, YCAL, 2)
+      XCAR = XA + 0.031280
+      YCAR = YA + 0.258064
+      CALL PLOT (XCAR, YCAR, 2)
+      XCAL = XA + 0.062501
+      YCAL = YA + 0.226783
+      CALL PLOT (XCAL, YCAL, 2)
+      XCAR = XA + 0.078201
+      YCAR = YA + 0.195503
+      CALL PLOT (XCAR, YCAR, 2)
+      YCAL = YA + 0.242424
+      CALL PLOT (XCAR, YCAL, 2)
+      XCAL = XA + 0.031280
+      YCAL = YA + 0.226783
+      CALL PLOT (XCAR, YCAR, 3)
+      CALL PLOT (XCAL, YCAL, 2)
+      XM = XA + 0.156402
+      YM = YA + 0.234604
+      IF (LODTYP .EQ. 1)  GO TO 310
+      CALL SYMBOL (XM, YM, 0.07, 'M', 0.0, 1)
+C
+      RETURN
+C
+310   CONTINUE
+      CALL SYMBOL (XM, YM, 0.07, 'DM', 0.0, 2)
+C
+      RETURN
+C
+400   CONTINUE
+C
+C     DRAW A HORIZONTAL ARROW WITH THE POINT LEFT
+C
+      XRA = XA - 0.093842
+      XLA = XRA - 0.117302
+      CALL PLOT (XLA, YA, 3)
+      CALL PLOT (XRA, YA, 2)
+      XTA = XLA + 0.078201
+      YTA = YA + 0.046921
+      CALL PLOT (XLA, YA, 3)
+      CALL PLOT (XTA, YTA, 2)
+      YBA = YA - 0.046921
+      CALL PLOT (XLA, YA, 3)
+      CALL PLOT (XTA, YBA, 2)
+      XH = XA - 0.351906
+      IF (LODTYP .EQ. 1)  GO TO 410
+      CALL SYMBOL (XH, YA, 0.07, 'H', 0.0, 1)
+C
+      RETURN
+C
+410   CONTINUE
+      XH = XA - 0.508309
+      CALL SYMBOL (XH, YA, 0.07, 'DH', 0.0, 2)
+C
+      RETURN
+C
+500   CONTINUE
+C
+C     DRAW A VERTICAL ARROW WITH THE POINT UP
+C
+      YTA = YA + 0.234604
+      YBA = YA + 0.117302
+      CALL PLOT (XA, YBA, 3)
+      CALL PLOT (XA, YTA, 2)
+      YLA = YTA - 0.078201
+      XLA = XA - 0.046921
+      CALL PLOT (XLA, YLA, 3)
+      CALL PLOT (XA, YTA, 2)
+      XRA = XA + 0.046921
+      CALL PLOT (XRA, YLA, 3)
+      CALL PLOT (XA, YTA, 2)
+      YV = YA + 0.195503
+      IF (LODTYP .EQ. 1)  GO TO 510
+      XAV = XA - 0.195503
+      CALL SYMBOL (XAV, YV, 0.07, 'V', 0.0, 1)
+C
+      RETURN
+C
+510   CONTINUE
+      XAV = XA - 0.156402
+      CALL SYMBOL (XAV, YV, 0.07, 'DV', 0.0, 2)
+C
+      RETURN
+C
+600   CONTINUE
+C
+C     DRAW A COUNTER CLOCKWISE CURVED ARROW
+C
+      XCAL = XA - 0.078201
+      YCAL = YA - 0.195503
+      XCAR = XA - 0.062501
+      YCAR = YA - 0.226783
+      CALL PLOT (XCAL, YCAL, 3)
+      CALL PLOT (XCAR, YCAR, 2)
+      XCAL = XA - 0.031280
+      YCAL = YA - 0.258064
+      CALL PLOT (XCAL, YCAL, 2)
+      XCAR = XA + 0.031280
+      YCAR = YA - 0.258064
+      CALL PLOT (XCAR, YCAR, 2)
+      XCAL = XA + 0.062501
+      YCAL = YA - 0.226783
+      CALL PLOT (XCAL, YCAL, 2)
+      XCAR = XA + 0.078201
+      YCAR = YA - 0.195503
+      CALL PLOT (XCAR, YCAR, 2)
+      YCAL = YA - 0.242424
+      CALL PLOT (XCAR, YCAL, 2)
+      XCAL = XA + 0.031280
+      YCAL = YA - 0.226783
+      CALL PLOT (XCAR, YCAR, 3)
+      CALL PLOT (XCAL, YCAL, 2)
+      XM = XA + 0.195503
+      YM = YA - 0.226783
+      IF (LODTYP .EQ. 1)  GO TO 610
+      CALL SYMBOL (XM, YM, 0.07, 'M', 0.0, 1)
+C
+      RETURN
+C
+610   CONTINUE
+      CALL SYMBOL (XM, YM, 0.07, 'DM', 0.0, 2)
+C
+      RETURN
+C
+      END
+C
+C
+C
+C=DECK      FRAMEV
+      SUBROUTINE FRAMEV(I)
+C*****
+C      WRITTEN BY CBI IN 1974
+C*****
+C     POSITIONS PLOTTER FOR NEXT PLOT
+C     ORIGINAL BOSOR4 ALWAYS CALLED FRAMEV WITH I = 0
+C BEG JAN 2012
+C     COMMON /DATES/ ADUM,BDUM,DATE
+C     INTEGER*2 IDATE(9),DATE(14)
+C     EQUIVALENCE(IDATE(1),DATE(6))
+      INTEGER   IDAT(3), ITIM(3), OP, NHOL, HOLDAT(8)
+      CHARACTER SDAT*32
+      COMMON /DATES/ IDAT, ITIM, OP, NHOL, HOLDAT, SDAT
+C END JAN 2012
+C BEG OCT 2004
+      CHARACTER*4 TITLE
+      COMMON /HED/ TITLE(18)
+C END OCT 2004
+      COMMON XFRAME
+      CALL PLOTS (1,21,21)
+      IF(I.EQ.1) GO TO 19
+      XFRAME=0.
+C      CALL PLOT(11.,0.0,-3)
+      CALL SYMBOL(1.,10.2,0.14,TITLE,270.,72)
+      CALL PLOT(3.,11.,-3)
+      GO TO 19
+10    CALL PLOT(9.,10.2,-3)
+15    CALL PLOT(0.,-11.,-2)
+19    CALL PLOT(1.4,0.8,-3)
+20    CALL SYMBOL(5.3,-0.75,0.1,'BOSOR4B',0.0,7)
+C BEG JAN 2012
+C     CALL SYMBOL(6.3,-0.75,0.1,IDATE,0.0,18)
+      CALL SYMBOL(6.3,-0.75,0.1,HOLDAT,0.0,NHOL)
+C END JAN 2012
+      XFRAME=XFRAME+1.01
+      CALL NUMBER(8.1,9.9,0.1,XFRAME,0.0,-1)
+      RETURN
+      END
+C
+C
+C
+C=DECK      PLOTOP
+      SUBROUTINE PLOTOP(KF,I1,I2,I3,NF,NP,NPTS,X,Y,TITLE,OTITLE,ATITLE,
+     1LEGEND,NFIN)
+C*****
+C     THIS SUBROUTINE MODIFIED BY HAC IN AUGUST,1974 BY INCORPORATING
+C     CHANGES MADE BY CHICAGO BRIDGE AND IRON INTO ORIGINAL SUBROUTINE.
+C*****
+C
+C                  KF + 0 CONNECTS POINTS ON EACH TRACE
+C                    = 0 DOES NOT CONNECT POINTS
+C                  IF NF IS POSITIVE DATA WILL BE NORMALIZED BEFORE PLOT
+C                  NG = IABS(NF) IS THE NUMBER OF GRIDS PER FRAME WITH
+C                  VALUES 1 - I3;  1+ I3 + 4
+C                  NP(I) = NUMBER OF TRACES ON GRID I WITH VALUES 1 - I2
+C                  1 +I2 + 5
+C                  NPTS(J,I) = NO. OF POINTS ON TRACE J ON GRID I
+C                  WITH VALUES 1 - I1
+C                  X(K) = ABSCISSA K
+C                  Y(K,J,I) = ORDINATE K FOR PLOT J ON GRID I
+C                  WITH DIMENSIONS Y(I1,I2,I3)
+C                  TITLE =18A4 ALPHANUMERIC CHARACTERS TO HEAD FRAME
+C                  OTITLE(5,I) = 5A4 ALPHANUMERIC CHARACTERS FOR ORDINAT
+C                  TITLE FOR GRID I
+C                  ATITLE(11,I)=11A4 ALPHANUMERIC CHARACTERS FOR ABSCISS
+C                  TITLE FOR GRID I
+C                  LEGEND(J,I) = A4 ALPHANUMERIC CHARACTERS TO IDENTIFY
+C                  TRACE J ON GRID I
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C BEG MAR 2007
+      DIMENSION NP(I3),NPTS(NFIN,I3),X(I1),Y(I1,I2,I3),YP(10002)
+      DIMENSION XP(10002),YOUT(10000,5),NPTOUT(5)
+C END MAR 2007
+      COMMON/PLTSIG/IPLOT,JPLOT,KPLOT(20),LPLOT(20),MPLOT,RN(20),ZN(20)
+      CHARACTER*4 TITLE(18),OTITLE(5,I3),ATITLE(11,I3)
+      REAL*8 LEGEND(NFIN,I3)
+      DIMENSION  YPOS(4), YINC(4), YBIAS(4,4), MKPT(5)
+      DIMENSION XX(4),YY(4),X0L(4),Y0L(4)
+C
+      DATA YPOS, YINC, MKPT / 7.625, 6.84, 5.25, 1.0,    8.0, 4.24,
+     12.667, 1.875,   1, 0, 5, 10, 2  /
+      DATA YBIAS(1,1), YBIAS(2,1), YBIAS(3,1), YBIAS(4,1)
+     1/  0.5, 0.0, 0.0, 0.0  /
+      DATA YBIAS(1,2), YBIAS(2,2), YBIAS(3,2), YBIAS(4,2)
+     1/ 5.25, 0.5, 0.0, 0.0  /
+      DATA YBIAS(1,3), YBIAS(2,3), YBIAS(3,3), YBIAS(4,3)
+     1/ 6.84, 3.67, 0.5, 0.0 /
+      DATA YBIAS(1,4), YBIAS(2,4), YBIAS(3,4), YBIAS(4,4)
+     1/ 7.65, 5.25, 2.875, 0.5 /
+C     FOLLOWING STATEMENT INSERTED AS YPOS IS NOT USED
+      NOTUSE=YPOS(1)
+C     WRITE(IFILE4,5)
+5     FORMAT(//,5X,'ENTERING PLOTOP',/)
+C
+C     TITLE AT TOP OF FRAME
+C
+      CALL SYMBOL(0.0,9.7,0.14,TITLE,0.0,64)
+C
+      NG = IABS(NF)
+6     FORMAT(/,4X,I2,' GRAPHS TO BE DRAWN')
+7     FORMAT(/,5X,'DATA NORMALIZED')
+C
+      JPLOT1 = JPLOT + 1
+      DO 110 III = 1,JPLOT1
+C
+      DO 100  I = 1, NG
+      NUP = NP(I)
+C
+C   FIND WINDOW...
+C
+      CALL EXPAND(III,I1,X,Y(1,1,I),NUP,LPLOT(III-1),KPLOT(III-1),
+     1            I1OUT,XP,YOUT,NPTOUT)
+C
+C     FIND EXTREME VALUES FOR GRAPH I .
+C
+      XL = XP(1)
+      XR = XP(1)
+      YB = YOUT(1,1)
+      YT = YOUT(1,1)
+8     FORMAT(//,5X,'GRAPH',I2,5X,I2,' CURVES TO BE DRAWN')
+C
+      DO 20  J = 1, NUP
+      NUMPT = NPTOUT(J)
+      I1M2 = I1OUT - 2
+C
+      DO 10 K=1,NUMPT
+      XL = AMIN1(XL,XP(K))
+      XR = AMAX1(XR,XP(K))
+      YB = AMIN1 ( YB, YOUT(K,J))
+      YT = AMAX1 ( YT, YOUT(K,J))
+10    CONTINUE
+C
+20    CONTINUE
+C     DETERMINE SCALE AND SCALE FACTOR FOR ALL CURVES ON GRAPH I
+      XX(1)=XL
+      XX(2)=XR
+      CALL SCALEH(XX,7.75,2)
+      YY(1)=YB
+      YY(2)=YT
+      CALL SCALEH(YY,YINC(NG),2)
+23    FORMAT(/,5X,'GRAPH',I2,5X,'XL =',E14.8,5X,'XR =',E14.8,
+     15X,'AXMIN =',E14.8,5X,'ADX =',E14.8)
+24    FORMAT(17X,'YB =',E14.8,5X,'YT =',E14.8,5X,'AYMIN =',E14.8,
+     15X,'ADY =',E14.8)
+C
+      IF (NF .GE. 0)  GO TO 50
+C
+      DIV = AMAX1 ( ABS(YB), ABS(YT) )
+C
+      DO 40 J=1,NUP
+      NUMPT = NPTOUT(J)
+      IF (NUMPT .GT. 200)  NUMPT = 200
+C
+      DO 30  K = 1, NUMPT
+      YOUT(K,J) = YOUT(K,J) / DIV
+C
+30    CONTINUE
+C
+40    CONTINUE
+C
+      YB = YB / DIV
+      YT = YT / DIV
+50    CONTINUE
+C
+      YSTART = YBIAS(I, NG)
+C
+      IF (NF .LT. 0)  GO TO 60
+C
+C     CALL SYMBOL (6.5, YSTART, 0.07, 'NORM. DATA', 0.0, 10)
+60    CONTINUE
+      YLEG=0.5*YINC(NG)+(NUP/2+1)*0.20
+62    FORMAT(/,5X,'POINTS CONNECTED BY LINES ON EACH CURVE')
+63    FORMAT(/,5X,'POINTS UNCONNECTED ON EACH CURVE')
+C
+      DO 90  J = 1, NUP
+      YLEG=YLEG-0.20
+      NUMPT = NPTOUT(J)
+      I1M2 = I1OUT - 2
+C BEG MAR 2007
+      IF(NUMPT.LE.10000) GO TO 68
+      WRITE(IFILE4,65)
+65    FORMAT(/,5X,'*** LIMIT PLOT TO FIRST 10000 POINTS ***')             .
+      NUMPT=10000
+C END MAR 2007
+68    CONTINUE
+C
+      DO 70  K = 1, NUMPT
+      YP(K) = YOUT(K,J)
+70    CONTINUE
+C
+      YSTART = YBIAS(I, NG)
+      N1 = NUMPT + 1
+      N2 = NUMPT + 2
+      XP(N1)=XX(3)
+      XP(N2)=XX(4)
+      YP(N1)=YY(3)
+      YP(N2)=YY(4)
+      IF(J.GT.1) GO TO 75
+      CALL AXIS(0.0,YSTART,ATITLE(1,I),-44,7.0,0.0,XP(N1),XP(N2))
+      CALL PLOT(7.0,YSTART,3)
+      CALL PLOT(7.75,YSTART,2)
+      YLGTH=YINC(NG)
+      IF(NG.EQ.3) YLGTH=2.0
+      CALL AXIS(0.,YSTART,OTITLE(1,I),20,YLGTH,90.,YP(N1),YP(N2))
+      YPS1=YSTART+YLGTH
+      YPS2=YSTART+YINC(NG)
+      CALL PLOT(0.,YPS1,3)
+      CALL PLOT(0.,YPS2,2)
+      CALL PLOT(0.,YSTART,-3)
+      YTT=YY(3)+YINC(NG)*YY(4)
+      IF(YY(3).GE.0..OR.YTT.LT.0.) GO TO 75
+      X0L(1)=0.
+      X0L(2)=XX(3) + 7.75*XX(4)
+      Y0L(1)=0.
+      Y0L(2)=0.
+      CALL CSEG(0,1,2,X0L,7.75,XX(3),XX(4),Y0L,YINC(NG),YY(3),YY(4),
+     1 MKPT(J))
+75    CONTINUE
+      CALL CSEG(0,0,NUMPT,XP,7.75,XX(3),XX(4),YP,YINC(NG),YY(3),YY(4),
+     1MKPT(J))
+80    CONTINUE
+C
+      CALL SYMBOL(7.75,YLEG+0.035,0.07,MKPT(J),0.0,-1)
+      CALL SYMBOL(7.90,YLEG,0.07,LEGEND(J,I),0.0,8)
+90    CONTINUE
+      CALL PLOT(0.0,-YSTART,-3)
+C     CALL PLOT(0.0,-12.,-3)
+C     CALL PLOT(0.,0.8,-3)
+C
+100   CONTINUE
+C
+      CALL FRAMEV(1)
+  110 CONTINUE
+C     WRITE(IFILE4,200)
+200   FORMAT(/,5X,'LEAVING PLOTOP',/)
+C
+      RETURN
+C
+      END
+C
+C
+C
+C=DECK      EXPAND
+      SUBROUTINE EXPAND(IWIND,IALL,XALL,YALL,NUP,LPLOT,KPLOT,
+     1                  I1OUT,XOUT,YOUT,NPTOUT)
+C
+C   PURPOSE IS TO FIND WINDOW FOR OPTAINING X,Y PLOTS OF BOSOR STUFF
+C
+C BEG MAR 2007
+      DIMENSION XALL(*),YALL(IALL,NUP),XOUT(*),YOUT(10000,5),NPTOUT(*)
+C END MAR 2007
+C
+      IF (IWIND.EQ.1) THEN
+       XMAX = XALL(IALL) + 1.
+       XMIN = XALL(1)    - 1.
+       GO TO 10
+      ENDIF
+C
+      IF (IWIND.GT.1) THEN
+       FLP = LPLOT
+       XMAX = 0.5*(XALL(IALL) - XALL(1))/FLP + XALL(KPLOT)
+       XMIN = XALL(KPLOT)*2. - XMAX
+      ENDIF
+C
+   10 CONTINUE
+      K = 0
+      DO 100 I = 1,IALL
+C
+      IF (XALL(I).LT.XMIN.OR.XALL(I).GT.XMAX) GO TO 100
+C
+C  POINT IS WITHIN WINDOW...
+C
+      K = K + 1
+      XOUT(K) = XALL(I)
+C
+      DO 50 J = 1,NUP
+      YOUT(K,J) = YALL(I,J)
+   50 CONTINUE
+  100 CONTINUE
+C
+      DO 200 J = 1,NUP
+  200 NPTOUT(J) = K
+      I1OUT = K
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      PLOTIT
+      SUBROUTINE PLOTIT(IALL,NTHETA,SMODE,TMODE,BMODE,IOUT,NDIST,NCIRC,
+     1 ILOOP,IIOUT,NNDIST,NNCIRC)
+C*****
+C     THIS SUBROUTINE MODIFIED BY HAC IN AUGUST,1974 BY INCORPORATING
+C     CHANGES MADE BY CHICAGO BRIDGE AND IRON INTO ORIGINAL SUBROUTINE.
+C*****
+C
+C     DATA FROM CASE PLOTTED WHEN ALL CALCULATIONS ASSOCIATED WITH THAT
+C     CASE HAVE BEEN COMPLETED.
+C     THIS SUBROUTINE MUST BE ALTERED FOR IBM 360/65 EQUIPMENT.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/OUTP/NPRT
+      COMMON/SEGS/NSEG,M2,I5(295),I2,I2G
+      COMMON/SMOAD/IMOAD(100),IPMODE(295),IPSMD(295)
+      COMMON/SHEL/ISHL(295),IWAL(295),ITHK(295),IARC(295),ILOAD(295)
+      COMMON/LSTEPS/ISTEP
+      COMMON/INSTAB/INDIC
+      COMMON/ENDOF/NLAST,NFIRST,NEDPLT
+      CHARACTER*4 TITLE
+      COMMON/HED/TITLE(18)
+      COMMON/SFLAG/ MONOQ
+      COMMON/EIGNO/NVEC,EGV(50),AXB
+      COMMON/XID/IDX
+      COMMON/WAVES/N0,N,NMIN,NMAX,INCR
+      COMMON/WAVNUM/ITHETA(50),THETA(50),THETAS,THETAM
+      COMMON/LSEQ/ALODE(200)
+      COMMON/GLOBAL/IDZ,IZRING(198),ISAVE(20),INOTE
+      COMMON/RING2/GAM(198),GJ(198),
+     1            YC(198),XC(198),E1(198),E2(198),PHI(200)
+      COMMON/FORCES/V(198),HF(198),FM(198)
+      COMMON/ALLRNG/NTOT,IPRE
+      COMMON/PLTSIG/IPLOT,JPLOT,KPLOT(20),LPLOT(20),MPLOT,RN(20),ZN(20)
+      COMMON/INTRVL/INTVAL(295),LOUT,KDIST,KCIRC,KTHETA
+      CHARACTER*4  BMTITL
+      COMMON/BUCKMD/BMTITL(11)
+      COMMON/NVVIB/NVIB
+      COMMON/NLINS/NSTART,NFINAL
+C BEG MAR 2007
+      DIMENSION ZAX(30000),Z(10000),R(10000),ANGLE(10000),
+     1 RP(10000),ZP(10000)
+      EQUIVALENCE (ZAX(1),Z(1)),(ZAX(10001),R(1)),(ZAX(20001),ANGLE(1))
+C END MAR 2007
+      DIMENSION SMODE(IIOUT,NNDIST,9),TMODE(NTHETA,NNCIRC,9)
+      DIMENSION BMODE(IALL,9)
+C BEG MAR 2007
+      DIMENSION NP(3),NPTS(5 ,3),X(10000),QQQ(20)
+C END MAR 2007
+C BEG FEB 1990
+C BEG MAR 1991
+      CHARACTER*14 WORD(11)
+C END MAR 1991
+      CHARACTER*46 WORD2
+      CHARACTER*80 WORD3(3)
+      CHARACTER*130 WORD4(3)
+C BEG JUL 2003
+      CHARACTER*4   OTITLE(5,3), ATITLE(11,3), BTITLE(5,3), CTITLE(5,3)
+      CHARACTER*4   DTITLE(5,3), ETITLE(5,3),  FTITLE(5,3), GTITLE(5,3)
+      CHARACTER*4   HTITLE(5,3), ITITLE(5,3),  JTITLE(5,3), KTITLE(5,3)
+      CHARACTER*4   LTITLE(5,3), PTITLE(5,3)
+
+      CHARACTER*8   LEGEND(23)
+
+      CHARACTER*4   QTITLE(11)
+
+      DATA LEGEND( 1),LEGEND( 2)/'        ','        '/               
+      DATA LEGEND( 3),LEGEND( 4)/'        ','        '/                
+      DATA LEGEND( 5),LEGEND( 6)/'        ','        '/                
+      DATA LEGEND( 7),LEGEND( 8)/'        ','        '/                
+      DATA LEGEND( 9),LEGEND(10)/'        ','        '/               
+      DATA LEGEND(11),LEGEND(12)/'        ','        '/              
+      DATA LEGEND(13),LEGEND(14)/'        ','        '/              
+      DATA LEGEND(15),LEGEND(16)/'        ','        '/              
+      DATA LEGEND(17),LEGEND(18)/'        ','        '/               
+      DATA LEGEND(19),LEGEND(20)/'        ','        '/              
+      DATA LEGEND(21),LEGEND(22)/'        ','        '/              
+      DATA LEGEND(23)           /'        '/                                    
+
+      DATA OTITLE(1,1),OTITLE(2,1),OTITLE(3,1)/'    ','    ','U   '/ 
+      DATA OTITLE(1,2),OTITLE(2,2),OTITLE(3,2)/'    ','    ','V   '/ 
+      DATA OTITLE(1,3),OTITLE(2,3),OTITLE(3,3)/'    ','    ','W   '/ 
+      DATA OTITLE(4,1),OTITLE(5,1)/'    ','    '/                     
+      DATA OTITLE(4,2),OTITLE(5,2)/'    ','    '/                     
+      DATA OTITLE(4,3),OTITLE(5,3)/'    ','    '/                     
+
+      DATA BTITLE(1,1),BTITLE(2,1),BTITLE(3,1)/'    ','    ','N1  '/ 
+      DATA BTITLE(1,2),BTITLE(2,2),BTITLE(3,2)/'    ','    ','N2  '/ 
+      DATA BTITLE(1,3),BTITLE(2,3),BTITLE(3,3)/'    ','    ','N12 '/ 
+      DATA BTITLE(4,1),BTITLE(5,1)/'    ','    '/                     
+      DATA BTITLE(4,2),BTITLE(5,2)/'    ','    '/                     
+      DATA BTITLE(4,3),BTITLE(5,3)/'    ','    '/                     
+
+      DATA CTITLE(1,1),CTITLE(2,1),CTITLE(3,1)/'    ','    ','M1  '/ 
+      DATA CTITLE(1,2),CTITLE(2,2),CTITLE(3,2)/'    ','    ','M2  '/ 
+      DATA CTITLE(1,3),CTITLE(2,3),CTITLE(3,3)/'    ','    ','MT  '/ 
+      DATA CTITLE(4,1),CTITLE(5,1)/'    ','    '/                     
+      DATA CTITLE(4,2),CTITLE(5,2)/'    ','    '/                     
+      DATA CTITLE(4,3),CTITLE(5,3)/'    ','    '/                     
+
+      DATA DTITLE(1,1),DTITLE(2,1),DTITLE(3,1)/'    ','    ','W0  '/ 
+      DATA DTITLE(1,2),DTITLE(2,2),DTITLE(3,2)/'    ','    ','U0  '/ 
+      DATA DTITLE(1,3),DTITLE(2,3),DTITLE(3,3)/'    ','    ','BETA'/ 
+      DATA DTITLE(4,1),DTITLE(5,1)/'    ','    '/                     
+      DATA DTITLE(4,2),DTITLE(5,2)/'    ','    '/                     
+      DATA DTITLE(4,3),DTITLE(5,3)/'    ','    '/                     
+
+      DATA ETITLE(1,1),ETITLE(2,1),ETITLE(3,1)/'    ','    ','N10 '/ 
+      DATA ETITLE(1,2),ETITLE(2,2),ETITLE(3,2)/'    ','    ','N20 '/ 
+      DATA ETITLE(1,3),ETITLE(2,3),ETITLE(3,3)/'    ','    ','M10 '/ 
+      DATA ETITLE(4,1),ETITLE(5,1)/'    ','    '/                     
+      DATA ETITLE(4,2),ETITLE(5,2)/'    ','    '/                     
+      DATA ETITLE(4,3),ETITLE(5,3)/'    ','    '/                     
+
+
+      DATA FTITLE(1,1),FTITLE(2,1),FTITLE(3,1)/'    ','    ','S1I '/  
+      DATA FTITLE(1,2),FTITLE(2,2),FTITLE(3,2)/'    ','    ','S1O '/  
+      DATA FTITLE(1,3),FTITLE(2,3),FTITLE(3,3)/'    ','    ','S2I '/  
+      DATA FTITLE(4,1),FTITLE(5,1)/'    ','    '/                     
+      DATA FTITLE(4,2),FTITLE(5,2)/'    ','    '/                     
+      DATA FTITLE(4,3),FTITLE(5,3)/'    ','    '/                     
+
+      DATA GTITLE(1,1),GTITLE(2,1),GTITLE(3,1)/'    ','    ','S2O '/  
+      DATA GTITLE(1,2),GTITLE(2,2),GTITLE(3,2)/'    ','    ','SEI '/  
+      DATA GTITLE(1,3),GTITLE(2,3),GTITLE(3,3)/'    ','    ','SEO '/  
+      DATA GTITLE(4,1),GTITLE(5,1)/'    ','    '/                     
+      DATA GTITLE(4,2),GTITLE(5,2)/'    ','    '/                     
+      DATA GTITLE(4,3),GTITLE(5,3)/'    ','    '/                     
+
+C     TITLES FOR STRAIN AND CHANGE IN CURVATURE...
+
+      DATA ITITLE(1,1),ITITLE(2,1),ITITLE(3,1)/'    ','    ','EPS1'/  
+      DATA ITITLE(1,2),ITITLE(2,2),ITITLE(3,2)/'    ','    ','EPS2'/  
+      DATA ITITLE(1,3),ITITLE(2,3),ITITLE(3,3)/'    ','    ',' K1 '/  
+      DATA ITITLE(4,1),ITITLE(5,1)/'    ','    '/                     
+      DATA ITITLE(4,2),ITITLE(5,2)/'    ','    '/                     
+      DATA ITITLE(4,3),ITITLE(5,3)/'    ','    '/                     
+
+      DATA JTITLE(1,1),JTITLE(2,1),JTITLE(3,1)/'    ','    ',' K2 '/  
+      DATA JTITLE(1,2),JTITLE(2,2),JTITLE(3,2)/'    ','    ','    '/  
+      DATA JTITLE(1,3),JTITLE(2,3),JTITLE(3,3)/'    ','    ','    '/  
+      DATA JTITLE(4,1),JTITLE(5,1)/'    ','    '/                     
+      DATA JTITLE(4,2),JTITLE(5,2)/'    ','    '/                     
+      DATA JTITLE(4,3),JTITLE(5,3)/'    ','    '/                     
+
+C     TITLES FOR STRAIN AND CHANGE IN CURVATURE...
+
+
+      DATA ATITLE(1,1),ATITLE(2,1),ATITLE(3,1)/'    ','    ','    '/  
+      DATA ATITLE(1,2),ATITLE(2,2),ATITLE(3,2)/'    ','    ','    '/  
+      DATA ATITLE(1,3),ATITLE(2,3),ATITLE(3,3)/'    ','    ','    '/  
+      DATA ATITLE(4,1),ATITLE(5,1),ATITLE(6,1)/'ARC ','LENG','TH  '/  
+      DATA ATITLE(4,2),ATITLE(5,2),ATITLE(6,2)/'ARC ','LENG','TH  '/  
+      DATA ATITLE(4,3),ATITLE(5,3),ATITLE(6,3)/'ARC ','LENG','TH  '/  
+      DATA ATITLE(7,1),ATITLE(8,1),ATITLE(9,1)/'    ','    ','    '/  
+      DATA ATITLE(7,2),ATITLE(8,2),ATITLE(9,2)/'    ','    ','    '/  
+      DATA ATITLE(7,3),ATITLE(8,3),ATITLE(9,3)/'    ','    ','    '/  
+      DATA ATITLE(10,1),ATITLE(11,1)/'    ','    '/                   
+      DATA ATITLE(10,2),ATITLE(11,2)/'    ','    '/                   
+      DATA ATITLE(10,3),ATITLE(11,3)/'    ','    '/                   
+
+      DATA HTITLE(1,1),HTITLE(2,1),HTITLE(3,1)/'  SI','GMA1','(INN'/  
+      DATA HTITLE(1,2),HTITLE(2,2),HTITLE(3,2)/'  SI','GMA1','(OUT'/  
+      DATA HTITLE(1,3),HTITLE(2,3),HTITLE(3,3)/'    ',' TAU','(INN'/  
+      DATA HTITLE(4,1),HTITLE(5,1)/'ER) ','    '/                     
+      DATA HTITLE(4,2),HTITLE(5,2)/'ER) ','    '/                     
+      DATA HTITLE(4,3),HTITLE(5,3)/'ER) ','    '/                     
+
+      DATA PTITLE(1,1),PTITLE(2,1),PTITLE(3,1)/'  SI','GMA2','(INN'/  
+      DATA PTITLE(1,2),PTITLE(2,2),PTITLE(3,2)/'  SI','GMA2','(OUT'/  
+      DATA PTITLE(1,3),PTITLE(2,3),PTITLE(3,3)/'    ',' TAU','(OUT'/  
+      DATA PTITLE(4,1),PTITLE(5,1)/'ER) ','    '/                     
+      DATA PTITLE(4,2),PTITLE(5,2)/'ER) ','    '/                     
+      DATA PTITLE(4,3),PTITLE(5,3)/'ER) ','    '/                     
+
+C     TITLES FOR STRAIN AND CHANGE IN CURVATURE...
+
+      DATA KTITLE(1,1),KTITLE(2,1),KTITLE(3,1)/'  EP','SILO','N 1 '/  
+      DATA KTITLE(1,2),KTITLE(2,2),KTITLE(3,2)/'  EP','SILO','N 2 '/  
+      DATA KTITLE(1,3),KTITLE(2,3),KTITLE(3,3)/'  EP','SILO','N 12'/  
+      DATA KTITLE(4,1),KTITLE(5,1)/'    ','    '/                     
+      DATA KTITLE(4,2),KTITLE(5,2)/'    ','    '/                     
+      DATA KTITLE(4,3),KTITLE(5,3)/'    ','    '/                     
+
+      DATA LTITLE(1,1),LTITLE(2,1),LTITLE(3,1)/'   K','APPA',' 1  '/  
+      DATA LTITLE(1,2),LTITLE(2,2),LTITLE(3,2)/'   K','APPA',' 2  '/  
+      DATA LTITLE(1,3),LTITLE(2,3),LTITLE(3,3)/'   K','APPA',' 12 '/  
+      DATA LTITLE(4,1),LTITLE(5,1)/'    ','    '/                     
+      DATA LTITLE(4,2),LTITLE(5,2)/'    ','    '/                     
+      DATA LTITLE(4,3),LTITLE(5,3)/'    ','    '/                     
+
+C     STRAIN AND CHANGES IN CURVATURE...
+
+      DATA QTITLE(1),QTITLE(2),QTITLE(3)/'  CI','RCUM','FERE'/        
+      DATA QTITLE(4),QTITLE(5),QTITLE(6)/'NTIA','L CO','ORDI'/        
+      DATA QTITLE(7),QTITLE(8),QTITLE(9)/'NATE',', DE','GREE'/        
+      DATA QTITLE(10),QTITLE(11)/'S   ','    '/              
+
+C
+C
+C END JUL 2003
+C END FEB 1990
+10    FORMAT(1a)                                                     
+C     WRITE(IFILE4,20)
+20    FORMAT(//' ENTERING SUBROUTINE PLOT   ')                       
+C     IF (NPRT.GT.1) CALL SR100T(2)
+C**** INITIALIZE CALCOMP PLOTTER
+      IF(NEDPLT.EQ.-1) CALL PLOTI
+      IF (NEDPLT.EQ.-1) CALL FRAMEV(0)
+      NFIRST = 1
+C BEG MAR 2007
+      CALL GASP(ZAX,30000,3,IDZ)
+C END MAR 2007
+C BEG FEB 1990
+      RZMAX= 0.0
+      RZMIN= 10.E20
+      DO 25 I=1,I2
+C BEG MAR 2008
+C       WRITE(IFILE4,'(A,I4,1P2E12.4)')
+C    1' in PLOTIT:I,R,Z=',I,R(I),Z(I)
+C END MAR 2008
+        RZSIZ = SQRT(R(I)**2 + Z(I)**2)
+        RZMAX = AMAX1(RZMAX,RZSIZ)
+        RZMIN = AMIN1(RZMIN,RZSIZ)
+ 25   CONTINUE
+      RZSIZ = RZMAX - RZMIN
+C BEG APR 1993
+C BEG JULY 1993 (COMMENT OUT APR 1993 STATEMENT. NO GOOD FOR TORUS)
+C     IF (RZSIZ.LE.0.3*RZMAX) RZSIZ = ABS(RZMAX)
+C END JULY 1993
+C BEG AUG 2013
+      IF (RZSIZ.LE.0.3*RZMAX) RZSIZ = 0.5*RZMAX
+C END AUG 2013
+C END APR 1993
+C END FEB 1990
+      IF (IPLOT.NE.1) GO TO 50
+      MPLOT = 1
+      IF (JPLOT.EQ.0) GO TO 40
+      DO 30 I=1,JPLOT
+      ICOORD = KPLOT(I)
+      RN(I) = R(ICOORD)
+      ZN(I) = Z(ICOORD)
+30    MPLOT = MPLOT + LPLOT(I)
+40    CONTINUE
+      CALL GEOPLT(R,Z,RP,ZP)
+C BEG MAR 2007
+      CALL GASP(ZAX,30000,3,IDZ)
+C END MAR 2007
+C     NEED CALL TO GASP TO RESTORE R AND Z VALUES DESTROYED
+C     IN PREVIOUS CALL TO GEOPLT
+c Added 9/2/91 for plotting ring location geometries.
+      write(54,142) (TITLE(I),I=1,12)
+      write(54,1430) INDIC
+ 1430 format('Type of analysis: ', i2)
+      write(54,1440)
+ 1440 format(
+     1'Ring Location geometry plot.'/
+     1'    Node        = node number'/
+     1'    R0          = Radius'/
+     1'    Z0          = Axial Station'/
+     1'    Segment No. = Segment number'/
+     1'    Rexists?    = 1 if node has associated ring, zero otherwise'/
+     1'    Rring       = Radius of ring'/
+     1'    Zring       = Axial Station of ring'/
+     1'    Hring       = direction of x-component of force applied at'/
+     1'                  ring (+1 <--> positive, -1 <--> negative)'/
+     1'    Vring       = direction of y-component of force applied at'/
+     1'                  ring (+1 <--> positive, -1 <--> negative)'/
+     1'    Mring       = direction of moment applied at ring'/
+     1'                  (positive <--> CW, negative <--> CCW)'/
+     1'R,Z_RingLocation'/
+     1'*')
+      write(54,1450) char(9),char(9),char(9),char(9),char(9),char(9),
+     1               char(9), char(9), char(9)
+ 1450 format('Node',a1,'R0',a1,'Z0',a1,'Segment No.',a1,'Rexists?',a1,
+     1       'Rring',a1,'Zring',a1,'Hring',a1,'Vring',a1,'Mring')
+      iring = 1
+      iseg = 1
+      itotal = i5(iseg)
+      do 1470 i = 1,I2
+        jring  = 0
+        ihring = 0
+        ivring = 0
+        imring = 0
+        Rring  = 0.0
+        Zring  = 0.0
+        if (i .eq. IZRING(iring)) then
+          jring = 1
+          if (V(iring) .gt. 0.0) ivring = 1
+          if (V(iring) .lt. 0.0) ivring = -1
+          if (HF(iring) .gt. 0.0) ihring = 1
+          if (HF(iring) .lt. 0.0) ihring = -1
+          if (FM(iring) .gt. 0.0) imring = 1
+          if (FM(iring) .lt. 0.0) imring = -1
+          Rring = R(i) + E1(iring)
+          Zring = Z(i) + E2(iring)
+          iring = iring + 1
+        endif
+        if (i .gt. itotal) then
+          iseg = iseg + 1
+          itotal = itotal + i5(iseg)
+        endif
+        write(54,1460) i, char(9), R(i), char(9), Z(i), char(9), iseg,
+     1                 char(9), jring, char(9), Rring, char(9), Zring,
+     1                 char(9), ihring, char(9), ivring, char(9), imring
+ 1460 format(i4, a1, 1pe12.4, a1, 1pe12.4, a1, i4, a1, i4, a1, 1pe12.4,
+     1       a1, 1pe12.4, a1, i4, a1, i4, a1, i4)
+ 1470 continue
+      write(54,141)
+c End 9/2/91 changes
+
+50    IPLOT = 2
+      IF (INDIC.NE.3) GO TO 70
+      DO 60 I=1,5
+      DO 60 J=1,3
+60    NPTS(I,J) = IOUT
+      CALL GASP(X,IOUT,3,IDX)
+C     RETRIEVE MERIDIONAL STRESS OR STRESS RESULTANT DISTRIBUTIONS.
+      J = IOUT*NDIST*9
+      IF (J.EQ.0) GO TO 62
+      IF (ILOOP.EQ.1) CALL GASP(SMODE,J,3,IMOAD(100))
+      IF (ILOOP.EQ.2) CALL GASP(SMODE,J,3,IMOAD( 98))
+   62 CONTINUE
+      J = NTHETA*NCIRC*9
+      IF (J.EQ.0) GO TO 64
+C     RETRIEVE CIRCUMFERENTIAL DISTRIBUTIONS
+      IF (ILOOP.EQ.1) CALL GASP(TMODE,J,3,IMOAD(99))
+      IF (ILOOP.EQ.2) CALL GASP(TMODE,J,3,IMOAD(97))
+   64 CONTINUE
+      GO TO 250
+70    DO 80 I=1,3
+80    NP(I)=1
+      DO 90 I=1,5
+      DO 90 J=1,3
+90    NPTS(I,J) = IALL
+      CALL GASP(X,I2,3,IARC(1))
+      IF (INDIC.GE.1) GO TO 180
+      NALL = IALL*8
+      DO 170 J=1,ISTEP
+      REWIND 40
+      IF(INDIC.NE.-1) WRITE(40,100)J,ALODE(J)
+100   FORMAT(1X,'LOAD STEP ',I2,', LOAD =',1PE11.3,' PRESTRESS  ')    
+      IF(INDIC.EQ.-1) WRITE(40,101)J,ALODE(J)
+101   FORMAT(1X,'LOAD STEP ',I2,', PRESS.=',1PE10.3,' PRESTRESS  ')   
+      REWIND 40
+      READ (40,110)(ATITLE(I,3),I=1,11)
+110   FORMAT(11A4)                                                    
+C     WRITE(IFILE4,110) (ATITLE(I,3),I=1,11)
+      DO 120 I=1,11
+      BMTITL(I) = ATITLE(I,3)
+120   CONTINUE
+      NFIN = 1
+      CALL GASP(BMODE,NALL,3,IPMODE(J))
+      VMAX = 0.0
+      DO 130 I=1,I2
+      VNOW = SQRT(BMODE(I,1)**2 + BMODE(I,2)**2)
+      VMAX = AMAX1(VMAX,VNOW)
+130   CONTINUE
+C     PLOT DEFORMED GEOMETRY FOR EACH LOAD STEP
+      IF(VMAX.NE.0.) GO TO 135
+      WRITE(IFILE4,132)
+132   FORMAT(/,1X,'NOTE: VMAX = 0. DEFLECTIONS ARE ZERO FOR THIS',    
+     1' LOAD STEP.',/)                                                
+      VMAX=1.
+135   CONTINUE
+      DO 140 I=1,I2
+      ARG = ANGLE(I)
+      RP(I) = (BMODE(I,1)*SIN(ARG) + BMODE(I,2)*COS(ARG)) / VMAX
+      ZP(I) = (-BMODE(I,1)*COS(ARG) + BMODE(I,2)*SIN(ARG)) / VMAX
+140   CONTINUE
+C BEG FEB 1990
+  141 FORMAT(' $END PLOT')
+      WRITE(54,142) (TITLE(I),I=1,12)
+  142 FORMAT(1X,18A4)
+      WRITE(54,143) INDIC, J
+  143 FORMAT(' AXISYMMETRIC DEFORMATION:'/
+     1       '   Analysis type, INDIC =',I3,';  Load Step No.',I2)
+      WRITE(54,144) VMAX,RZSIZ,J
+  144 FORMAT(' Maximum value of SQRT(u**2 +w**2): VMAX =',1PE12.4/
+     1       ' Size of the structure:            RZSIZ =',1PE12.4/
+     1'  Axisymmetric deformations are normalized by VMAX and'/
+     1'  magnified by FMAG = 0.1*RZSIZ for plotting, thus:'/
+     1'   R(deformed) =R(undeformed) +FMAG*( w*sin(a)+u*cos(a))/VMAX'/
+     1'   Z(deformed) =Z(undeformed) +FMAG*(-w*cos(a)+u*sin(a))/VMAX'/
+     1'  in which (a) is the angle from the horizontal to the'/
+     1'  meridional tangent (a=90 deg. for cyl; a=0 for flat plates)'//
+     1'          UNDEFORMED (R,Z) COORDINATES     DEFORMED (R,Z) COORDIN
+     1ATES'/
+     1'          Radius, R0  Axial Station, Z0   Radius, R   Axial Stati
+     1on, Z'/
+     1'R,Z_LOADSTEP',I2/
+     1'*')
+c Code modified 8/30/91.  Segment number added in last column.
+      WRITE(54,145) CHAR(9),CHAR(9),CHAR(9),CHAR(9),char(9)
+  145 FORMAT(
+     1' Node No.',A1,'Radius, R0',A1,'Axial Station, Z0',A1,'Radius, R',
+     1 A1,'Axial Station, Z',a1,'Segment No.')
+      FMAG = 0.1*RZSIZ
+      iseg = 1
+      itotal = i5(iseg)
+      DO 147 I = 1,I2
+C BEG MAR 2008
+C       WRITE(IFILE4,'(A,I4,1P2E12.4)')
+C    1' in PLOTIT:I,R,Z=',I,R(I),Z(I)
+C END MAR 2008
+        RDEFRM = R(I) + RP(I)*FMAG
+        ZDEFRM = Z(I) + ZP(I)*FMAG
+        if (i .gt. itotal) then
+          iseg = iseg + 1
+          itotal = itotal + i5(iseg)
+        endif
+        WRITE(54,146) I,CHAR(9),R(I),CHAR(9),Z(I),CHAR(9),
+     1                   RDEFRM,CHAR(9),ZDEFRM,char(9),iseg
+C BEG MAR 2009
+C 146 FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+C    1          A1,1PE12.4,a1,i4)
+  146 FORMAT(I4,A1,1PE14.6,A1,1PE14.6,A1,1PE14.6,
+     1          A1,1PE14.6,a1,i4)
+C END MAR 2009
+  147 CONTINUE
+c End modifications 8/30/91
+      WRITE(54,141)
+C END FEB 1990
+      CALL GEOPLT(R,Z,RP,ZP)
+150   CONTINUE
+C     PROGRAM CHANGED: NLAST.EQ.0 GET ONLY GEOMETRY PLOTS
+C                      NLAST.GT.0 GET ALL PLOTS
+      IF(NLAST.EQ.0) GO TO 160
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,1),TITLE,DTITLE,
+     1ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,5),TITLE,ETITLE,
+     1ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      WRITE(54,143) INDIC, J
+      WRITE(54,151) J
+  151 FORMAT(/' AXISYMMETRIC DISPLACEMENTS, W0 and U0, MERIDIONAL ROTATI
+     1ON, BETA, AND RESULTANTS N10, N20, M10'/
+     1'        Arc Length, x  Norm.Disp., W0   Merid.Disp.,U0  Rotation,
+     1BETA  Merid.Res.,N10  Circ.Res.,N20  Merid.Mom.,M10'/
+     1'AXISYM_LOADSTEP',I2/
+     1'*')
+      WRITE(54,152) CHAR(9),CHAR(9),CHAR(9),CHAR(9),CHAR(9),CHAR(9),
+     1 CHAR(9)
+  152 FORMAT(' Node No.',A1,'Arc Length, x',A1,'Norm.Disp., W0',A1,
+     1'Merid.Disp.,U0',A1,'Rotation,BETA',A1,'Merid.Res.,N10',A1,
+     1'Circ.Res.,N20',A1,'Merid.Mom.,M10')
+      DO 154 I = 1,IALL
+         WRITE(54,153) I,CHAR(9),X(I),CHAR(9),BMODE(I,1),CHAR(9),
+     1  BMODE(I,2),CHAR(9),BMODE(I,3),CHAR(9),BMODE(I,5),CHAR(9),
+     1  BMODE(I,6),CHAR(9),BMODE(I,7)
+  153   FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1            A1,1PE12.4,A1,1PE12.4,A1,1PE12.4)
+  154 CONTINUE
+      WRITE(54,141)
+C END FEB 1990
+      IF (MONOQ.EQ.0) GO TO 160
+      CALL GASP(BMODE,NALL,3,IPSMD(J))
+      IF (MONOQ.EQ.2) GO TO 155
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,3),TITLE,FTITLE,
+     1ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,6),TITLE,GTITLE,
+     1ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      WRITE(54,143) INDIC, J
+      WRITE(54,161) J
+  161 FORMAT(/' AXISYMMETRIC MERIDIONAL STRESSES, S1I, S1O, CIRCUMFERENT
+     1IAL STRESSES, S2I, S2O, AND VON MISES EFFECTIVE STRESSES, SEI, SEO
+     1'/
+     1'                         Meridional       Meridional  Circumferen
+     1tial   Circumferential   Effective        Effective'/
+     1'                       leftmost fiber  rightmost fiber leftmost f
+     1iber   rightmost fiber leftmost fiber  rightmost fiber'/
+     1'        Arc Length, x   stress, S1I      stress, S1O    stress, S
+     12I      stress, S2O     stress, SEI      stress, SEO'/
+     1'STRESS_LOADSTEP',I2/
+     1'*')
+      WRITE(54,162) CHAR(9),CHAR(9),CHAR(9),CHAR(9),CHAR(9),CHAR(9),
+     1 CHAR(9)
+  162 FORMAT(' Node No.',A1,'Arc Length, x',A1,'Stress, S1I',A1,
+     1'Stress, S1O',A1,'Stress, S2I',A1,'Stress, S2O',A1,
+     1'Stress, SEI',A1,'Stress, SEO')
+      DO 164 I = 1,IALL
+         WRITE(54,153) I,CHAR(9),X(I),CHAR(9),BMODE(I,3),CHAR(9),
+     1  BMODE(I,4),CHAR(9),BMODE(I,5),CHAR(9),BMODE(I,6),CHAR(9),
+     1  BMODE(I,7),CHAR(9),BMODE(I,8)
+  164 CONTINUE
+      WRITE(54,141)
+C END FEB 1990
+      GO TO 160
+  155 CONTINUE
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,3),TITLE,ITITLE,
+     1ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,6),TITLE,JTITLE,
+     1ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      WRITE(54,143) INDIC, J
+      WRITE(54,171) J
+  171 FORMAT(/' AXISYMMETRIC REFERENCE SURFACE: MERIDIONAL, CIRCUMFERENT
+     1IAL STRAINS, EPS1, EPS2;  MERID., CIRC. CURVATURE CHANGES, K1,K2'/
+     1'                         Meridional    Circumferential    Meridio
+     1nal     Circumferential'/
+     1'        Arc Length, x   strain, EPS1     strain, EPS2  curvature 
+     1chg,K1 curvature chg.,K2'/
+     1'STRAIN_LOADSTEP',I2/
+     1'*')
+      WRITE(54,172) CHAR(9),CHAR(9),CHAR(9),CHAR(9),CHAR(9)
+  172 FORMAT(' Node No.',A1,'Arc Length, x',A1,'Strain, EPS1',A1,
+     1'Strain, EPS2',A1,'Curv. Change, K1',A1,'Curv. Change, K2')
+      DO 174 I = 1,IALL
+         WRITE(54,173) I,CHAR(9),X(I),CHAR(9),BMODE(I,3),CHAR(9),
+     1  BMODE(I,4),CHAR(9),BMODE(I,5),CHAR(9),BMODE(I,6)
+  173   FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1            A1,1PE12.4)
+  174 CONTINUE
+      WRITE(54,141)
+C END FEB 1990
+160   CONTINUE
+C BEG MAR 2008
+C  Restore R,Z because GEOPLT destroys R,Z
+      CALL GASP(ZAX,30000,3,IDZ)
+C END MAR 2008
+170   CONTINUE
+      IF (INDIC.LT.0) GO TO 180
+      GO TO 490
+180   CONTINUE
+      MNUMB = NVEC
+      DO 240 K=1,MNUMB
+      REWIND 40
+      IF (INDIC.EQ.-1) WRITE (40,190)N,ALODE(ISTEP)
+190   FORMAT(1X,'BUCKLE MODE, N =',I4,', PRESSURE =',1PE11.3)         
+      IF (INDIC.EQ.2) WRITE (40,200)K,N,EGV(K)
+200   FORMAT(' VIB. MODE ',I2,', N =',I6,1PE12.3,' CPS.   ')         
+      IF (INDIC.EQ.1.OR.INDIC.EQ.4) WRITE (40,210)K,N,EGV(K)
+210   FORMAT(' BUCKLE MODE ',I2,', N =',I4,', E.V. =',1PE12.3)        
+      REWIND 40
+      READ (40,110)(ATITLE(I,3),I=1,11)
+C     WRITE(IFILE4,110)(ATITLE(I,3),I=1,11)
+      DO 220 I=1,11
+      BMTITL(I) = ATITLE(I,3)
+220   CONTINUE
+      NALL = IALL*3
+      NFIN = 1
+      CALL GASP(BMODE,NALL,3,IMOAD(K+NVIB))
+      DO 230 I=1,I2
+      ARG = ANGLE(I)
+      RP(I) = (BMODE(I,3)*SIN(ARG) + BMODE(I,1)*COS(ARG))
+      ZP(I) = (-BMODE(I,3)*COS(ARG) + BMODE(I,1)*SIN(ARG))
+230   CONTINUE
+C BEG MAR 2007
+      CALL GASP(ZAX,30000,3,IDZ)
+C END MAR 2007
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      IF (INDIC.NE.2) WRITE(54,231)
+  231 FORMAT(' ******** BUCKLING MODE:')
+      IF (INDIC.EQ.2) WRITE(54,232)
+  232 FORMAT(' ******** VIBRATION MODE:')
+      WRITE(54,233) INDIC, N, K, EGV(K)
+  233 FORMAT(
+     1       '   Analysis type,               INDIC =',I6/
+     1       '   Number of circumferential waves, N =',I6/
+     1       '   Eigenvalue no.                   K =',I6/
+     1       '   Eigenvalue,                  EGV(K)=',1PE12.4)
+      WRITE(54,234) RZSIZ,K,N
+  234 FORMAT(
+     1       ' Size of the structure:         RZSIZ =',1PE12.4/
+     1'  Buckling or vibration modal displacements are'/
+     1'  magnified by FMAG = 0.1*RZSIZ for plotting, thus:'/
+     1'   R(deformed) =R(undeformed) +FMAG*( w*sin(a)+u*cos(a))'/
+     1'   Z(deformed) =Z(undeformed) +FMAG*(-w*cos(a)+u*sin(a))'/
+     1'  in which (a) is the angle from the horizontal to the'/
+     1'  meridional tangent (a=90 deg. for cyl; a=0 for flat plates)'//
+     1'          UNDEFORMED (R,Z) COORDINATES     DEFORMED (R,Z) COORDIN
+     1ATES'/
+     1'          Radius, R0  Axial Station, Z0   Radius, R   Axial Stati
+     1on, Z'/
+     1'R,Z_EIGENMODE',I2,'--N',I6/
+     1'*')
+c Code modified 8/30/91.  Segment number added in last column.
+      WRITE(54,235) CHAR(9),CHAR(9),CHAR(9),CHAR(9),char(9)
+  235 FORMAT(
+     1' Node No.',A1,'Radius, R0',A1,'Axial Station, Z0',A1,'Radius, R',
+     1 A1,'Axial Station, Z',a1,'Segment No.')
+      FMAG = 0.1*RZSIZ
+      itotal = i5(1)
+      iseg = 1
+      DO 237 I = 1,I2
+        RDEFRM = R(I) + RP(I)*FMAG
+        ZDEFRM = Z(I) + ZP(I)*FMAG
+        if (i .gt. itotal) then
+          iseg = iseg + 1
+          itotal = itotal + i5(iseg)
+        endif
+        WRITE(54,236) I,CHAR(9),R(I),CHAR(9),Z(I),CHAR(9),
+     1                   RDEFRM,CHAR(9),ZDEFRM,char(9),iseg
+C BEG MAR 2009
+C 236 FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+C    1          A1,1PE12.4,a1,i4)
+  236 FORMAT(I4,A1,1PE14.6,A1,1PE14.6,A1,1PE14.6,
+     1          A1,1PE14.6,a1,i4)
+C END MAR 2009
+  237 CONTINUE
+c End modifications 8/30/91
+      WRITE(54,141)
+C END FEB 1990
+      CALL GEOPLT(R,Z,RP,ZP)
+      IF(NLAST.EQ.0) GO TO 240
+      CALL PLOTOP(1,IALL,1,3,3,NP,NPTS,X,BMODE(1,1),TITLE,OTITLE,
+     1ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      IF (INDIC.NE.2) WRITE(54,231)
+      IF (INDIC.EQ.2) WRITE(54,232)
+      WRITE(54,233) INDIC, N, K, EGV(K)
+      WRITE(54,241) K,N,K,N
+  241 FORMAT(/ I2,'th EIGENVECTOR FOR N=',I6,' CIRCUMFERENTIAL WAVES.  M
+     1ERIDIONAL, CIRCUMFERENTIAL, AND NORMAL MODAL DISPLACEMENTS, u,v,w:
+     1'/
+     1'                         Meridional    Circumferential      Norma
+     1l'/
+     1'                        Displacement    Displacement     Displace
+     1ment'/
+     1'        Arc Length, x        u               v                w'/
+     1'EIGENMODE',I2,'--N',I6/
+     1'*')
+      WRITE(54,242) CHAR(9),CHAR(9),CHAR(9),CHAR(9)
+  242 FORMAT(' Node No.',A1,'Arc Length, x',A1,'Modal u',A1,
+     1'Modal v',A1,'Modal w')
+      DO 244 I = 1,IALL
+         WRITE(54,243) I,CHAR(9),X(I),CHAR(9),BMODE(I,1),CHAR(9),
+     1  BMODE(I,2),CHAR(9),BMODE(I,3)
+  243   FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4)
+  244 CONTINUE
+      WRITE(54,141)
+C END FEB 1990
+240   CONTINUE
+      GO TO 490
+250   CONTINUE
+C BEG JAN 1993
+C  TWO STATEMENTS MOVED FURTHER DOWN
+C END JAN 1993
+C BEG FEB 1990
+      WORD(1) = ' Merid., u  '
+      WORD(2) = '  Circ., v  '
+      WORD(3) = ' Normal, w  '
+      WORD(4) = ' Merid., N1 '
+      WORD(5) = '  Circ., N2 '
+      WORD(6) = ' Shear, N12 '
+      WORD(7) = ' Merid., M1 '
+      WORD(8) = '  Circ., M2 '
+      WORD(9) = ' Twist,  MT '
+      WORD3(1)=
+     1'                         Meridional    Circumferential      Norma
+     1l'
+      WORD3(2)=
+     1'                        Displacement    Displacement     Displace
+     1ment'
+      WORD3(3)=
+     1'        Arc Length, x        u               v                w'
+      WORD4(1) =
+     1'                         Meridional   Circumferential  In-plane s
+     1hear     Meridional    Circumferential     Twist'
+      WORD4(2) =
+     1'                     Stress Resultant Stress Resultant   Resultan
+     1t     Moment Resultant  Mom. Resultant  Mom. Resultant'
+      WORD4(3) =
+     1'        Arc Length, x       N1              N2               N12
+     1            M1               M2             M12'
+C END FEB 1990
+      IF (MONOQ.EQ.0) GO TO 270
+      IF (MONOQ.EQ.2) GO TO 265
+      DO 260 I=1,5
+      DO 260 J=1,3
+      BTITLE(I,J) = HTITLE(I,J)
+260   CTITLE(I,J) = PTITLE(I,J)
+C BEG FEB 1990
+      WORD(4) = ' Merid., S1I'
+      WORD(5) = ' Merid., S1O'
+      WORD(6) = ' Shear, TAUI'
+      WORD(7) = '  Circ., S2I'
+      WORD(8) = '  Circ., S2O'
+      WORD(9) = ' Shear, TAUO'
+C BEG MAR 1991
+      WORD(10)= ' von Mises IN'
+      WORD(11)= ' von Mises OUT'
+C END MAR 1991
+      WORD4(1) =
+     1'                         Meridional       Meridional   In-plane s
+     1hear   Circumferential Circumferential  In-plane shear'
+      WORD4(2) =
+     1'                       leftmost fiber  rightmost fiber leftmost f
+     1iber   leftmost fiber  rightmost fiber  rightmost fiber'
+      WORD4(3) =
+     1'        Arc Length, x   stress, S1I      stress, S1O    stress, T
+     1AUI     stress, S2I     stress, S2O      stress, TAUO'
+C END FEB 1990
+      GO TO 270
+  265 CONTINUE
+      DO 267 I = 1,5
+      DO 267 J = 1,3
+      BTITLE(I,J) = KTITLE(I,J)
+  267 CTITLE(I,J) = LTITLE(I,J)
+C BEG FEB 1990
+      WORD(4) = 'Merid., EPS1'
+      WORD(5) = ' Circ., EPS2'
+      WORD(6) = 'Shear, EPS12'
+      WORD(7) = ' Merid., K1 '
+      WORD(8) = '  Circ., K2 '
+      WORD(9) = ' Twist, K12 '
+      WORD4(1) =
+     1'                         Meridional   Circumferential  In-plane s
+     1hear     Meridional    Circumferential     Twist'
+      WORD4(2) =
+     1'                      Reference surf. Reference surf. Reference s
+     1urf.  Reference surf.  Reference surf.  Reference surf.'
+      WORD4(3) =
+     1'        Arc Length, x  strain, EPS1     strain, EPS2   strain, EP
+     1S12   Curv. chg., K1   Curv. chg., K2    Twist, K12'
+C END FEB 1990
+270   CONTINUE
+C BEG JAN 1993
+      IF (NDIST.EQ.0) GO TO 455
+C     PLOT MERIDIONAL DISTRIBUTIONS FOR SEVERAL THETA VALUES
+C END JAN 1993
+      NFACT = NDIST/5
+      NLEFT = NDIST - 5*NFACT
+      IFLAG=0
+280   J = 0
+      NFACT1 = NFACT + 1
+      DO 440 K=1,NFACT1
+      NFIN = 5
+      IF (K.EQ.NFACT1) NFIN = NLEFT
+      IF (NFIN.EQ.0) GO TO 450
+      DO 290 I=1,3
+290   NP(I) = NFIN
+      DO 350 JJ=1,NFIN
+      REWIND 40
+      J = J + 1
+      IF (IFLAG.EQ.1) GO TO 310
+      TDEG = THETA(J)*180./3.141593
+      WRITE (40,300)TDEG
+300   FORMAT (F6.2, 38x)      
+      GO TO 330
+310   WRITE (40,320)ITHETA(J)
+320   FORMAT (I6, 38x)        
+330   REWIND 40
+      READ (40,340)LEGEND(JJ)
+340   FORMAT(A8)                                                      
+      NFJ = NFIN + JJ
+      LEGEND(NFJ) = LEGEND(JJ)
+      NFJ = 2*NFIN + JJ
+      LEGEND(NFJ) = LEGEND(JJ)
+350   CONTINUE
+360   FORMAT(' MERIDIONAL DISTRIBUTION FOR VARIOUS THETA   ')
+370   FORMAT(' CIRCUMFERENTIAL DIST. FOR VARIOUS STA.      ')
+      REWIND 40
+      IF (IFLAG.EQ.0) WRITE (40,360)
+      IF (IFLAG.EQ.1) WRITE (40,370)
+C BEG FEB 1990
+      IF (IFLAG.EQ.0)
+     1    WORD2 = ' MERIDIONAL DISTRIBUTION FOR VARIOUS THETA    '
+      IF (IFLAG.EQ.1)
+     1    WORD2 = ' CIRCUMFERENTIAL DISTRIBUTION FOR VARIOUS STA.'
+C END FEB 1990
+      REWIND 40
+      READ (40,110)(ATITLE(I,3),I=1,11)
+C     WRITE(IFILE4,110) (ATITLE(I,3),I=1,11)
+      M = J - NFIN + 1
+      MO=M
+375   CONTINUE
+C     WRITE(IFILE4,376) M,J,NFIN
+376   FORMAT(/,5X,'PLOTIT TEMP OUTPUT: M =',I3,'  J =',I3,'  NFIN =',I3,
+     1/)                                                              
+      IF (IFLAG.EQ.1) GO TO 430
+      DO 380 I=1,NSEG
+      IF(INTVAL(I).GT.1) WRITE(IFILE4,378)
+378   FORMAT(/,5X,'AS INTVAL IS GREATER THAN 1 FOR A SIGMENT ',       
+     1'THERE WILL NOT BE A DEFORMED GEOMETRY PLOT',/)                 
+      IF (INTVAL(I).GT.1) GO TO 420
+380   CONTINUE
+      VMAX = 0.0
+      DO 390 I=1,I2
+      VNOW = SQRT(SMODE(I,M,1)**2 + SMODE(I,M,3)**2)
+      VMAX = AMAX1(VMAX,VNOW)
+390   CONTINUE
+C BEG FEB 1990
+      IF(VMAX.GT.10.E-15) GO TO 395
+C END FEB 1990
+C     WRITE(IFILE4,132)
+      VMAX=1.
+395   CONTINUE
+      DO 400 I=1,I2
+      ARG = ANGLE(I)
+      RP(I) = (SMODE(I,M,3)*SIN(ARG) + SMODE(I,M,1)*COS(ARG)) / VMAX
+      ZP(I) = (-SMODE(I,M,3)*COS(ARG) + SMODE(I,M,1)*SIN(ARG)) / VMAX
+400   CONTINUE
+      TDEG=THETA(M)*180./3.141593
+      REWIND 40
+      WRITE (40,410)TDEG
+410   FORMAT('MERIDIONAL DISTRIBUTION FOR THETA = ',F6.2,2X)       
+      REWIND 40
+      READ (40,110)(BMTITL(I),I=1,11)
+C     WRITE(IFILE4,110)(BMTITL(I),I=1,11)
+C BEG MAR 2007
+      CALL GASP(ZAX,30000,3,IDZ)
+C END MAR 2007
+C BEG FEB 1990
+      WRITE(54,142) (TITLE(I),I=1,12)
+      WRITE(54,413) INDIC, M, TDEG
+  413 FORMAT(' NONSYMMETRIC DEFORMATION:'/
+     1       '   Analysis type, INDIC =',I3,';  Meridian No.',I2/
+     1       '   Meridional deformation for circ. angle, THETA=',
+     1 1PE12.4)
+      WRITE(54,414) VMAX,RZSIZ,M
+  414 FORMAT(' Maximum value of SQRT(u**2 +w**2): VMAX =',1PE12.4/
+     1       ' Size of the structure:            RZSIZ =',1PE12.4/
+     1'  Nonsymmetric deformations are normalized by VMAX and'/
+     1'  magnified by FMAG = 0.1*RZSIZ for plotting, thus:'/
+     1'   R(deformed) =R(undeformed) +FMAG*( w*sin(a)+u*cos(a))/VMAX'/
+     1'   Z(deformed) =Z(undeformed) +FMAG*(-w*cos(a)+u*sin(a))/VMAX'/
+     1'  in which (a) is the angle from the horizontal to the'/
+     1'  meridional tangent (a=90 deg. for cyl; a=0 for flat plates)'//
+     1'          UNDEFORMED (R,Z) COORDINATES     DEFORMED (R,Z) COORDIN
+     1ATES'/
+     1'          Radius, R0  Axial Station, Z0   Radius, R   Axial Stati
+     1on, Z'/
+     1'R,Z_MERIDIAN',I2/
+     1'*')
+c Code modified 8/30/91.  Segment number added in last column.
+      WRITE(54,415) CHAR(9),CHAR(9),CHAR(9),CHAR(9),char(9)
+  415 FORMAT(
+     1' Node No.',A1,'Radius, R0',A1,'Axial Station, Z0',A1,'Radius, R',
+     1 A1,'Axial Station, Z',a1,'Segment No.')
+      FMAG = 0.1*RZSIZ
+      itotal = i5(1)
+      iseg = 1
+      DO 417 I = 1,I2
+        RDEFRM = R(I) + RP(I)*FMAG
+        ZDEFRM = Z(I) + ZP(I)*FMAG
+        if (i .gt. itotal) then
+          iseg = iseg + 1
+          itotal = itotal + i5(iseg)
+        endif
+        WRITE(54,416) I,CHAR(9),R(I),CHAR(9),Z(I),CHAR(9),
+     1                   RDEFRM,CHAR(9),ZDEFRM,char(9),iseg
+C BEG MAR 2009
+C 416 FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+C    1          A1,1PE12.4,a1,i4)
+  416 FORMAT(I4,A1,1PE14.6,A1,1PE14.6,A1,1PE14.6,
+     1          A1,1PE14.6,a1,i4)
+C END MAR 2009
+  417 CONTINUE
+c End modifications 8/30/91
+      WRITE(54,141)
+C END FEB 1990
+      CALL GEOPLT(R,Z,RP,ZP)
+      IF(M.GE.NFIN) GO TO 420
+      M=M+1
+      GO TO 375
+420   CONTINUE
+      M=MO
+      IF(NLAST.EQ.0) GO TO 440
+      CALL PLOTOP(1,IOUT,NDIST,3,3,NP,NPTS,X,SMODE(1,M,1),TITLE,OTITLE,
+     1ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,IOUT,NDIST,3,3,NP,NPTS,X,SMODE(1,M,4),TITLE,BTITLE,
+     1ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,IOUT,NDIST,3,3,NP,NPTS,X,SMODE(1,M,7),TITLE,CTITLE,
+     1ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      NMERID = NP(1)
+      DO 429 JJ = 1,NMERID
+        IMERID = M + JJ - 1
+        TDEG=THETA(IMERID)*180./3.141593
+        WRITE(54,142) (TITLE(I),I=1,12)
+        WRITE(54,413) INDIC, IMERID, TDEG
+        WRITE(54,421) IMERID,TDEG,IMERID
+  421   FORMAT(/' DISPLACEMENTS ALONG MERIDIAN ',I2,'; THETA=',F6.2,'. M
+     1ERIDIONAL, CIRCUMFERENTIAL, AND NORMAL MODAL DISPLACEMENTS, u,v,w:
+     1'/
+     1'                         Meridional    Circumferential      Norma
+     1l'/
+     1'                        Displacement    Displacement     Displace
+     1ment'/
+     1'        Arc Length, x        u               v                w'/
+     1  'DISP_MERIDIAN',I2/
+     1  '*')
+        WRITE(54,422) CHAR(9),CHAR(9),CHAR(9),CHAR(9)
+  422   FORMAT(' Node No.',A1,'Arc Length, x',A1,'Merid., u',A1,
+     1  'Circ., v',A1,'Normal., w')
+        DO 424 I = 1,IOUT
+          WRITE(54,423) I,CHAR(9),X(I),CHAR(9),SMODE(I,IMERID,1),
+     1    CHAR(9),SMODE(I,IMERID,2),CHAR(9),SMODE(I,IMERID,3)
+  423     FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4)
+  424   CONTINUE
+        WRITE(54,141)
+        WRITE(54,142) (TITLE(I),I=1,12)
+        WRITE(54,413) INDIC, IMERID, TDEG
+        WRITE(54,425) IMERID,TDEG,WORD4(1),WORD4(2),WORD4(3),IMERID
+  425   FORMAT(/' RESULTS FOR MERIDIAN ',I2,';    THETA=',F6.2,'.'/
+     1          A/A/A/
+     1  'RESULTS_MERIDIAN',I2/
+     1  '*')
+        WRITE(54,426) CHAR(9),CHAR(9),WORD(4),CHAR(9),WORD(5),
+     1                CHAR(9),WORD(6),CHAR(9),WORD(7),CHAR(9),
+C BEG MAR 1991
+     1                WORD(8),CHAR(9),WORD(9),CHAR(9),WORD(10),
+     1                CHAR(9),WORD(11)
+  426   FORMAT(' Node No.',A1,'Arc Length, x',A1,A,A1,
+     1           A,A1,A,A1,A,A1,A,A1,A,A1,A,A1,A)
+        DO 428 I = 1,IOUT
+          SIGVI = SQRT(SMODE(I,IMERID,4)**2 + SMODE(I,IMERID,7)**2
+     1                -SMODE(I,IMERID,4)*SMODE(I,IMERID,7)
+     1             +3.*SMODE(I,IMERID,6)**2)
+          SIGVO = SQRT(SMODE(I,IMERID,5)**2 + SMODE(I,IMERID,8)**2
+     1                -SMODE(I,IMERID,5)*SMODE(I,IMERID,8)
+     1             +3.*SMODE(I,IMERID,9)**2)
+          WRITE(54,427) I,CHAR(9),X(I),CHAR(9),
+     1    SMODE(I,IMERID,4),CHAR(9),SMODE(I,IMERID,5),CHAR(9),
+     1    SMODE(I,IMERID,6),CHAR(9),SMODE(I,IMERID,7),CHAR(9),
+     1    SMODE(I,IMERID,8),CHAR(9),SMODE(I,IMERID,9),CHAR(9),
+     1    SIGVI,CHAR(9),SIGVO
+  427     FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1              A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1              A1,1PE12.4)
+C END MAR 1991
+  428   CONTINUE
+      WRITE(54,141)
+  429 CONTINUE
+C END FEB 1990
+      GO TO 440
+430   CONTINUE
+      IF(NLAST.EQ.0) GO TO 440
+      CALL PLOTOP(1,NTHETA,NCIRC,3,3,NP,NPTS,X,TMODE(1,M,1),TITLE,
+     1OTITLE,ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,NTHETA,NCIRC,3,3,NP,NPTS,X,TMODE(1,M,4),TITLE,
+     1BTITLE,ATITLE,LEGEND,NFIN)
+      CALL PLOTOP(1,NTHETA,NCIRC,3,3,NP,NPTS,X,TMODE(1,M,7),TITLE,
+     1CTITLE,ATITLE,LEGEND,NFIN)
+C BEG FEB 1990
+      NCIRCS = NP(1)
+      DO 439 JJ = 1,NCIRCS
+        ICIRCS = M + JJ - 1
+        ISEGPL = ITHETA(ICIRCS)/1000
+        IPTPL  = ITHETA(ICIRCS) - 1000*ISEGPL
+        WRITE(54,142) (TITLE(I),I=1,12)
+        WRITE(54,4305) INDIC, ICIRCS, ISEGPL, IPTPL
+ 4305   FORMAT(' NONSYMMETRIC DEFORMATION:'/
+     1       '   Analysis type, INDIC =',I3,';  Circumference No.',I2/
+     1       '   Circumferential distribution for Segment No.',I3/
+     1       '                                Nodal Point No.',I3)
+        WRITE(54,431) ICIRCS,ITHETA(ICIRCS),ICIRCS
+  431   FORMAT(/' DISPLACEMENTS ALONG CIRCUMF. ',I2,'; ITHETA= ',I5,'. M
+     1ERIDIONAL, CIRCUMFERENTIAL, AND NORMAL MODAL DISPLACEMENTS, u,v,w:
+     1'/
+     1'                         Meridional    Circumferential      Norma
+     1l'/
+     1'                        Displacement    Displacement     Displace
+     1ment'/
+     1'         Circ. Angle         u               v                w'/
+     1  'DISP_CIRCUMF',I2/
+     1  '*')
+        WRITE(54,432) CHAR(9),CHAR(9),CHAR(9),CHAR(9)
+  432   FORMAT(' Node No.',A1,'Circ. Angle',A1,'Merid., u',A1,
+     1  'Circ., v',A1,'Normal., w')
+        DO 434 I = 1,NTHETA
+          WRITE(54,433) I,CHAR(9),X(I),CHAR(9),TMODE(I,ICIRCS,1),
+     1    CHAR(9),TMODE(I,ICIRCS,2),CHAR(9),TMODE(I,ICIRCS,3)
+  433     FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4)
+  434   CONTINUE
+        WRITE(54,141)
+        WRITE(54,142) (TITLE(I),I=1,12)
+        WRITE(54,4305) INDIC, ICIRCS, ISEGPL, IPTPL
+        WRITE(54,435) ICIRCS,ITHETA(ICIRCS),WORD4(1),WORD4(2),
+     1                WORD4(3),ICIRCS
+  435   FORMAT(/' RESULTS FOR CIRCUMFERENCE ',I2,'; ITHETA=',I6,'.'/
+     1          A/A/A/
+     1  'RESULTS_CIRCUMF',I2/
+     1  '*')
+        WRITE(54,436) CHAR(9),CHAR(9),WORD(4),CHAR(9),WORD(5),
+     1                CHAR(9),WORD(6),CHAR(9),WORD(7),CHAR(9),
+C BEG MAR 1991
+     1                WORD(8),CHAR(9),WORD(9),CHAR(9),WORD(10),
+     1                CHAR(9),WORD(11)
+  436   FORMAT(' Node No.',A1,'Circ. angle',A1,A,A1,
+     1           A,A1,A,A1,A,A1,A,A1,A,A1,A,A1,A)
+        DO 438 I = 1,NTHETA
+C BEG JAN 1993  (the argument IMERID was changed to ICIRCS, next 6 lines)
+          SIGVI = SQRT(TMODE(I,ICIRCS,4)**2 + TMODE(I,ICIRCS,7)**2
+     1                -TMODE(I,ICIRCS,4)*TMODE(I,ICIRCS,7)
+     1             +3.*TMODE(I,ICIRCS,6)**2)
+          SIGVO = SQRT(TMODE(I,ICIRCS,5)**2 + TMODE(I,ICIRCS,8)**2
+     1                -TMODE(I,ICIRCS,5)*TMODE(I,ICIRCS,8)
+     1             +3.*TMODE(I,ICIRCS,9)**2)
+C END JAN 1993
+          WRITE(54,437) I,CHAR(9),X(I),CHAR(9),
+     1    TMODE(I,ICIRCS,4),CHAR(9),TMODE(I,ICIRCS,5),CHAR(9),
+     1    TMODE(I,ICIRCS,6),CHAR(9),TMODE(I,ICIRCS,7),CHAR(9),
+     1    TMODE(I,ICIRCS,8),CHAR(9),TMODE(I,ICIRCS,9),CHAR(9),
+     1    SIGVI,CHAR(9),SIGVO
+  437     FORMAT(I4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1              A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,A1,1PE12.4,
+     1              A1,1PE12.4)
+C END MAR 1991
+  438   CONTINUE
+      WRITE(54,141)
+  439 CONTINUE
+C END FEB 1990
+440   CONTINUE
+  450 CONTINUE
+      IF (NCIRC.EQ.0) GO TO 490
+      IF (IFLAG.EQ.1) GO TO 490
+  455 CONTINUE
+C     PLOT CIRCUMFERENTIAL DISTRIBUTIONS FOR VARIOUS AXIAL STATIONS
+C
+      CFACT = 1.0
+      CDIF  = (ABS(THETAM) - 3.1415)/3.1415
+      IF (ABS(CDIF).LT.0.1) THEN
+         IF (NSTART.NE.0.AND.NFINAL.NE.0) THEN
+            IF ((NSTART*NFINAL).LT.0) THEN
+               CFACT = 2.0
+            ENDIF
+         ENDIF
+      ENDIF
+      DTHETA = CFACT*THETAM*180./(FLOAT(NTHETA-1)*3.141593)
+      X(1) = 0.
+      DO 460 I=1,11
+      ATITLE(I,1) = QTITLE(I)
+460   ATITLE(I,2) = QTITLE(I)
+      DO 470 I=1,5
+      DO 470 J=1,3
+470   NPTS(I,J) = NTHETA
+      DO 480 I=2,NTHETA
+      I1 = I - 1
+480   X(I) = X(I1) + DTHETA
+      NFACT = NCIRC/5
+      NLEFT = NCIRC - 5*NFACT
+C
+      IFLAG = 1
+      GO TO 280
+490   CONTINUE
+C     IF (NPRT.GT.1) WRITE(IFILE4,500)
+500   FORMAT(' LEAVING SUBROUTINE PLOT     ')                        
+C     IF (NPRT.GT.1) CALL SR100T(2)
+510   RETURN
+      END
+C
+C
+C
+C=DECK      PLOT11
+      SUBROUTINE PLOT11(ILOOP,BBB,BMODE,TMODE,SMODE)
+      COMMON/SEGS/NSEG,M2,I5(295),I2,I2G
+      COMMON/INTRVL/INTVAL(295),IOUT,NDIST,NCIRC,NTHETA
+C BEG MAR 2007
+      DIMENSION SMODE(*),TMODE(*),BMODE(10000,9)
+C END MAR 2007
+      DIMENSION BBB(*)
+      IIOUT = IOUT
+      IF (IOUT.EQ.0) IIOUT = 1
+      NNDIST = NDIST
+      IF (NDIST.EQ.0) NNDIST = 1
+      NNCIRC = NCIRC
+      IF (NCIRC.EQ.0) NNCIRC = 1
+      CALL PLOTIT(I2,NTHETA,SMODE,TMODE,BMODE,IOUT,NDIST,NCIRC,ILOOP,
+     1 IIOUT,NNDIST,NNCIRC)
+      RETURN
+      END
+C
+C
+C
+C=DECK      PLOTI
+C     OVERLAY(5,0)
+      SUBROUTINE PLOTI
+      COMMON/IIFIFE/IIIF
+      COMMON/ENDOF/NLAST,NFIRST,NEDPLT
+C BEG JAN 2012
+C     COMMON /DATES/ ADUM,BDUM,XX
+C     DIMENSION XX(7)
+      INTEGER   IDAT(3), ITIM(3), OP, NHOL, HOLDAT(8)
+      CHARACTER SDAT*32
+      COMMON /DATES/ IDAT, ITIM, OP, NHOL, HOLDAT, SDAT
+C END JAN 2012
+      CALL PINIT(IIIF)
+      NEDPLT = 1
+C BEG JAN 2012
+C     CALL WDATE(XX)
+      OP     = 2
+*     CALL     SDATE(OP, SDAT, NHOL)
+*     CALL     CC2H(SDAT, HOLDAT, NHOL)
+      CALL     HDATE(OP, HOLDAT, NHOL)
+C END JAN 2012
+      RETURN
+      END
+C
+C
+C
+C=DECK      PLOTS
+      SUBROUTINE PLOTS (INTTYP,LOGIN,LOGOUT)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+c     WRITE (53, 100) 'PLOTS  ',FLOAT(INTTYP),FLOAT(LOGIN),FLOAT(LOGOUT)
+      RETURN
+100   FORMAT (' ',A7,9E13.5)                                          
+      END
+C
+C
+C
+C=DECK      SCALEH
+      SUBROUTINE SCALEH(X,S,N)
+C*****
+C      WRITTEN BY CBI IN 1974
+C*****
+      DIMENSION X(N),TDX(2),K(2),X0MIN(2)
+      INTEGER IN(15),IND(15)
+      DATA IN(1),IN(2),IN(3),IN(4),IN(5) / 100,125,150,175,200 /      
+      DATA IN(6),IN(7),IN(8),IN(9),IN(10) / 250,300,350,400,500 /     
+      DATA IN(11),IN(12),IN(13),IN(14),IN(15) / 600,700,800,1000,1250 /
+      DATA IND(1),IND(2),IND(3),IND(4),IND(5) / 4,5,6,7,4 /           
+      DATA IND(6),IND(7),IND(8),IND(9),IND(10) /5,6,7,8,5 /           
+      DATA IND(11),IND(12),IND(13),IND(14),IND(15) / 6,7,8,4,5 /      
+C
+      XL=X(1)
+      XR=X(1)
+      DO 50 I=1,N
+      XL=AMIN1(XL,X(I))
+      XR=AMAX1(XR,X(I))
+50    CONTINUE
+C
+      XAMAX=AMAX1(ABS(XL),ABS(XR))
+      IF(XAMAX.LT.1.0E-20) GO TO 55
+      RATIO=0.
+      IF(XR.NE.0.) RATIO=XL/XR
+      IF(RATIO.LT.0.999.OR.RATIO.GT.1.001) GO TO 100
+      IF(XL.NE.0.) GO TO 60
+55    CONTINUE
+      AX0=-1.
+      ADX=1.
+      GO TO 1000
+60    IF(XL.GT.0.) GO TO 70
+      AX0=2.*XL
+      ADX=-XL
+      GO TO 1000
+70    AX0=0.
+      ADX=XL
+      GO TO 1000
+C
+100   RANGE=XR-XL
+      IF(ABS(XL/RANGE).LT.0.001) XL=0.
+      DX=RANGE/S
+      XNDX=ALOG10(DX)
+      NDX=XNDX
+      IF(XNDX.GE.0) NDX=NDX+1
+      IDX=DX*10.**(3-NDX)+1
+      II=1
+      DO 150 I=1,14
+      IF(IDX.GT.IN(I)) II=I+1
+150   CONTINUE
+      IF(II.EQ.15) GO TO 310
+C
+      J1=II
+      J2=II+1
+      TDX(1)=IN(J1)*10.**(NDX-3)
+      TDX(2)=IN(J2)*10.**(NDX-3)
+      IF(XL.NE.0.) GO TO 200
+      AX0=0.
+      ADX=TDX(1)
+      GO TO 1000
+C
+200   DO 210 I=1,2
+      X0MIN(I)=XR-TDX(I)*S
+      K(I)=XL/TDX(I)
+      IF(K(I).LT.0) K(I)=K(I)-1
+      IF(K(I).EQ.0.AND.XL.LT.0.) K(I)=-1
+210   CONTINUE
+      I=1
+C
+220   ADX=TDX(I)
+      X0=K(I)*ADX
+      IF(X0.LT.X0MIN(I)) GO TO 230
+      AX0=X0
+      GO TO 1000
+C
+230   IF(I.EQ.2) GO TO 250
+      I=2
+      GO TO 220
+C
+250   I=1
+      J=J1
+260   ADX=TDX(I)
+      XK=K(I)
+      IS=0
+      INDM1=IND(J)-1
+      DO 300 II=1,INDM1
+      IF(IS.EQ.1) GO TO 300
+      XK=XK+1./FLOAT(IND(J))
+      X0=XK*ADX
+      IF(X0.LT.XL.AND.X0.GT.X0MIN(I)) IS=1
+300   CONTINUE
+C
+      IF(IS.EQ.1) GO TO 350
+      IF(I.EQ.1) GO TO 330
+310   CONTINUE
+      ADX=DX
+      AX0=XL
+      WRITE(IFILE4,320)
+320   FORMAT(/,5X,'*** SCALEH FAILED T0 FIND ADJUSTED VALUES',/)      
+      GO TO 1000
+C
+330   I=2
+      J=J2
+      GO TO 260
+C
+350   AX0=X0
+C
+1000  NP1=N+1
+      NP2=N+2
+      X(NP1)=AX0
+      X(NP2)=ADX
+      RETURN
+      END
+C
+C
+C
+C=DECK      SYMBOL
+      SUBROUTINE SYMBOL (X,Y,HEIGHT,LARRAY,ANGLE,ICHAR)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+      character LARRAY(124)
+C
+c     WRITE (53, 100) 'SYMBOL ',X,Y,HEIGHT,0.0,ANGLE,FLOAT(ICHAR)
+c     IF (ICHAR.GE.0) WRITE (53,150) LARRAY
+c     IF (ICHAR.LT.0) WRITE (53, 175) LARRAY(1)
+      RETURN
+100   FORMAT (' ',A7,9E13.5)                                          
+150   FORMAT (' ',124A1)
+175   FORMAT (' ',I10)                                                
+      END
+C
+C
+C
+C=DECK      ENDPLT
+      SUBROUTINE ENDPLT
+      COMMON/IIFIFE/IIIF
+      CALL ENPLT(4.,0.)
+      REWIND IIIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      DECML
+      SUBROUTINE DECML(X,Y,N1, M1 )
+      DIMENSION X(*),Y(*),N1(*)
+      DIMENSION DY(1)
+      DIMENSION DX(1)
+      LOGICAL FLAG
+      DOUBLE PRECISION EM,DX,DY,R,F
+      EQUIVALENCE(F,J)
+      MOVE=16777216                                            
+      FLAG=.FALSE.
+	GO TO 300
+      ENTRY  DDECML(DX,DY,N1, M1 )
+      FLAG=.TRUE.
+      GOTO 300
+300   MM=1
+      CALL NARG(NARGS,LOC)
+      IF(NARGS .GE. 4) MM=IABS(M1)
+      DO 200 I=1,MM
+      IF(FLAG)  GOTO 100
+      F=X(I)
+101   IF(F .EQ. (0.)) GOTO 201
+      R=DABS(F)
+      IF(R .LT. (10.) .AND.  R .GE. (1.)) GOTO 201
+      K = IABS(J/MOVE) - 64
+      M=FLOAT(K) * 1.20412
+      F=F/10.D0**M
+204   R=DABS(F)
+      IF(R .LT. (10.)) GOTO 209
+      F=F/10.D0
+      M=M+1
+      GOTO 204
+209   IF(R.GE.(1.)) GOTO 203
+      F=F*10.D0
+      M=M-1
+      GOTO 204
+201   M=0
+203   IF(FLAG)  GOTO 208
+      Y(I)=F
+      GOTO 207
+208   DY(I)=F
+207   N1(I) = M
+      GOTO 200
+100   F=DX(I)
+      GOTO 101
+200   CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      AXIS
+      SUBROUTINE AXIS(X,Y,LARRAY,NCHAR,ALEN,ANGLE,AMIN,DX)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+C       CONVERT EVERYTHING TO FLOAT AND WRITE OUT
+C
+      character LARRAY(124)
+C
+c     WRITE (53, 100) 'AXIS   ',X,Y,0.0,FLOAT(NCHAR),ALEN,ANGLE,
+c    1AMIN,DX,0.0
+c     IF (ABS(NCHAR).GT.0) WRITE (53, 150) LARRAY
+      RETURN
+C
+100   FORMAT (' ',A7,9E13.5)                                          
+150   FORMAT (' ',124A1)                                              
+      END
+C
+C
+C
+C=DECK      CSEG
+      SUBROUTINE CSEG(OP,M1,NP,X,SX,XMIN,DX,Y,SY,YMIN,DY, KK )
+      DIMENSION X(*),Y(*),TFX(16),TFY(16)
+      INTEGER OP,FLAG
+      COMMON /CSEG11/CX,CY,ASX,ASY,FLAG,M,K,ILOOP
+      CALL NARG(N,LOC)
+      M=M1
+      ASX=ABS(SX)+.01
+      ASY=ABS(SY)+.01
+      IF (M.LE.15) GO TO 20
+      CALL SYMBOL(1.,10.,.14,'CSEG ARG. M.GT.15',0.,17)
+      M=15
+20    K=KK
+      XXMIN=XMIN
+      YYMIN=YMIN
+      IF (SX) 40,50,50
+40    CALL DECML(XXMIN,SAVE,NEXP,1)
+      IF((SAVE+.1).GE.(10.)) NEXP=NEXP+1
+      XXMIN=10.**NEXP
+50    IF (SY) 54,60,60
+54    CALL DECML(YYMIN,SAVE,NEXP1,1)
+      IF((SAVE+.1).GE.(10.))  NEXP1=NEXP1+1
+      YYMIN=10.**NEXP1
+60    MM=M+1
+      IF (11.LT.N) K=KK
+      FLAG=OP
+      IF (OP) 62,10,62
+62    CX=TFX(MM)
+      CY=TFY(MM)
+      ILOOP=0
+10    DO 100 I=1,NP
+      IF (SX) 102,102,2
+102   IF(X(I).GT.0.) GO TO 112
+      FX=-.02
+      GO TO 3
+112   FX =(ALOG10(X(I)/XXMIN))*DX
+      GO TO 3
+2     FX=(X(I)-XXMIN)/DX
+3     IF (SY) 103,103,4
+103   IF (Y(I).GT.0.) GO TO 113
+      FY=-.02
+      GO TO 5
+113   FY = (ALOG10(Y(I)/YYMIN))*DY
+      GO TO 5
+4     FY=(Y(I)-YYMIN)/DY
+5     CALL CSEG10(FX,FY)
+      ILOOP=1
+100   CONTINUE
+      TFX(MM) = FX
+      TFY(MM)= FY
+      RETURN
+      END
+C
+C
+C
+C=DECK      CSEG10
+      SUBROUTINE CSEG10(X1,Y1)
+      DIMENSION FLAT(16),IPEN(20,7)
+      DIMENSION FL(7)
+      DATA FL/2*.1,3*.2,.1,.2/                                        
+      INTEGER OPM(16),FLAG
+      INTEGER OP1,OP2
+      COMMON /CSEG11/CX,CY,ASX,ASY,FLAG,M,K,ILOOP
+      DATA FLAT/16*.901/                                              
+      DATA IPEN/20*2,                                                 
+     13*2,3,3*2,3,3*2,3,3*2,3,3*2,3,                                  
+     215*2,3,2,3,2,3,                                                 
+     39*2,3,9*2,3,                                                    
+     45*2,3,2,3,2,3,5*2,3,2,3,2,3,                                    
+     58*2,3,2,3,8*2,3,                                                
+     62,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3/                        
+      OP2=0
+      OP1=0
+      FLAST=.901
+      MO = MOD(M,7)+1
+      MM = M+1
+      IF (FLAG) 5,10,5
+5     OP1=OPM(MM)
+10    IF ((ASX.LT.X1).OR.(ASY.LT.Y1)) GO TO 50
+      IF((X1.LT.(-.01)).OR.(Y1.LT.(-.01))) GO TO 50
+      IF(FLAG) 12,14,12
+14    FLAG = 1
+      CX=X1
+      CY=Y1
+      CALL PLOT(CX,CY,3)
+      OPM(MM)=OP2
+      FLAT(MM)=FLAST
+      RETURN
+12    DX=X1-CX
+      DY=Y1-CY
+      DZ=SQRT(DX**2+DY**2)
+      NP = 1
+      IF (NP.LE.0) RETURN
+      IF (ILOOP.NE.0) GO TO 18
+      IF (OP1.EQ.0) CALL PLOT(CX,CY,3)
+18    FLAST=FLAT(MM)
+      DFL = FL(MO)
+      DO 30 J=1,NP
+      FLAST = FLAST+DFL
+      IF (FLAST.GT.21.) FLAST=1.001
+      IF (J.NE.NP) GO TO 21
+      XP = X1
+      YP = Y1
+      GO TO 221
+21    DP = FLOAT(J-1)/1.
+      XP = CX+DP*DX/DZ
+      YP = CY+DP*DY/DZ
+221   IF (OP1+OP2) 22,29,22
+22    IF (OP1+OP2-2)23,35,23
+23    IF ((ASX.LT.XP).OR.(ASY.LT.YP)) GO TO 300
+      IF ((XP.LT.(-.01)).OR.(YP.LT.(-.01))) GO TO 300
+      IF (OP1) 27,29,27
+300   IF (OP1) 30,35,30
+27    CALL PLOT(XP,YP,3)
+      OP1=0
+      GO TO 30
+29    CALL PLOT(XP,YP,IPEN(nint(FLAST),MO))
+      IF (J-NP) 30,28,30
+28    IF (K) 30,31,31
+31    CALL SYMBOL(X1,Y1,.07,K,0.,-1)
+30    CONTINUE
+35    FLAT(MM)=FLAST
+      OPM(MM)=OP2
+      CX=X1
+      CY=Y1
+      RETURN
+50    OP2=1
+      IF (FLAG.EQ.0) GO TO 55
+      IF (OP1.EQ.0) GO TO 12
+55    FLAG =1
+      GO TO 35
+      END
+C
+C
+C
+C=DECK      NUMBER
+      SUBROUTINE NUMBER (X,Y,HEIGHT,FNUMB,ANGLE,NDIGIT)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+c     WRITE (53,100) 'NUMBER ',X,Y,HEIGHT,FNUMB,ANGLE,FLOAT(NDIGIT)
+      RETURN
+100   FORMAT (' ',A7,9E13.5)                                          
+      END
+C
+C
+C
+C=DECK      PINIT
+      SUBROUTINE PINIT(IUNIT)
+      COMMON /UCCPLT/ IQZPLT,IFILE,NAME(2),IFTIME(4)
+C BEG JAN 2012
+      INTEGER   IDAT(3), ITIM(3), OP, NHOL, HOLDAT(8)
+      CHARACTER SDAT*32
+      COMMON /DATES/ IDAT, ITIM, OP, NHOL, HOLDAT, SDAT
+C END JAN 2012
+      IQZPLT=12345678
+      IFILE=IUNIT
+C
+C   PINIT CALLS PLOTS USING PASSED ARGUMENT IUNIT
+C
+      CALL PLOTS ( 1, IFILE, IFILE )
+C INITIALIZE
+C BEG JUL 2003
+C     CALL FDATE(CDATE)
+C     CALL FDATE(IFTIME)
+C END JUL 2003
+      CALL JOBNAM(NAME)
+C ESTABLISH MARGIN AT 1 3/4 INCH
+C      CALL PLOT(0.,-40.,-3)
+C      CALL PLOT(0.,1.75,-3)
+C SHORT NAME AT FRONT OF PLOT AND FRONT MARGIN
+C      CALL SYMBOL(0.,0.,.49,NAME,90.,8)
+C      CALL PLOT(4.,0.,-3)
+      CALL PLOT (1.4,.8,-3)
+      RETURN
+C ENDPLOT WITH JOBID
+      ENTRY ENPLT(X,Y)
+C DRIVE PEN TO R MARGIN
+      CALL PLOT(X,Y,-3)
+      CALL FACTOR(1.)
+      CALL PLOT(0.,-40.,-3)
+      CALL PLOT(4.,1.25,-3)
+C PLOT ID
+      CALL SYMBOL(0.,0.,.125,'*',90.,1)
+      CALL SYMBOL(0.,1.75,.125,
+     X'U S C - U C C',90.,13)
+      CALL SYMBOL(0.,8.25,.125,
+     X'START_______________',90.,20)
+      CALL SYMBOL(1.000,1.,.75,NAME,90.,8)
+      CALL SYMBOL(1.375,1.75,.125,'PLOT DATA CREATED',90.,17)
+C BEG JAN 2012
+      OP    =  1
+      CALL     HDATE(OP, HOLDAT, NHOL)
+C     CALL SYMBOL(1.375,4.25,.125,IFTIME,90.,16)
+      CALL SYMBOL(1.375,4.25,.125,HOLDAT,90.,12)
+C END JAN 2012
+      CALL SYMBOL(1.375,8.25,.125,
+     X'STOP________________',90.,20)
+C ADVANCE AND END
+      CALL PLOT(4.,0.,-3)
+      IQZPLT=87654321
+      CALL PLOT(0.,0.,999)
+      RETURN
+      END

@@ -1,0 +1,3570 @@
+C=DECK      STAGFE
+C
+C  PURPOSE IS TO SET UP A STAGS FINITE ELEMENT MODEL FOR ENTIRE PANEL.
+C
+      PROGRAM STAGFE
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C BEG MAR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADX,NSTEPX,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMXX,XMIN,YMXX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END MAR 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+      DIMENSION N1T1(100),N2T1(100)
+C END MAY 1997
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/THICK/TX(5),TY(5)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+      COMMON/MATRAN/G13(20),G23(20)
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/FDEFAU/FDEFLT
+      COMMON/CDEFAU/CDEFLT
+      CHARACTER*1 CDEFLT
+C END FEB 1995
+C BEG AUG 2006 (dimension of IPOINT increased from 95 to 195)
+C BEG APR 2007 (increas dimension of IPOINT from 195 to 295 for use with bigbosor4)
+      COMMON/BOSEGS/NSEGB5,IPOINT(295)
+C END APR 2007
+C END AUG 2006
+      COMMON/GNNSTB/EIGGEN(1),EIGLOC,FNLOC,FBOUND,LENMOD
+C BEG JAN 1998
+      REAL LENMOD
+C END JAN 1998
+      COMMON/GENPRE/FBPRE,PRELEN,FMISC(28)
+      COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+      DIMENSION NNODES(8),WRDSEG(8),FLONG(8),ANGSEG(8),IWALL(8)
+      DIMENSION IPRESS(8),IUDISP(8),IWDISP(8)
+      DIMENSION XBEAM(2),YBEAM(2),ZBEAM(2),TBEAM(2)
+      DIMENSION Y(2000),Z(2000),THETA(2000),NT2(2000),NT3(2000)
+      DIMENSION JWALL(2000),IUVW(2000),IRUVW(2000),JPRESS(2000)
+      DIMENSION JUDISP(2000),SHEAR(2000),FAXIAL(2000),FORCE(190000)
+C BEG NOV 1992
+      DIMENSION FAXIAB(2000),FORCEB(190000),PELMNB(190000)
+C END NOV 1992
+      DIMENSION JVDISP(2000),JWDISP(2000),ZREF(2000),ZSEG(8)
+      DIMENSION THETAG(100),YG(100),ZG(100),X(300),DX(300),DXAVE(300)
+      DIMENSION XCALL(20),NCALL(20),WIMPL(30),ISTEP(30),IMODE(30)
+C BEG NOV 1995
+      DIMENSION VELOC(30),IMSTEP(30),IMMODE(30),IMRUN(30)
+C END NOV 1995
+      DIMENSION IRUN(30)
+      DIMENSION ANGSKN(2000)
+      DIMENSION N2(300),N3(300),NODE(100,8),DS(100,8),IFOLD(100,8)
+C BEG MAR 2007
+      DIMENSION DSS(100,8)
+C END MAR 2007
+      DIMENSION JMAT(90,5),THIK(90,5),ANGL(90,5)
+      DIMENSION STLD(2),STEP(2),FACM(2),PELMNT(190000),JFOLD(2000)
+C BEG MAY 1998
+      DIMENSION PLDS(50)
+C END MAY 1998
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5,CASE8,CASE16
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5,CASE8,CASE16
+C END UNIX
+      CHARACTER*4 QUAL,WRDSEG,ANSOUT,WBASE
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      LOGICAL ANSL1     
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+C BEG JUNE 1992
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.inp'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE4=CASE(:I-1)//'.ELE'
+         CASE5=CASE(:I-1)//'.ppn'
+         CASE8=CASE(:I-1)//'.TUT'
+         CASE16=CASE(:I-1)//'.bin'
+      ELSE
+         CASE2=CASE//'.inp'
+         CASE3=CASE//'.CBL'
+         CASE4=CASE//'.ELE'
+         CASE5=CASE//'.ppn'
+         CASE8=CASE//'.TUT'
+         CASE16=CASE//'.bin'
+      ENDIF
+C END JUNE 1992
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2
+      IOUTFL = 3
+      IFIL14 = 14
+      IFIL15 = 15
+      IFIL16 = 16
+      IFILE7 = 7
+      IFILE4 = 4
+      IFILE8 = 8
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=14,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=15,FILE=CASE5,STATUS='UNKNOWN')
+C     OPEN(UNIT=16,FILE=CASE16,STATUS='UNKNOWN')
+C     OPEN(UNIT=8,FILE=CASE8,STATUS='UNKNOWN')
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=4,FILE=CASE4,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+C BEG UNIX
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifil14, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifil14)
+#endif
+      else
+        OPEN(UNIT=ifil14, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case5(1:lastch(case5)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifil15, FILE=case5(1:lastch(case5)), STATUS='OLD')
+#if rs6k
+        rewind(ifil15)
+#endif
+      else
+        OPEN(UNIT=ifil15, FILE=case5(1:lastch(case5)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case16(1:lastch(case16)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifil16, FILE=case16(1:lastch(case16)), STATUS='OLD')
+#if rs6k
+        rewind(ifil16)
+#endif
+      else
+        OPEN(UNIT=ifil16, FILE=case16(1:lastch(case16)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case(1:lastch(case)), EXIST=exists) 
+      if (exists) then
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ioutfl)
+#endif
+      else
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='OLD')
+#if rs6k
+        rewind(ifile4)
+#endif
+      else
+        OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+C
+      WRITE(6,5)
+    5 FORMAT(//'  ****************  STAGSMODEL  *******************'//
+     1'  The purpose of STAGSMODEL is to produce input files,'//
+     1'            NAME.inp,  NAME.bin  and  NAME.ppn'//
+     1'  for a multi-module model of a panel. NAME is your name for'/
+     1'  the case. The files NAME.inp, NAME.bin can be used as input'/
+     1'  for the  STAGS  computer program.  STAGS is a general finite'/
+     1'  element code for the nonlinear static and dynamic analysis'/
+     1'  of stiffened shell structures.  You should use STAGS to'/
+     1'  check the load-carrying capacity of the panels you designed'/
+     1'  with PANDA2. The file NAME.ppn can be used directly as input'/
+     1'  for the STAGS postprocessor, POSTP.  STAGSMODEL also creates'/
+     1'  a file called NAME.STG, which can be used as input for'/
+     1'  future runs of STAGSMODEL.'/
+     1'  ***********************************************'/)
+C
+      IF (ISTIF(1).EQ.5) THEN
+         WRITE(6,*)' **********************************************'
+         WRITE(6,*)' STAGSMODEL does not work for truss-core panels.'
+         WRITE(6,*)' **********************************************'
+         CALL EXIT
+      ENDIF
+      QUAL = '.STG'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+      AR = ABS(R)
+      DIF = ABS(AR - 10000.*SQRT(AXIAL**2 +CIRC**2))/AR
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) DIF = 0.
+C END MAR 1996
+      REWIND IFILE
+      CALL DATUM(IFILE,51,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IPOSTP = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) IPOSTP = 1
+      CALL DATUM(IFILE,52,1,2,INDIC,REALL,CHARAC,IOUT,0,IPROMP)
+      INDICX = INDIC
+      IF (INDICX.EQ.4) INDIC = 3
+      IF (IPOSTP.EQ.1) WRITE(6,7)
+    7 FORMAT(/' Next, you will be asked to provide a load step number.'/
+     1' In response to the prompt:'//
+     1' Restart from ISTARTth load step (0=1st nonlinear soln),ISTART'//
+     1' type the load step number for which you want postprocessing.'/)
+      CALL DATUM(IFILE,53,1,2,ISTART,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,54,1,2,INT,EIGLOC,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,55,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IGRAV = 0
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         IGRAV = 1
+         CALL DATUM(IFILE,56,1,2,INT,GRAV,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+      CALL DATUM(IFILE,57,1,2,INT,CPS,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,58,1,2,INT,DAMPNG,CHARAC,IOUT,0,IPROMP)
+    8 CONTINUE
+C BEG APR 1998
+      ISTAGS = 2
+      CALL DATUM(IFILE,59,1,2,ISOLVR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISOLVR.NE.0.AND.ISOLVR.NE.-1) ISOLVR = 0
+C     IF (ISTAGS.NE.1.AND.ISTAGS.NE.2) THEN
+C     IF (ISTAGS.NE.2) THEN
+C        WRITE(6,*)' You must choose ISTAGS = 2   .  Try again.'
+C        BACKSPACE(IOUT)
+C        REWIND IFILE
+C        GO TO 8
+C     ENDIF
+C END APR 1998
+   71 CONTINUE
+      CALL DATUM(IFILE,96,1,2,INT,XSTAGS,CHARAC,IOUT,0,IPROMP)
+      IF (XSTAGS.GT.(1.01*B(2))) THEN
+         WRITE(6,*)' PANEL IS TOO LONG. MAXIMUM LENGTH PERMITTED IS'
+         WRITE(6,*)' THE LENGTH BETWEEN ADJACENT RINGS, B(2)=',B(2)
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 71
+      ENDIF
+      NSTIF = 1
+C BEG NOV 1992
+      IDIFF = 0
+      IF (ISTIF(1).EQ.0) THEN
+         CALL DATUM(IFILE,97,1,2,INT,CIRC,CHARAC,IOUT,0,IPROMP)
+C BEG SEPT 1993
+C        IF (CIRC.LE.0.001*B(1)) IDIFF = 1
+C BEG OCT 1994
+         IFLAT = 0
+         IF (DIF.LT.0.5) IFLAT = 1
+C END OCT 1994
+         IF (ISTIF(2).EQ.0.AND.IFLAT.EQ.0
+     1  .AND.CIRC.LE.0.5*B(1)) IDIFF = 1
+C END SEPT 1993
+         B(1) = CIRC
+      ELSE
+C END NOV 1992
+         CALL DATUM(IFILE,98,1,2,NSTIF,REALL,CHARAC,IOUT,0,IPROMP)
+         FNSTIF = NSTIF
+         CIRC = FNSTIF*B(1)
+      ENDIF
+      REMAIN = B(1)/2.
+      ISYM = 1
+      CALL DATUM(IFILE,808,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IWIDE = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) IWIDE = 1
+      IFLAT = 0
+      IF (DIF.LT.0.5) THEN
+         R = 10000.*SQRT(AXIAL**2 +CIRC**2)
+         IFLAT = 1
+      ENDIF
+      IF (ISTIF(1).NE.0) THEN
+         CALL DATUM(IFILE,811,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IXUNI = 0
+         IF (ANSL1('Y',ANSOUT,INFILE)) IXUNI = 1
+      ELSE
+         IXUNI = 1
+      ENDIF
+      IF (IXUNI.EQ.1) THEN
+    9    CONTINUE
+         CALL DATUM(IFILE,812,1,2,NODEX,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (MOD(NODEX,2).EQ.0) THEN
+            WRITE(6,*)' NODEX MUST BE AN ODD INTEGER. TRY AGAIN.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 9
+         ENDIF
+         IF (NODEX.GT.299) THEN
+            WRITE(6,*)' NODEX EXCEEDS MAX. ALLOWABLE VALUE OF 299.'
+            WRITE(6,*)' PLEASE REDUCE THE NUMBER OF AXIAL NODES.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 9
+         ENDIF
+         IX = 1
+         XCALL(1) = XSTAGS
+         NCALL(1) = NODEX
+         DXX = XSTAGS/FLOAT(NODEX-1)
+         DO 909 I = 1,NODEX
+  909    DX(I) = DXX
+      ELSE
+         IX = 0
+         NODEX = 1
+   91    CONTINUE
+         IX = IX + 1
+         REWIND IFILE
+         IF (IX.EQ.1)
+     1      CALL DATUM(IFILE,813,0,0,INT,REALL,CHARAC,IOUT,IX,IPROMP)
+         CALL DATUM(IFILE,814,1,2,INT,XCALL(IX),CHARAC,IOUT,IX,IPROMP)
+  913    CONTINUE
+         CALL DATUM(IFILE,815,1,2,NCALL(IX),REALL,CHARAC,IOUT,
+     1      IX,IPROMP)
+         IF (MOD(NCALL(IX),2).EQ.0) THEN
+            WRITE(6,*)' n(i) MUST BE AN ODD INTEGER. TRY AGAIN.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 913
+         ENDIF
+         FCALL = NCALL(IX) - 1
+         IF (IX.EQ.1) THEN
+            DXX = XCALL(IX)/FCALL
+         ELSE
+            DXX = (XCALL(IX)-XCALL(IX-1))/FCALL
+         ENDIF
+         IBEG = NODEX + 1
+         IEND   = NODEX + NCALL(IX) - 1
+         DO 911 I = IBEG,IEND
+  911    DX(I) = DXX
+         NODEX  = IEND
+         CALL DATUM(IFILE,816,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 91
+         IX = IX + 1
+  914    CONTINUE
+         CALL DATUM(IFILE,817,1,2,NCALL(IX),REALL,CHARAC,IOUT,
+     1      IX,IPROMP)
+         IF (MOD(NCALL(IX),2).EQ.0) THEN
+            WRITE(6,*)' n(i) MUST BE AN ODD INTEGER. TRY AGAIN.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 914
+         ENDIF
+         XCALL(IX) = XSTAGS
+         FCALL = NCALL(IX) - 1
+         DXX = (XCALL(IX)-XCALL(IX-1))/FCALL
+         IBEG = NODEX + 1
+         IEND   = NODEX + NCALL(IX) - 1
+         DO 912 I = IBEG,IEND
+  912    DX(I) = DXX
+         NODEX = IEND
+         IF (NODEX.GT.299) THEN
+            WRITE(6,*)' NUMBER OF AXIAL NODAL POINTS EXCEEDS 299.'
+            WRITE(6,*)' PLEASE REDUCE THE NUMBER OF AXIAL NODES.'
+            CALL ERREX
+         ENDIF
+      ENDIF
+         DX(1) = DX(2)
+         DX(NODEX+1) = DX(NODEX)
+C
+C FIND THE ANGLES THETAG(I) TO THE STRINGER CENTERS...
+C
+      CALL MOVER(0.,0,THETAG,1,100)
+      CALL MOVER(0.,0,THETA,1,2000)
+      CALL MOVER(0.,0,ANGSKN,1,2000)
+      CALL MOVER(0,0,JPRESS,1,2000)
+      CALL MOVER(0,0,JUDISP,1,2000)
+      CALL MOVER(0,0,JVDISP,1,2000)
+      CALL MOVER(0,0,JWDISP,1,2000)
+      CALL MOVER(0,0,JFOLD,1,2000)
+      CALL MOVER(0,0,JWALL,1,2000)
+      CALL MOVER(111,0,IUVW,1,2000)
+      CALL MOVER(111,0,IRUVW,1,2000)
+      CALL MOVER(0.,0,FORCE,1,190000)
+      CALL MOVER(0.,0,PELMNT,1,190000)
+      CALL MOVER(0.,0,SHEAR,1,2000)
+      CALL MOVER(0.,0,FAXIAL,1,2000)
+C BEG NOV 1992
+      CALL MOVER(0.,0,FAXIAB,1,2000)
+      CALL MOVER(0.,0,FORCEB,1,190000)
+      CALL MOVER(0.,0,PELMNB,1,190000)
+C END NOV 1992
+      CALL MOVER(0.,0,ZREF,1,2000)
+      CALL MOVER(0.,0,ZSEG,1,8)
+      CALL MOVER(0.,0,DS,1,800)
+C BEG MAR 2007
+      CALL MOVER(0.,0,DSS,1,800)
+C END MAR 2007
+      CALL MOVER(0, 0,IFOLD,1,800)
+C
+      IF (IFLAT.EQ.0) THEN
+         DO 10 I = 1,NSTIF
+            FI = I - 1
+            THETAG(I) = (REMAIN + FI*B(1))/R
+            YG(I) = R*SIN(THETAG(I))
+            ZG(I) = -R*(1.-COS(THETAG(I)))
+   10    CONTINUE
+      ELSE
+         DO 12 I = 1,NSTIF
+            FI = I - 1
+            YG(I) = REMAIN + FI*B(1)
+            ZG(I) = 0.
+C           WRITE(6,*)' I,YG(I),ZG(I)=',I,YG(I),ZG(I)
+   12    CONTINUE
+      ENDIF
+C
+C  CROSS-BEAM (RING) CROSS SECTION SWITCH, NTAB:
+C
+      NTAB = 0
+      IF (ISTIF(2).NE.0) NTAB = 1
+C
+C READ IN THE NUMBER OF NODES IN THE CROSS-SECTION OF EACH
+C SINGLE PANEL MODULE SEGMENT
+C
+      REWIND IFILE
+      WRITE(6,15)
+   15 FORMAT(/' Next, provide the number of nodal points in each'/
+     1' segment of the cross section of the single panel module.'/)
+      DO 20 ISEG = 1,NSEGB5
+      IF (ISTIF(1).EQ.0)
+     1   CALL PICT2(6,ISTIF,INTEXT,B2,W2,1,IFAY)
+      IF (ISTIF(1).EQ.1)
+     1   CALL DATUM(IFILE,120,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG MAY 1997
+      IF (ISTIF(1).EQ.2.AND.IZSTIF(1).EQ.0)
+     1   CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(1).EQ.2.AND.IZSTIF(1).EQ.1)
+     1   CALL DATUM(IFILE,117,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END MAY 1997
+      IF (ISTIF(1).EQ.3)
+     1   CALL DATUM(IFILE,125,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(1).EQ.4.AND.W2(1).EQ.B2(1))
+     1   CALL DATUM(IFILE,126,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(1).EQ.4.AND.W2(1).LT.B2(1))
+     1   CALL DATUM(IFILE,129,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(1).EQ.5)
+     1   CALL DATUM(IFILE,130,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+   18 CONTINUE
+      REWIND IFILE
+      CALL DATUM(IFILE,114,1,2,NNODES(ISEG),REALL,CHARAC,IOUT,ISEG,
+     1           IPROMP)
+      IF (MOD(NNODES(ISEG),2).EQ.0) THEN
+         WRITE(6,*)' NNODES MUST BE AN ODD INTEGER. TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 18
+      ENDIF
+   20 CONTINUE
+C
+  212 CONTINUE
+C BEG NOV 1996
+      CALL DATUM(IFILE,313,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,314,1,2,INT,FNX,CHARAC,IOUT,0,IPROMP)
+      IF (FNX.GT.0.) THEN
+         WRITE(6,*)' Nx is positive, indicating axial tension'
+         CALL DATUM(IFILE,315,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 212
+         ENDIF
+         CALL DATUM(IFILE,316,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 212
+         ENDIF
+      ENDIF
+C
+  214 CONTINUE
+      CALL DATUM(IFILE,317,1,2,INT,FNY,CHARAC,IOUT,0,IPROMP)
+      IF (FNY.GT.0.) THEN
+         WRITE(IWRITE,*)' Ny is positive, indicating circum. tension'
+         CALL DATUM(IFILE,318,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 214
+         ENDIF
+         CALL DATUM(IFILE,319,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 214
+         ENDIF
+      ENDIF
+C
+      CALL DATUM(IFILE,320,1,2,INT,FNXY,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,336,1,2,INT,P,CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1992
+      REWIND IFILE
+      CALL DATUM(IFILE,329,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,332,1,2,INT,FNX0,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,333,1,2,INT,FNY0,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,335,1,2,INT,P0,CHARAC,IOUT,0,IPROMP)
+C END NOV 1992
+  458 CONTINUE
+C BEG JAN 1998
+      IBOUND = FBOUND
+C     WRITE(6,'(A,4I3)')' IBOUND,ISTIF(1),ISTIF(2),IFLAT=',
+C    1                    IBOUND,ISTIF(1),ISTIF(2),IFLAT
+      IF (IBOUND.EQ.1.AND.ISTIF(1).NE.0.AND.ISTIF(2).EQ.0
+     1               .AND.IFLAT.EQ.1) THEN
+          WRITE(6,459)
+          WRITE(6,461) LENMOD
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  459    FORMAT(/
+     1' ************** WARNING ************** WARNING **************',/,
+     1 ' You will next be prompted for the amplitude of an axial',/,
+     1 ' bowing initial imperfection (called Wimpg) to be used in',/,
+     1 ' the STAGS finite element model. The panel is clamped for',/,
+     1 ' buckling, has stringers, and has no rings. Therefore, the',/,
+     1 ' shape of the bowing imperfection in the STAGS model is',/,
+     1 ' assumed to have the form:',/,/,
+     1 '     Wimpg(STAGS) = -Wimpg*[1.-cos(2*pi*x/L)]/2.0',/,/,
+     1 ' In contrast, the imperfection shape in the PANDA2 model is',/,
+     1 ' assumed to have the form:',/,/,
+     1 '    Wimpg(PANDA2) = -Wimpg2*sin[pi*x/L(eff)]',/,/,
+     1 ' in which you provided the amplitude Wimpg2 in MAINSETUP',/,
+     1 ' and in which L(eff), the effective simply supported length',/,
+     1 ' may be less than the actual length: L(eff) = LENMOD*L.')
+  461   FORMAT(
+     1 ' (LENMOD=',1P,E12.4,' in this case). The STAGS bowing Wimpg',/,
+     1 ' that you provide next (if not zero: you can instead use a',/,
+     1 ' general buckling modal imperfection) should possibly be:',/,/,
+     1 '     Wimpg(your input) = Wimpg2(PANDA2)/(2*LENMOD**2)',/,/,
+     1 ' Even if you decide to use zero for the bowing imperfection',/,
+     1 ' and nonzero for the general buckling modal imperfection',/,
+     1 ' instead, you might still want to modify the modal amplitude',/,
+     1 ' in order to ensure that the PANDA2 and STAGS models are',/,
+     1 ' consistent with eachother. For the PANDA2 and STAGS models',/,
+     1 ' to be consistent with respect to initial overall imperfect-',/,
+     1 ' tion, the initial axial curvatures in the PANDA2 and STAGS',/,
+     1 ' models should be approximately equal if the panel is flat.',/,
+     1 ' See ITEM 395 in the file ...panda2/doc/panda2.news for more',/,
+     1 ' information on this subtle point.',/,
+     1 ' *********** END WARNING ********** END WARNING ************',/)
+C END JAN 1998
+      CALL DATUM(IFILE,345,1,2,INT,WIMPG,CHARAC,IOUT,0,IPROMP)
+      IF (WIMPG.GT.0.) THEN
+         WRITE(IWRITE,460) NLOADS,WIMPG
+  460 FORMAT(/' *** WARNING *** WARNING *** WARNING *** WARNING ***'/
+     1' LOAD SET NUMBER',I2,', AXIAL BOWING AMPLITUDE, WIMPG=',1PE12.4/
+     1' The global axial bowing is positive.  This means that the'/
+     1' panel is bent so that under axial compression the tips of the'/
+     1' stringers will be compressed more than the panel skin. There-'/
+     1' fore, the panel skin will not experience local buckling as'/
+     1' soon as would a panel without axial bowing or with negative'/
+     1' axial bowing.  Optimum designs of bowed panels should be'/
+     1' obtained including both positive and negative WIMPG in order'/
+     1' to avoid the generation of unconservative designs. You can'/
+     1' do this by introducing another load set with everything the'/
+     1' same as the present load set except for the sign of WIMPG.'//
+     1' If you only want or can only afford one load set, it is best'/
+     1' to make WIMPG negative, especially if in-plane shear loading'/
+     1' is present.'/)
+         CALL DATUM(IFILE,346,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 458
+         ENDIF
+      ENDIF
+C BEG NOV 1991 (FOLLOWING STATEMENTS COMMENTED OUT)
+C     IF (IFLAT.EQ.0) THEN
+C        WIMPG = 0.
+C        WRITE(6,*)' NO AXIAL BOWING IS PERMITTED FOR CURVED PANELS.'
+C        WRITE(6,*)' WIMPG HAS BEEN RESET TO ZERO.'
+C     ENDIF
+C END NOV 1991
+      CALL DATUM(IFILE,371,1,2,INT,STLD(1),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,372,1,2,INT,STEP(1),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,373,1,2,INT,FACM(1),CHARAC,IOUT,0,IPROMP)
+C BEG MAY 1998
+      IF (INDICX.EQ.4) THEN
+       CALL DATUM(IFILE,395,1,2,NLDS,REALL,CHARAC,IOUT,0,IPROMP)
+       DO 396 I = 1,NLDS
+        REWIND IFILE
+        CALL DATUM(IFILE,396,1,2,INT,PLDS(I),CHARAC,IOUT,I,IPROMP)
+  396  CONTINUE
+       CALL DATUM(IFILE,397,1,2,IXEV,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+      REWIND IFILE
+C END MAY 1998
+      CALL DATUM(IFILE,374,1,2,INT,STLD(2),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,375,1,2,INT,STEP(2),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,376,1,2,INT,FACM(2),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,377,1,2,NEIGS,REALL,CHARAC,IOUT,0,IPROMP)
+C     STLD(2) = 1.
+C     STEP(2) = 0.
+C     FACM(2) = 1.
+C BEG APR 2009
+      CALL DATUM(IFILE,385,1,2,IELMNT,REALL,CHARAC,IOUT,0,IPROMP)
+      REWIND IFILE
+C END APR 2009
+      CALL DATUM(IFILE,379,1,2,INEWT,REALL,CHARAC,IOUT,0,IPROMP)
+      NEWT = -1
+      IF (INEWT.EQ.1) NEWT = -20
+      CALL DATUM(IFILE,380,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      ISWAY = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) ISWAY = 1
+      IF (ISTIF(1).EQ.0) ISWAY = 0
+C BEG JAN 1999
+C     IHOLD = 0
+C     FNNORM = SQRT(FNX**2 + FNY**2)
+C     IF (NSTIF.EQ.1.AND.ISTIF(1).NE.0.AND.ISWAY.EQ.0.AND.
+C    1                                ABS(FNXY).LT.0.01*FNNORM) THEN
+C        CALL DATUM(IFILE,383,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C        IF (ANSL1('N',ANSOUT,INFILE)) IHOLD = 1
+C        REWIND IFILE
+C     ENDIF
+C END JAN 1999
+C BEG FEB 1997
+      ISETV0 = 0
+      IF (ISTIF(2).EQ.0) THEN
+         CALL DATUM(IFILE,381,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) ISETV0 = 1
+      ENDIF
+C END FEB 1997
+      CALL DATUM(IFILE,499,1,2,IEDGE,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG APR 1998
+      IF (IEDGE.NE.0) ISOLVR = 0
+C END APR 1998
+      CALL DATUM(IFILE,818,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      NIMPFS = 0
+      IWIMPL = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) IWIMPL = 1
+      IF (IWIMPL.EQ.1) THEN
+         CALL DATUM(IFILE,970,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,971,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IWIMP2 = 0
+         IF (ANSL1('Y',ANSOUT,INFILE)) IWIMP2 = 1
+         IF (IWIMP2.EQ.1) THEN
+            NWIMPL = 0
+  465       CONTINUE
+            IF (NWIMPL.EQ.30) GO TO 466
+            NWIMPL = NWIMPL + 1
+            REWIND IFILE
+            CALL DATUM(IFILE,972,1,2,INT,WIMPL(NWIMPL),CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+            CALL DATUM(IFILE,973,1,2,IRUN(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+            CALL DATUM(IFILE,974,1,2,ISTEP(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+            CALL DATUM(IFILE,975,1,2,IMODE(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+            CALL DATUM(IFILE,976,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 465
+  466       CONTINUE
+            NIMPFS = NWIMPL
+         ENDIF
+C BEG NOV 1995
+         IF (INDIC.EQ.6) THEN
+          CALL DATUM(IFILE,980,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+          CALL DATUM(IFILE,981,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+          IWIMP2 = 0
+          IF (ANSL1('Y',ANSOUT,INFILE)) IWIMP2 = 1
+          IF (IWIMP2.EQ.1) THEN
+             NWIMPL = 0
+  565        CONTINUE
+             IF (NWIMPL.EQ.30) GO TO 566
+             NWIMPL = NWIMPL + 1
+             REWIND IFILE
+             CALL DATUM(IFILE,982,1,2,INT,VELOC(NWIMPL),CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+             CALL DATUM(IFILE,983,1,2,IMRUN(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+             CALL DATUM(IFILE,984,1,2,IMSTEP(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+             CALL DATUM(IFILE,985,1,2,IMMODE(NWIMPL),REALL,CHARAC,IOUT,
+     1                 NWIMPL,IPROMP)
+             CALL DATUM(IFILE,986,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+             IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 565
+  566        CONTINUE
+             IVELO = NWIMPL
+          ENDIF
+         ENDIF
+C END NOV 1995
+      ENDIF
+C
+      IF (IELMNT.EQ.480.AND.ISTAGS.EQ.1) THEN
+         WRITE(6,*)' 480 ELEMENT IS IMPLEMENTED ONLY IN QSTAGS.'
+         WRITE(6,*)' THIS INTERACTIVE SESSION WILL NOW ABORT.'
+         CALL EXIT
+      ENDIF
+C
+C BEG JAN 1999
+      FNNORM = SQRT(FNX**2 + FNY**2)
+C END JAN 1999
+      PI = 3.1415927
+      ISTIF1 = ISTIF(1) + 1
+      IELEM = 0
+      GO TO (22,24,26,28,30,32),ISTIF1
+   22 CONTINUE
+C NO STRINGERS:
+      WRDSEG(1) = 'SKN1'
+      WRDSEG(2) = 'SKN1'
+      FLONG(1)  = 0.5*B(1)
+      FLONG(2)  = 0.5*B(1)
+      ANGSEG(1) = 0.
+      ANGSEG(2) = 0.
+      IWALL(1)  = 1
+      IWALL(2)  = 1
+      IPRESS(1) = 1
+      IPRESS(2) = 1
+      IUDISP(1)  = 1
+      IUDISP(2)  = 1
+      IWDISP(1)  = 1
+      IWDISP(2)  = 1
+      DO 23 ISEG = 1,NSEGB5
+         N = NNODES(ISEG)
+         FN1 = N - 1
+         DS(1,ISEG) = FLONG(ISEG)/FN1
+         DO 222 I = 2,N
+            DS(I,ISEG) = FLONG(ISEG)/FN1
+            IELEM = IELEM + 1
+            N2(IELEM) = IELEM
+            N3(IELEM) = IELEM + 1
+            IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+            NODE(I,ISEG) = N3(IELEM)
+  222    CONTINUE
+C BEG MAR 2007
+         CALL MOVER(DS,1,DSS,1,800)
+C END MAR 2007
+   23 CONTINUE
+      GO TO 34
+C
+   24 CONTINUE
+C TEE-STRINGERS:
+      WRDSEG(1) = 'SKN1'
+      WRDSEG(2) = 'SKN2'
+      WRDSEG(3) = 'WEB '
+      WRDSEG(4) = 'FLNG'
+      WRDSEG(5) = 'SKN1'
+      FLONG(1)  = 0.5*(B(1)-B2(1))
+      FLONG(2)  = B2(1)
+      FLONG(3)  = H(1) + TX(2) - 0.5*TX(1)
+      FLONG(4)  = W(1)
+      FLONG(5)  = 0.5*(B(1)-B2(1))
+      ANGSEG(1) = 0.
+      ANGSEG(2) = 0.
+      ANGSEG(3) = -PI/2.
+      ANGSEG(4) = 0.
+      ANGSEG(5) = 0.
+      ZSEG(2)   = 0.5*(TX(2)-TX(1))
+      NNN2 = NNODES(2)/2 + 1
+      NNN3 = NNODES(3)
+      IFOLD(NNN2,2) = 1
+      IFOLD(NNN3,3) = 1
+      IWALL(1)  = 1
+      IWALL(2)  = 2
+      IWALL(3)  = 3
+      IWALL(4)  = 4
+      IWALL(5)  = 1
+      IPRESS(1) = 1
+      IPRESS(2) = 1
+      IPRESS(3) = 0
+      IPRESS(4) = 0
+      IPRESS(5) = 1
+      IUDISP(1)  = 1
+      IUDISP(2)  = 1
+      IUDISP(3)  = 1
+      IUDISP(4)  = 1
+      IUDISP(5)  = 1
+      IWDISP(1)  = 1
+      IWDISP(2)  = 1
+      IWDISP(3)  = 0
+      IWDISP(4)  = 0
+C BEG JAN 1999
+      IF (NSTIF.EQ.1.AND.ISWAY.EQ.0.AND.ABS(FNXY).LT.0.01*FNNORM)
+     1   IWDISP(4) = 1
+C END JAN 1999
+      IWDISP(5)  = 1
+      DO 25 ISEG = 1,NSEGB5
+         N = NNODES(ISEG)
+         FN1 = N - 1
+         IF (IPRESS(ISEG).EQ.1) DS(1,ISEG) = FLONG(ISEG)/FN1
+         DO 242 I = 2,N
+            IF (IPRESS(ISEG).EQ.1) THEN
+               DS(I,ISEG) = FLONG(ISEG)/FN1
+               ISEGP = 2
+               IF (ISEG.EQ.2) ISEGP = 5
+               IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                  DS1 = DS(I,ISEG)
+                  FN2 = NNODES(ISEGP) - 1
+                  DS2 = FLONG(ISEGP)/FN2
+                  DS(I,ISEG) = 0.5*(DS1 + DS2)
+               ENDIF
+            ENDIF
+            IELEM = IELEM + 1
+            N2(IELEM) = IELEM
+            N3(IELEM) = IELEM + 1
+            IF (ISEG.EQ.3.AND.I.EQ.2) N2(IELEM)=NNODES(1)+NNODES(2)/2
+            IF (ISEG.EQ.4.AND.I.LE.(N/2+1)) THEN
+               N2(IELEM) = IELEM + 1
+               N3(IELEM) = IELEM + 2
+               IF (I.EQ.(N/2+1))
+     1             N3(IELEM) =NNODES(1) +NNODES(2) +NNODES(3) -2
+            ENDIF
+            IF (ISEG.EQ.4.AND.I.EQ.(N/2+2))
+     1             N2(IELEM) =NNODES(1) +NNODES(2) +NNODES(3) -2
+            IF (ISEG.EQ.5.AND.I.EQ.2) N2(IELEM)=NNODES(1)+NNODES(2)-1
+            IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+            NODE(I,ISEG) = N3(IELEM)
+  242    CONTINUE
+C BEG MAR 2007
+         CALL MOVER(DS,1,DSS,1,800)
+C END MAR 2007
+   25 CONTINUE
+C
+      GO TO 34
+   26 CONTINUE
+C J-STRINGERS:
+C BEG MAY 1997
+      WRDSEG(1) = 'SKN1'
+      IF (IZSTIF(1).EQ.0) WRDSEG(2) = 'SKN2'
+      IF (IZSTIF(1).EQ.1) WRDSEG(2) = 'FAYF'
+      WRDSEG(3) = 'WEB '
+      WRDSEG(4) = 'FLNG'
+      WRDSEG(5) = 'SKN1'
+      IF (IZSTIF(1).EQ.0) FLONG(1)  = 0.5*(B(1)-B2(1))
+      IF (IZSTIF(1).EQ.1) FLONG(1)  = 0.5*B(1)
+      FLONG(2)  = B2(1)
+      FLONG(3)  = H(1) + TX(2) - 0.5*TX(1)
+      FLONG(4)  = W(1)
+      IF (IZSTIF(1).EQ.0) FLONG(5)  = 0.5*(B(1)-B2(1))
+      IF (IZSTIF(1).EQ.1) FLONG(5)  = 0.5*B(1)
+      ANGSEG(1) = 0.
+      ANGSEG(2) = 0.
+      ANGSEG(3) = -PI/2.
+      ANGSEG(4) = 0.
+      ANGSEG(5) = 0.
+      IF (IZSTIF(1).EQ.0) ZSEG(2)   = 0.5*(TX(2)-TX(1))
+      IF (IZSTIF(1).EQ.1) ZSEG(2)   = 0.0
+      IF (IZSTIF(1).EQ.0) NNN2 = NNODES(2)/2 + 1
+      IF (IZSTIF(1).EQ.1) NNN2 = NNODES(2)
+      NNN3 = NNODES(3)
+      IFOLD(NNN2,2) = 1
+      IFOLD(NNN3,3) = 1
+      IWALL(1)  = 1
+      IWALL(2)  = 2
+      IWALL(3)  = 3
+      IWALL(4)  = 4
+      IWALL(5)  = 1
+      IPRESS(1) = 1
+      IF (IZSTIF(1).EQ.0) IPRESS(2) = 1
+      IF (IZSTIF(1).EQ.1) IPRESS(2) = 0
+      IPRESS(3) = 0
+      IPRESS(4) = 0
+      IPRESS(5) = 1
+      IUDISP(1)  = 1
+      IUDISP(2)  = 1
+      IUDISP(3)  = 1
+      IUDISP(4)  = 1
+      IUDISP(5)  = 1
+      IWDISP(1)  = 1
+      IF (IZSTIF(1).EQ.0) IWDISP(2)  = 1
+      IF (IZSTIF(1).EQ.1) IWDISP(2)  = 0
+      IWDISP(3)  = 0
+      IWDISP(4)  = 0
+C BEG JAN 1999
+      IF (NSTIF.EQ.1.AND.ISWAY.EQ.0.AND.ABS(FNXY).LT.0.01*FNNORM)
+     1   IWDISP(4) = 1
+C END JAN 1999
+      IWDISP(5)  = 1
+      DO 27 ISEG = 1,NSEGB5
+         N = NNODES(ISEG)
+         FN1 = N - 1
+         IF (IPRESS(ISEG).EQ.1) DS(1,ISEG) = FLONG(ISEG)/FN1
+         DO 262 I = 2,N
+            IF (IPRESS(ISEG).EQ.1) THEN
+               DS(I,ISEG) = FLONG(ISEG)/FN1
+               ISEGP = 2
+C BEG MAY 1997
+               IF (IZSTIF(1).EQ.1) ISEGP = 5
+C END MAY 1997
+               IF (ISEG.EQ.2) ISEGP = 5
+               IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                  DS1 = DS(I,ISEG)
+                  FN2 = NNODES(ISEGP) - 1
+                  DS2 = FLONG(ISEGP)/FN2
+                  DS(I,ISEG) = 0.5*(DS1 + DS2)
+               ENDIF
+            ENDIF
+            IELEM = IELEM + 1
+            N2(IELEM) = IELEM
+            N3(IELEM) = IELEM + 1
+C BEG MAY 1997
+            NODE(I,ISEG) = N3(IELEM)
+            IF (IZSTIF(1).EQ.0) THEN
+               IF (ISEG.EQ.3.AND.I.EQ.2)
+     1            N2(IELEM)=NNODES(1)+NNODES(2)/2
+               IF (ISEG.EQ.5.AND.I.EQ.2)
+     1            N2(IELEM)=NNODES(1)+NNODES(2)-1
+            ELSE
+               IF (ISEG.EQ.1.AND.I.EQ.N) THEN
+                  IELEM = IELEM + 1
+                  N2(IELEM) = IELEM
+                  N3(IELEM) = IELEM + NNODES(2)/2 + 1
+               ENDIF
+               IF (ISEG.EQ.5.AND.I.EQ.2) N2(IELEM) = NNODES(1)
+            ENDIF
+            IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+C END MAY 1997
+  262    CONTINUE
+C BEG MAR 2007
+         CALL MOVER(DS,1,DSS,1,800)
+C END MAR 2007
+   27 CONTINUE
+C
+      GO TO 34
+   28 CONTINUE
+C BLADE-STRINGERS:
+      WRDSEG(1) = 'SKN1'
+      WRDSEG(2) = 'SKN2'
+      WRDSEG(3) = 'WEB '
+      WRDSEG(4) = 'SKN1'
+      FLONG(1)  = 0.5*(B(1)-B2(1))
+      FLONG(2)  = B2(1)
+      FLONG(3)  = H(1) + TX(2) - 0.5*TX(1)
+      FLONG(4)  = 0.5*(B(1)-B2(1))
+      ANGSEG(1) = 0.
+      ANGSEG(2) = 0.
+      ANGSEG(3) = -PI/2.
+      ANGSEG(4) = 0.
+      ZSEG(2)   = 0.5*(TX(2)-TX(1))
+      NNN2 = NNODES(2)/2 + 1
+      IFOLD(NNN2,2) = 1
+      IWALL(1)  = 1
+      IWALL(2)  = 2
+      IWALL(3)  = 3
+      IWALL(4)  = 1
+      IPRESS(1) = 1
+      IPRESS(2) = 1
+      IPRESS(3) = 0
+      IPRESS(4) = 1
+      IUDISP(1)  = 1
+      IUDISP(2)  = 1
+      IUDISP(3)  = 1
+      IUDISP(4)  = 1
+      IWDISP(1)  = 1
+      IWDISP(2)  = 1
+      IWDISP(3)  = 0
+      IWDISP(4)  = 1
+      DO 29 ISEG = 1,NSEGB5
+         N = NNODES(ISEG)
+         FN1 = N - 1
+         IF (IPRESS(ISEG).EQ.1) DS(1,ISEG) = FLONG(ISEG)/FN1
+         DO 282 I = 2,N
+            IF (IPRESS(ISEG).EQ.1) THEN
+               DS(I,ISEG) = FLONG(ISEG)/FN1
+               ISEGP = 2
+               IF (ISEG.EQ.2) ISEGP = 4
+               IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                  DS1 = DS(I,ISEG)
+                  FN2 = NNODES(ISEGP) - 1
+                  DS2 = FLONG(ISEGP)/FN2
+                  DS(I,ISEG) = 0.5*(DS1 + DS2)
+               ENDIF
+            ENDIF
+            IELEM = IELEM + 1
+            N2(IELEM) = IELEM
+            N3(IELEM) = IELEM + 1
+            IF (ISEG.EQ.3.AND.I.EQ.2) N2(IELEM)=NNODES(1)+NNODES(2)/2
+            IF (ISEG.EQ.4.AND.I.EQ.2) N2(IELEM)=NNODES(1)+NNODES(2)-1
+            IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+            NODE(I,ISEG) = N3(IELEM)
+  282    CONTINUE
+C BEG MAR 2007
+         CALL MOVER(DS,1,DSS,1,800)
+C END MAR 2007
+   29 CONTINUE
+C
+      GO TO 34
+   30 CONTINUE
+C HAT-STRINGERS:
+      IF (B2(1).GT.W2(1)) THEN
+         WRDSEG(1) = 'SKN1'
+         WRDSEG(2) = 'SKN2'
+C BEG MAR 2007
+         WRDSEG(3) = 'SKN3'
+C        IF (IFAY(1).EQ.1) WRDSEG(3) = 'SKN1'
+C END MAR 2007
+         WRDSEG(4) = 'WEB1'
+         WRDSEG(5) = 'FLNG'
+         WRDSEG(6) = 'WEB2'
+         WRDSEG(7) = 'SKN2'
+         WRDSEG(8) = 'SKN1'
+         FLONG(1)  = 0.5*(B(1)-B2(1))
+         FLONG(2)  = 0.5*(B2(1)-W2(1))
+         FLONG(3)  = W2(1)
+         DTX = TX(2) - 0.5*TX(1)
+         FLONG(4)  = SQRT((H(1) + DTX)**2 +0.25*(W2(1)-W(1))**2)
+         FLONG(5)  = W(1)
+         FLONG(6)  = FLONG(4)
+         FLONG(7)  = 0.5*(B2(1)-W2(1))
+         FLONG(8)  = 0.5*(B(1)-B2(1))
+         ANGSEG(1) = 0.
+         ANGSEG(2) = 0.
+         ANGSEG(3) = 0.
+         ANGSEG(4) = -PI/2. + ASIN(0.5*(W2(1)-W(1))/FLONG(4))
+         ANGSEG(5) = 0.
+         ANGSEG(6) =  PI/2. - ASIN(0.5*(W2(1)-W(1))/FLONG(4))
+         ANGSEG(7) = 0.
+         ANGSEG(8) = 0.
+         ZSEG(2)   = 0.5*(TX(2)-TX(1))
+         ZSEG(3)   = 0.5*(TX(2)-TX(1))
+         ZSEG(7)   = 0.5*(TX(2)-TX(1))
+         IF (IFAY(1).EQ.1) ZSEG(3)   = 0.
+         NNN2 = NNODES(2)
+         NNN3 = NNODES(3)
+         NNN4 = NNODES(4)
+         NNN5 = NNODES(5)
+         IFOLD(NNN2,2) = 1
+         IFOLD(NNN3,3) = 1
+         IFOLD(NNN4,4) = 1
+         IFOLD(NNN5,5) = 1
+         IWALL(1)  = 1
+         IWALL(2)  = 2
+         IWALL(3)  = 2
+         IF (IFAY(1).EQ.1) IWALL(3) = 1
+         IWALL(4)  = 3
+         IWALL(5)  = 4
+         IWALL(6)  = 3
+         IWALL(7)  = 2
+         IWALL(8)  = 1
+C BEG JUN 1998
+         IF (P.GT.0.) THEN
+            IPRESS(1) = 1
+            IPRESS(2) = 1
+            IPRESS(3) = 1
+            IPRESS(4) = 0
+            IPRESS(5) = 0
+            IPRESS(6) = 0
+            IPRESS(7) = 1
+            IPRESS(8) = 1
+         ELSE
+            IPRESS(1) = 1
+            IPRESS(2) = 1
+            IPRESS(3) = 0
+            IPRESS(4) = 1
+            IPRESS(5) = 1
+            IPRESS(6) = 1
+            IPRESS(7) = 1
+            IPRESS(8) = 1
+         ENDIF
+C END JUN 1998      
+         IUDISP(1)  = 1
+         IUDISP(2)  = 1
+         IUDISP(3)  = 1
+         IUDISP(4)  = 1
+         IUDISP(5)  = 1
+         IUDISP(6)  = 1
+         IUDISP(7)  = 1
+         IUDISP(8)  = 1
+         IWDISP(1)  = 1
+         IWDISP(2)  = 1
+         IWDISP(3)  = 1
+         IWDISP(4)  = 0
+         IWDISP(5)  = 0
+C BEG JAN 1999
+         IF (NSTIF.EQ.1.AND.ISWAY.EQ.0.AND.ABS(FNXY).LT.0.01*FNNORM)
+     1   IWDISP(5) = 1
+C END JAN 1999
+         IWDISP(6)  = 0
+         IWDISP(7)  = 1
+         IWDISP(8)  = 1
+         DO 305 ISEG = 1,NSEGB5
+            N = NNODES(ISEG)
+            FN1 = N - 1
+C BEG MAR 2007
+            DSS(1,ISEG) = FLONG(ISEG)/FN1
+C END MAR 2007
+            IF (IPRESS(ISEG).EQ.1) DS(1,ISEG) = FLONG(ISEG)/FN1
+            DO 303 I = 2,N
+C BEG MAR 2007
+               DSS(I,ISEG) = FLONG(ISEG)/FN1
+               IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                  DS1 = DSS(I,ISEG)
+                  FN2 = NNODES(ISEGP) - 1
+                  DS2 = FLONG(ISEGP)/FN2
+                  DSS(I,ISEG) = 0.5*(DS1 + DS2)
+               ENDIF
+C END MAR 2007
+               IF (IPRESS(ISEG).EQ.1) THEN
+                  DS(I,ISEG) = FLONG(ISEG)/FN1
+                  ISEGP = 2
+                  IF (ISEG.EQ.2) ISEGP = 3
+                  IF (ISEG.EQ.3) ISEGP = 7
+                  IF (ISEG.EQ.7) ISEGP = 8
+                  IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                     DS1 = DS(I,ISEG)
+                     FN2 = NNODES(ISEGP) - 1
+                     DS2 = FLONG(ISEGP)/FN2
+                     DS(I,ISEG) = 0.5*(DS1 + DS2)
+                  ENDIF
+               ENDIF
+               IELEM = IELEM + 1
+               N2(IELEM) = IELEM
+               N3(IELEM) = IELEM + 1
+               IF (ISEG.EQ.4.AND.I.EQ.2)
+     1            N2(IELEM) = NNODES(1) + NNODES(2) - 1
+               IF (ISEG.EQ.6.AND.I.EQ.N)
+     1            N3(IELEM) = NNODES(1) +NNODES(2) +NNODES(3) -2
+               IF (ISEG.EQ.7.AND.I.EQ.2) THEN
+                  N2(IELEM) = NNODES(1) +NNODES(2) +NNODES(3) -2
+                  N3(IELEM) = IELEM
+               ENDIF
+               IF ((ISEG.EQ.7.AND.I.GT.2).OR.ISEG.EQ.8) THEN
+                  N2(IELEM) = IELEM - 1
+                  N3(IELEM) = IELEM
+               ENDIF
+               IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+               NODE(I,ISEG) = N3(IELEM)
+  303       CONTINUE
+  305    CONTINUE
+      ENDIF
+      IF (B2(1).EQ.W2(1)) THEN
+         WRDSEG(1) = 'SKN1'
+         WRDSEG(2) = 'SKN2'
+         WRDSEG(3) = 'WEB1'
+         WRDSEG(4) = 'FLNG'
+         WRDSEG(5) = 'WEB2'
+         WRDSEG(6) = 'SKN1'
+         FLONG(1)  = 0.5*(B(1)-B2(1))
+         FLONG(2)  = W2(1)
+         DTX = TX(2) - 0.5*TX(1)
+         FLONG(3)  = SQRT((H(1) + DTX)**2 +0.25*(W2(1)-W(1))**2)
+         FLONG(4)  = W(1)
+         FLONG(5)  = FLONG(3)
+         FLONG(6)  = 0.5*(B(1)-B2(1))
+         ANGSEG(1) = 0.
+         ANGSEG(2) = 0.
+         ANGSEG(3) = -PI/2. + ASIN(0.5*(W2(1)-W(1))/FLONG(3))
+         ANGSEG(4) = 0.
+         ANGSEG(5) =  PI/2. - ASIN(0.5*(W2(1)-W(1))/FLONG(3))
+         ANGSEG(6) = 0.
+         ZSEG(2)   = 0.5*(TX(2)-TX(1))
+         NNN1 = NNODES(1)
+         NNN2 = NNODES(2)
+         NNN3 = NNODES(3)
+         NNN4 = NNODES(4)
+         IFOLD(NNN1,1) = 1
+         IFOLD(NNN2,2) = 1
+         IFOLD(NNN3,3) = 1
+         IFOLD(NNN4,4) = 1
+         IWALL(1)  = 1
+         IWALL(2)  = 2
+         IWALL(3)  = 3
+         IWALL(4)  = 4
+         IWALL(5)  = 3
+         IWALL(6)  = 1
+C BEG JUN 1998
+         IF (P.GT.0.) THEN
+            IPRESS(1) = 1
+            IPRESS(2) = 1
+            IPRESS(3) = 0
+            IPRESS(4) = 0
+            IPRESS(5) = 0
+            IPRESS(6) = 1
+         ELSE
+            IPRESS(1) = 1
+            IPRESS(2) = 0
+            IPRESS(3) = 1
+            IPRESS(4) = 1
+            IPRESS(5) = 1
+            IPRESS(6) = 1
+         ENDIF
+C END JUN 1998
+         IUDISP(1)  = 1
+         IUDISP(2)  = 1
+         IUDISP(3)  = 1
+         IUDISP(4)  = 1
+         IUDISP(5)  = 1
+         IUDISP(6)  = 1
+         IWDISP(1)  = 1
+         IWDISP(2)  = 1
+         IWDISP(3)  = 0
+         IWDISP(4)  = 0
+C BEG JAN 1999
+         IF (NSTIF.EQ.1.AND.ISWAY.EQ.0.AND.ABS(FNXY).LT.0.01*FNNORM)
+     1   IWDISP(4) = 1
+C END JAN 1999
+         IWDISP(5)  = 0
+         IWDISP(6)  = 1
+         DO 31 ISEG = 1,NSEGB5
+            N = NNODES(ISEG)
+            FN1 = N - 1
+C BEG MAR 2007
+            DSS(1,ISEG) = FLONG(ISEG)/FN1
+C END MAR 2007
+            IF (IPRESS(ISEG).EQ.1) DS(1,ISEG) = FLONG(ISEG)/FN1
+            DO 308 I = 2,N
+C BEG MAR 2007
+               DSS(I,ISEG) = FLONG(ISEG)/FN1
+               IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                  DS1 = DSS(I,ISEG)
+                  FN2 = NNODES(ISEGP) - 1
+                  DS2 = FLONG(ISEGP)/FN2
+                  DSS(I,ISEG) = 0.5*(DS1 + DS2)
+               ENDIF
+C END MAR 2007
+               IF (IPRESS(ISEG).EQ.1) THEN
+                  DS(I,ISEG) = FLONG(ISEG)/FN1
+                  ISEGP = 2
+                  IF (ISEG.EQ.2) ISEGP = 6
+                  IF (I.EQ.N.AND.ISEG.LT.NSEGB5) THEN
+                     DS1 = DS(I,ISEG)
+                     FN2 = NNODES(ISEGP) - 1
+                     DS2 = FLONG(ISEGP)/FN2
+                     DS(I,ISEG) = 0.5*(DS1 + DS2)
+                  ENDIF
+               ENDIF
+               IELEM = IELEM + 1
+               N2(IELEM) = IELEM
+               N3(IELEM) = IELEM + 1
+               IF (ISEG.EQ.3.AND.I.EQ.2)
+     1            N2(IELEM) = NNODES(1)
+               IF (ISEG.EQ.5.AND.I.EQ.N)
+     1            N3(IELEM) = NNODES(1) +NNODES(2) - 1
+               IF (ISEG.EQ.6.AND.I.EQ.2) THEN
+                  N2(IELEM) = NNODES(1) +NNODES(2) - 1
+                  N3(IELEM) = IELEM
+               ENDIF
+               IF (ISEG.EQ.6.AND.I.GT.2) THEN
+                  N2(IELEM) = IELEM - 1
+                  N3(IELEM) = IELEM
+               ENDIF
+               IF (I.EQ.2) NODE(1,ISEG) = N2(IELEM)
+               NODE(I,ISEG) = N3(IELEM)
+  308       CONTINUE
+   31    CONTINUE
+      ENDIF
+      GO TO 34
+   32 CONTINUE
+C TRUSS-CORE SANDWICH:
+      WRDSEG(1) = 'SKN1'
+      WRDSEG(2) = 'WEB1'
+      WRDSEG(3) = 'SKN2'
+      WRDSEG(4) = 'WEB2'
+      FLONG(1) = B(1)
+      FLONG(2) = SQRT(H(1)**2 +0.25*B(1)**2)
+      FLONG(3) = B(1)
+      IF (IFLAT.EQ.0) FLONG(3) = B(1)*(R + H(1))/R
+      FLONG(4) = FLONG(2)
+      ANGSEG(1)= 0.
+      ANGSEG(2)= -PI/2. - ASIN(0.5*B(1)/FLONG(2))
+      ANGSEG(3)= 0.
+      ANGSEG(4)=  PI/2. + ASIN(0.5*B(1)/FLONG(2))
+      NNN1 = NNODES(1)
+      NNN2 = NNODES(2)
+      NNN3 = NNODES(3)
+      IFOLD(NNN1,1) = 1
+      IFOLD(NNN2,2) = 1
+      IFOLD(NNN3,3) = 1
+      IWALL(1)  = 1
+      IWALL(2)  = 2
+      IWALL(3)  = 3
+      IWALL(4)  = 2
+      IPRESS(1) = 0
+      IF (P.GT.0.0) IPRESS(1) = 1
+      IPRESS(2) = 0
+      IPRESS(3) = 0
+      IF (P.LT.0.0) IPRESS(3) = 1
+      IPRESS(4) = 0
+      IUDISP(1)  = 1
+      IUDISP(2)  = 1
+      IUDISP(3)  = 1
+      IUDISP(4)  = 1
+      IWDISP(1)  = 1
+      IWDISP(2)  = 1
+      IWDISP(3)  = 1
+      IWDISP(4)  = 1
+C  UNFINISHED. NEED MORE HERE.
+      GO TO 34
+C
+   34 CONTINUE
+      MAXWAL = 0
+      DO 35 ISEG = 1,NSEGB5
+         MAXWAL = MAX(MAXWAL,IWALL(ISEG))
+   35 CONTINUE
+C
+C NEXT, OBTAIN STAGS-TYPE INPUT FOR MATERIAL PROPERTIES AND WALL
+C TYPES.
+C
+      MAXMAT = 0
+      TMAX   = 0.
+      EMAX   = 0.
+      DO 1000 KWALL = 1,MAXWAL
+         TX(KWALL) = 0.
+         NLAY = NLAYER(KWALL,1)
+         DO 950 ILAY = 1,NLAY
+            K = LTYPE(ILAY,KWALL,1)
+            M = MATL(K)
+            EMAX = MAX(EMAX,E1(M))
+            MAXMAT = MAX(MAXMAT,M)
+            JLAY = NLAY + 1 - ILAY
+            JMAT(JLAY,KWALL) = M
+            THIK(JLAY,KWALL) = T(K)
+            ANGL(JLAY,KWALL) = ANGLE(K)
+            TX(KWALL) = TX(KWALL) + T(K)
+  950    CONTINUE
+         TMAX = MAX(TMAX,TX(KWALL))
+ 1000 CONTINUE
+      MAXMAT = MAXMAT + 1
+      MAXWAL = MAXWAL + 1
+      NLAYER(MAXWAL,1) = 1
+      JMAT(1,MAXWAL) = MAXMAT
+      THIK(1,MAXWAL) = 100.*TMAX
+      ANGL(1,MAXWAL) = 0.
+      E1(MAXMAT) = 100.*EMAX
+      E2(MAXMAT) = 100.*EMAX
+      FNU(MAXMAT)= 0.
+      G(MAXMAT)  = E1(MAXMAT)/2.
+      IF (NTAB.GT.0) THEN
+         E1(MAXMAT) = (CY(2,2,5) - CX(2,2,1))*XSTAGS/2.
+         E2(MAXMAT) = E1(MAXMAT)
+         FNU(MAXMAT) = 0.
+         G(MAXMAT) = E1(MAXMAT)/2.
+      ENDIF
+C
+C FIND NODE NUMBERING AND ELEMENT NUMBERING FOR A SINGLE ROW
+C (ROW = ENTIRE PANEL WIDTH CROSS SECTION)
+C
+      NN = NNODES(NSEGB5)
+      IF (ISTIF(1).EQ.5) NN = NNODES(NSEGB5) - 1
+      NMOD = NODE(NN,NSEGB5)
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) IELEM = IELEM - 1
+      INSPRI = 0
+C END MAY 1997
+C
+      NELE = 0
+      MAXNOD = 0
+      THEMAX = 0
+      MODSAM = NSTIF/2 + 1
+      DO 300 MODULE = 1,NSTIF
+         IF (MODULE.EQ.1) N0 = 1
+         IF (MODULE.GT.1) N0 = N0 + NMOD - 1
+         IF (MODULE.GT.1) NELE = NELE + IELEM
+         IF (MODULE.EQ.MODSAM) THEN
+            NSTART = N0
+            JSTART = NELE + 1
+         ENDIF
+         DIST1 = 0.5*B(1)
+         IF (MODULE.EQ.1) DIST1 = REMAIN
+         DIST2 = 0.5*B(1)
+         IF (MODULE.EQ.NSTIF) THEN
+            DIST2 = REMAIN
+C BEG MAY 1997
+            IF (IZSTIF(1).EQ.0) FLONG(NSEGB5) = DIST2 - B2(1)/2.
+            IF (IZSTIF(1).EQ.1) FLONG(NSEGB5) = DIST2
+C END MAY 1997
+         ENDIF
+C
+         IF (IFLAT.EQ.0) THEN
+            THETA0 = THETAG(MODULE) - DIST1/R
+            Y0 = R*SIN(THETA0)
+            Z0 = -R*(1. - COS(THETA0))
+         ELSE
+            THETA0 = 0.
+            THETAN = 0.
+            Y0 = YG(MODULE) - DIST1
+            Z0 = 0.
+         ENDIF
+C  GET VERY FIRST NODE:
+         IF (MODULE.EQ.1) THEN
+            Y(1) = Y0
+            Z(1) = Z0
+            THETA(1) = 0.
+            ANGSKN(1) = 0.
+            JUDISP(1) = 1
+            JWDISP(1) = 1
+C BEG MAR 2007
+            SHEAR(1) = 0.5*FNXY*DSS(1,1)
+            FAXIAL(1) = 0.5*FNX*DSS(1,1)
+            FAXIAB(1) = 0.5*FNX0*DSS(1,1)
+            IF (IELMNT.EQ.480) THEN
+               SHEAR(1) = (1./6.)*FNXY*DSS(1,1)*2.
+               FAXIAL(1) = (1./6.)*FNX*DSS(1,1)*2.
+               FAXIAB(1) = (1./6.)*FNX0*DSS(1,1)*2.
+            ENDIF
+C END MAR 2007
+            IF (IPRESS(1).EQ.1) FORCE(1) = 0.5*P*DS(1,1)
+            IF (IPRESS(1).EQ.1) FORCEB(1)= 0.5*P0*DS(1,1)
+         ENDIF
+C
+C  OBTAIN Y, Z, THETA, NODAL FORCES AND NODE NUMBERS AND ELEMENT NUMBERS
+C  FOR A MODULE:
+C
+         JELEM = NELE
+         IIELEM= 0
+         THETAB = THETA0
+         YB = Y0
+         ZB = Z0
+         COSTG = COS(THETAG(MODULE))
+         SINTG = SIN(THETAG(MODULE))
+C
+C        WRITE(6,90) MODULE, N0, NMOD, NELE, YB, ZB, THETAG(MODULE)
+C  90    FORMAT(/' QUANTITIES FOR MODULE NO. ',I2/
+C    1 '  N0, NMOD, NELE, YB, ZB, THETAG=',3I5,1P,3E12.4/
+C    1'  ISEG  I INODE IIELEM JELEM JWALL  N2   N3  NT2  NT3  Y(INODE)       
+C    1  Z(INODE)   THETA(INODE)  IUVW  IRUVW  JPRESS  JUDISP  FORCES')
+C
+         DO 200 ISEG = 1,NSEGB5
+            N = NNODES(ISEG)
+            FN1 = N - 1
+            DTHETA = 0.
+            INODE = N0-1 + NODE(1,ISEG)
+            IF (IFLAT.EQ.0) THEN
+               IF (WRDSEG(ISEG)(1:3).EQ.'SKN') THEN
+                  IF (ISEG.GT.1) THETAB = THETAN
+                  DTHETA = FLONG(ISEG)/(FN1*R)
+C BEG MAY 1997
+                  IF (MODULE.EQ.1.AND.ISEG.EQ.1) THEN
+                     IF (IZSTIF(1).EQ.0)
+     1                  DTHETA = (REMAIN-0.5*B2(1))/(FN1*R)
+                     IF (IZSTIF(1).EQ.1)
+     1                  DTHETA = REMAIN/(FN1*R)
+                  ENDIF
+C END MAY 1997
+                  THETAN = THETAB + FN1*DTHETA
+                  THETA(INODE) = THETAB
+                  ANGSKN(INODE)= THETAB
+                  Y(INODE)  =  R*SIN(THETA(INODE))
+                  Z(INODE)  = -R*(1. - COS(THETA(INODE)))
+                  JUDISP(INODE) = IUDISP(ISEG)
+                  JWDISP(INODE) = IWDISP(ISEG)
+               ENDIF
+            ENDIF
+C
+            IF (ISEG.GT.1) THEN
+               YB = Y(INODE)
+               ZB = Z(INODE)
+            ENDIF
+            IF (IFLAT.EQ.1) THEN
+               IF (WRDSEG(ISEG)(1:3).EQ.'SKN') THEN
+                  DY = FLONG(ISEG)/FN1
+C BEG MAY 1997
+                  IF (MODULE.EQ.1.AND.ISEG.EQ.1) THEN
+                    IF (IZSTIF(1).EQ.0) DY = (REMAIN-0.5*B2(1))/FN1
+                    IF (IZSTIF(1).EQ.1) DY = REMAIN/FN1
+                  ENDIF
+C END MAY 1997
+                  DZ = 0.
+               ENDIF
+            ENDIF
+C BEG MAY 1997
+            IF (WRDSEG(ISEG).EQ.'FAYF') THEN
+               DYP = FLONG(ISEG)/FN1
+               DZP = 0.
+               ISEG1 = 1
+               JN = NNODES(ISEG1)
+               JNODE = N0-1 + NODE(JN,ISEG1)
+               TAVE = 0.5*(TX(1)+TX(2))
+               YB = Y(JNODE) - 0.5*B2(1)*COSTG + TAVE*SINTG
+               ZB = Z(JNODE) + 0.5*B2(1)*SINTG + TAVE*COSTG
+               Y(INODE) = YB
+               Z(INODE) = ZB
+               THETA(INODE) = THETAG(MODULE)
+               ANGSKN(INODE) = THETAG(MODULE)
+               JUDISP(INODE) = IUDISP(ISEG)
+               JWDISP(INODE) = IWDISP(ISEG)
+            ENDIF
+C END MAY 1997
+            IF (WRDSEG(ISEG).EQ.'WEB ') THEN
+               DYP = 0.
+               DZP = FLONG(ISEG)/FN1
+            ENDIF
+            IF (ISTIF(1).EQ.4.AND.WRDSEG(ISEG).EQ.'WEB1') THEN
+               DYP = 0.5*(W2(1)-W(1))/FN1
+               DZP = (H(1) + TX(2) - 0.5*TX(1))/FN1
+            ENDIF
+            IF (ISTIF(1).EQ.4.AND.WRDSEG(ISEG).EQ.'WEB2') THEN
+               DYP = 0.5*(W2(1)-W(1))/FN1
+               DZP = -(H(1) + TX(2) - 0.5*TX(1))/FN1
+            ENDIF
+            IF (ISTIF(1).EQ.5.AND.WRDSEG(ISEG).EQ.'WEB1') THEN
+               DYP = -0.5*B(1)/FN1
+               DZP = H(1)/FN1
+            ENDIF
+            IF (ISTIF(1).EQ.5.AND.WRDSEG(ISEG).EQ.'WEB2') THEN
+               DYP = -0.5*B(1)/FN1
+               DZP = -H(1)/FN1
+            ENDIF
+            IF (WRDSEG(ISEG).EQ.'FLNG') THEN
+               DYP = FLONG(ISEG)/FN1
+               DZP = 0.
+               IF (ISTIF(1).EQ.1) THEN
+                  ISEG1 = ISEG - 1
+                  JN = NNODES(ISEG1)
+                  JNODE = N0-1 + NODE(JN,ISEG1)
+                  YB = Y(JNODE) - (W(1)/2.)*COSTG
+                  ZB = Z(JNODE) + (W(1)/2.)*SINTG
+                  Y(INODE) = YB
+                  Z(INODE) = ZB
+                  THETA(INODE) = THETAG(MODULE)
+                  ANGSKN(INODE) = THETAG(MODULE)
+                  JUDISP(INODE) = IUDISP(ISEG)
+                  JWDISP(INODE) = IWDISP(ISEG)
+               ENDIF
+            ENDIF
+            IF (WRDSEG(ISEG)(1:3).NE.'SKN') THEN
+               DY = DYP*COSTG +DZP*SINTG
+               DZ =-DYP*SINTG +DZP*COSTG
+            ENDIF
+C
+            ANGLEX = 0.
+            IF (WRDSEG(ISEG)(1:3).NE.'SKN') THEN
+               ANGLEX = THETAG(MODULE) + ANGSEG(ISEG)
+               ANGSKN(INODE) = THETAG(MODULE)
+            ENDIF
+C
+            DO 100 I = 2,N
+               FI1 = I - 1
+               JELEM = JELEM + 1
+               IIELEM= IIELEM+ 1
+               NT2(JELEM) = N0-1 + N2(IIELEM)
+               NT3(JELEM) = N0-1 + N3(IIELEM)
+               JWALL(JELEM) = IWALL(ISEG)
+               ZREF(JELEM)  = ZSEG(ISEG)
+               JPRESS(JELEM)=IPRESS(ISEG)
+               INODE = N0-1 + NODE(I,ISEG)
+               JUDISP(INODE) = IUDISP(ISEG)
+               JWDISP(INODE) = IWDISP(ISEG)
+               IF (JFOLD(INODE).EQ.0) JFOLD(INODE)  = IFOLD(I,ISEG)
+               WBASE = 'SKN2'
+C BEG MAY 1997
+               IF (IZSTIF(1).EQ.1) WBASE = 'FAYF'
+C END MAY 1997
+               IF (ISTIF(1).EQ.4.AND.B2(1).GT.W2(1)) WBASE = 'SKN3'
+               IF (ISTIF(1).NE.5) THEN
+C BEG MAY 1997
+                 IF (IZSTIF(1).EQ.0) THEN
+                  IF (WRDSEG(ISEG).EQ.WBASE.AND.I.EQ.(N/2+1))
+     1               JVDISP(INODE) = INODE
+                 ELSE
+                  IF (WRDSEG(ISEG).EQ.WBASE.AND.I.EQ.N)
+     1               JVDISP(INODE) = INODE
+                 ENDIF
+C END MAY 1997
+                  IF (ISTIF(1).NE.4.AND.WRDSEG(ISEG).EQ.'WEB '
+     1                        .AND.I.EQ.N) JVDISP(INODE) = -INODE
+                  IF (ISTIF(1).EQ.4.AND.WRDSEG(ISEG).EQ.'FLNG'
+     1                  .AND.I.EQ.(N/2+1)) JVDISP(INODE) = -INODE
+               ENDIF
+               IF (ISTIF(1).EQ.1.AND.WRDSEG(ISEG).EQ.'FLNG') THEN
+                  ISEG1 = ISEG - 1
+                  JN = NNODES(ISEG1)
+                  JNODE = N0-1 + NODE(JN,ISEG1)
+                  IF (INODE.EQ.JNODE) THEN
+                     JUDISP(INODE) = IUDISP(ISEG1)
+                     JWDISP(INODE) = IWDISP(ISEG1)
+                  ENDIF
+               ENDIF
+               IF (I.EQ.N.AND.ISTIF(1).EQ.4) THEN
+                  IF (WRDSEG(ISEG).EQ.'FLNG') THEN
+                     ISEG1 = ISEG + 1
+                     JUDISP(INODE) = IUDISP(ISEG1)
+                     JWDISP(INODE) = IWDISP(ISEG1)
+                  ENDIF
+                  IF (WRDSEG(ISEG).EQ.'WEB2') THEN
+                     ISEG1 = ISEG -3
+                     JUDISP(INODE) = IUDISP(ISEG1)
+                     JWDISP(INODE) = IWDISP(ISEG1)
+                  ENDIF
+               ENDIF
+               IF (WRDSEG(ISEG)(1:3).EQ.'SKN') THEN
+C BEG MAR 2007
+                  IF (IELMNT.NE.480) THEN
+                     SHEAR(INODE) = FNXY*DSS(I,ISEG)
+                     FAXIAL(INODE) = FNX*DSS(I,ISEG)
+                     FAXIAB(INODE) = FNX0*DSS(I,ISEG)
+                  ELSE
+                     IF (MOD(I,2).EQ.0) THEN
+                        SHEAR(INODE) = (4./6.)*FNXY*DSS(I,ISEG)*2.
+                        FAXIAL(INODE) = (4./6.)*FNX*DSS(I,ISEG)*2.
+                        FAXIAB(INODE) = (4./6.)*FNX0*DSS(I,ISEG)*2.
+                     ELSE
+                        SHEAR(INODE) = (2./6.)*FNXY*DSS(I,ISEG)*2.
+                        FAXIAL(INODE) = (2./6.)*FNX*DSS(I,ISEG)*2.
+                        FAXIAB(INODE) = (2./6.)*FNX0*DSS(I,ISEG)*2.
+                     ENDIF
+                  ENDIF
+C END MAR 2007
+               ENDIF
+               IF (IPRESS(ISEG).EQ.1) FORCE(INODE) = P*DS(I,ISEG)
+               IF (IPRESS(ISEG).EQ.1) FORCEB(INODE) =P0*DS(I,ISEG)
+               MAXNOD = MAX(MAXNOD,INODE)
+               I1 = I - 1
+               JNODE = N0-1 + NODE(I1,ISEG)
+               IF (INODE.LE.JNODE) GO TO 100
+               IF (IFLAT.EQ.0) THEN
+                  IF (WRDSEG(ISEG)(1:3).EQ.'SKN') THEN
+                     THETA(INODE) = THETAB + FI1*DTHETA
+                     ANGSKN(INODE)= THETA(INODE)
+                     Y(INODE)  =  R*SIN(THETA(INODE))
+                     Z(INODE)  = -R*(1. - COS(THETA(INODE)))
+                  ELSE
+                     THETA(INODE) = ANGLEX
+                     ANGSKN(INODE)= THETAG(MODULE)
+                     Y(INODE) = YB + FI1*DY
+                     Z(INODE) = ZB + FI1*DZ
+                  ENDIF
+               ELSE
+                  THETA(INODE) = ANGLEX
+                  ANGSKN(INODE)= 0.0
+                  Y(INODE) = YB + FI1*DY
+                  Z(INODE) = ZB + FI1*DZ
+               ENDIF
+C BEG MAY 1997
+C              WRITE(6,95) ISEG, I, INODE, IIELEM, JELEM, JWALL(JELEM),
+C    1                N2(IIELEM), N3(IIELEM), NT2(JELEM), NT3(JELEM),
+C    1                Y(INODE), Z(INODE), THETA(INODE), IUVW(INODE),
+C    1                IRUVW(INODE), JPRESS(JELEM), JUDISP(INODE),
+C    1                FORCE(INODE)
+C END MAY 1997
+   95          FORMAT(10I5,1P,3E12.4, 4I5, 1PE12.4)
+  100       CONTINUE
+C           WRITE(6,*)' END OF LOOP OVER N, NODES IN SEG. ',ISEG
+C BEG MAY 1997
+            IF (IZSTIF(1).EQ.1.AND.ISEG.EQ.1) THEN
+C              JELEM = JELEM + 1
+               IIELEM= IIELEM+ 1
+               INSPRI = INSPRI + 1
+               N1T1(INSPRI) = N0-1 + N2(IIELEM)
+               N2T1(INSPRI) = N0-1 + N3(IIELEM)
+C              WRITE(6,'(A,/,7I5)')
+C    1       ' INSPRI,N0,IIELEM,N2(IIELEM),N3(IIELEM),N1T1,N251=',
+C    1         INSPRI,N0,IIELEM,N2(IIELEM),N3(IIELEM),
+C    1                                       N1T1(INSPRI),N2T1(INSPRI)
+C              NT2(JELEM) = N0-1 + N2(IIELEM)
+C              NT3(JELEM) = N0-1 + N3(IIELEM)
+C              JWALL(JELEM) = 0
+C              ZREF(JELEM)  = 0.
+C              JPRESS(JELEM)= 0
+C              WRITE(6,95) ISEG, I, INODE, IIELEM, JELEM, JWALL(JELEM),
+C    1                N2(IIELEM), N3(IIELEM), NT2(JELEM), NT3(JELEM),
+C    1                Y(INODE), Z(INODE), THETA(INODE), IUVW(INODE),
+C    1                IRUVW(INODE), JPRESS(JELEM), JUDISP(INODE),
+C    1                FORCE(INODE)
+            ENDIF
+C END MAY 1997
+  200    CONTINUE
+C        WRITE (6,*)
+C    1        ' END OF LOOP OVER ISEG, SEGMENTS IN MODULE ',MODULE
+  300 CONTINUE
+C     WRITE(6,*)' END OF LOOP OVER MODULES IN SLICE AT X =',XSLICE
+C
+      NSTATY = NNODES(NSEGB5) - 1
+C BEG MAR 2007
+      IF (IELMNT.NE.480) THEN
+         SHEAR(MAXNOD) = 0.5*FNXY*DSS(NSTATY,NSEGB5)
+         FAXIAL(MAXNOD) = 0.5*FNX*DSS(NSTATY,NSEGB5)
+         FAXIAB(MAXNOD) = 0.5*FNX0*DSS(NSTATY,NSEGB5)
+      ELSE
+         SHEAR(MAXNOD) = (1./6.)*FNXY*DSS(NSTATY,NSEGB5)*2.
+         FAXIAL(MAXNOD)= (1./6.)*FNX*DSS(NSTATY,NSEGB5)*2.
+         FAXIAB(MAXNOD)= (1./6.)*FNX0*DSS(NSTATY,NSEGB5)*2.
+      ENDIF
+C END MAR 2007
+C
+      IF (IPRESS(NSEGB5).EQ.1) FORCE(MAXNOD) = FORCE(MAXNOD)/2.
+      IF (IPRESS(NSEGB5).EQ.1) FORCEB(MAXNOD) = FORCEB(MAXNOD)/2.
+      MAXELE = JELEM
+      NBEAM = 0
+      DO 310 I = 1,MAXELE
+         IF (JPRESS(I).EQ.1) NBEAM = NBEAM + 1
+  310 CONTINUE
+C     WRITE(6,320) MAXNOD
+  320 FORMAT(/' NUMBER OF NODES PER X-SLICE = MAXNOD =',I4/
+     1' NODAL (Y,Z) COORDINATES AND TRANSFORMATION ANGLE THETA'/
+     1' NODE       Y         Z       THETA')
+      DO 330 I = 1,MAXNOD
+C        WRITE(6,325) I, Y(I), Z(I), THETA(I)
+  325    FORMAT(I5,1P,3E12.4)
+  330 CONTINUE
+      THEMAX = THETA(MAXNOD)
+C     WRITE(6,340) MAXELE
+  340 FORMAT(/' NUMBER OF FINITE ELEMENTS PER X-XLICE = MAXELE =',I4/
+     1' ELEMENT CONNECTIVITY (N2, N3) AND WALL TYPE'/
+     1' ELEMENT     N2     N3     WALL  PRESSURE MIDSURFACE OFFSET')
+      DO 350 I = 1,MAXELE
+C        WRITE(6,345) I, NT2(I),NT3(I),JWALL(I),JPRESS(I),ZREF(I)
+  345    FORMAT(I6, I9, I7, I7, I7,1PE12.4)
+  350 CONTINUE
+C
+      NPATV = 0
+      IF (IFLAT.EQ.0.AND.ISTIF(1).EQ.0.AND.ISTIF(2).EQ.0)
+     1  NPATV = MAXNOD - 1
+      NPATV = 0
+C
+      INDICP = INDIC
+      IF (INDIC.EQ.1.AND.ISTIF(1).EQ.0) INDICP = -INDIC
+C
+C  NEXT, STORE TWO-DIMENSIONAL PRISMATIC ARRAY OF NODE AND ELEMENT PROPS:
+C
+C
+C  FIRST, DO NODAL POINT DATA:
+C
+C BEG NOV 1995
+      ICLOSE = 0
+      NPATCL = 0
+      CIRCS = CIRC
+      IF (NSTIF.GT.0.0) CIRCS = FLOAT(NSTIF)*B(1)
+      ARCRAD = CIRCS/AR
+      IF (ARCRAD.GE.0.95*2.0*PI) THEN
+         ICLOSE = 1
+C BEG FEB 1998
+C        NPATCL = NODEX - 2
+         NPATCL = NODEX
+C END FEB 1998
+      ENDIF
+C END NOV 1995
+C BEG JAN 1998
+      IBOUND = FBOUND
+C END JAN 1998
+      DO 600 IX = 1,NODEX
+         IROW = (IX-1)*MAXNOD
+         IX1 = IX - 1
+         IF (IX.EQ.1) THEN
+            X(1) = 0.
+            DXAVE(1) = DX(1)
+         ELSE
+            X(IX) = X(IX1) + DX(IX)
+            DXAVE(IX1) = 0.5*(DX(IX) +DX(IX1))
+         ENDIF
+         IF (IX.EQ.NODEX) DXAVE(NODEX) = DXAVE(NODEX-1)
+         ARGX = PI*X(IX)/XSTAGS
+         ZADD = -WIMPG*SIN(ARGX)
+C BEG JAN 1998
+C        IF (ISTIF(1).NE.0) ZADD = -WIMPG*(1.-COS(2.*ARGX))/2.0
+         IF (ISTIF(1).NE.0.AND.IBOUND.EQ.1) 
+     1                      ZADD = -WIMPG*(1.-COS(2.*ARGX))/2.0
+C END JAN 1998
+         DO 500 IY = 1,MAXNOD
+            INODE = IY + IROW
+            IUVWT  = 111
+            IRUVWT = 111
+            IF (IELMNT.EQ.480.AND.JFOLD(IY).EQ.0) IRUVWT = 110
+            IRUVWS = IRUVWT
+            IF (IX.EQ.1) THEN
+               IUVWT = 110
+C BEG FEB 1997
+               IF (ISETV0.EQ.1) IUVWT = 100
+C END FEB 1997
+               IRUVWT= 011
+               IF (JWDISP(IY).EQ.0) THEN
+                  IUVWT = 111
+                  IRUVWT= IRUVWS
+               ELSE
+                  IF (JFOLD(IY).EQ.0) IRUVWT = IRUVWS
+               ENDIF
+C BEG FEB 1998
+C              IF (IY.EQ.MAXNOD) IUVWT = 000
+               IF (ICLOSE.EQ.0.AND.IY.EQ.MAXNOD) IUVWT = 000
+               IF (ICLOSE.EQ.1.AND.IY.EQ.1) IUVWT = 000
+C END FEB 1998
+            ENDIF
+C BEG NOV 1995
+C           IF ((IY.EQ.1.OR.IY.EQ.MAXNOD).AND.IX.GT.1) THEN
+            IF ((IY.EQ.1.OR.IY.EQ.MAXNOD).AND.IX.GT.1
+     1                                   .AND.ICLOSE.EQ.0) THEN
+C END NOV 1995
+               IUVWT = 110
+C              IRUVWT= 101
+C BEG MAR 1996
+               IF (IBEAM.EQ.1) THEN
+                  IUVWT = 111
+                  IRUVWT= 111
+               ENDIF
+C END MAR 1996
+C TRY "MOVING SYMMETRY" (JAN. 21):
+C BEG NOV 1992
+C              IF (ISTIF(1).NE.0.AND.IWIDE.EQ.1) THEN
+               IF ((ISTIF(1).NE.0.AND.IWIDE.EQ.1).OR.
+     1             (IFLAT.EQ.0.AND.ISTIF(1).EQ.0.AND.IDIFF.EQ.1)) THEN
+C END NOV 1992
+                  IUVWT = 111
+                  IRUVWT= 011
+C BEG MAR 1996
+                  IF (IBEAM.EQ.1) THEN
+                     IUVWT = 111
+                     IRUVWT= 111
+                  ENDIF
+C END MAR 1996
+                  IF (ISYM.EQ.0) IRUVWT = 111
+                  IF (ISYM.EQ.1.AND.NSTIF.GE.3
+     1                 .AND.REMAIN.GT.(B(1)/2.5)) IRUVWT = 111
+                  IF (IELMNT.EQ.480.AND.JFOLD(IY).EQ.0) THEN
+                     IF (IRUVWT.EQ.111) IRUVWT = 110
+                     IF (IRUVWT.EQ.011) IRUVWT = 010
+                  ENDIF
+C BEG NOV 1992
+                  IF (IFLAT.EQ.0.AND.ISTIF(1).EQ.0.AND.IDIFF.EQ.1) THEN
+                     IRUVWT = 010
+                  ENDIF
+C END NOV 1992
+               ENDIF
+C END "MOVING SYMMETRY"
+            ENDIF
+C BEG MAR 1996
+C           IF (IX.EQ.(NODEX/2+1)) THEN
+            IF (IX.EQ.(NODEX/2+1).AND.IBEAM.EQ.0) THEN
+C END MAR 1996
+               IF (IY.EQ.MAXNOD
+     1               .AND.XSTAGS.GE.(6.0*B(1)).AND.IEDGE.EQ.0) THEN
+C BEG NOV 1995
+C BEG JULY 1998
+                  IF (ISTIF(1).NE.0.AND.NSTIF.LE.1
+     1                             .AND.FNXY.EQ.0.0.AND.ICLOSE.EQ.0)
+C END JULY 1998
+     1              IUVWT = 101
+C END NOV 1995
+               ENDIF
+            ENDIF
+            IF (IX.EQ.NODEX) THEN
+               IUVWT = 110
+C BEG FEB 1997
+               IF (ISETV0.EQ.1) IUVWT = 100
+C END FEB 1997
+               IRUVWT= 011
+               IF (JWDISP(IY).EQ.0) THEN
+                  IUVWT = 111
+                  IRUVWT= IRUVWS
+               ELSE
+                  IF (JFOLD(IY).EQ.0) IRUVWT = IRUVWS
+               ENDIF
+               IF (IY.EQ.MAXNOD
+     1               .AND.XSTAGS.GE.(3.0*B(1)).AND.IEDGE.EQ.0) THEN
+                  IF (NSTIF.LE.1.AND.FNXY.EQ.0.0) IUVWT = 100
+               ENDIF
+            ENDIF
+C  WRITE TO UNIT IFILE4 FOR THIS NODAL POINT:
+            ZTOT = Z(IY) + ZADD*COS(ANGSKN(IY))
+            YTOT = Y(IY) + ZADD*SIN(ANGSKN(IY))
+            FCEPRD = FORCE(IY)*DXAVE(IX)
+            FCEPRB = FORCEB(IY)*DXAVE(IX)
+C BEG NOV 1992
+            WRITE(IFILE4,390) INODE,IUVWT,IRUVWT,JUDISP(IY),JWDISP(IY)
+            WRITE(IFILE4,400) X(IX),YTOT,ZTOT,THETA(IY),FCEPRD,FCEPRB
+  390       FORMAT(I6,4I4)
+  400       FORMAT(1P,6E20.8)
+C END NOV 1992
+  500    CONTINUE
+  600 CONTINUE
+C
+C  NOW, DO FINITE ELEMENT DATA:
+C
+      DO 900 IX = 2,NODEX
+         IELE1 = (IX-2)*MAXELE
+         INOD1 = (IX-2)*MAXNOD
+         INOD2 = (IX-1)*MAXNOD
+         DO 800 IY = 1,MAXELE
+            JELEM = IY + IELE1
+            NN1 = INOD1 + NT2(IY)
+            NN2 = INOD2 + NT2(IY)
+            NN3 = INOD2 + NT3(IY)
+            NN4 = INOD1 + NT3(IY)
+            INOD = 4
+C  WRITE TO UNIT IFILE4 FOR THIS ELEMENT:
+            WRITE(IFILE4,700) JELEM,JWALL(IY),JPRESS(IY),
+     1                        INOD,NN1,NN2,NN3,NN4,ZREF(IY)
+  700       FORMAT(8I6,1PE12.4)
+  800    CONTINUE
+  900 CONTINUE
+C     NODTOT = NODEX*MAXNOD + 2
+      NODTOT = NODEX*MAXNOD
+      NELTOT = JELEM
+C
+C START GENERATING THE STAGS INPUT DECK, NAME.INP:
+C
+      WRITE(IFIL14,'(A,A,A)')
+     1' ',CASE(1:NLET),' STAGS INPUT FROM PANDA2 OUTPUT'
+      WRITE(IFIL16,'(A,A,A)')
+     1' ',CASE(1:NLET),' STAGS INPUT FROM PANDA2 OUTPUT'
+C BEG JULY 1994 (STAGS INPUT WAS CHANGED RECENTLY, SO THIS HAS TO BE)
+C     WRITE(IFIL14,'(I2,A)') INDICP,
+C    1  ', $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1'
+C     WRITE(IFIL14,'(A)')
+C    1' 1, $ IPOST0=1 means save model data'
+C     WRITE(IFIL14,'(A)')
+C    1' 1, $ IPOST1=1 means save displacements every IPOST1th step'
+C     IF (IPOSTP.EQ.0) WRITE(IFIL14,'(A)')
+C    1' 0, $ IPOST2=0 means do not save stress data'
+C     IF (IPOSTP.EQ.1) WRITE(IFIL14,'(A)')
+C    1' 1, $ IPOST2=1 means save stress data every IPOST2th step'
+C END JULY 1994
+      WRITE(IFIL14,'(I2,A)') IGRAV,
+     1  ', $ IGRAV =0 means g = 386.4 inches per sec.**2; else B-4'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ ICHECK=0 means normal execution'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ ILIST =0 means normal batch-oriented output'
+C BEG JULY 1994
+      INCBC = 0
+      IF (INDICP.EQ.-1) INCBC = 1
+      WRITE(IFIL14,'(I2,A)') INCBC,
+     1'  $ INCBC=0:buck. bcs same as prebuc; 1: different.END B-1'
+C
+C     WRITE(IFIL14,'(A)')
+C    1' 0, $ IOPTIM=0 means bandwith optimization will be performed'
+C     WRITE(IFIL14,'(A)')
+C    1' 0, $ IFLU  =0 means no fluid interaction.'
+C END JULY 1994
+      ICOR = 0
+C BEG OCT 1999 (FOLLOWING COMMENTED OUT, FOLLOWING RANKIN'S ADVICE)
+C     IF (ISTAGS.EQ.2.AND.INDIC.EQ.1) ICOR = 1
+C END OCT 1999
+      IMPTHE = 0
+      IF (IELMNT.EQ.480) IMPTHE = 1
+C BEG JULY 1994
+C     WRITE(IFIL14,'(I2,A)') ICOR,
+C    1  ', $ ICOR  =0 means projection in; 1 means not in.'
+C     WRITE(IFIL14,'(I2,A)') IMPTHE,
+C    1  '  $ IMPTHE=index for imperfection theory.       END B-1 rec'
+C SOME bin FILE STUFF FOLLOWS...
+C END JULY 1994
+C BEG MAY 1998
+      IF (INDICX.NE.4) THEN
+         WRITE(IFIL16,'(I2,A)') INDIC,
+     1  ', $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1'
+      ELSE
+         WRITE(IFIL16,'(I2,A)') INDICX,
+     1  ', $ INDIC=4 is bifur.buckling from nonlinear state BEGIN B-1'
+      ENDIF
+C END MAY 1998
+C BEG JULY 1994
+C     WRITE(IFIL16,'(A)')
+C    1' 1, $ IPOST0=1 means save model data'
+C BEG MAR 1996
+      IF (INDIC.NE.6) WRITE(IFIL16,'(A)')
+     1' 1, $ IPOST=1 means save displacements every IPOSTth step'
+      IF (INDIC.EQ.6) WRITE(IFIL16,'(A)')
+     1' 10, $ IPOST=10 means save displacements every 10th step'
+C END MAR 1996
+C     IF (IPOSTP.EQ.0) WRITE(IFIL16,'(A)')
+C    1' 0, $ IPOST2=0 means do not save stress data'
+C     IF (IPOSTP.EQ.1) WRITE(IFIL16,'(A)')
+C    1' 1, $ IPOST2=1 means save stress data every IPOST2th step'
+C     WRITE(IFIL16,'(I2,A)') IGRAV,
+C    1  ', $ IGRAV =0 means g = 386.4 inches per sec.**2; else B-4'
+C     WRITE(IFIL16,'(A)')
+C    1' 0, $ ICHECK=0 means normal execution'
+      WRITE(IFIL16,'(A)')
+     1' 0, $ ILIST =0 means normal batch-oriented output'
+      WRITE(IFIL16,'(I2,A)') ICOR,
+     1  ', $ ICOR  =0 means projection in; 1 means not in.'
+      WRITE(IFIL16,'(I2,A)') IMPTHE,
+     1  ', $ IMPTHE=index for imperfection theory.'
+C BEG APR 1998
+      WRITE(IFIL16,'(A)')
+     1' 0, $ ICHIST=index for crack archive option'
+      WRITE(IFIL16,'(A)')
+     1' 0, $ IFLU  =0 means no fluid interaction.'
+      WRITE(IFIL16,'(I2,A)') ISOLVR,
+     1 '  $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec'
+C END APR 1998
+C END JULY 1994
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NUNITS=0 means no shell units.            BEGIN B-2 rec.'
+      WRITE(IFIL14,'(A)')
+     1' 1, $ NUNITE=1 means there is a finite element unit'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NSTFS =0 means zero shell units with discrete stiffeners'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NINTS =0 means zero connections between shell units'
+      NSTADD = NSTIF
+      IF (ISTIF(1).EQ.0) NSTADD = 0
+      IF (ISWAY.EQ.1) NSTADD = 0
+      NAXADD = 0
+C BEG NOV 1992
+      IF (IWIDE.EQ.1.AND.ISYM.EQ.1.AND.NSTIF.GE.3
+     1              .AND.REMAIN.GT.(B(1)/2.5))
+     1   NAXADD = NODEX - 2
+C END NOV 1992
+      MAXCON = 0
+      DO 903 I = 1,MAXNOD
+         IF (JUDISP(I).EQ.0.AND.ISWAY.EQ.0) GO TO 903
+C BEG FEB 1997
+         IF (INDICP.EQ.-1) GO TO 903
+C END FEB 1997
+         MAXCON = MAXCON + 1
+  903 CONTINUE
+C BEG FEB 1997
+      IF (MAXCON.EQ.0) MAXCON = 1
+C END FEB 1997
+      MAXFLG = 0
+      DO 904 I = 1,MAXNOD
+         IF (JWDISP(I).EQ.0.AND.JUDISP(I).EQ.0) MAXFLG = MAXFLG + 1
+  904 CONTINUE
+      MAXFGM = 0
+      IF (MAXFLG.GT.NSTADD) MAXFGM = MAXFLG - NSTADD
+C     NPATS = 8*NAXADD + (MAXCON-1) + 2*MAXFGM
+C BEG NOV 1995
+C     NPATS = 8*NAXADD + (MAXCON-1) + NPATV 
+      NPATS = 8*NAXADD + (MAXCON-1) + NPATV + NPATCL
+C END NOV 1995
+      NCONST = -2*IEDGE*(NODEX-2) - 2*NSTADD
+C BEG NOV 1995
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (ISTIF(1).EQ.0.AND.XSTAGS.LT.(3.0*B(1)).AND.ICLOSE.EQ.0) THEN
+C END NOV 1995
+         NPATS = 0
+         NCONST= 0
+      ENDIF
+      WRITE(IFIL14,'(I5,A)') NPATS,
+     1  ', $ NPATS = number of records for partial nodal compatibil'
+      WRITE(IFIL14,'(I5,A)') NCONST,
+     1  ', $ NCONST= number of Lagrange constraint conditions'
+C BEG JULY 1994
+      WRITE(IFIL14,'(I2,A)') NIMPFS,
+     1', $ NIMPFS=number of bucklng mode imperfectns.'
+      INERT = 0
+      NINSR = 0
+      WRITE(IFIL14,'(I2,A)') INERT,
+     1', $ INERT = 0 means no inertial load records'
+      WRITE(IFIL14,'(I2,A)') NINSR,
+     1'  $ NINSR = 0 means no crack tip element sets. END B-2 rec.'
+C END JULY 1994
+      WRITE(IFIL14,'(I2,A)') MAXMAT,
+     1  ', $ NTAM = number of entries in material tabl.BEGIN B-3 rec.'
+      WRITE(IFIL14,'(I2,A)') NTAB,
+     1  ', $ NTAB = number of beam cross section entries'
+      WRITE(IFIL14,'(I2,A)') MAXWAL,
+     1  ', $ NTAW = number of entries in shell wall table.'
+C BEG JULY 1994
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NTAP = 0 means user parameters not included.'
+      WRITE(IFIL14,'(A)')
+     1' 0  $ NTAMT = 0 means no mount element tables.END B-3 rec.'
+C END JULY 1994
+      IF (IGRAV.NE.0) WRITE(IFIL14,'(1PE10.3,A)') GRAV,
+     1' $ GRAV=gravitational acceleration.                   B-4 rec.'
+      IF (NIMPFS.GT.0) THEN
+         DO 468 I = 1,NIMPFS
+         WRITE(IFIL14,'(1PE10.3,I4,I4,I4,A)') 
+     1    WIMPL(I),ISTEP(I),IMODE(I),IRUN(I),
+     1' $ WIMPFA,ISTEP,IMODE,IRUN (modal imperfection) B-5'
+  468    CONTINUE
+      ENDIF
+C BEG JULY 1994
+C     WRITE(IFIL14,'(1PE10.3,A)') STLD(1),
+C    1  ', $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.'
+C END JULY 1994
+C BEG MAY 1998
+C     IF (INDIC.NE.3.OR.IPOSTP.EQ.1.OR.INDICX.EQ.4) THEN
+      IF (INDIC.NE.3.OR.IPOSTP.EQ.1) THEN
+C END MAY 1998
+         STEP(1) = 0.
+         FACM(1) = STLD(1)
+      ENDIF
+C BEG JULY 1994
+C     WRITE(IFIL14,'(1PE10.3,A)') STEP(1),
+C    1  ', $ STEP(1) = load factor increment, System A'
+C     WRITE(IFIL14,'(1PE10.3,A)') FACM(1),
+C    1  ', $ FACM(1) = maximum load factor, System A'
+C     WRITE(IFIL14,'(1PE10.3,A)') STLD(2),
+C    1  ', $ STLD(2) = starting load factor, System B'
+C     WRITE(IFIL14,'(1PE10.3,A)') STEP(2),
+C    1  ', $ STEP(2) = load factor increment, System B'
+C     WRITE(IFIL14,'(1PE10.3,A)') FACM(2),
+C    1  ', $ FACM(2) = maximum load factor, System B'
+C     WRITE(IFIL14,'(A)')
+C    1' 0, $ ITEMP =0 means no thermal loads'
+C     WRITE(IFIL14,'(A)')
+C    1' 0, $ INERT =0 means no inertial loads'
+C     WRITE(IFIL14,'(A)')
+C    1' 0, $ IXSTF =0 means normal program flow: stiffness matrix'
+C     WRITE(IFIL14,'(A)')
+C    1' 0  $ IXFAC =0 means norm. flow: factored matrix. END C-1 rec.'
+C END JULY 1994
+      WRITE(IFIL16,'(1PE10.3,A)') STLD(1),
+     1  ', $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.'
+      WRITE(IFIL16,'(1PE10.3,A)') STEP(1),
+     1  ', $ STEP(1) = load factor increment, System A'
+      WRITE(IFIL16,'(1PE10.3,A)') FACM(1),
+     1  ', $ FACM(1) = maximum load factor, System A'
+      WRITE(IFIL16,'(1PE10.3,A)') STLD(2),
+     1  ', $ STLD(2) = starting load factor, System B'
+      WRITE(IFIL16,'(1PE10.3,A)') STEP(2),
+     1  ', $ STEP(2) = load factor increment, System B'
+      WRITE(IFIL16,'(1PE10.3,A)') FACM(2),
+     1  ', $ FACM(2) = maximum load factor, System B'
+C BEG JULY 1994
+      WRITE(IFIL16,'(A)')
+     1' 0  $ ITEMP =0 means no thermal loads. END C-1 rec.'
+C     WRITE(IFIL16,'(A)')
+C    1' 0, $ INERT =0 means no inertial loads'
+C     WRITE(IFIL16,'(A)')
+C    1' 0, $ IXSTF =0 means normal program flow: stiffness matrix'
+C     WRITE(IFIL16,'(A)')
+C    1' 0  $ IXFAC =0 means norm. flow: factored matrix. END C-1 rec.'
+C END JULY 1994
+      IF (INDIC.EQ.4.OR.INDIC.EQ.5) THEN
+C BEG JULY 1994
+C        WRITE(IFIL14,'(A)')
+C    1' 1, $ NLDS = 1 means 1 load factor used for eig. soln. BEG C-3'
+C        IF (ISTAGS.EQ.1) WRITE(IFIL14,'(A)')
+C    1' 2  $ IXEV = 2 means eigvalue soln not saved on Tape 8.END C-3'
+C        IF (ISTAGS.EQ.2) WRITE(IFIL14,'(I2,A)') NEIGS,
+C    1'  $ NEIGS=number of eigenvalues to calculate. END C-3 rec.'
+C        WRITE(IFIL14,'(1PE10.3,A)') STLD(1),
+C    1' $ PLDS(1)=System A load factor for eig. analysis.  C-4'
+C END JULY 1994
+         WRITE(IFIL16,'(A)')
+     1' 1, $ NLDS = 1 means 1 load factor used for eig. soln. BEG C-3'
+         IF (ISTAGS.EQ.1) WRITE(IFIL16,'(A)')
+     1' 2  $ IXEV = 2 means eigvalue soln not saved on Tape 8.END C-3'
+         IF (ISTAGS.EQ.2) WRITE(IFIL16,'(I2,A)') NEIGS,
+     1'  $ NEIGS=number of eigenvalues to calculate. END C-3 rec.'
+         WRITE(IFIL16,'(1PE10.3,A)') STLD(1),
+     1' $ PLDS(1)=System A load factor for eig. analysis.  C-4'
+      ENDIF
+C BEG MAY 1998
+      IF (INDICX.EQ.4) THEN
+         WRITE(IFIL16,'(I4,A)') NLDS,
+     1', $ NLDS = no. of load factors used for eigenv. soln. BEG C-3'
+         WRITE(IFIL16,'(I4,A)') IXEV,
+     1'  $ IXEV=number of eigenvalues to calculate. END C-3 rec.'
+         IF (NLDS.GT.0) THEN
+           NLDS1 = NLDS - 1
+           IF (NLDS1.GE.1) THEN
+            DO 397 I = 1,NLDS1
+             WRITE(IFIL16,'(1PE10.3,A)') PLDS(I),
+     1   ', $ PLDS(i)=System A load factor for eigenv. analysis.  C-4'
+  397       CONTINUE
+           ENDIF
+           WRITE(IFIL16,'(1PE10.3,A)') PLDS(NLDS),
+     1' $ PLDS(i)=System A load factor for eigenv. analysis.  End C-4'
+         ENDIF
+      ENDIF
+C END MAY 1998
+C
+      IF (INDIC.EQ.3.OR.INDIC.EQ.4.OR.INDIC.EQ.5.OR.INDIC.EQ.6) THEN
+C BEG JULY 1994
+C        WRITE(IFIL14,'(I4,A)') ISTART,
+C    1  ', $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.'
+C        WRITE(IFIL14,'(A)')
+C    1'30000,$ NSEC= number of CPU seconds before run termination'
+C        WRITE(IFIL14,'(A)')
+C    1' 15,$ NCUT = number of times step size may be cut'
+C        WRITE(IFIL14,'(I4,A)') NEWT,
+C    1  ', $ NEWT = number of refactorings allowed'
+C END JULY 1994
+         NSTRAT = -1
+         IF (INDIC.EQ.4.OR.INDIC.EQ.5) NSTRAT = -1
+         IF (STEP(1).EQ.0.0) NSTRAT = -1
+C BEG JULY 1994
+C        IF (NSTRAT.EQ.-1) WRITE(IFIL14,'(I2,A)') NSTRAT,
+C    1  ',$ NSTRAT=-1 means path length used as independent parameter'
+C        IF (NSTRAT.EQ.1) WRITE(IFIL14,'(I2,A)') NSTRAT,
+C    1  ',$ NSTRAT=1 means previous solution used as initial estimate'
+C END JULY 1994
+         DELX = 0.0002
+         IF (INDIC.EQ.4) DELX = 0.05
+C BEG JULY 1994
+C        WRITE(IFIL14,'(F7.4,A)') DELX,',$ DELX=convergence tolerance'
+C        WRITE(IFIL14,'(A)')
+C    1' 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.'
+C END JULY 1994
+         WRITE(IFIL16,'(I4,A)') ISTART,
+     1  ', $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.'
+         WRITE(IFIL16,'(A)')
+     1'30000,$ NSEC= number of CPU seconds before run termination'
+         WRITE(IFIL16,'(A)')
+     1' 15,$ NCUT = number of times step size may be cut'
+         WRITE(IFIL16,'(I4,A)') NEWT,
+     1  ', $ NEWT = number of refactorings allowed'
+         IF (NSTRAT.EQ.-1) WRITE(IFIL16,'(I2,A)') NSTRAT,
+     1  ',$ NSTRAT=-1 means path length used as independent parameter'
+         IF (NSTRAT.EQ.1) WRITE(IFIL16,'(I2,A)') NSTRAT,
+     1  ',$ NSTRAT=1 means previous solution used as initial estimate'
+         WRITE(IFIL16,'(F7.4,A)') DELX,',$ DELX=convergence tolerance'
+         WRITE(IFIL16,'(A)')
+     1' 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.'
+      ENDIF
+      IF (INDIC.EQ.1.OR.INDIC.EQ.4.OR.INDIC.EQ.5) THEN
+C BEG JULY 1994
+C        WRITE(IFIL14,'(A)')
+C    1' 1, $ NCLUST=1 means one cluster of eigenvalues.BEGIN D-2 rec.'
+C        WRITE(IFIL14,'(A)')
+C    1' 0, $ IPRINT=0 means print eigenvalues modes, iteration data'
+C        WRITE(IFIL14,'(A)')
+C    1'10000, $ NSEC= number of CPU seconds before run termination'
+C        WRITE(IFIL14,'(A)')
+C    1' 0, $  ISAV  is no longer active.'
+C        WRITE(IFIL14,'(A)')
+C    1' 0. $ DELEV is no longer active.                  END D-2 rec.'
+C        WRITE(IFIL14,'(I3,A)') NEIGS,
+C    1', $ NEIGS= number of eigenvalues sought.  BEGIN D-3 rec.'
+C END JULY 1994
+         SHIFT = ABS(EIGLOC/2.)
+         IF (IELMNT.EQ.480) SHIFT = ABS(0.70*EIGLOC)
+         IF (INDIC.EQ.3.OR.INDIC.EQ.4.OR.INDIC.EQ.5) SHIFT = 0.
+C BEG JULY 1994
+C        WRITE(IFIL14,'(1PE10.3,A)') SHIFT,
+C    1  ', $ SHIFT=initial eigenvalue shift'
+C END JULY 1994
+         EIGA = EIGLOC/2.
+         EIGB = 2.*EIGLOC
+C  NOT A GOOD IDEA TO USE BOTH A SHIFT AND A RANGE IN STAGS: RESET 
+C  EIGA AND EIGB TO ZERO...
+         EIGA = 0.
+         EIGB = 0.
+C BEG JULY 1994
+C        WRITE(IFIL14,'(1PE10.3,A)') EIGA,
+C    1  ', $ EIGA =lower bound of eigenvalue range'
+C        WRITE(IFIL14,'(1PE10.3,A)') EIGB,
+C    1  '  $ EIGB =upper bound of eigenvalue range.      END D-3 rec.'
+C END JULY 1994
+      ENDIF
+      IF (INDIC.EQ.1
+     1         .OR.(ISTAGS.EQ.1.AND.(INDIC.EQ.4.OR.INDIC.EQ.5))) THEN
+C BEG JULY 1994
+C        WRITE(IFIL16,'(A)')
+C    1' 1, $ NCLUST=1 means one cluster of eigenvalues.BEGIN D-2 rec.'
+         WRITE(IFIL16,'(A)')
+     1'10000, $ NSEC= number of CPU seconds before run termination'
+         WRITE(IFIL16,'(A)')
+     1' 0., $ DELEV is eigenvalue error tolerance (0=.00001)'
+         WRITE(IFIL16,'(A)')
+     1' 0  $ IPRINT=0 means print modes, iteration data, END D-2 rec.'
+C        WRITE(IFIL16,'(A)')
+C    1' 0, $  ISAV  is no longer active.'
+C END JULY 1994
+         WRITE(IFIL16,'(I3,A)') NEIGS,
+     1', $ NEIGS= number of eigenvalues sought.  BEGIN D-3 rec.'
+         WRITE(IFIL16,'(1PE10.3,A)') SHIFT,
+     1  ', $ SHIFT=initial eigenvalue shift'
+         WRITE(IFIL16,'(1PE10.3,A)') EIGA,
+     1  ', $ EIGA =lower bound of eigenvalue range'
+         WRITE(IFIL16,'(1PE10.3,A)') EIGB,
+     1  '  $ EIGB =upper bound of eigenvalue range.      END D-3 rec.'
+      ENDIF
+C BEG NOV 1995
+C  NONLINEAR TRANSIENT INPUT...INDIC = 6
+      IF (INDIC.EQ.6) THEN
+         WRITE(IFIL16,'(A)')
+     1' 0.,$ TMIN = 0. means starting time is zero.    BEGIN E-1 rec.'
+C        TMAX = 2./CPS
+         TMAX = 0.001
+         WRITE(IFIL16,'(1PE10.3,A)') TMAX,
+     1', $ TMAX = final time for transient analysis.'
+C        DT = 1./(10.*CPS)
+         DT = 0.001*TMAX
+         WRITE(IFIL16,'(1PE10.3,A)') DT,
+     1', $ DT   = time increment for transient analysis.'
+         WRITE(IFIL16,'(A)')
+     1' 0., $ SUP = maximum expected displacement (irrelevant)'
+         OMEGA = 2.*PI*CPS
+C        ALPHA = DAMPNG*OMEGA
+         ALPHA = 0.15
+C        BETA  = DAMPNG/OMEGA
+         BETA  = DT
+         GAMMA = 0.
+         THOLD = 0.
+         WRITE(IFIL16,'(1PE10.3,A)') ALPHA,
+     1', $ ALPHA=damping factor for mass matrix=DAMPNG*2*PI*CPS'
+         WRITE(IFIL16,'(1PE10.3,A)') BETA,
+     1', $ BETA =damping factor for stiffness matrix=DAMPNG/2*PI*CPS'
+         WRITE(IFIL16,'(1PE10.3,A)') GAMMA,
+     1', $ GAMMA=damping factor for velocity-dependent forces'
+         WRITE(IFIL16,'(1PE10.3,A)') THOLD,
+     1'  $ THOLD can be used to suppress time step changes. END E-1'
+C
+         WRITE(IFIL16,'(A)')
+     1' 0, $ IMPL = 0 means implicit time integration. BEGIN E-2 rec.'
+         WRITE(IFIL16,'(A)')
+     1' 4, $ METHOD=4 means use Parks formula for time integration'
+         WRITE(IFIL16,'(A)')
+     1' 1, $ IERRF =1 means use variable (automatic) time step'
+         WRITE(IFIL16,'(I3,A)') IVELO,
+     1', $ IVELO =0 means number of modal initial velocities'
+         WRITE(IFIL16,'(A)')
+     1' 0, $ IFORCE=0 means no user-written FORCET'
+         WRITE(IFIL16,'(A)')
+     1' 1, $ IPA  = 1 means linear variation (constant) applied load'
+         WRITE(IFIL16,'(A)')
+     1' 0  $ IPB  = 0 means load system B is not included.  END E-2'
+         CA1 = STLD(1)*1.02
+         CA2 = 0.
+         CA3 = 0.
+         CA4 = 1000000.*TMAX
+         CA5 = CA4
+         CA6 = 0.
+         WRITE(IFIL16,'(1PE10.3,A)') CA1,
+     1', $ CA1 = transient load parameter(case (a), p3-21) BEGIN E-3'
+         WRITE(IFIL16,'(1PE10.3,A)') CA2,
+     1', $ CA2 = transient load parameter(case (a), p3-21)'
+         WRITE(IFIL16,'(1PE10.3,A)') CA3,
+     1', $ CA3 = transient load parameter(case (a), p3-21)'
+         WRITE(IFIL16,'(1PE10.3,A)') CA4,
+     1', $ CA4 = transient load parameter(case (a), p3-21)'
+         WRITE(IFIL16,'(1PE10.3,A)') CA5,
+     1', $ CA5 = transient load parameter(case (a), p3-21)'
+         WRITE(IFIL16,'(1PE10.3,A)') CA6,
+     1'  $ CA6 = transient load parameter(case (a), p3-21)   END E-3'
+         IF (IVELO.GT.0) THEN
+            DO 568 I = 1,IVELO
+            WRITE(IFIL16,'(1PE10.3,I4,I4,I4,A)') 
+     1       VELOC(I),IMSTEP(I),IMMODE(I),IMRUN(I),
+     1   ' $ EIGA,IMSTEP,IMMODE,IMRUN(init.veloc.mode)E-5'
+  568       CONTINUE
+         ENDIF
+      ENDIF
+      IF (INDIC.NE.6) THEN
+      IF (INDICX.NE.4) THEN
+         IF(NSTRAT.EQ.-1)
+     1     WRITE(IFIL16,'(A,I3,A,A)') ' 0,',NEIGS,', 0 ',
+     1' $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1'
+         IF(NSTRAT.EQ.1) WRITE(IFIL16,'(A)')
+     1' 0  $ NPATH = 0 means extrapolate from previous solution.   ET-1'
+      ELSE
+         WRITE(IFIL16,'(A,I3,A)') ' 0,',NEIGS,
+     1' $ NPATH=0 get eigenmodes at PA, NEIGS=no. of eigenvalues.  ET-1'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      ENDIF
+      ENDIF
+C END NOV 1995
+C      
+      NODX1 = NODEX - 1
+      NODT1 = NODX1*MAXNOD + 1
+      NODT2 = NODEX*MAXNOD
+      NODT11 = NODT1 + 1
+C
+      IF (NPATS.NE.0) THEN
+C
+C  NEXT, GENERATE PARTIAL NODAL COMPATIBILITY (G-2) RECORDS.
+C
+C  FIRST, DO V CONSTRAINT FOR THE EDGE AT X = XSTAGS: v(i)=v(1):
+         IF (NPATV.GT.0) THEN
+            INOD1 = NODT1
+            DO 1005 INOD = NODT11,NODT2
+              INOD2 = INOD
+              WRITE(IFIL14,'(A,I5,A,I5,A)') ' 1,',INOD1,', 0, 2, 1,',
+     1        INOD2,', 0, 2 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+ 1005       CONTINUE
+         ENDIF
+C
+C  NEXT, DO THE UNIFORM U CONSTRAINTS FOR THE EDGE AT X = XSTAGS...
+C
+         INOD1 = NODT1
+         IY = 1
+         DO 1006 INOD = NODT11,NODT2
+          IY = IY + 1
+          IF (JUDISP(IY).EQ.0.AND.ISWAY.EQ.0) GO TO 1006
+C BEG FEB 1997
+          IF (INDICP.EQ.-1) GO TO 1006
+C END FEB 1997
+          INOD2 = INOD
+          WRITE(IFIL14,'(A,I5,A,I5,A)') ' 1,',INOD1,', 0, 1, 1,',
+     1    INOD2,', 0, 1 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+ 1006    CONTINUE
+C
+C BEG NOV 1992
+C BEG NOV 1995
+C        IF (IWIDE.EQ.1.AND.ISYM.EQ.1.AND.NSTIF.GE.3
+C    1                 .AND.REMAIN.GT.(B(1)/2.5)) THEN
+         IF (ICLOSE.EQ.0.AND.IWIDE.EQ.1.AND.ISYM.EQ.1.AND.NSTIF.GE.3
+     1                 .AND.REMAIN.GT.(B(1)/2.5)) THEN
+C END NOV 1995
+C END NOV 1992
+C
+C  NEXT, DO THE:
+C    (1) W(edge) = W(interior) constraint at y= 0 symmetry plane:
+C    (2) Rot-u(edge) = Rot-u(interior) constraint at y= 0 symmetry plane:
+C    (3) Rot-v(edge) = Rot-v(interior) constraint at y= 0 symmetry plane:
+C    (4) Rot-w(edge) = Rot-w(interior) constraint at y= 0 symmetry plane:
+C
+            DO 1016 IX = 2,NODX1
+               INOD = (IX-1)*MAXNOD + 1
+               INOD1 = INOD
+               INOD2 = INOD + 2*NMOD - 2
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 3, 1,',INOD2,
+     1          ', 0, 3 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 4, 1,',INOD2,
+     1          ', 0, 4 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 5, 1,',INOD2,
+     1          ', 0, 5 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 6, 1,',INOD2,
+     1          ', 0, 6 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+ 1016       CONTINUE
+C
+C
+C  NEXT, DO THE:
+C    (1) W(edge) = W(interior) constraint at y= CIRC symmetry plane:
+C    (2) Rot-u(edge) = Rot-u(interior) constraint at y=CIRC symmetry plane:
+C    (3) Rot-v(edge) = Rot-v(interior) constraint at y=CIRC symmetry plane:
+C    (4) Rot-w(edge) = Rot-w(interior) constraint at y=CIRC symmetry plane:
+C
+            DO 1017 IX = 2,NODX1
+               INOD = IX*MAXNOD
+               INOD1 = INOD - (2*NMOD - 2)
+               INOD2 = INOD
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 3, 1,',INOD2,
+     1          ', 0, 3 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 4, 1,',INOD2,
+     1          ', 0, 4 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 5, 1,',INOD2,
+     1          ', 0, 5 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 6, 1,',INOD2,
+     1          ', 0, 6 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+ 1017       CONTINUE
+         ENDIF
+C BEG NOV 1995
+         IF (ICLOSE.EQ.1) THEN
+C  NEXT, DO THE "BEGINNING OF CYLINDRICAL ARC CONNECTED TO THE END OF THE
+C  CYLINDRICAL ARC" PARTIAL COMPATABILITY CONSTRAINTS...
+C BEG FEB 1998
+C           DO 1018 IX = 2,NODX1
+            DO 1018 IX = 1,NODEX
+C END FEB 1998
+               INOD = (IX-1)*MAXNOD + 1
+               INOD1 = INOD
+               INOD2 = INOD + MAXNOD - 1
+               WRITE(IFIL14,'(A,I5,A,I5,A)')
+     1          ' 1,',INOD1,', 0, 0, 1,',INOD2,
+     1          ', 0, 0 $ IU1,IR1,IC1,ID1, IU2,IR2,IC2,ID2. G-2'
+ 1018       CONTINUE
+         ENDIF
+C END NOV 1995
+      ENDIF
+C  END OF PARTIAL COMPATIBILITY INPUT.
+C
+      IF (NCONST.NE.0) THEN
+C
+C  NEXT, DO THE LAGRANGIAN CONSTRAINTS (G-4 RECORDS)...
+C
+C  GENERATE LAGRANGIAN CONSTRAINTS FOR MAINTENANCE OF STRAIGHT EDGES
+C  CORRESPONDING TO Y = 0 AND y = CIRC
+C
+         IF (CX(1,1,5).EQ.0.) THEN
+            STIFF = EMAX*TX(1)
+         ELSE
+            STIFF = CX(1,1,5)
+         ENDIF
+C
+         IF (IEDGE.EQ.1) THEN
+C
+C  FIRST, DO THE PLANAR (LINEAR V) CONSTRAINTS FOR THE EDGE AT Y = 0:
+C     
+            DO 1002 IX = 2,NODX1
+             WRITE(IFIL14,'(A)')
+     1' 3  $ NTERMS= no. of terms in linear-v constraint at y=0.  G-3'
+             CC    = -X(IX)/XSTAGS
+             CC1   = -STIFF*(CC + 1.)
+             CC2   = 1.0*STIFF
+             CC3   = CC*STIFF
+             INOD1 = 1
+             INOD2 = (IX-1)*MAXNOD + 1
+             INOD3 = NODT1
+             WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD1,',0, 2,',
+     1       CC1,' $ IU(1),IX(1),IY(1),ID(1),CC(1). G-4'
+             WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD2,',0, 2,',
+     1       CC2,' $ IU(2),IX(2),IY(2),ID(2),CC(2). G-4'
+             WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD3,',0, 2,',
+     1       CC3,' $ IU(3),IX(3),IY(3),ID(3),CC(3). G-4'
+ 1002       CONTINUE
+C
+C  NEXT, DO THE PLANAR (LINEAR V) CONSTRAINTS FOR THE EDGE AT y = CIRC:
+C
+            DO 1004 IX = 2,NODX1
+             WRITE(IFIL14,'(A)')
+     1' 2  $ NTERMS=no. of terms in linear-v constraint at y=CIRC.G-3'
+             INOD = IX*MAXNOD
+             CC    = -X(IX)/XSTAGS
+             CC1   = 1.0*STIFF
+             CC2   = CC*STIFF
+             INOD1 = INOD
+             INOD2 = NODT2
+             WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD1,',0, 2,',
+     1       CC1,' $ IU(1),IX(1),IY(1),ID(1),CC(1). G-4'
+             WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD2,',0, 2,',
+     1       CC2,' $ IU(2),IX(2),IY(2),ID(2),CC(2). G-4'
+ 1004       CONTINUE
+         ENDIF
+C
+         IF (ISWAY.EQ.0) THEN
+C
+C  NEXT, DO THE V(flange)=V(base) CONSTRAINTS FOR THE EDGE AT X = 0...
+C
+            IY = 0
+            DO 1009 INOD = 1,MAXNOD
+              IY = IY + 1
+              IF (JVDISP(IY).LE.0) GO TO 1009
+              WRITE(IFIL14,'(A)')
+     1  ' 2  $ NTERMS=no. of terms in the vf=vb constraint at x=0.G-3'
+              FACRAD = 1.0
+              IF (IFLAT.EQ.0) FACRAD = ABS((R + H(1))/R)
+              CC1   =  1.0*STIFF*FACRAD
+              CC2   =  1.0*STIFF
+              IDOF  =  3
+              IF (ISTIF(1).EQ.4) THEN
+                 CC2 = -1.0*STIFF
+                 IDOF = 2
+              ENDIF
+              INOD1 = JVDISP(IY)
+              JY = IY - 1
+              DO 1007 J = INOD,NODT2
+                 JY = JY + 1
+                 IF (JVDISP(JY).GE.0) THEN
+                    GO TO 1007
+                 ELSE
+                    INOD2 = -JVDISP(JY)
+                    GO TO 1008
+                 ENDIF
+ 1007         CONTINUE
+ 1008         CONTINUE
+           WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD1,',0, 2,',CC1,
+     1        ' $ IU(1),IX(1),IY(1),ID(1),CC(1). G-4'
+           WRITE(IFIL14,'(A,I5,A,I2,A,1PE10.3,A)')' 1,',INOD2,',0,',
+     1         IDOF,',',CC2,' $ IU(2),IX(2),IY(2),ID(2),CC(2). G-4'
+ 1009       CONTINUE
+C
+C  NEXT, DO THE V(flange)=V(base) CONSTRAINTS FOR THE EDGE AT X = XSTAGS...
+C
+            IY = 0
+            DO 1012 INOD = NODT1,NODT2
+               IY = IY + 1
+               IF (JVDISP(IY).LE.0) GO TO 1012
+               WRITE(IFIL14,'(A)')
+     1   ' 2  $ NTERMS=no. of terms in the vf=vb constraint at x=L.G-3'
+               FACRAD = 1.0
+               IF (IFLAT.EQ.0) FACRAD = ABS((R + H(1))/R)
+               CC1   =  1.0*STIFF*FACRAD
+               CC2   =  1.0*STIFF
+               IDOF  =  3
+               IF (ISTIF(1).EQ.4) THEN
+                  CC2 = -1.0*STIFF
+                  IDOF = 2
+               ENDIF
+               INOD1 = JVDISP(IY) + NODT1 - 1
+               JY = IY - 1
+               DO 1010 J = INOD,NODT2
+                  JY = JY + 1
+                  IF (JVDISP(JY).GE.0) THEN
+                     GO TO 1010
+                  ELSE
+                     INOD2 = -JVDISP(JY) + NODT1 - 1
+                     GO TO 1011
+                  ENDIF
+ 1010          CONTINUE
+ 1011          CONTINUE
+               WRITE(IFIL14,'(A,I5,A,1PE10.3,A)')' 1,',INOD1,',0, 2,',
+     1         CC1,' $ IU(1),IX(1),IY(1),ID(1),CC(1). G-4'
+             WRITE(IFIL14,'(A,I5,A,I2,A,1PE10.3,A)')' 1,',INOD2,',0,',
+     1         IDOF,',',CC2,' $ IU(2),IX(2),IY(2),ID(2),CC(2). G-4'
+ 1012       CONTINUE
+         ENDIF
+C
+      ENDIF
+C
+C   END OF LAGRANGE CONSTRAINT SECTION
+C
+      NUPT = NODTOT + 2*NTAB
+      WRITE(IFIL14,'(I5,A)') NUPT,
+     1  ', $ NUPT = number of nodal points in model.   BEGIN H-1 rec.'
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.0) WRITE(IFIL14,'(A)')
+     1' 0, $ NSPRI= number of mount (spring) elements'
+      IF (IZSTIF(1).EQ.1) THEN
+         NSPRI = NSTIF*NODEX
+C        WRITE(6,*)' NSPRI,NSTIF,NODEX=',NSPRI,NSTIF,NODEX
+         WRITE(IFIL14,'(I4,A)')
+     1 NSPRI,', $ NSPRI= number of mount (spring) elements'
+      ENDIF
+C END MAY 1997
+C     NBM = 2*(NODEX-1) + MAXELE
+C     NBM = MAXELE
+      NBM = 0
+      IF (NTAB.GT.0) NBM = 2.*NBEAM
+C BEG MAR 2007
+C      WRITE(IFIL14,'(I2,A)') NBM,
+       WRITE(IFIL14,'(I5,A)') NBM,
+C END MAR 2007
+     1  ', $ NBM  = number of beam elements defined on data cards'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NTRI = number of triangular elements defined on cards'
+      NQUAD = NELTOT
+      IF (IELMNT.EQ.480) NQUAD = NELTOT/4
+      WRITE(IFIL14,'(I5,A)') NQUAD,
+     1  ', $ NQUAD =number of quadrilateral finite elements in model'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ IUWP = 0 means all nodal points defined on data cards'
+      WRITE(IFIL14,'(A)')
+     1' 0  $ IUWE = 0 means all elements on cards.      END H-1 rec.'
+C
+      DO 1014 IMAT = 1,MAXMAT
+         WRITE(IFIL14,'(I2,A)') IMAT,
+     1  ', $ ITAM = material number.                  BEGIN I-1 rec.'
+         WRITE(IFIL14,'(A)')
+     1' 0, $ NESP = 0 means zero points on stress-strain curve'
+         WRITE(IFIL14,'(A)')
+     1' 0, $ IPLST =0 means White-Besseling plasticity theory'
+         WRITE(IFIL14,'(A)')
+     1' 0  $ ITANST=0 means Initial Strain method used. END I-1 rec.'
+         ESTAGS = E1(IMAT)
+         IF (ESTAGS.EQ.0.) ESTAGS = 0.0000001*(E1(IMAT) + E2(IMAT))/2.
+         IF (ESTAGS.EQ.0.0.AND.IMAT.GT.1)
+     1     ESTAGS = 0.0000001*(E1(IMAT-1) + E2(IMAT-1))/2.
+         IF (ESTAGS.EQ.0.0.AND.IMAT.EQ.1.AND.MAXMAT.GT.1)
+     1     ESTAGS = 0.0000001*(E1(IMAT+1) + E2(IMAT+1))/2.
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') ESTAGS,', $ Matl', IMAT,
+     1  ': E1=Modulus along fibers.         BEGIN I-2 rec.'
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') FNU(IMAT),', $ Matl', IMAT,
+     1  ': U12=Poisson ratio NU12 (NU12*E1 = NU21*E2)'
+         GSTAGS = G(IMAT)
+         IF (GSTAGS.EQ.0.) GSTAGS = 0.0000001*(E1(IMAT) + E2(IMAT))/2.
+         IF (GSTAGS.EQ.0.0.AND.IMAT.GT.1)
+     1     GSTAGS = 0.0000001*(E1(IMAT-1) + E2(IMAT-1))/2.
+         IF (GSTAGS.EQ.0.0.AND.IMAT.EQ.1.AND.MAXMAT.GT.1)
+     1     GSTAGS = 0.0000001*(E1(IMAT+1) + E2(IMAT+1))/2.
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)')  GSTAGS,', $ Matl', IMAT,
+     1  ': G  = In-plane shear modulus'
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') DENS(IMAT),', $ Matl', IMAT,
+     1  ': RHO=weight density'
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') ALPHA1(IMAT),', $ Matl', IMAT,
+     1  ': A1 =thermal expansion coefficient along fibers'
+         ESTAGS = E2(IMAT)
+         IF (ESTAGS.EQ.0.) ESTAGS = 0.0000001*(E1(IMAT) + E2(IMAT))/2.
+         IF (ESTAGS.EQ.0.0.AND.IMAT.GT.1)
+     1     ESTAGS = 0.0000001*(E1(IMAT-1) + E2(IMAT-1))/2.
+         IF (ESTAGS.EQ.0.0.AND.IMAT.EQ.1.AND.MAXMAT.GT.1)
+     1     ESTAGS = 0.0000001*(E1(IMAT+1) + E2(IMAT+1))/2.
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') ESTAGS,', $ Matl', IMAT,
+     1  ': E2 =Modulus normal to fibers (normal to PHI1)'
+         WRITE(IFIL14,'(1PE10.3,A,I2,A)') ALPHA2(IMAT),' $ Matl', IMAT,
+     1  ': A2 =thermal expansion coef. normal to fibers. END I-2 rec.'
+ 1014 CONTINUE
+C
+C  BEAM CROSS-SECTION DATA:
+      IF (NTAB.GT.0) THEN
+         TORJ = (CY(6,6,5) - CX(6,6,1))*B(2)/G(MAXMAT)
+         BA   = 1.0
+         DNEUT = CY(2,5,5)/CY(2,2,5)
+         SCZ = CY(2,5,5)/(CY(2,2,5) - CX(2,2,1))
+         BIY = (CY(5,5,5) -CX(5,5,1) 
+     1          -(CY(2,2,5)-CY(2,2,1))*SCZ**2)*B(2)/E1(MAXMAT)
+         WRITE(IFIL14,'(A)')
+     1' 1, $ ITAB = 1 means 1 cross-section number.   BEGIN J-1 rec.'
+         WRITE(IFIL14,'(A)')
+     1' 1, $ KCROSS=1 means general type cross-section'
+         WRITE(IFIL14,'(I3,A)') MAXMAT,
+     1  ',$ MATB = material number of beam'
+         WRITE(IFIL14,'(A)')
+     1' 0, $ NSUB = 0 means no subelements (not relevant here)'
+         WRITE(IFIL14,'(1PE10.3,A)') TORJ,
+     1', $ TORJ = torsional constant J  (TORJ = GJ/G)'
+         WRITE(IFIL14,'(A)')
+     1' 0.,$ SCY = local ybar coordinate of beam shear center.'
+         WRITE(IFIL14,'(1PE10.3,A)') SCZ,
+     1', $ SCZ = local zbar coordinate of beam shear center.'
+         WRITE(IFIL14,'(A)')
+     1' 0  $ NSOYZ =0 means no stress output.           END J-1 rec.'
+         WRITE(IFIL14,'(1PE10.3,A)') BA,
+     1', $ BA  = cross sectional area                 BEGIN J-2A rec.'
+         WRITE(IFIL14,'(1PE10.3,A)') BIY,
+     1', $ BIY = moment of inertia about ybar axis'
+         WRITE(IFIL14,'(A)')
+     1' 0.,$ BIZ = moment of inertia about zbar axis'
+         WRITE(IFIL14,'(A)')
+     1' 0. $ BIYZ = product of inertia.                 END J-2A rec.'
+      ENDIF
+C
+      DO 1020 ITAW = 1,MAXWAL
+         WRITE(IFIL14,'(I2,A)') ITAW,
+     1  ', $ ITAW = wall configuration number.        BEGIN K-1 rec.'
+         WRITE(IFIL14,'(A)')
+     1' 1, $ KWALL = 1 means general layered wall (composite layup)'
+         WRITE(IFIL14,'(I3,A)') NLAYER(ITAW,1),
+     1  ',$ NLAY = number of layers thru the thickness'
+         WRITE(IFIL14,'(A)')
+     1' 0, $ NLIP = 0 means properties are uniform within each layer'
+         WRITE(IFIL14,'(A)')
+     1' 0  $ NSMRS= 0 means no smeared stiffeners.      END K-1 rec.'
+         NLAY = NLAYER(ITAW,1)
+         DO 1015 ILAY = 1,NLAY
+            WRITE(IFIL14,'(I2,A,I2,A,I2,A)') JMAT(ILAY,ITAW),
+     1  ', $ MATL=layer matl no.   Wall type:',ITAW,', Layer: ',ILAY,
+     1  '   BEGIN K-2 rec.'
+            WRITE(IFIL14,'(1PE10.3,A,I2,A,I2)') THIK(ILAY,ITAW),
+     1  ', $ TL  =layer thickness. Wall type:',ITAW,', Layer: ',ILAY
+            WRITE(IFIL14,'(1PE10.3,A,I2,A,I2)') ANGL(ILAY,ITAW),
+     1  ', $ ZETL=fiber angle.     Wall type:',ITAW,', Layer: ',ILAY
+            WRITE(IFIL14,'(A)')
+     1' 1  $ LSO = 1 means print stresses this layer.   END K-2 rec.'
+ 1015    CONTINUE
+ 1020 CONTINUE
+C
+C  NEXT, PROVIDE NODE-BY-NODE INPUT FOR NODTOT NODAL POINTS:
+C  (S-1 AND S-2 RECORDS)
+      REWIND IFILE4
+      DO 1300 INOD = 1,NODTOT
+C BEG NOV 1992
+         READ(IFILE4,390) IUPT,IUVWT,IRUVWT,JU,JW
+         READ(IFILE4,400) XGL,YGL,ZGL,THET,FORCE(INOD),FORCEB(INOD)
+C END NOV 1992
+C BEG AUG 1992
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(I5,A,3F10.2,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ELSE
+            WRITE(IFIL14,'(I5,A,3F10.4,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ENDIF
+         CTHET =  COS(THET)
+         STHET = -SIN(THET)
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(A,2F10.2,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1     ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ELSE
+            WRITE(IFIL14,'(A,2F10.4,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1     ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ENDIF
+C END AUG 1992
+ 1300 CONTINUE
+C
+      IF (NBM.GT.0) THEN
+C
+C  NEXT, PROVIDE REFERENCE NODAL POINTS FOR BEAMS ALONG X = 0 AND
+C  ALONG X = XSTAGS.  THESE BEAMS REPRESENT THE RINGS.
+C
+C  REFERENCE NODE AT (X,Y,Z) = (0,0,XSTAGS/1000)
+         IUPT = NODTOT + 1
+         XGL = 0.
+         YGL = 0.
+         ZGL = XSTAGS/1000.
+         IUVWT = 111
+         IRUVWT= 111
+C BEG AUG 1992
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(I5,A,3F10.2,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ELSE
+            WRITE(IFIL14,'(I5,A,3F10.4,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ENDIF
+         CTHET =  1.0
+         STHET =  0.0
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(A,2F10.2,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1   ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ELSE
+            WRITE(IFIL14,'(A,2F10.4,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1   ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ENDIF
+C END AUG 1992
+C
+C  REFERENCE NODE AT (X,Y,Z) = (XSTAGS,0,XSTAGS/1000.)
+         IUPT = NODTOT + 2
+         XGL = XSTAGS
+         YGL = 0.
+         ZGL = XSTAGS/1000.
+         IUVWT = 111
+         IRUVWT= 111
+C BEG AUG 1992
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(I5,A,3F10.2,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ELSE
+            WRITE(IFIL14,'(I5,A,3F10.4,2I5,A)') 
+     1       IUPT,',0,0,0,',XGL,YGL,ZGL,IUVWT,IRUVWT,
+     1      ', 1 $ IUPT,XP,YP,ZP,..S-1'
+         ENDIF
+         CTHET =  1.0
+         STHET =  0.0
+         IF (ABS(XGL).GE.1000.0.OR.ABS(YGL).GE.1000.0
+     1                         .OR.ABS(ZGL).GE.1000.0) THEN
+            WRITE(IFIL14,'(A,2F10.2,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1     ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ELSE
+            WRITE(IFIL14,'(A,2F10.4,A)')' 1.,0.,0., 0.,',CTHET,STHET,
+     1     ' $ XAX,XAY,XAZ; YAX,YAY,YAZ: S-2'
+         ENDIF
+C END AUG 1992
+C BEG MAY 1997
+      ENDIF
+C  END OF BEAM NODAL POINT INPUT
+C
+C  NEXT, PROVIDE "RIGID LINK" (120) ELEMENTS FOR CONNECTION BETWEEN
+C  THE FAYING FLANGE OF THE STRINGER (NODE NO. N2T1) AND THE PANEL
+C  SKIN WHERE THE RIVET HOLDS THE FAYING FLANGE TO THE SKIN (NODE N1T1).
+C
+      IF (IZSTIF(1).NE.0.AND.NSPRI.GT.0) THEN
+        DO 1315 J = 1,NODEX
+         IROW = (J-1)*MAXNOD
+         DO 1310 I = 1,INSPRI
+            WRITE(IFIL14,'(2I5,A)') N2T1(I)+IROW,N1T1(I)+IROW,
+C BEG APR 1998
+     1   ', -1, 120  $ N1,N2,NR,KELT (Z-fayflange-skin rigid link) T-1'
+C END APR 1998
+            WRITE(IFIL14,'(1P,E10.3,A)') CX(1,1,1),
+     1    '  $ SCALE (Z-fayflange-skin rigid link scale factor) T-1B'
+ 1310    CONTINUE
+ 1315   CONTINUE
+      ENDIF
+C
+      IF (NBM.GT.0) THEN
+C END MAY 1997
+
+C  NEXT, PROVIDE BEAM ELEMENTS ALONG X = 0 AND X = XSTAGS (T-2 RECORDS)
+C
+C  ELEMENT TYPE:
+         IBMELE = 210
+         IF (IELMNT.EQ.411) IBMELE = 211
+C
+C  FIRST, DO THE EDGE ALONG X = 0:
+         NODTT1 = NODTOT + 1
+         DO 1320 IELE = 1,MAXELE
+          IF (JPRESS(IELE).NE.0)
+     1     WRITE(IFIL14,'(4I6,A)') NT2(IELE),NT3(IELE),NODTT1,IBMELE,
+     1     ', 1,0.,0.,0.,0,0 $ X=0 beams: T-2 rec.'
+ 1320    CONTINUE
+C
+C  NEXT, DO THE EDGE ALONG Y = 0:
+C     DO 1340 IX = 2,NODEX
+C        INOD1 = (IX-2)*MAXNOD + 1
+C        INOD2 = (IX-1)*MAXNOD + 1
+C        WRITE(IFIL14,'(3I5,A,1PE10.3,A)') INOD1,INOD2,NODTT1,
+C    1 ', 250,-1,0.,',EMAX,',0.,0,0 $ 2nd beams: T-2 rec.'
+C1340 CONTINUE
+C
+C  NEXT, DO THE EDGE ALONG X = XSTAGS:
+         NODTT1 = NODTOT + 2
+         DO 1360 IELE = 1,MAXELE
+            IF (JPRESS(IELE).NE.0) THEN
+               INOD1 = (NODEX-1)*MAXNOD + NT2(IELE)
+               INOD2 = (NODEX-1)*MAXNOD + NT3(IELE)
+               WRITE(IFIL14,'(4I6,A)') INOD1,INOD2,NODTT1,IBMELE,
+     1          ', 1,0.,0.,0.,0,0 $ X=XSTAGS beams: T-2 rec.'
+            ENDIF
+ 1360    CONTINUE
+      ENDIF
+C END OF BEAM INPUT.
+C
+C  NEXT, DO THE EDGE ALONG y = CIRC
+C     DO 1380 IX = 2,NODEX
+C        INOD1 = (IX-1)*MAXNOD
+C        INOD2 = (IX-0)*MAXNOD
+C        WRITE(IFIL14,'(3I5,A,1PE10.3,A)') INOD1,INOD2,NODTOT,
+C    1 ', 250,-1,0.,',EMAX,',0.,0,0 $ 4th beams: T-2 rec.'
+C1380 CONTINUE
+C
+C  NEXT, PROVIDE FINITE ELEMENT CONNECTIVITY AND WALL TYPES
+C  (T-4 RECORDS)
+      IEL480 = 0
+      DO 1400 IELE = 1,NELTOT
+         READ(IFILE4,700) JELEM,JWAL,JPRES,INOD,NN1,NN2,NN3,NN4,ZZREF
+         KQUAD = IELMNT
+         IF (ZZREF.NE.0.) KQUAD = 411
+         IF (IELMNT.NE.480) PELMNT(IELE) = P*FLOAT(JPRES)
+         IF (IELMNT.NE.480) PELMNB(IELE) = P0*FLOAT(JPRES)
+         IF (IELMNT.EQ.480) THEN
+            KQUAD = 480
+            NROWS = (IELE-1)/MAXELE + 1
+            KELE  = IELE - (NROWS-1)*MAXELE
+            K1 = MOD(KELE,2)
+            IF (K1.EQ.1) THEN
+               NNN1 = NN1
+               NNN5 = NN2
+               NNN9 = NN3
+               NNN8 = NN4
+               NNN2 = NN2 + MAXNOD
+               NNN6 = NN3 + MAXNOD
+            ELSE
+               NNN7 = NN3
+               NNN4 = NN4
+               NNN3 = NN3 + MAXNOD
+            ENDIF
+            K2 = MOD(NROWS,2)
+            IF (K1.EQ.0.AND.K2.NE.0) THEN
+               IEL480 = IEL480 + 1
+               PELMNT(IEL480) = P*FLOAT(JPRES)
+               PELMNB(IEL480) = P0*FLOAT(JPRES)
+               IF (ISTAGS.EQ.1)
+     1         WRITE(IFIL14,'(6I6,A,F10.4,A)') NNN1,NNN2,NNN3,NNN4,
+     1         KQUAD,JWAL,',0.,',ZZREF,',0,0,1,1,1 $ N1,N2,N3,N4,..T-4'
+               IF (ISTAGS.EQ.2)
+     1         WRITE(IFIL14,'(6I6,A,F10.4,A)') NNN1,NNN2,NNN3,NNN4,
+     1         KQUAD,JWAL,',0.,',ZZREF,',0,0,0,0,1 $ N1,N2,N3,N4,..T-4'
+               WRITE(IFIL14,'(5I6,A)') NNN5,NNN6,NNN7,NNN8,NNN9,
+     1         ' $ N5,N6,N7,N8,N9          T-4B'
+               WRITE(IFIL14,'(A)')
+     1         ' 1., 0., 0.  $ Global wall ref. vector, RX,RY,RZ..T-4C'
+            ENDIF
+         ELSE
+            IF (ISTAGS.EQ.1)
+     1      WRITE(IFIL14,'(6I6,A,F10.4,A)') NN1,NN2,NN3,NN4,KQUAD,JWAL,
+     1      ',0.,',ZZREF,',0,0,1,1,1 $ N1,N2,N3,N4,..T-4'
+            IF (ISTAGS.EQ.2)
+     1      WRITE(IFIL14,'(6I6,A,F10.4,A)') NN1,NN2,NN3,NN4,KQUAD,JWAL,
+     1      ',0.,',ZZREF,',0,0,0,0,1 $ N1,N2,N3,N4,..T-4'
+            WRITE(IFIL14,'(A)')
+     1      ' 1., 0., 0.  $ Global wall ref. vector, RX,RY,RZ..T-4C'
+         ENDIF
+ 1400 CONTINUE
+      IF (IELMNT.EQ.480) NELTOT = IEL480
+C
+C  NEXT, PROVIDE NODAL POINT LOADS AND IMPOSED EDGE DISPLACEMENTS.
+C
+C BEG NOV 1992
+      NSYS = 11
+      IF (P.EQ.0.0.OR.P0.EQ.0.0) NSYS = 10
+      IF (P.EQ.0.0.AND.P0.EQ.0.0) NSYS = 9
+      IF (INDICP.EQ.-1) THEN
+         NSYS = NSYS + 2
+C        IF (IFLAT.EQ.0.AND.ISTIF(1).EQ.0.AND.IDIFF.EQ.1) NSYS=NSYS+1
+      ENDIF
+C END NOV 1992
+C BEG NOV 1995
+      NSYSX = 3
+      IF (INDICP.EQ.-1) NSYSX = 4
+      IF (ICLOSE.EQ.1) NSYS = NSYS - NSYSX
+C END NOV 1995
+      WRITE(IFIL14,'(I2,A)') NSYS,
+     1  ', $ NSYS = no. load systems (Nx,Ny,Nyx,Nxy,p,u,v) BEGIN U-1'
+      WRITE(IFIL14,'(A)')
+     1' 0, $ NICS =0 means zero sets of initial conditions'
+      WRITE(IFIL14,'(A)')
+     1' 0  $ NAMS =0 means zero attached masses.             END U-1'
+C
+C  FIRST, APPLY IMPOSED DISPLACEMENT u at X = 0
+C  FOR LOAD SET A:
+         NN = MAXNOD
+         WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = -1
+         LD =  1
+         LE =  0
+         LAX=  0
+         DO 1425 IY = 1,NN
+            UIMPOS = 0.
+            LN = IY
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     UIMPOS,LT,LD,LN,LE,LAX,
+     1     ' $ u,LT,LD,LN,LE,LAX (imposed u) U-3'
+ 1425    CONTINUE
+C
+C  NEXT, RV ROTATION CONSTRAINT APPLIED ALONG THE EDGES X=0 AND X=XSTAGS:
+      NN = 2*MAXNOD
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      LT = -1
+      LD =  5
+      LE =  0
+      LAX=  0
+      RVAPP = 0.
+      DO 1450 IY = 1,NN
+         IF (IY.LE.MAXNOD) THEN
+            LN = IY
+         ELSE
+            LN = (NODEX-1)*MAXNOD + IY - MAXNOD
+         ENDIF
+         WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                 RVAPP,LT,LD,LN,LE,LAX,
+     1  ' $ RV,LT,LD,LN,LE,LAX (applied RV) U-3'
+ 1450 CONTINUE
+C
+C  NEXT, RW ROTATION CONSTRAINT APPLIED ALONG THE EDGES X=0 AND X=XSTAGS:
+      NN = 2*MAXNOD
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      LT = -1
+      LD =  6
+      LE =  0
+      LAX=  0
+      RWAPP = 0.
+      DO 1460 IY = 1,NN
+         IF (IY.LE.MAXNOD) THEN
+            LN = IY
+         ELSE
+            LN = (NODEX-1)*MAXNOD + IY - MAXNOD
+         ENDIF
+         WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                 RWAPP,LT,LD,LN,LE,LAX,
+     1  ' $ RW,LT,LD,LN,LE,LAX (applied RW) U-3'
+ 1460 CONTINUE
+C
+C  NEXT, AXIAL RESULTANT Nx APPLIED ALONG THE EDGE X = XSTAGS:
+      NN = 0
+      IF (FNX.NE.0.) NN = MAXNOD
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+C        IF (CX(1,1,5).EQ.0.) THEN
+C           STIFF = EMAX*TX(1)
+C        ELSE
+C           STIFF = CX(1,1,5)
+C        ENDIF
+C        UAPPL = XSTAGS*FNX/STIFF
+         LT = 1
+         LD = 1
+         LE = 0
+         LAX= 0
+         DO 1500 IY = 1,NN
+            FNXAPP= FAXIAL(IY)
+            LN = (NODEX-1)*MAXNOD + IY
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNXAPP,LT,LD,LN,LE,LAX,
+     1     ' $ Nx,LT,LD,LN,LE,LAX (applied Nx) U-3'
+ 1500    CONTINUE
+      ENDIF
+C
+C  NEXT, AXIAL RESULTANT Nxo (Load Set B) APPLIED ALONG
+C  THE EDGE X = XSTAGS:
+      NN = 0
+      IF (FNX0.NE.0.) NN = MAXNOD
+      WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+         LT = 1
+         LD = 1
+         LE = 0
+         LAX= 0
+         DO 1550 IY = 1,NN
+            FNXAPP= FAXIAB(IY)
+            LN = (NODEX-1)*MAXNOD + IY
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNXAPP,LT,LD,LN,LE,LAX,
+     1     ' $ Nx,LT,LD,LN,LE,LAX (applied Nxo) U-3'
+ 1550    CONTINUE
+      ENDIF
+C BEG NOV 1995
+      IF (ICLOSE.EQ.0) THEN
+C END NOV 1995
+C
+C  NEXT, APPLIED HOOP LOAD Ny ALONG TWO EXTREME GENERATORS
+C  (AT Y = 0 and Y = YMAX)
+C  Uniform Ny is applied along the panel edges normal to the screen
+C  (edges along which y = constant).
+C
+      NN = 0
+      IF (FNY.NE.0.) NN = 2*NODEX
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+         LT = 1
+         LD = 2
+         LE = 0
+         LAX= 0
+         DO 1600 IX = 1,NN
+            IF (IX.LE.NODEX) THEN
+               IF (IELMNT.NE.480) THEN
+                  FNYAPP = -FNY*DXAVE(IX)
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                   FNYAPP = -FNY*DXAVE(IX)/2.
+               ELSE
+                  FNYAPP = -(2./6.)*FNY*DXAVE(IX)*2.
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                   FNYAPP = -(1./6.)*FNY*DXAVE(IX)*2.
+                  IF (MOD(IX,2).EQ.0) FNYAPP=-(4./6.)*FNY*DXAVE(IX)*2.
+               ENDIF
+               LN = (IX-1)*MAXNOD + 1
+            ELSE
+               JX = IX - NODEX
+               IF (IELMNT.NE.480) THEN
+                  FNYAPP = FNY*DXAVE(JX)
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                   FNYAPP = FNY*DXAVE(JX)/2.
+               ELSE
+                  FNYAPP =  (2./6.)*FNY*DXAVE(JX)*2.
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                   FNYAPP = (1./6.)*FNY*DXAVE(JX)*2.
+                  IF (MOD(JX,2).EQ.0) FNYAPP=(4./6.)*FNY*DXAVE(JX)*2.
+               ENDIF
+               LN = JX*MAXNOD
+            ENDIF
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNYAPP,LT,LD,LN,LE,LAX,
+     1     ' $ U,LT,LD,LN,LE,LAX (applied Ny) U-3'
+ 1600    CONTINUE
+      ENDIF
+C
+C  NEXT, APPLIED HOOP LOAD Nyo (Load Seg B) ALONG TWO EXTREME GENERATORS
+C  (AT Y = 0 and Y = YMAX)
+C  Uniform Nyo is applied along the panel edges normal to the screen
+C  (edges along which y = constant).
+C
+      NN = 0
+      IF (FNY0.NE.0.) NN = 2*NODEX
+      WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+         LT = 1
+         LD = 2
+         LE = 0
+         LAX= 0
+         DO 1625 IX = 1,NN
+            IF (IX.LE.NODEX) THEN
+               IF (IELMNT.NE.480) THEN
+                  FNYAPP = -FNY0*DXAVE(IX)
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                   FNYAPP = -FNY0*DXAVE(IX)/2.
+               ELSE
+                  FNYAPP = -(2./6.)*FNY0*DXAVE(IX)*2.
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                   FNYAPP = -(1./6.)*FNY0*DXAVE(IX)*2.
+                  IF (MOD(IX,2).EQ.0) FNYAPP=-(4./6.)*FNY0*DXAVE(IX)*2.
+               ENDIF
+               LN = (IX-1)*MAXNOD + 1
+            ELSE
+               JX = IX - NODEX
+               IF (IELMNT.NE.480) THEN
+                  FNYAPP = FNY0*DXAVE(JX)
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                   FNYAPP = FNY0*DXAVE(JX)/2.
+               ELSE
+                  FNYAPP =  (2./6.)*FNY0*DXAVE(JX)*2.
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                   FNYAPP = (1./6.)*FNY0*DXAVE(JX)*2.
+                  IF (MOD(JX,2).EQ.0) FNYAPP=(4./6.)*FNY0*DXAVE(JX)*2.
+               ENDIF
+               LN = JX*MAXNOD
+            ENDIF
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNYAPP,LT,LD,LN,LE,LAX,
+     1     ' $ U,LT,LD,LN,LE,LAX (applied Nyo) U-3'
+ 1625    CONTINUE
+      ENDIF
+C
+C
+C  NEXT, APPLIED SHEAR LOAD Nyx ALONG TWO EXTREME GENERATORS
+C  (AT Y = 0 and Y = YMAX)
+C  Uniform Nyx is applied along the panel edges normal to the screen
+C  (edges along which y = constant).
+C
+      NN = 0
+      IF (FNXY.NE.0.) NN = 2*NODEX
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+         LT = 1
+         LD = 1
+         LE = 0
+         LAX= 0
+         DO 1650 IX = 1,NN
+            IF (IX.LE.NODEX) THEN 
+               IF (IELMNT.NE.480) THEN
+                  FNXYAP = -FNXY*DXAVE(IX)
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                FNXYAP = -FNXY*DXAVE(IX)/2.
+               ELSE
+                  FNXYAP = -(2./6.)*FNXY*DXAVE(IX)*2.
+                  IF (IX.EQ.1.OR.IX.EQ.NODEX)
+     1                FNXYAP = -(1./6.)*FNXY*DXAVE(IX)*2.
+                  IF (MOD(IX,2).EQ.0) FNXYAP=-(4./6.)*FNXY*DXAVE(IX)*2.
+               ENDIF
+               LN = (IX-1)*MAXNOD + 1
+            ELSE
+               JX = IX - NODEX
+               IF (IELMNT.NE.480) THEN
+                  FNXYAP = FNXY*DXAVE(JX)
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                FNXYAP = FNXY*DXAVE(JX)/2.
+               ELSE
+                  FNXYAP =  (2./6.)*FNXY*DXAVE(JX)*2.
+                  IF (JX.EQ.1.OR.JX.EQ.NODEX)
+     1                FNXYAP = (1./6.)*FNXY*DXAVE(JX)*2.
+                  IF (MOD(JX,2).EQ.0) FNXYAP=(4./6.)*FNXY*DXAVE(JX)*2.
+               ENDIF
+               LN = JX*MAXNOD
+            ENDIF
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNXYAP,LT,LD,LN,LE,LAX,
+     1     ' $ Nyx,LT,LD,LN,LE,LAX (applied Nyx) U-3'
+ 1650    CONTINUE
+      ENDIF
+C BEG NOV 1995
+      ENDIF
+C END NOV 1995
+C
+C  NEXT, APPLIED SHEAR LOAD Nxy ALONG THE EDGES AT X = 0 AND AT
+C  X = XSTAGS:
+      NN = 0
+      IF (FNXY.NE.0.) NN = 2*MAXNOD
+      WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+      IF (NN.GT.0) THEN
+C        IF (CX(3,3,5).EQ.0.) THEN
+C           STIFF = 0.5*EMAX*TX(1)
+C        ELSE
+C           STIFF = CX(3,3,5)
+C        ENDIF
+C        VAPPL = XSTAGS*FNXY/STIFF
+         LT = 1
+         LD = 2
+         LE = 0
+         LAX= 0
+         DO 1700 IY = 1,NN
+C           VAPP = 0.
+C           IF (JUDISP(IY).EQ.1) VAPP = VAPPL
+            IF (IY.LE.MAXNOD) THEN
+               FNXYAP = -SHEAR(IY)
+               LN = IY
+            ELSE
+               IYM = IY - MAXNOD
+               FNXYAP =  SHEAR(IYM)
+               LN = (NODEX-1)*MAXNOD + IY - MAXNOD
+            ENDIF
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     FNXYAP,LT,LD,LN,LE,LAX,
+     1     ' $ Nxy,LT,LD,LN,LE,LAX (applied Nxy) U-3'
+ 1700    CONTINUE
+      ENDIF
+C
+      IF (P.NE.0.0.AND.ISTAGS.EQ.1) THEN
+C  NEXT, DO THE APPLIED PRESSURE AS NODAL FORCES (regular STAGS only)
+C        NN = NODTOT - 2
+         NN = NODTOT
+         WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = 1
+         LD = 3
+         LE = 0
+         LAX= 0
+         DO 1800 INOD = 1,NN
+            PFORCE = FORCE(INOD)
+            LN = INOD
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     PFORCE,LT,LD,LN,LE,LAX,
+     1     ' $ P,LT,LD,LN,LE,LAX (applied pressure p) U-3'
+ 1800    CONTINUE
+      ENDIF
+C
+      IF (P.NE.0.0.AND.ISTAGS.EQ.2) THEN
+C  NEXT, DO THE APPLIED PRESSURE AS A PRESSURE LOAD (QSTAGS ONLY!)
+         NN = NELTOT
+         WRITE(IFIL14,'(A,I5,A)') ' 1,',NN,
+     1', 0 $ ISYS=1=LoadSet A;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = 5
+         LD = 3
+         LN = 0
+         LAX= 0
+         DO 1825 INOD = 1,NN
+            PFORCE = PELMNT(INOD)
+            LE = INOD
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I2,I6,I2,A)')
+     1                     PFORCE,LT,LD,LN,LE,LAX,
+     1     ' $ P,LT,LD,LN,LE,LAX (applied pressure p) U-3'
+ 1825    CONTINUE
+      ENDIF
+C
+      IF (P0.NE.0.0.AND.ISTAGS.EQ.1) THEN
+C  NEXT, DO THE APPLIED PRESSURE AS NODAL FORCES (regular STAGS only)
+C        NN = NODTOT - 2
+         NN = NODTOT
+         WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = 1
+         LD = 3
+         LE = 0
+         LAX= 0
+         DO 1850 INOD = 1,NN
+            PFORCE = FORCEB(INOD)
+            LN = INOD
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     PFORCE,LT,LD,LN,LE,LAX,
+     1     ' $ P,LT,LD,LN,LE,LAX (applied pressure p0) U-3'
+ 1850    CONTINUE
+      ENDIF
+C
+      IF (P0.NE.0.0.AND.ISTAGS.EQ.2) THEN
+C  NEXT, DO THE APPLIED PRESSURE AS A PRESSURE LOAD (QSTAGS ONLY!)
+         NN = NELTOT
+         WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = 5
+         LD = 3
+         LN = 0
+         LAX= 0
+         DO 1875 INOD = 1,NN
+            PFORCE = PELMNB(INOD)
+            LE = INOD
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I2,I6,I2,A)')
+     1                     PFORCE,LT,LD,LN,LE,LAX,
+     1     ' $ P,LT,LD,LN,LE,LAX (applied pressure p0) U-3'
+ 1875    CONTINUE
+      ENDIF
+C
+      IF (INDICP.EQ.-1) THEN
+C
+C  NEXT, APPLY IMPOSED DISPLACEMENT v AT X = 0 AND AT X = XSTAGS
+C  FOR LOAD SET B:
+         NN = 2*MAXNOD
+         WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+         LT = -1
+         LD =  2
+         LE =  0
+         LAX=  0
+         DO 1900 IY = 1,NN
+            IF (IY.LE.MAXNOD) THEN
+               VIMPOS = 0.
+               LN = IY
+            ELSE
+               VIMPOS = 0.
+               LN = (NODEX-1)*MAXNOD + IY - MAXNOD
+            ENDIF
+            WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                     VIMPOS,LT,LD,LN,LE,LAX,
+     1     ' $ v,LT,LD,LN,LE,LAX (imposed v) U-3'
+ 1900    CONTINUE
+C BEG NOV 1995
+         IF (ICLOSE.EQ.0) THEN
+C END NOV 1995
+C BEG NOV 1992
+         IF (IFLAT.EQ.0.AND.ISTIF(1).EQ.0.AND.IDIFF.EQ.1) THEN
+C
+C     NEXT, APPLY IMPOSED DISPLACEMENT v ALONG THE EXTREME GENERATORS
+C     (AT Y = 0 AND AT Y = YMAX) FOR LOAD SET B:
+            NN = 2*NODEX
+            WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1   ', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+            LT = -1
+            LD =  2
+            LE =  0
+            LAX=  0
+            DO 1920 IX = 1,NN
+               IF (IX.LE.NODEX) THEN
+                  VIMPOS = 0.
+                  LN = (IX-1)*MAXNOD +1
+               ELSE
+                  VIMPOS = 0.
+                  JX = IX - NODEX
+                  LN = JX*MAXNOD
+               ENDIF
+               WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                        VIMPOS,LT,LD,LN,LE,LAX,
+     1        ' $ v,LT,LD,LN,LE,LAX (imposed v) U-3'
+ 1920       CONTINUE
+         ELSE
+C END NOV 1992
+C
+C     NEXT, APPLY IMPOSED DISPLACEMENT u ALONG THE EXTREME GENERATORS
+C     (AT Y = 0 AND AT Y = YMAX) FOR LOAD SET B:
+            NN = 2*NODEX
+            WRITE(IFIL14,'(A,I5,A)') ' 2,',NN,
+     1   ', 0 $ ISYS=2=LoadSet B;NN=U-3 records;IFLG=0=carddata. U-2'
+            LT = -1
+            LD =  1
+            LE =  0
+            LAX=  0
+            DO 1910 IX = 1,NN
+               IF (IX.LE.NODEX) THEN
+                  UIMPOS = 0.
+                  LN = (IX-1)*MAXNOD +1
+               ELSE
+                  UIMPOS = 0.
+                  JX = IX - NODEX
+                  LN = JX*MAXNOD
+               ENDIF
+               WRITE(IFIL14,'(1PE10.3,I3,I2,I6,2I2,A)')
+     1                        UIMPOS,LT,LD,LN,LE,LAX,
+     1        ' $ u,LT,LD,LN,LE,LAX (imposed u) U-3'
+ 1910       CONTINUE
+C BEG NOV 1992
+         ENDIF
+C END NOV 1992
+C BEG NOV 1995
+         ENDIF
+C END NOV 1995
+      ENDIF
+C
+C END OF LOAD INPUT.
+C
+C START INPUT FOR SELECTED OUTPUT FROM STAGS:
+C
+      IPRD = 1
+      IPRR = 1
+      IPRS = 1
+      IF (ABS(FACM(1)).GT.ABS(STLD(1)).OR.INDICX.NE.3) THEN
+         IPRD = 0
+         IPRR = 0
+         IPRS = 0
+      ENDIF
+      IF (INDIC.EQ.1) THEN
+         IPRD = 1
+         IPRR = 1
+      ENDIF
+      IF (MAXNOD*NODEX.GT.200) THEN
+         IPRD = 0
+         IPRR = 0
+         IPRS = 0
+      ENDIF
+      IPRE = 0
+      IPRP = 0
+      IPRF = 0
+      LINBEG = NODEX/2 + 1
+      IF (MOD(NODEX,2).EQ.0) LINBEG = NODEX/2
+      MAXLIN = NODEX - LINBEG + 1            
+      NSELD= MIN(MAXLIN,10)
+      NSELS= MIN(MAXLIN-1,10)
+C  SELECTED ELEMENT OUTPUT DOES NOT WORK IN STAGS
+      NSELD = 0
+      NSELS = 0
+      IPRSDP = 0
+      IPRSTR = 0
+C  END SELECTED ELEMENT STUFF
+      ISL = 1
+      ISS = 0
+      ISD = 1
+      WRITE(IFIL14,'(I3,A)') IPRD,
+     1 ', $ IPRD = 0 means do not print displacements.   BEGIN V-1'
+      WRITE(IFIL14,'(I3,A)') IPRR,
+     1 ', $ IPRR = 1 means stress resultants printed every step'
+      WRITE(IFIL14,'(I3,A)') IPRE,
+     1 ', $ IPRE = 0 means do not print strains'
+      WRITE(IFIL14,'(I3,A)') IPRS,
+     1 ', $ IPRS = 0 means do not print stresses'
+      WRITE(IFIL14,'(I3,A)') IPRP,
+     1 ', $ IPRP = 0 means no additional output for pts. with yield'
+      WRITE(IFIL14,'(I3,A)') IPRF,
+     1 ', $ IPRF = 0 means do not print nodal point forces'
+      WRITE(IFIL14,'(I3,A)') NSELD,
+     1 ', $ NSELD= number of records defining selected displacements'
+      WRITE(IFIL14,'(I3,A)') NSELS,
+     1 ', $ NSELS= number of records defining selected stresses'
+      WRITE(IFIL14,'(I3,A)') IPRSDP,
+     1 ', $ IPRSDP=print selected disp. every IPRSDPth load step'
+      WRITE(IFIL14,'(I3,A)') IPRSTR,
+     1 ', $ IPRSTR=print selected stresses every IPRSTRth load step'
+      WRITE(IFIL14,'(I3,A)') ISL,
+     1 ', $ ISL  = 1 means element stuff at integ. points is output'
+      WRITE(IFIL14,'(I3,A)') ISS,
+     1 ', $ ISS  = 0 means no transverse shear stresses are calc.'
+      WRITE(IFIL14,'(I3,A)') ISD,
+     1 '  $ ISD  = 1 means stresses in material coords.   END V-1'
+C
+C  NEXT, PROVIDE RECORDS FOR SELECTED NODAL DISPLACEMENT OUTPUT:
+C
+C  NOTE: DOESN'T WORK IN STAGS!
+C     DO 2000 IREC = 1,NSELD
+C        LINE = LINBEG + IREC - 1
+C        INOD1 = (LINE-1)*MAXNOD + NSTART
+C        INOD2 = INOD1 + NMOD - 1
+C        INODI = 1
+C        WRITE(IFIL14,'(3I5,A)') INOD1,INOD2,INODI,
+C    1' $ INOD1,INOD2,INODI=selected disp. output.  V-2'
+C2000 CONTINUE
+C
+C  NEXT, PROVIDE RECORDS FOR SELECTED ELEMENT STRESS OUTPUT:
+C
+C     DO 2100 IREC = 1,NSELS
+C        LINE = LINBEG + IREC - 1
+C        IELS1 = (LINE-1)*MAXELE + JSTART
+C        IELS2 = IELS1 + IELEM - 1
+C        IELSI = 1
+C        WRITE(IFIL14,'(3I5,A)') IELS1,IELS2,IELSI,
+C    1' $ IELS1,IELS2,IELSI=selected stress output. V-3'
+C2100 CONTINUE
+C
+C
+      IF (IPOSTP.EQ.1) THEN
+C  NEXT, GENERATE THE INPUT FILE FOR THE STAGS POSTPROCESSOR, POSTP:
+C
+         WRITE(IFIL15,'(A,A,A)')
+     1' ',CASE(1:NLET),' STAGS INPUT FROM PANDA2 OUTPUT'
+         NSTEPS = 1
+         WRITE(IFIL15,'(I3,A)') NSTEPS,
+     1 '  $ NSTEPS=number of load or time steps for POSTP.  PP-2 rec.'
+         WRITE(IFIL15,'(I4,A)') ISTART,
+     1 '  $ ISTART=load step number for postprocessing via POSTP. PP-3'
+         WRITE(IFIL15,'(I3,A)') IPRD,
+     1 ', $ IPRD = 1 means print displacements.             BEGIN PP-4'
+         WRITE(IFIL15,'(I3,A)') IPRR,
+     1 ', $ IPRR = 1 means stress resultants printed every step'
+         WRITE(IFIL15,'(I3,A)') IPRE,
+     1 ', $ IPRE = 0 means do not print strains'
+         WRITE(IFIL15,'(I3,A)') IPRS,
+     1 ', $ IPRS = 0 means do not print stresses'
+         WRITE(IFIL15,'(I3,A)') IPRP,
+     1 ', $ IPRP = 0 means no additional output for pts. with yield'
+         WRITE(IFIL15,'(I3,A)') IPRF,
+     1 ', $ IPRF = 0 means do not print nodal point forces'
+         WRITE(IFIL15,'(I3,A)') NSELD,
+     1 ', $ NSELD= number of records defining selected displacements'
+         WRITE(IFIL15,'(I3,A)') NSELS,
+     1 ', $ NSELS= number of records defining selected stresses'
+         WRITE(IFIL15,'(I3,A)') IPRSDP,
+     1 ', $ IPRSDP=print selected disp. every IPRSDPth load step'
+         WRITE(IFIL15,'(I3,A)') IPRSTR,
+     1 ', $ IPRSTR=print selected stresses every IPRSTRth load step'
+         WRITE(IFIL15,'(I3,A)') ISL,
+     1 ', $ ISL  = 1 means element stuff at integ. points is output'
+         WRITE(IFIL15,'(I3,A)') ISS,
+     1 ', $ ISS  = 0 means no transverse shear stresses are calc.'
+         WRITE(IFIL15,'(I3,A)') ISD,
+     1 '  $ ISD  = 1 means stresses in material coords.   END PP-4'
+      ENDIF
+C
+      END

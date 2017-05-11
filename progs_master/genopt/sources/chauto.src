@@ -1,0 +1,339 @@
+C=DECK      AUTOCHANGE
+C
+C  PURPOSE IS TO AUTOMATICALLY CHANGE DECISION VARIABLES FOR USE
+C  WITH "SUPEROPT", A BATCH PROGRAM THAT RUNS CHANGE, OPTIMIZE,
+C  OPTIMIZE, OPTIMIZE,....CHANGE,OPTIMIZE,OPTIMIZE,...IN AN ATTEMPT
+C  TO FIND A GLOBAL OPTIMUM DESIGN.
+C
+      PROGRAM CHAUTO
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+C BEG AUG 2009
+      COMMON/IAUTOG/IAUTOF
+C END AUG 2009
+C BEG NOV 2005
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN 
+C END NOV 2005
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/LWRUPR/VARLOW(98),VARHI(98),CLINK(98,45),VLINK(98),VBV(99)
+      COMMON/BNDLCX/VLBX(98),VUBX(98),RATXX(98)
+      DIMENSION DVAR(98),DVARS(98),X(98),VUB(98),VLB(98),Y(98)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDCC(99),WORDD(98)
+      COMMON/WORDS2/WORDL(98),WORDE(98),WORDIQ(45)
+      COMMON/OPTVAR/IDEC(98),ILV(98),IDLINK(98,45),ISCAPE(98),JTERMS(45)
+      COMMON/NUMPR2/NLAR,NCAR,NOAR,NFLAT,NCASES,NPRINT
+      COMMON/PARAM2/FLAR(98),CAR(99),OAR(98),FSAFE(99),CPWR(98,45)
+      COMMON/PARAM3/CINEQ(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQ,JINEQ(45),IEQTYP(45)
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      COMMON/WORDS4/WORDM(99)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/ITRSNX/ITRSEN,ITRALL,IRESET
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+      CHARACTER*80 PHRASE
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDD,WORDL,WORDE
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS,WORDM,WORDCC,WORDIQ
+C BEG OCT 2005
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+C END OCT 2005
+      CHARACTER*4 ANSOUT,CHARAC,QUAL
+      LOGICAL ANSL1     
+      DIMENSION ISUB(100)
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+C#if cnvx
+C
+C      integer dummyint, signal
+C      dummyint = signal(2, signal_handler, -1)
+C#endif
+C#if sgi
+C      integer signal_handler
+C      external signal_handler
+C      integer dummyint, signal
+C      dummyint = signal(2, signal_handler, -1)
+C#endif
+C#if star
+C      integer signal_handler
+C      external signal_handler
+C      call signal(2, signal_handler)
+C#endif
+C#if hp700
+C      call getarg(2, case)
+C#else
+C      call getarg(1, case)
+C#endif
+C BEG VMS
+C     IUNAME = 12
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END VMS
+      CALL CASSPC(12,CASE) 
+      CLOSE(UNIT=12)
+      WRITE(6,'(A,A)')' NAME OF CASE:', CASE
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPA'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPA'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28 
+C END OCT 2005
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+C BEG JAN 1998
+      OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+c     inquire(FILE=case(1:lastch(case)), EXIST=exists)
+c     if (exists) then
+c       OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='OLD')
+c#if rs6k
+c       rewind(IOUTFL)
+c#endif
+c     else
+c       OPEN(UNIT=IOUTFL, FILE=case(1:lastch(case)), STATUS='NEW')
+c     endif
+c
+c     inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+c     if (exists) then
+c       OPEN(UNIT=IFILE7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+c    1       FORM='UNFORMATTED')
+c#if rs6k
+c       rewind(ifile7)
+c#endif
+c     else
+c       OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+c    1       FORM='UNFORMATTED')
+c     endif
+c
+c     inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+c     if (exists) then
+c       OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+c#if rs6k
+c       rewind(ifile8)
+c#endif
+c     else
+c       OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+c     endif
+C END JAN 1998
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+C BEG NOV 2005
+      IAUTOC = 1
+      ITIGHT = 0
+C END NOV 2005
+      DO 5 I = 1,NDEC
+      ISCAPE(I) = 0
+    5 DVAR(I) = 0.0
+C BEG AUG 1995
+      ISTART = ITRTOT + ITRALL/100
+C BEG NOV 2005
+      IF (ISTART.GT.470) ISTART = ITRTOT + ITRALL/100 - 470
+C END AUG 1995
+      WRITE(IFILE8,*)' ********************************************'
+      WRITE(IFILE8,*)' Entering AUTOCHANGE: ISTART =',ISTART
+      WRITE(IFILE8,*)' ********************************************'
+      DO 6 I = 1,NDEC
+         DVAR(I) = RANDOM(ISTART)
+    6 CONTINUE
+C
+C  SETUPX GETS THE VECTOR X OF DECISION VARIABLES FROM THE VECTOR VAR
+C  OF ALL CANDIDATES FOR DECISION VARIABLES.
+C
+C  A VECTOR DVAR OF RANDOM NUMBERS FROM 0 TO 1 INFLUENCE  X.
+C  SETUPV GETS THE NEW VECTOR VAR FROM THE NEW X.
+C  SETUPC GETS THE NEW B,B2,H,W,W2, ETC. FROM THE NEW VAR.
+C
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      CALL MOVER(X,1,Y,1,NDEC)
+C BEG JUL 2009 (next 5 lines not needed)
+C     KOUNT = 0
+C     DO 8 I = 1,NVAR
+C     IF (IDEC(I).EQ.0) GO TO 8
+C     KOUNT = KOUNT + 1
+C   8 CONTINUE
+C END JUL 2009
+C
+      DO 10 I = 1,NDEC
+C BEG AUG 2009
+         IF (IAUTOF.EQ.0.OR.IAUTOF.EQ.1) THEN
+            DVARS(I) = 2.0*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + DVARS(I))
+         ENDIF
+C BEG SEP 2013
+C        IF (IAUTOF.EQ.2) THEN
+         IF (IAUTOF.EQ.2.OR.IAUTOF.EQ.7) THEN
+C END SEP 2013
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.3) THEN
+            X(I) = (VUB(I) - VLB(I))*DVAR(I) + VLB(I)
+         ENDIF
+         IF (IAUTOF.EQ.4) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.7*DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.5) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.4*DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.6) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.2*DVARS(I))
+         ENDIF
+C END AUG 2009
+         IF (X(I).LT.VLB(I)) X(I) = VLB(I)
+         IF (X(I).GT.VUB(I)) X(I) = VUB(I)
+   10 CONTINUE
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+C BEG JUN 2009
+C  Add statements that may lead to satisfaction of the inequality
+C  constraints. "VALUE" = value of the right-hand side of the
+C  inequality constraint. "REMAIN" = value of the remainder of the
+C  right-hand side of the inequality constraint after the second
+C  term in that expression has been subtracted from "VALUE". The
+C  variable, VAR(IVAR), in that second term is changed only if
+C  the inequality constraint is violated and the power to which
+C  VAR(IVAR) is raised is unity. 
+      IF (NINEQ.EQ.0) GO TO 19
+      DO 17 KOUNT = 1,NINEQ
+        VALUE = CINEQ(1,KOUNT)
+        JINEQ1 = JINEQ(KOUNT)
+        IF (JINEQ1.GE.2) THEN
+          DO 14 JJ = 2,JINEQ1
+             IVAR = IDINEQ(JJ,KOUNT)
+             IPWR = DPWREQ(JJ,KOUNT)
+             VALUE = VALUE + CINEQ(JJ,KOUNT)*VAR(IVAR)**IPWR
+   14     CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF ((IEQTYP(KOUNT).EQ.2.AND.VALUE.LT.1.0).OR.
+     1        (IEQTYP(KOUNT).EQ.1.AND.VALUE.GT.1.0)) THEN
+C BEG JUL 2009
+             IF (JINEQ1.GT.3) THEN
+                VALUEC = 0.
+                DO 15 JJ = 2,JINEQ1
+                 IVAR = IDINEQ(JJ,KOUNT)
+                 IPWR = DPWREQ(JJ,KOUNT)
+                 IF (IDEC(IVAR).EQ.0)
+     1           VALUEC = VALUEC + CINEQ(JJ,KOUNT)*VAR(IVAR)**IPWR
+   15           CONTINUE
+                CMODIF = (1. -CINEQ(1,KOUNT) -VALUEC)/
+     1                (VALUE -CINEQ(1,KOUNT) -VALUEC)
+                WRITE(IFILE8,'(/,A,/,2I4,1P,4E12.4)')
+     1        ' KOUNT,JINEQ1,VALUE,VALUEC,CINEQ(1,KOUNT),CMODIF=',
+     1          KOUNT,JINEQ1,VALUE,VALUEC,CINEQ(1,KOUNT),CMODIF
+                DO 16 JJ = 2,JINEQ1
+                 IVAR = IDINEQ(JJ,KOUNT)
+                 IF (IDEC(IVAR).EQ.1) VAR(IVAR) = CMODIF*VAR(IVAR)
+   16           CONTINUE
+                GO TO 17
+             ENDIF
+C END JUL 2009
+C   Inequality type 2 or type 1 is violated...
+C            First, try the 2nd term in the inequality expression:
+             IVAR = IDINEQ(2,KOUNT)
+             IPWR = DPWREQ(2,KOUNT)
+             REMAIN = VALUE -CINEQ(2,KOUNT)*VAR(IVAR)**IPWR
+             IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                         .AND.CINEQ(2,KOUNT).NE.0.) THEN
+C               2nd term variable no. IVAR is a decision variable
+C               (IDEC(IVAR)=1), and the 2nd term is otherwise acceptable.
+                VAR(IVAR) = (1.0 - REMAIN)/CINEQ(2,KOUNT) 
+             ELSE
+C               2nd term variable IVAR is NOT a decision variable or the
+C               the 2nd term is otherwise unacceptable. Try the 3rd term:
+                IF (JINEQ1.GE.3) THEN
+                  IVAR = IDINEQ(3,KOUNT)
+                  IPWR = DPWREQ(3,KOUNT)
+                  REMAIN = VALUE -CINEQ(3,KOUNT)*VAR(IVAR)**IPWR
+                  IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                              .AND.CINEQ(3,KOUNT).NE.0.) THEN
+C                    3rd term variable IVAR is a decision variable and
+C                    the 3rd term is otherwise acceptable:
+                     VAR(IVAR) = (1.0 - REMAIN)/CINEQ(3,KOUNT)
+                  ELSE
+C                 3rd term variable IVAR is NOT a decision variable or
+C                 third term is otherwise unacceptable. Try 4th term:
+                    IF (JINEQ1.GE.4) THEN
+                      IVAR = IDINEQ(4,KOUNT)
+                      IPWR = DPWREQ(4,KOUNT)
+                      REMAIN = VALUE -CINEQ(4,KOUNT)*VAR(IVAR)**IPWR
+                      IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                                  .AND.CINEQ(4,KOUNT).NE.0.) THEN
+C                        Variable IVAR is a decision variable and
+C                        the 4th term is otherwise acceptable:
+                         VAR(IVAR) = (1.0 - REMAIN)/CINEQ(4,KOUNT)
+                      ENDIF
+                    ENDIF
+                  ENDIF
+                ENDIF
+             ENDIF
+          ENDIF
+        ENDIF
+   17 CONTINUE
+C BEG JUL 2009
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      DO 18 I = 1,NDEC
+         IF (X(I).LT.VLB(I)) X(I) = VLB(I)
+         IF (X(I).GT.VUB(I)) X(I) = VUB(I)
+   18 CONTINUE
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+C END JUL 2009
+   19 CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JUN 2009
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+      WRITE(IFILE8,20) (Y(I),I=1,NDEC)
+      WRITE(IFILE8,30) (X(I),I=1,NDEC)
+      WRITE(IFILE8,40) (DVAR(I),I=1,NDEC)
+   20 FORMAT(/' OLD VECTOR OF DECISION VARIABLES'/(1P5E12.4))
+   30 FORMAT(/' NEW VECTOR OF DECISION VARIABLES'/(1P5E12.4))
+   40 FORMAT(/' DVAR(i)=RANDOM VECTOR OF DECISION VARIABLE MODS',/,
+     1 (1P5E12.4))
+      CALL OUTOPT(IFILE8,NVAR,IDEC,ISCAPE,ILV,CLINK,IDLINK,VARLOW,
+     1 VARHI,VAR,WORDV,
+     1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+     1  ',57)
+C
+      WRITE(IFILE8,*)' ********************************************'
+      WRITE(IFILE8,*)' Leaving AUTOCHANGE'
+      WRITE(IFILE8,*)' ********************************************'
+      IF (ITRTOT.GT.470) ITRTOT = 0
+      CALL STORCM(IFILE7)
+      IF (IOUT.NE.0) CLOSE(UNIT=IOUT)
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+      END

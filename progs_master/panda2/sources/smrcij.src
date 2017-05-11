@@ -1,0 +1,1825 @@
+C=DECK      SMRCIJ
+      SUBROUTINE SMRCIJ(IFILE,ISMEAR,B,B2,H,W,W2,NSEG,ISTIF,INTEXT,  
+     1               TBASE,CX,CY,CS,THERMX,THERMY,THERMS,ZPARTX,ZPARTY,
+     1               GTX,GTY,GS,TEFF,F,G,ISTRAT,NNODES,TEMP,IMTEMP)
+C     
+C  PURPOSE IS TO CALCULATE SMEARED-STIFFENER C(i,j)   
+C  CX AND CY ARE THE C(i,j) FOR THE MODULE SEGMENTS; CS IS THE C(i,j)   
+C  FOR THE SMEARED CASE.  WHICH SET OF STIFFENERS IS SMEARED (OR BOTH   
+C  SETS) DEPENDS ON THE INDEX  ISMEAR     
+C  ALSO, FIND THE SMEARED THERMAL RESULTANTS AND MOMENTS, THERMS, GIVEN
+C  THE THERMAL RESULTANTS AND MOMENTS IN EACH MODULE SEGMENT (THERMX,
+C  THERMY)
+C
+C  ALSO (AUG 1984) FIND TRANSVERSE SHEAR STIFFNESS, INCLUDING SMEARED
+C  STIFFENERS.
+C     
+C  ALSO (JAN 1985) COEFFICIENTS F(5,2) AND G(5,2) FOR STRAINS AND
+C  CHANGES IN CURVATURE IN STIFFENER BASES IN TERMS OF OVERALL AVERAGE
+C  STRAINS AND CHANGES IN CURVATURE.
+C
+C BEG MAR 2007
+C BEG MAR 2009
+      COMMON/PHIHTX/PHIHAT,PHITRS
+C END MAR 2009
+C END MAR 2007
+C BEG JAN 2005
+      COMMON/CSKINX/CSKIN(6,6),TSKINX(5),TSKINY(5)
+      COMMON/OUTP/NPRT
+C END JAN 2005
+C BEG 26 JAN 1989
+      COMMON/WEBTH1/CX3(6,6,11),CY3(6,6,11),THRMX3(6,11),THRMY3(6,11)
+      COMMON/WEBTH2/TSMRX3(6,11),TSMRY3(6,11),ESMRX3(6,11),ESMRY3(6,11)
+      COMMON/WEBTH3/ETRMX3(6,11),ETRMY3(6,11),GTX3(2,11),GTY3(2,11)
+      COMMON/WEBTH4/ET3X,TT3X,ET3Y,TT3Y
+      DIMENSION TEMP(4,2)
+C END 26 JAN 1989
+C BEG JULY 1989
+      COMMON/C33EXT/C33AD1,C33AD2
+      COMMON/CX2SHR/CSHR2
+C END JULY 1989
+      COMMON/DEFSTF/STIFL,STIFM,STIFMM
+      COMMON/THICK/TX(5),TY(5)
+      COMMON/STFSTF/STFL1,STFL2,STFM1,STFM2,STMM1,STMM2,STORS1,STORS2
+      COMMON/STFST2/C36SM1,C36SM2
+C BEG AUG 1998
+      COMMON/STFST3/STFIY1,STFIY2
+C END AUG 1998
+C BEG APR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAXXX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END APR 1996
+C BEG JUN 1996
+C BEG OCT 1996
+      COMMON/UNBALX/UNBAL(4,2),DBEND1(4,2),DBEND2(4,2)
+C END OCT 1996
+C END JUN 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      DIMENSION B(*),B2(*),H(*),W(*),W2(*),ISTIF(*),INTEXT(*),TBASE(*)
+      DIMENSION NSEG(*),F(5,2),G(5,2)
+      DIMENSION GTX(2,5),GTY(2,5),GS(2),TEFF(2)
+      DIMENSION CX(6,6,5),CY(6,6,5),CS(6,6)     
+      DIMENSION THERMX(6,5),THERMY(6,5),THERMS(6),ZPARTX(*),ZPARTY(*)
+      DIMENSION CXT(6,6,2),CYT(6,6,2),TMXT(6,2),TMYT(6,2)
+C     
+      REAL NTXB,NTYB,MTXB,MTYB
+C
+C    ISMEAR = 1 MEANS STRINGERS ONLY ARE SMEARED
+C             2 MEANS RINGS     ONLY ARE SMEARED
+C             3 MEANS BOTH STRINGERS AND RINGS ARE SMEARED
+C
+C BEG APR 2007
+C      WRITE(8,'(A,I5,1P,E12.4)')
+C    1' Entering SMRCIJ: ISMEAR,CX(3,3,3)=',ISMEAR,CX(3,3,3)
+C END APR 2007
+      B11 = (B(1) - B2(1))/B(1)
+      B12 = B2(1)/B(1)
+      B21 = B2(2)/B(2)
+      B22 = (B(2) - B2(2))/B(2)
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) THEN
+         B11 = 1.0
+         B12 = 0.0
+      ENDIF
+      IF (IZSTIF(2).EQ.1) THEN
+         B21 = 0.0
+         B22 = 1.0
+      ENDIF
+C END MAY 1997
+C
+C  NOTE:  IFAY(i) = 1 MEANS THAT:
+C          1. THE STIFFENER IS A HAT.
+C          2. THE BASE WIDTH B2(i) IS GREATER THAN THE HAT WIDTH W2(i)
+C          3. THE WALL UNDER THE HAT IS THE SAME AS THAT IN SEGMENT 1.
+C
+      IF (IFAY(1).EQ.1) THEN
+         B11 = (B(1) - (B2(1)-W2(1)))/B(1)
+         B12 = (B2(1) - W2(1))/B(1)
+      ENDIF
+C
+      IF (IFAY(2).EQ.1) THEN
+         B22 = (B(2) - (B2(2)-W2(2)))/B(2)
+         B21 = (B2(2) - W2(2))/B(2)
+      ENDIF
+C BEG NOV 1995
+      IF (ISTIF(1).EQ.5) THEN
+         B11 = 1.0
+         B12 = 0.0
+      ENDIF
+      IF (ISTIF(2).EQ.5) THEN
+         B22 = 1.0
+         B21 = 0.0
+      ENDIF
+C END NOV 1995
+C
+C BEG JULY 1989
+C BEG AUG 1992
+C     IF (ISOGRD.EQ.0) THEN
+       IF (ISMEAR.EQ.3.OR.(ISMEAR.LE.2.AND.ISTIF(ISMEAR).NE.5)) THEN
+         CALL MOVER(0.,0,F,1,10)
+         CALL MOVER(0.,0,G,1,10)
+       ENDIF
+C     ENDIF
+C END AUG 1992
+      CYSHR2 = CY(3,3,2)
+      IF (ISTRAT.EQ.0) CSHR2 = CX(3,3,2)
+C END JULY 1989
+      CALL MOVER(CX,1,CXT,1,72)
+      CALL MOVER(CY,1,CYT,1,72)
+      CALL MOVER(THERMX,1,TMXT,1,12)
+      CALL MOVER(THERMY,1,TMYT,1,12)
+C
+      GO TO (10,20,30), ISMEAR
+C
+   10 CONTINUE
+C
+C  SMEARED STRINGERS ONLY...
+      B21 = 0.
+      B22 = 1.
+      STFL2 = 0.
+      STFM2 = 0.
+      STMM2 = 0.
+      STFT2 = 0.
+      STMT2 = 0.
+      STORS2 = 0.
+      C36SM2 = 0.
+      C33AD2 = 0.
+C BEG JULY 1989
+      C12AD2 = 0.
+      C45AD2 = 0.
+      C15AD2 = 0.
+      C24AD2 = 0.
+C END JULY 1989
+C BEG MARCH 1990
+      CALL CGCIJP(CXT(1,1,1),CYT(1,1,2))
+      TMYT(1,2) = TMXT(2,1)
+      TMYT(2,2) = TMXT(1,1)
+      TMYT(3,2) =-TMXT(3,1)
+      TMYT(4,2) = TMXT(5,1)
+      TMYT(5,2) = TMXT(4,1)
+      TMYT(6,2) =-TMXT(6,1)
+C END MARCH 1990
+      GO TO 30
+C
+   20 CONTINUE
+C
+C  SMEARED RINGS ONLY...
+      B12 = 0.
+      B11 = 1.
+      STFL1 = 0.
+      STFM1 = 0.
+      STMM1 = 0.
+      STFT1 = 0.
+      STMT1 = 0.
+      STORS1 = 0.
+      C36SM1 = 0.
+      C33AD1 = 0.
+C BEG JULY 1989
+      C12AD1 = 0.
+      C45AD1 = 0.
+      C15AD1 = 0.
+      C24AD1 = 0.
+C END JULY 1989
+      CALL MOVER(CXT,1,CXT(1,1,2),1,36)
+      CALL MOVER(TMXT,1,TMXT(1,2),1, 6)
+C
+   30 CONTINUE
+C
+C  GET CONTRIBUTION OF STRINGERS..
+C
+C BEG JULY 1989
+C BEG AUG 1992
+      IF (ISMEAR.EQ.1.OR.(ISMEAR.EQ.3.AND.ISOGRD.EQ.0)) THEN
+C END AUG 1992
+       IWEB = 3
+       IF (ISTIF(1).EQ.5) IWEB = 2
+       IWEBM = IWEB - 1
+       IWEBP = IWEB + 1
+C BEG APR 2007
+C      WRITE(8,'(A,I5,1P,E12.4)')
+C    1' just before 1st CSTIFF: IWEB,CX(3,3,IWEB)=',IWEB,CX(3,3,IWEB)
+C END APR 2007
+       CALL CSTIF(CX,THERMX,ISTIF(1),NSEG(1),B(1),B2(1),H(1),W(1),W2(1),
+     1            INTEXT(1),STFL1,STFM1,STMM1,STFT1,STMT1,STORS1,ZPARTX,
+     1           TBASE(1),GTX(1,1),GTX(1,IWEBP),GS(1),TX,TEFF(1),C36SM1,
+     1            NNODES,TEMP(1,1),CX3,TSMRX3,IFILE,ET3X,TT3X,IMTEMP,
+     1            C33AD1,IWEB,IWEBP,IWEBM,STFL2,STFM2,STMM2,STFT2,STMT2,
+C BEG APR 1996
+     1            C12AD1,C45AD1,C15AD1,C24AD1,GS(2),TEFF(2),CSHR2,
+C BEG JUN 1996
+C BEG MAY 1997
+C BEG AUG 1998
+C BEG OCT 2001
+C BEG JAN 2005
+C BEG MAR 2007
+C BEG MAR 2009
+     1            IFAYT(1),UNBAL(1,1),IZSTIF(1),STFIY1,ISMEAR,ISTIF(2),
+     1            TSKINX(1),NPRT,1,PHIHAT,PHITRS)
+C END MAR 2009
+C END MAR 2007
+C END JAN 2005
+C END OCT 2001
+C END AUG 1998
+C END MAY 1997
+C END JUN 1996
+C END APR 1996
+C BEG AUG 1992
+       IF (ISOGRD.EQ.1) RETURN
+C END AUG 1992
+      ENDIF
+C END JULY 1989
+C
+      IF (ISTRAT.EQ.0) THEN
+         STIFL = STFL1
+         STIFM = STFM1
+         STIFMM= STMM1
+C        WRITE(8,*)' ISTRAT=0: STIFL,STIFM,STIFMM=',STIFL,STIFM,STIFMM
+      ENDIF
+C
+      IF (ISTRAT.EQ.1) THEN
+C
+C  IN THIS BRANCH STIFL, STIFM, STIFMM MUST HAVE BEEN CALCULATED IN
+C  THE KOITER.NEW LIBRARY, SPECIFICALLY, IN THE ROUTINE AXLSTF.
+C
+         STFL1 = MIN(STIFL,STFL1)
+         STFM1 = MIN(STIFM,STFM1)
+         STMM1 = MIN(STIFMM,STMM1)
+C
+         STFL1 = STIFL
+         STFM1 = STIFM
+         STMM1 = STIFMM
+C        WRITE(8,*)' ISTRAT=1: STIFL,STIFM,STIFMM=',STIFL,STIFM,STIFMM
+C
+      ENDIF
+C
+C  GET CONTRIBUTION OF RINGS...
+C
+C BEG JULY 1989
+C BEG AUG 1992
+      IF (ISMEAR.EQ.2.OR.(ISMEAR.EQ.3.AND.ISOGRD.EQ.0)) THEN
+C END AUG 1992
+       IWEB = 3
+       IF (ISTIF(2).EQ.5) IWEB = 2
+       IWEBM = IWEB - 1
+       IWEBP = IWEB + 1
+C BEG MAY 2005
+C      WRITE(8,'(A,/,2I5,1P,3E12.4)')
+C    1' ISMEAR,IWEB,CY(1,1,3),CY(1,2,3),CY(2,2,3)=',
+C    1  ISMEAR,IWEB,CY(1,1,3),CY(1,2,3),CY(2,2,3)
+C END MAY 2005
+       CALL CSTIF(CY,THERMY,ISTIF(2),NSEG(2),B(2),B2(2),H(2),W(2),W2(2),
+     1            INTEXT(2),STFL2,STFM2,STMM2,STFT2,STMT2,STORS2,ZPARTY,
+     1           TBASE(2),GTX(2,1),GTY(1,IWEBP),GS(2),TY,TEFF(2),C36SM2,
+     1           NNODES,TEMP(1,2),CY3,TSMRY3,IFILE,ET3Y,TT3Y,IMTEMP,
+     1           C33AD2,IWEB,IWEBP,IWEBM,STFL1,STFM1,STMM1,STFT1,STMT1,
+C BEG APR 1996
+     1           C12AD2,C45AD2,C15AD2,C24AD2,GS(1),TEFF(1),CYSHR2,
+C BEG JUN 1996
+C BEG MAY 1997
+C BEG AUG 1998
+C BEG OCT 2001
+C BEG JAN 2005
+C BEG MAR 2007
+C BEG MAR 2009
+     1           IFAYT(2),UNBAL(1,1),IZSTIF(2),STFIY2,ISMEAR,ISTIF(2),
+     1           TSKINX(1),NPRT,2,PHIHAT,PHITRS)
+C END MAR 2009
+C END MAR 2007
+C END JAN 2005
+C END OCT 2001
+C END AUG 1998
+C END MAY 1997
+C BEG AUG 1998
+C BEG MAY 2005
+C                WRITE(8,'(A,/,2I5,1P,5E12.4)')
+C    1         ' ISTIF(2),ISMEAR,STFL2,STFM2,STMM2,STORS2,B(2)=',
+C    1           ISTIF(2),ISMEAR,STFL2,STFM2,STMM2,STORS2,B(2)
+C END MAY 2005
+C END AUG 1998
+C END JUN 1996
+C END APR 1996
+      ENDIF
+C END JULY 1989
+C
+C  OBTAIN ex(3), ey(2), kx(3), ky(2) IN TERMS OF constant, ex, ey,
+C  kx, ky...
+C
+C BEG JULY 1989
+      IF (ISMEAR.EQ.3.OR.(ISMEAR.LE.2.AND.ISTIF(ISMEAR).NE.5)) THEN
+         CALL       EPSKAP(B11,B12,B21,B22,CX,CY,THERMX,THERMY,
+     1                     F(1,1),F(2,1),F(3,1),F(4,1),F(5,1),
+     1                     F(1,2),F(2,2),F(3,2),F(4,2),F(5,2),
+     1                     G(1,1),G(2,1),G(3,1),G(4,1),G(5,1),
+     1                     G(1,2),G(2,2),G(3,2),G(4,2),G(5,2))
+      ENDIF
+C END JULY 1989
+C
+C  CALCULATE CS (SMEARED STIFFENER C(I,J) CONSTITUTIVE LAW...
+C
+      CALL       CSMEAR(IFILE,B11,B12,B21,B22,CX,CY,THERMX,THERMY,
+     1                  F(1,1),F(2,1),F(3,1),F(4,1),F(5,1),
+     1                  F(1,2),F(2,2),F(3,2),F(4,2),F(5,2),
+     1                  G(1,1),G(2,1),G(3,1),G(4,1),G(5,1),
+     1                  G(1,2),G(2,2),G(3,2),G(4,2),G(5,2),
+     1              STFL1,STFM1,STFT1,STMM1,STMT1,STORS1,C36SM1,
+     1              STFL2,STFM2,STFT2,STMM2,STMT2,STORS2,C36SM2,
+     1              THERMS(1),THERMS(2),THERMS(4),THERMS(5),CS,
+     1              C33AD1,C33AD2,C12AD1,C12AD2,C45AD1,C45AD2,
+C BEG FEB 1995
+     1              C15AD1,C15AD2,C24AD1,C24AD2,ISMEAR)
+C END FEB 1995
+C BEG MAY 1998
+      IF (ISMEAR.EQ.1.AND.ISTIF(1).EQ.4) THEN
+         IF (CS(2,2).LE.0.001*CX(2,2,1)) CS(2,2) = 0.001*CX(2,2,1)
+         IF (CS(5,5).LE.0.001*CX(5,5,1)) CS(5,5) = 0.001*CX(5,5,1)
+         IF (CS(3,3).LE.0.1*CX(3,3,1)) CS(3,3) = 0.1*CX(3,3,1)
+      ENDIF
+C END MAY 1998
+C
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CSTIF
+      SUBROUTINE CSTIF(C,THERM,ISTIF,NSEG,B,B2,H,W,W2,INTEXT,
+     1                 STIFL,STIFM,STIFMM,STIFT,STIFMT,STORSN,ZPART,
+     1                 TBASE,GT1,GT4,GS,T,TEFF,C36SMR,NNODES,TEMP,
+C BEG JULY 1989
+     1                 CLOC,TLOC,IFILE,ET3,TT3,IMTEMP,C33ADD,
+     1                 IWEB,IWEBP,IWEBM,STFL2,STFM2,STMM2,STFT2,STMT2,
+C BEG APR 1996
+     1                 C12ADD,C45ADD,C15ADD,C24ADD,GS2,TEFF2,CSAVE,
+C BEG JUN 1996
+C BEG MAY 1997
+C BEG AUG 1998
+C BEG OCT 2001
+C BEG JAN 2005
+C BEG MAR 2007
+C BEG MAR 2009
+     1                 IFAYT,UNBAL,IZSTIF,STFIY,ISMEAR,ISTIF2,
+     1                 TSKINX,NPRT,ISTRNG,PHIHAT,PHITRS)
+C END MAR 2009
+C END MAR 2007
+C END JAN 2005
+C END OCT 2001
+C END AUG 1998
+C END MAY 1997
+C END JUN 1996
+C END APR 1996
+C END JULY 1989
+C
+C  PURPOSE IS TO DERIVE STIFFENER COEFFICIENTS FOR STIFFNESS (STIFL)
+C  ECCENTRICITY (STIFM), MOMENT (STIFMM), THERMAL FORCE (STIFT),
+C  THERMAL MOMENT (STIFMT). POSITIONS OF CENTROIDS OF STIFFENER PARTS,
+C  ZPART, ARE ALSO CALCULATED.
+C
+C  TORSIONAL RIGIDITY FOR BOTH OPEN AND CLOSED SECTIONS IS CALCULATED.
+C
+C
+C BEG JAN 2010
+      DIMENSION ICXX(4),THRDUM(6),THCUR(6,5),THCDUM(6)
+      DIMENSION CTOT(6,6),ETHDUM(6)
+C END JAN 2010
+      DIMENSION C(6,6,5),THERM(6,5),ZPART(*),T(*)
+C BEG 26 JAN 1989
+      DIMENSION TEMP(*),CLOC(6,6,11),TLOC(6,11)
+      DIMENSION Y1(23),Y2(23),Y3(23),Y4(23),Y5(23)
+C END 26 JAN 1989
+C
+C BEG MAR 2009
+      PHI = 1.0
+C END MAR 2009
+      FN  = 1.
+      CTH = 1.
+C BEG JUN 1996
+      ZSTART = TBASE/2. + UNBAL
+C END JUN 1996
+C BEG JULY 1989
+      IF (ISTIF.EQ.5) ZSTART = 0.
+C END JULY 1989
+      FACT = 1.0
+      IF (INTEXT.EQ.1) FACT = -1.0
+      ZPART(1) = 0.
+      ZPART(2) = 0.
+C BEG JULY 1989
+      ZPART(IWEB) = -FACT*(.5*H + ZSTART)
+      ZPART(IWEBP) = -FACT*(   H + ZSTART)
+C END JULY 1989
+C BEG DEC 1995
+C     IF (ISTIF.EQ.3) ZPART(4) = 0.
+      IF (ISTIF.EQ.3) ZPART(4) =  -FACT*(H + ZSTART)
+C END DEC 1995
+      ZPART(5) = 0.
+      STORSN = 0.
+      S   = H
+C BEG JULY 1989
+      C362  = C(3,6,IWEBM)*B2/B
+C END JULY 1989
+C BEG JAN 2005
+      IF (ISMEAR.EQ.3.AND.NPRT.GE.2) THEN
+        IF (ISTRNG.EQ.1) WRITE(8,'(A,1P,3E12.4)')
+     1' IN SUB.CSTIF; STRINGERS; ISMEAR=3; ZSTART,TBASE,UNBAL=',
+     1                                     ZSTART,TBASE,UNBAL
+        IF (ISTRNG.EQ.2) WRITE(8,'(A,1P,3E12.4)')
+     1' IN SUB.CSTIF;   RINGS;   ISMEAR=3; ZSTART,TBASE,UNBAL=',
+     1                                     ZSTART,TBASE,UNBAL
+      ENDIF
+C END JAN 2005
+      IF (ISTIF.EQ.4) THEN
+C
+C    GET ANGLE OF SLANT OF HAT...
+C
+        S = SQRT(H**2 + (W2-W)**2/4.)
+        CTH = H/S
+        STH = 0.5*(W2-W)/S
+        FN = 2.
+C
+C  IF ISTIF=4, CALCULATE TORSIONAL RIGIDITY FOR SECTION ENCLOSING THE
+C  AREA.  USE KNOCKDOWN FACTOR, PHI = 0.3, TO ACCOUNT FOR DELETERIOUS
+C  EFFECT OF LOCAL DEFORMATIONS OF HAT CROSS SECTION DURING TWISTING.
+C
+C BEG MAR 2007
+C        PHI = 0.3
+         PHI = PHIHAT
+C END MAR 2007
+         A = H*(W+W2)/2.
+C BEG JULY 1989
+         FINT = 2.*S/C(3,3,3) + W/C(3,3,4) + W2/CSAVE
+         C33EFF = C(3,3,3)*B/(2.*S+W+B-W2)
+         DD     = .5*C33EFF*H/(CSAVE + C33EFF)
+         STORSN = PHI*4.*A*A/(4.*FINT*B)  + DD*DD*CSAVE
+C END JULY 1989
+C BEG AUG 1991
+C THE FOLLOWING LED TO NEGATIVE EIGENVALUES AT TIMES. 
+C FOLLOWING TWO ARE COMMENTED OUT AND IT IS NOW ASSUMED THAT
+C IN-PLANE SHEAR LOADS ARE CARRIED ONLY BY THE SKIN.
+C        C36SMR = C362 - PHI*(C(3,3,3)*(W2-W)*STH*ZPART(3)
+C    1                      + C(3,3,4)*W*ZPART(4))/B
+C        C33ADD = PHI*(C(3,3,3)*(W2-W)*STH +C(3,3,4)*W)/B
+C
+         C36SMR = 0.
+         C33ADD = 0.
+C END AUG 1991
+      ENDIF
+C
+C BEG JULY 1989
+C
+      IF (ISTIF.EQ.5) THEN
+C BEG NOV 1995
+         BB2 = B - 2.*B2
+         S = SQRT(0.25*BB2**2 + H**2)
+         CTH = H/S
+         FN = 2.
+C BEG APR 1996
+C        STORSN = C(3,3,3)*H**2
+C        C36SMR = -C(3,3,3)*ZPART(3)
+C        C333   = C(3,3,3)+FLOAT(IFAYT)*C(3,3,2)*B2/B
+         C333   = C(3,3,3)
+C BEG MAR 2009
+C        WRITE(8,'(A,1P,E12.4)') ' PHITRS=',PHITRS
+         STORSN =  PHITRS*C333*H**2
+         C36SMR = -PHITRS*C333*ZPART(3)
+     1            -C(3,3,2)*ZPART(2)*0.5*ABS(BB2)/S
+C END MAR 2009
+C        C33ADD =  C(3,3,3) + C(3,3,2)*0.5*ABS(BB2)/S
+         C33ADD =  C333 + C(3,3,2)*0.5*ABS(BB2)/S
+C END APR 1996
+C END NOV 1995
+      ENDIF
+C END JULY 1989
+C
+      STIFL = 0.
+      STIFM = 0.
+      STIFMM= 0.
+      STFIY = 0.
+      STIFT = 0.
+      STIFMT= 0.
+      STOR3 = 0.
+      STOR4 = 0.
+C BEG JULY 1989
+      C12ADD = 0.
+      C45ADD = 0.
+      C15ADD = 0.
+      C24ADD = 0.
+C END JULY 1989
+      ET3   = 0.
+      TT3   = 0.
+C BEG MAY 1997
+      ETFAY = 0.
+      TTFAY = 0.
+      TORFAY= 0.
+C END MAY 1997
+C
+      IF (NSEG.GT.2) THEN
+         ET3 = C(1,1,IWEB) - C(1,2,IWEB)**2/C(2,2,IWEB)
+C BEG MAY 2005
+C        WRITE(8,'(A,/,I5,1P,4E12.4)')
+C    1 ' IWEB,ET3,C(1,1,IWEB),C(1,2,IWEB),C(2,2,IWEB)=',
+C    1   IWEB,ET3,C(1,1,IWEB),C(1,2,IWEB),C(2,2,IWEB)
+C END MAY 2005
+         TT3 = THERM(1,IWEB) -C(1,2,IWEB)*THERM(2,IWEB)/C(2,2,IWEB)
+C BEG AUG 1998
+C BEG AUG 2006
+C  panda2.news Item No. 445 is incorrect: eliminate the 4., two places:
+C  See equation for C66 in Eqs.(40) in "Theoretical basis of the PANDA..."
+C  paper.
+C        IF (T(IWEB).LE.S) STOR3= 4.*C(6,6,IWEB)*FN*S/B
+C        IF (T(IWEB).GT.S) STOR3= 4.*C(3,3,IWEB)*FN*S**3/(12.*B)
+         IF (T(IWEB).LE.S) STOR3=    C(6,6,IWEB)*FN*S/B
+         IF (T(IWEB).GT.S) STOR3=    C(3,3,IWEB)*FN*S**3/(12.*B)
+C END AUG 2006
+C END AUG 1998
+C BEG MAY 1997
+         IF (IZSTIF.EQ.1) THEN
+            ETFAY = C(1,1,IWEBM) - C(1,2,IWEBM)**2/C(2,2,IWEBM)
+            TTFAY = THERM(1,IWEBM) 
+     1               - C(1,2,IWEBM)*THERM(2,IWEBM)/C(2,2,IWEBM)
+            IF (T(IWEBM).LE.B2) TORFAY = C(6,6,IWEBM)*B2/B
+            IF (T(IWEBM).GT.B2) TORFAY = C(3,3,IWEBM)*B2**3/(12.*B)
+         ENDIF
+C END MAY 1997
+         ET4 = 0.
+         TT4 = 0.
+         IF (NSEG.GT.3) THEN
+            ET4 = C(1,1,4) - C(1,2,4)**2/C(2,2,4)
+            TT4 = THERM(1,4) -C(1,2,4)*THERM(2,4)/C(2,2,4)
+C BEG MAY 2005
+C           WRITE(8,'(A,I5,1P,2E12.4)')
+C    1    ' In CSTIF: ISMEAR,ET4,TT4=',ISMEAR,ET4,TT4
+C END MAY 2005
+C BEG AUG 1998
+C BEG AUG 2006
+C  panda2.news Item No. 445 is incorrect: eliminate the 4., two places:
+C  See equation for C66 in Eqs.(40) in "Theoretical basis of the PANDA..."
+C  paper.
+C           IF (T(4).LE.W) STOR4= 4.*C(6,6,4)*W/B
+C           IF (T(4).GT.W) STOR4= 4.*C(3,3,4)*W**3/(12.*B)
+            IF (T(4).LE.W) STOR4=    C(6,6,4)*W/B
+            IF (T(4).GT.W) STOR4=    C(3,3,4)*W**3/(12.*B)
+C END AUG 2006
+C END AUG 1998
+         ENDIF
+C BEG JULY 1989
+         WFL = W
+         IF (ISTIF.EQ.5) THEN
+            WFL = B
+C BEG APR 1996
+C           ET4 = C(1,1,3)
+C           TT4 = THERM(1,3)
+C           STOR4 = C(6,6,3)
+C           STFL2 = C(2,2,3)
+C           STFT2 = THERM(2,3)
+C           STFM2 = -ZPART(3)*C(2,2,3)
+C           STMT2 = -ZPART(3)*THERM(2,3)
+C           STMM2 = C(2,2,3)*ZPART(3)**2
+C           C12ADD= C(1,2,3)
+C           C45ADD= C(4,5,3) + C(1,2,3)*H**2
+C           C15ADD= C(1,2,3)*H
+C
+            FFAYT = IFAYT
+            C113   = C(1,1,3)   + FFAYT*C(1,1,2)*B2/B
+            THR13  = THERM(1,3) + FFAYT*THERM(1,2)*B2/B
+            C663   = C(6,6,3)   + FFAYT*C(6,6,2)*B2/B
+C           C223   = C(2,2,3)   + FFAYT*C(2,2,2)*B2/B
+            C223   = C(2,2,3)
+C           THR23  = THERM(2,3) + FFAYT*THERM(2,2)*B2/B
+            THR23  = THERM(2,3)
+C           C123   = C(1,2,3)   + FFAYT*C(1,2,2)*B2/B
+            C123   = C(1,2,3)
+C           C453   = C(4,5,3)   + FFAYT*C(4,5,2)*B2/B
+            C453   = C(4,5,3)
+C
+            ET4 = C113
+            TT4 = THR13
+            STOR4 = C663
+            STFL2 = C223
+            STFT2 = THR23
+            STFM2 = -ZPART(3)*C223
+            STMT2 = -ZPART(3)*THR23
+            STMM2 = C223*ZPART(3)**2
+            C12ADD= C123
+            C45ADD= C453 + C123*H**2
+            C15ADD= C123*H
+C END APR 1996
+            C24ADD= C15ADD
+         ENDIF
+C
+C BEG APR 1996
+C        STIFL = (ET3*S*FN + ET4*WFL)/B
+C        STIFT = (TT3*S*FN + TT4*WFL)/B
+         FFAYT = IFAYT
+C BEG MAY 1997
+         STIFL = (ET3*S*FN + ETFAY*B2 + ET4*WFL + FFAYT*C(1,1,2)*B2)/B
+         STIFT = (TT3*S*FN + TTFAY*B2 + TT4*WFL 
+     1                                        + FFAYT*THERM(1,2)*B2)/B
+C BEG MAY 2005
+C        WRITE(8,'(A,/,1P,6E12.4)')
+C    1 ' S,FN,ETFAY,B2,ET4,WFL=',S,FN,ETFAY,B2,ET4,WFL
+C        WRITE(8,'(A,/,1P,5E12.4)')
+C    1 ' ET3,FFAYT,C(1,1,2),B,STIFL=',ET3,FFAYT,C(1,1,2),B,STIFL
+C END MAY 2005
+C END MAY 1997
+C END APR 1996
+         STIFM = - (ZPART(IWEB)*ET3*S*FN + ZPART(IWEBP)*ET4*WFL)/B
+         STIFMT= - (ZPART(IWEB)*TT3*S*FN + ZPART(IWEBP)*TT4*WFL)/B
+         STIFMM= (ET3*FN*((H+ZSTART)**3 -ZSTART**3)/(3.*CTH)
+     1          + ET4*WFL*ZPART(IWEBP)**2)/B
+C BEG AUG 1998
+         STFIY = C(4,4,IWEB)*H + 0.2*ET4*WFL**3/12.
+C END AUG 1998
+C BEG MAY 1997
+         STORSN = STORSN + STOR3 + STOR4 + TORFAY
+C END MAY 1997
+C
+C BEG 26 JAN 1989
+         IF (IMTEMP.EQ.1.AND.TEMP(IWEBM).NE.TEMP(IWEBP)) THEN
+C END JULY 1989
+            FINT = NNODES - 1
+            DX = S/FINT
+            X  = -DX
+            DZ = H/FINT
+            Z  = -DZ + ZSTART
+            DO 20 INODE = 1,NNODES
+               X = X + DX
+               Z = Z + DZ
+               ET3 = CLOC(1,1,INODE) -CLOC(1,2,INODE)**2/CLOC(2,2,INODE)
+               TT3 = TLOC(1,INODE) 
+     1                    -CLOC(1,2,INODE)*TLOC(2,INODE)/CLOC(2,2,INODE)
+               Y1(INODE) = ET3
+               Y2(INODE) = TT3
+               Y3(INODE) = Z*ET3
+               Y4(INODE) = Z*TT3
+               Y5(INODE) = Z*Z*ET3
+   20       CONTINUE
+            CALL SIMPSN(IFILE,NNODES,DX,Y1,YINT1)
+            CALL SIMPSN(IFILE,NNODES,DX,Y2,YINT2)
+            CALL SIMPSN(IFILE,NNODES,DZ,Y3,YINT3)
+            CALL SIMPSN(IFILE,NNODES,DZ,Y4,YINT4)
+            CALL SIMPSN(IFILE,NNODES,DZ,Y5,YINT5)
+            CALL SIMPSN(IFILE,NNODES,DZ,Y1,YINT6)
+            CALL SIMPSN(IFILE,NNODES,DZ,Y2,YINT7)
+C BEG JULY 1989
+            ZPART(IWEB) = -FACT*YINT3/YINT6
+            IF (ISTIF.NE.5)
+     1       C36SMR = C362 - PHI*(C(3,3,IWEB)*(W2-W)*STH*ZPART(IWEB)
+     1                     +      C(3,3,IWEBP)*W*ZPART(IWEBP))/B
+C BEG MAR 2009
+            IF (ISTIF.EQ.4) C36SMR = 0.0
+C END MAR 2009
+C BEG APR 1996
+            IF (ISTIF.EQ.5) THEN
+               FFAYT = IFAYT
+               C333   = C(3,3,3)+FFAYT*C(3,3,2)*B2/B
+C BEG NOV 1995
+C BEG MAR 2009
+               C36SMR = -PHITRS*C333*ZPART(3)
+     1                  -C(3,3,2)*ZPART(2)*0.5*ABS(BB2)/S
+C END MAR 2009
+            ENDIF
+C END NOV 1995
+C END APR 1996
+            ET3   = YINT1/S
+            TT3   = YINT2/S
+C BEG MAY 1997
+            STIFL = (YINT1*FN + ETFAY*B2 + ET4*WFL)/B
+            STIFT = (YINT2*FN + TTFAY*B2 + TT4*WFL)/B
+C END MAY 1997
+            STIFM = (FACT*YINT3*FN/CTH - ZPART(IWEBP)*ET4*WFL)/B
+            STIFMT= (FACT*YINT4*FN/CTH - ZPART(IWEBP)*TT4*WFL)/B
+            STIFMM= (YINT5*FN/CTH  + ET4*WFL*ZPART(IWEBP)**2)/B
+         ENDIF
+C
+C END 26 JAN 1989
+C
+      ENDIF
+C  End of NSEG.GT.2 condition.
+C  TRANSVERSE SHEAR STIFFNESS EFFECT...
+C
+C BEG JAN 2005
+C     TEFF = T(1) + H + T(IWEBP)
+      TEFF = TSKINX + H + T(IWEBP)
+C END JAN 2005
+      IF (ISTIF.EQ.5) TEFF = 0.5*(T(1) + T(IWEBP)) + H
+C
+      FLANGE = 0.
+      IF (GT4.NE.0.0.AND.WFL.NE.0.) FLANGE = T(IWEBP)/(GT4*WFL/B)
+C BEG MAR 2007
+C     FS3 = C(3,3,IWEB)*FN/(B*CTH)
+      FS3 = C(3,3,IWEB)*FN*CTH/B
+C END MAR 2007
+      DEN  = T(1)/GT1 + H/FS3 + FLANGE
+C BEG APR 1992
+      FKAP = 1.0
+      IF (FLANGE.NE.0.0) THEN
+         ICX = 4
+         IF (ISTIF.EQ.5) ICX = 3
+         FKAP = C(1,1,2)/(C(1,1,ICX)*(WFL/B))
+         IF (FKAP.LT.1.0) FKAP = 1./FKAP
+C BEG MAR 2007
+         IF (FKAP.GT.2.) FKAP = 2.
+C END MAR 2007
+C BEG OCT 2001
+         IF (ISMEAR.EQ.1.AND.ISTIF2.NE.0.AND.FKAP.GT.2.) FKAP = 2.
+C END OCT 2001
+      ENDIF
+      GS   = FKAP*TEFF/DEN
+      IF (FLANGE.EQ.0.0) GS = GT1
+C BEG JUN 2004
+      IF (FLANGE.EQ.0.0) THEN
+         FKAP = 2.
+         GS = FKAP*TEFF/DEN
+      ENDIF
+C END JUN 2004
+C BEG OCT 2001
+      IF (ISMEAR.EQ.1.AND.ISTIF2.NE.0.AND.FLANGE.EQ.0.0) THEN
+         FKAP = 2.
+         GS   = FKAP*TEFF/DEN
+      ENDIF
+C END OCT 2001
+C BEG DEC 2000
+      IF (GS.GT.GT1) GS = GT1
+C END DEC 2000
+C END APR 1992
+      IF (ISTIF.EQ.5) THEN
+C
+C  FIND TRANSVERSE SHEAR STIFFNESS IN DIRECTION NORMAL TO THE TRUSS
+C  AXIS FOR A TRUSS-CORE SANDWICH CONSTRUCTION
+C
+         TEFF2 = TEFF
+C BEG NOV 1995
+         BB2 = B - 2.*B2
+C BEG DEC 2009
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C Truss-core sandwich wall with extra segments (b2):
+C
+C          < b2 >  ---- Seg. 3 ---->
+C ---------======--------------------======---------<-Upper skin
+C         /-Seg6>\S                 /      \      ^    middle
+C        /        \e              4/        \     !    surface
+C       /        . \g.           g/          \    !
+C      /         !\ \           e/ /          \   h =height from
+C     /            \ \2        S/ /            \  !  midsurface
+C    /                \        /!/              \ !  to midsurface
+C   /  --- Seg. 1----> \<Seg5-/ "                \V
+C ==--------------------======--------------------==<-Lower skin
+C                       < b2 >                        midsurface
+C   <---------- b ----------->
+C
+C A single module consists of Seg. 1 through Seg. 6.
+C Seg. 4 has the same wall construction as Seg. 2.
+C Seg. 5 has wall construction = Seg. 2 + Seg. 1.
+C Seg. 6 has wall construction = Seg. 3 + Seg. 2.
+C
+C GS21 = shear modulus for rightward horizontal displacement of the
+C       top facesheet of the sandwich relative to the bottom face sheet:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         GS21 = 2.*C(2,2,IWEB)*BB2**2*(1.+ BB2**2/(4.*H**2))/(4.*S*H**2)
+     1        + 48.*C(5,5,IWEB)/H**3
+C
+C The second line of the expression for GS21 is derived with use of
+C Formula 1a in Table 8.1 on p. 189 of ROARK'S FORMULAS FOR STRESS
+C AND STRAIN, 7th edition, Warren C. Young and Richard G. Budynas,
+C McGraw-Hill, 2002
+C
+C GS22 = shear modulus for upward displacement of the point of
+C        of intersection of Segment 6 with Segment 2 relative to the
+C        first point in Segment 6:
+C
+C CTOT(5,5) is the "hoop" bending stiffness of Segment 6 in the
+C sketch above.
+C
+         CTOT(5,5) = C(5,5,1)
+C
+C  IFAYT = 1 means that Segments 5 and 6 in the above sketch
+C  consist of the truss-core wall bonded to the face sheet. Therefore,
+C  we need to compute the "hoop" bending stiffness, CTOT(5,5), by
+C  "stacking" the stiffnesses of the truss-core wall and the face
+C  sheet wall. This computation is performed in SUBROUTINE CSTACK.
+C
+         IF (IFAYT.EQ.1) THEN
+            ICXX(1) = 1
+            ICXX(2) = 2
+            ICXX(3) = 0
+            ICXX(4) = 0
+            CALL CSTACK(IFILE,6,C,THERM,T,2,ICXX,CTOT,THRDUM,
+     1               THCUR,THCDUM)
+            ISEGX = 6
+C           WRITE(IFILE,200) ISEGX
+C 200 FORMAT(/' CONSTITUTIVE MATRIX C(I,J) FOR STACKED WALL; SEGMENT',
+C    1 I3,':',18X,'   THERMAL {NT}  ETHERM {ET}')
+C           CALL OUTCIJ(0,1,IFILE,CTOT,THRDUM,ETHDUM)
+         ENDIF
+C
+         GS22 = 24.*CTOT(5,5)/B2**3 +24.*C(5,5,1)/B2**3
+C
+C The expression for GS22 is derived with the use of
+C Formula 1a in Table 8.1 on p. 189 of ROARK'S FORMULAS FOR STRESS
+C AND STRAIN, 7th edition, Warren C. Young and Richard G. Budynas,
+C McGraw-Hill, 2002
+C
+C
+C GS2 = the overall effective transverse shear modulus, G(yz), is a
+C       combination of GS21 and GS22, as follows::
+C
+         GS2  = 2./(1./GS21 +1./GS22)
+C
+C        WRITE(IFILE,'(A,1P,3E12.4)') ' GS21,GS22,GS2=',GS21,GS22,GS2
+C END JAN 2010
+C        GS2 = 2.*C(2,2,IWEB)*ABS(BB2)*H/(4.*S**3)
+C    1        + 24.*C(5,5,IWEB)/(B*H**2)
+C END DEC 2009
+C END NOV 1995
+      ENDIF
+C END JULY 1989
+C
+C BEG APR 2007
+C     WRITE(8,'(A,I3,/,1P,8E12.4)')
+C    1' In CSTIFF: ISTIF,TEFF,DEN,FKAP,GT1,GS,GS2,FS3,FLANGE=',
+C    1             ISTIF,TEFF,DEN,FKAP,GT1,GS,GS2,FS3,FLANGE
+C     WRITE(8,'(A,I3,/,1P,4E12.4)')
+C    1'            IWEB,C(3,3,IWEB),FN,CTH,B=',
+C    1             IWEB,C(3,3,IWEB),FN,CTH,B
+C END APR 2007
+      RETURN
+      END
+C
+C
+C
+C=DECK      EPSKAP
+      SUBROUTINE EPSKAP(B11,B12,B21,B22,CX,CY,THERMX,THERMY,
+     1                  F11,F12,F13,F14,F15,F21,F22,F23,F24,F25,
+     1                  G11,G12,G13,G14,G15,G21,G22,G23,G24,G25)
+C
+C  THE PURPOSE OF EPSKAP IS TO OBTAIN eps(x,3) AND eps(y,2) AND
+C                                   kappa(x,3) AND kappa(y,2) IN
+C  TERMS OF THE AVERAGE QUANTITIES, eps(x), epx(y), kappa(x), kappa(y),
+C  THUS:
+C       ex(3) = F11 + F12*ex + F13*ey + F14*kx + F15*ky
+C       ey(2) = F21 + F22*ex + F23*ey + F24*kx + F25*ky
+C       kx(3) = G11 + G12*ex + G13*ey + G14*kx + G15*ky
+C       ky(2) = G21 + G22*ex + G23*ey + G24*kx + G25*ky
+C
+C  in which ex, ey, kx, ky are the average strains and changes in
+C  curvature in the stiffened panel module, and (3) and (2) denote
+C  regions (3) and (2), respectively, of the panel module. (See the
+C  sketch of the panel in Fig. 14, p. 498 of the long PANDA2 paper.)
+C
+C  THIS IS ACCOMPLISHED VIA A THEORY IN WHICH IT IS ASSUMED THAT THE
+C  STRESS RESULTANTS AND MOMENT RESULTANTS ARE CONTINUOUS AT THE
+C  INTERFACES BETWEEN THIN AND THICK REGIONS OF THE PANEL SKIN.
+C
+      DIMENSION CX(6,6,5),CY(6,6,5),THERMX(6,5),THERMY(6,5)
+      DIMENSION D1(7),D2(7),F1(7),F2(7),E1(5),E2(5),G1(5),G2(5)
+C
+      B1211 = B12/B11
+      B2122 = B21/B22
+      CI    = 1./CX(1,1,1)
+C
+C  Mx(3) = Mx(1) equation...
+C
+      A11   =  (CY(5,5,2) +CX(4,4,1)*B2122)*CI
+      A12   = -(CY(4,5,2) -CX(4,5,1))*B1211*CI
+C BEG NOV 1992
+C BEG DEC 1998
+      F1(1) =  (THERMY(5,2) -THERMX(4,1))*CI
+C     F1(1) =  (THERMX(4,1) -THERMX(4,1))*CI
+C END DEC 1998
+C END NOV 1992
+      F1(2) = -(CY(2,5,2) +CX(1,4,1)*B2122)*CI
+      F1(3) =  (CY(1,5,2) -CX(2,4,1))*B1211*CI
+      F1(4) =  (CX(1,4,1)/B22)*CI
+      F1(5) = -((CY(1,5,2) -CX(2,4,1))/B11)*CI
+      F1(6) =  (CX(4,4,1)/B22)*CI
+      F1(7) = -((CY(4,5,2) -CX(4,5,1))/B11)*CI
+C
+C  My(2) = My(1) equation...
+C
+      A21   = -(CX(4,5,2) -CX(4,5,1))*B2122*CI
+      A22   =  (CX(5,5,2) +CX(5,5,1)*B1211)*CI
+      F2(1) =  (THERMX(5,2) - THERMX(5,1))*CI
+      F2(2) =  (CX(1,5,2) -CX(1,5,1))*B2122*CI
+      F2(3) = -(CX(2,5,2) +CX(2,5,1)*B1211)*CI
+      F2(4) = -((CX(1,5,2) -CX(1,5,1))/B22)*CI
+      F2(5) =  (CX(2,5,1)/B11)*CI
+      F2(6) = -((CX(4,5,2) -CX(4,5,1))/B22)*CI
+      F2(7) =  (CX(5,5,1)/B11)*CI
+C
+C  Solve the two equations for kappa(x,3) and kappa(y,2)...
+C
+      DEN = A11*A22 - A12*A21
+      DO 20 I = 1,7
+         D1(I) = (A22*F1(I) - A12*F2(I))/DEN
+         D2(I) = (A11*F2(I) - A21*F1(I))/DEN
+   20 CONTINUE
+C
+C
+C  Nx(3) = Nx(1) equation...
+C
+      A11S  =  (CY(2,5,2) +CX(1,4,1)*B2122)*CI
+      A12S  = -(CY(2,4,2) -CX(1,5,1))*B1211*CI
+C BEG NOV 1992
+C BEG DEC 1998
+      F1(1) =  (THERMY(2,2) -THERMX(1,1))*CI
+C     F1(1) =  (THERMX(1,1) -THERMX(1,1))*CI
+C END DEC 1998
+C END NOV 1992
+      F1(2) = -(CY(2,2,2) +CX(1,1,1)*B2122)*CI
+      F1(3) =  (CY(1,2,2) -CX(1,2,1))*B1211*CI
+      F1(4) =  (CX(1,1,1)/B22)*CI
+      F1(5) = -((CY(1,2,2) -CX(1,2,1))/B11)*CI
+      F1(6) =  (CX(1,4,1)/B22)*CI
+      F1(7) = -((CY(2,4,2) -CX(1,5,1))/B11)*CI
+C
+C  Ny(2) = Ny(1) equation...
+C
+      A21S  = -(CX(2,4,2) -CX(2,4,1))*B2122*CI
+      A22S  =  (CX(2,5,2) +CX(2,5,1)*B1211)*CI
+      F2(1) =  (THERMX(2,2) - THERMX(2,1))*CI
+      F2(2) =  (CX(1,2,2) -CX(1,2,1))*B2122*CI
+      F2(3) = -(CX(2,2,2) +CX(2,2,1)*B1211)*CI
+      F2(4) = -((CX(1,2,2) -CX(1,2,1))/B22)*CI
+      F2(5) =  (CX(2,2,1)/B11)*CI
+      F2(6) = -((CX(2,4,2) -CX(2,4,1))/B22)*CI
+      F2(7) =  (CX(2,5,1)/B11)*CI
+C
+C  Use the equations for kappa(x,3) and kappa(y,2) in terms of
+C  the D1(i), D2(i), i = 1,7 to eliminate kappa(x,3) and kappa(y,2)
+C  from the Nx(3) = Nx(1) and the Ny(2) = Ny(1) equations, thereby
+C  obtaining two equations for eps(x,3) and eps(y,2) in terms of
+C  the average strains and changes in curvature, eps(x), eps(y),
+C  kappa(x) and kappa(y) and the thermal forces.
+C
+C  Nx(3) = Nx(1) equation...
+C
+      A11   =  A11S*D1(2) +A12S*D2(2) -F1(2)
+      A12   =  A11S*D1(3) +A12S*D2(3) -F1(3)
+      G1(1) = -A11S*D1(1) -A12S*D2(1) +F1(1)
+      G1(2) = -A11S*D1(4) -A12S*D2(4) +F1(4)
+      G1(3) = -A11S*D1(5) -A12S*D2(5) +F1(5)
+      G1(4) = -A11S*D1(6) -A12S*D2(6) +F1(6)
+      G1(5) = -A11S*D1(7) -A12S*D2(7) +F1(7)
+C
+C  Ny(2) = Ny(1) equation...
+C
+      A21   =  A21S*D1(2) +A22S*D2(2) -F2(2)
+      A22   =  A21S*D1(3) +A22S*D2(3) -F2(3)
+      G2(1) = -A21S*D1(1) -A22S*D2(1) +F2(1)
+      G2(2) = -A21S*D1(4) -A22S*D2(4) +F2(4)
+      G2(3) = -A21S*D1(5) -A22S*D2(5) +F2(5)
+      G2(4) = -A21S*D1(6) -A22S*D2(6) +F2(6)
+      G2(5) = -A21S*D1(7) -A22S*D2(7) +F2(7)
+C
+C  Solve the two equations for eps(x,3) and eps(y,2)...
+C
+      DEN = A11*A22 - A12*A21
+      DO 40 I = 1,5
+         E1(I) = (A22*G1(I) - A12*G2(I))/DEN
+         E2(I) = (A11*G2(I) - A21*G1(I))/DEN
+   40 CONTINUE
+C
+         F11 = E1(1)
+         F12 = E1(2)
+         F13 = E1(3)
+         F14 = E1(4)
+         F15 = E1(5)
+         F21 = E2(1)
+         F22 = E2(2)
+         F23 = E2(3)
+         F24 = E2(4)
+         F25 = E2(5)
+C
+C
+C  COLLECT TERMS FOR kx(3) and ky(2)....
+C
+C  WE WANT kx(3) and ky(2) in the form:
+C
+C   kx(3) = G11 + G12*ex + G13*ey + G14*kx + G15*ky
+C   ky(2) = G21 + G22*ex + G23*ey + G24*kx + G25*ky
+C
+      G11 = D1(1) + D1(2)*F11 + D1(3)*F21
+      G21 = D2(1) + D2(2)*F11 + D2(3)*F21
+      G12 = D1(2)*F12 + D1(3)*F22 + D1(4)
+      G22 = D2(2)*F12 + D2(3)*F22 + D2(4)
+      G13 = D1(2)*F13 + D1(3)*F23 + D1(5)
+      G23 = D2(2)*F13 + D2(3)*F23 + D2(5)
+      G14 = D1(2)*F14 + D1(3)*F24 + D1(6)
+      G24 = D2(2)*F14 + D2(3)*F24 + D2(6)
+      G15 = D1(2)*F15 + D1(3)*F25 + D1(7)
+      G25 = D2(2)*F15 + D2(3)*F25 + D2(7)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CSMEAR
+      SUBROUTINE CSMEAR(IFILE,B11,B12,B21,B22,CX,CY,THERMX,THERMY,
+     1                  F11,F12,F13,F14,F15,F21,F22,F23,F24,F25,
+     1                  G11,G12,G13,G14,G15,G21,G22,G23,G24,G25,
+     1                  STFL1,STFM1,STFT1,STFMM1,STFMT1,STORS1,C36SM1,
+     1                  STFL2,STFM2,STFT2,STFMM2,STFMT2,STORS2,C36SM2,
+     1                  NTX,NTY,MTX,MTY,C,C33AD1,C33AD2,
+     1                  C12AD1,C12AD2,C45AD1,C45AD2,
+C BEG FEB 1995
+     1                  C15AD1,C15AD2,C24AD1,C24AD2,ISMEAR)
+C END FEB 1995
+C
+C
+C  The constitutive law with smeared stiffeners is derived starting
+C  from the left-hand-sides of Eqs.(1)-(4) equated to the proper
+C  combinations of smeared-stiffener-coefficients and average strains
+C  and changes in curvature and integrated thermal forces and moments:
+C
+C  B11*Nx(1) +B12*Nx(2) +Nstringer =
+C                C11*ex + C12*ey + C14*kx + C15*ky - Ntx         (15)
+C
+C  B22*NY(1) +B21*Ny(3) +Nring =
+C                C12*ex + C22*ey + C24*kx + C25*ky - Nty         (16)
+C
+C  B11*Mx(1) +B12*Mx(2) +Mstringer =
+C                C14*ex + C24*ey + C44*kx + C45*ky - Mtx         (17)
+C
+C  B22*My(1) +B21*My(3) +Mring =
+C                C15*ex + C25*ey + C45*kx + C55*ky - Mty         (18)
+C
+C  The smeared-stiffener Cij are determined with use of Eqs. (8)-(14)
+C  in Eqs. (15) - (18) above. Coefficients of ex, ey, kx, ky on the
+C  resulting left-hand-sides are set equal to the corresponding 
+C  coefficients on the right-hand-sides.
+C
+      DIMENSION CX(6,6,5),CY(6,6,5),C(6,6),THERMX(6,5),THERMY(6,5)
+      REAL NTX,NTY,MTX,MTY
+C
+      FM1 = 0.
+      FM2 = 1.
+C
+C  START WITH EQ.(8.30)  (axial load   equilibrium) 
+C         AND EQ.(8.32)  (axial moment equilibrium)...
+C
+      CN1 = (B11*CX(1,1,1) +B12*CX(1,1,2) +FM1*STFL1)/B22
+      CN2 =  B12*(CX(1,2,2) -CX(1,2,1))
+      CN3 = (B11*CX(1,4,1) +B12*CX(1,4,2) +FM1*STFM1)/B22
+      CN4 =  B12*(CX(1,5,2) -CX(1,5,1))
+C
+      CM1 = (B11*CX(1,4,1) +B12*CX(1,4,2) +FM1*STFM1)/B22
+      CM2 =  B12*(CX(2,4,2) -CX(2,4,1))
+      CM3 = (B11*CX(4,4,1) +B12*CX(4,4,2) +FM1*STFMM1)/B22
+      CM4 =  B12*(CX(4,5,2) -CX(4,5,1))
+C
+      C(1,1)= CN1*(1.-B21*F12) +CN2*F22 -CN3*B21*G12 +CN4*G22
+     1       +FM2*STFL1
+      C(1,2)=    -CN1*B21*F13  +CN2*F23 -CN3*B21*G13 +CN4*G23
+C BEG JULY 1989
+     1           +CX(1,2,1) +C12AD1 +C12AD2
+C END JULY 1989
+      C(1,4)=-CN1*B21*F14 +CN2*F24 +CN3*(1.-B21*G14) +CN4*G24
+     1       +FM2*STFM1
+      C(1,5)=    -CN1*B21*F15  +CN2*F25 -CN3*B21*G15 +CN4*G25
+C BEG JULY 1989
+     1           +CX(1,5,1) +C15AD1 +C15AD2
+C END JULY 1989
+      NTX =       CN1*B21*F11  -CN2*F21 +CN3*B21*G11 -CN4*G21
+     1           +B11*THERMX(1,1) +B12*THERMX(1,2)            +STFT1
+C
+      C(4,1)= CM1*(1.-B21*F12) +CM2*F22 -CM3*B21*G12 +CM4*G22
+     1       +FM2*STFM1
+      C(4,2)=    -CM1*B21*F13  +CM2*F23 -CM3*B21*G13 +CM4*G23
+C BEG JULY 1989
+     1           +CX(2,4,1) +C24AD1 +C24AD2
+C END JULY 1989
+      C(4,4)=-CM1*B21*F14 +CM2*F24 +CM3*(1.-B21*G14) +CM4*G24
+     1       +FM2*STFMM1
+      C(4,5)=    -CM1*B21*F15  +CM2*F25 -CM3*B21*G15 +CM4*G25
+C BEG JULY 1989
+     1           +CX(4,5,1) +C45AD1 +C45AD2
+C END JULY 1989
+      MTX =       CM1*B21*F11  -CM2*F21 +CM3*B21*G11 -CM4*G21
+     1           +B11*THERMX(4,1) +B12*THERMX(4,2)           +STFMT1
+C
+C  NEXT,  DO  EQ.(8.31)  (transverse load   equilibrium) 
+C         AND EQ.(8.33)  (transverse moment equilibrium)...
+C
+      CN1 = (B22*CX(2,2,1) +B21*CY(1,1,2) +FM1*STFL2)/B11
+      CN2 =  B21*(CY(1,2,2) -CX(1,2,1))
+      CN3 = (B22*CX(2,5,1) +B21*CY(1,4,2) +FM1*STFM2)/B11
+      CN4 =  B21*(CY(1,5,2) -CX(2,4,1))
+C
+      CM1 = (B22*CX(2,5,1) +B21*CY(1,4,2) +FM1*STFM2)/B11
+      CM2 =  B21*(CY(2,4,2) -CX(1,5,1))
+      CM3 = (B22*CX(5,5,1) +B21*CY(4,4,2) +FM1*STFMM2)/B11
+      CM4 =  B21*(CY(4,5,2) -CX(4,5,1))
+C
+      C(2,2)= CN1*(1.-B12*F23) +CN2*F13 -CN3*B12*G23 +CN4*G13
+     1       +FM2*STFL2
+      C(2,1)=    -CN1*B12*F22  +CN2*F12 -CN3*B12*G22 +CN4*G12
+C BEG JULY 1989
+     1           +CX(1,2,1) +C12AD1 +C12AD2
+C END JULY 1989
+      C(2,4)=    -CN1*B12*F24  +CN2*F14 -CN3*B12*G24 +CN4*G14
+C BEG JULY 1989
+     1           +CX(2,4,1) +C24AD1 +C24AD2
+C END JULY 1989
+      C(2,5)= -CN1*B12*F25+CN2*F15 +CN3*(1.-B12*G25) +CN4*G15
+     1       +FM2*STFM2
+      NTY =    CN1*B12*F21-CN2*F11 +CN3*B12*G21      -CN4*G11
+     1            +B22*THERMX(2,1) +B21*THERMY(1,2)           +STFT2
+C
+      C(5,2)= CM1*(1.-B12*F23) +CM2*F13 -CM3*B12*G23 +CM4*G13
+     1       +FM2*STFM2
+      C(5,1)=    -CM1*B12*F22  +CM2*F12 -CM3*B12*G22 +CM4*G12
+C BEG JULY 1989
+     1           +CX(1,5,1) +C15AD1 +C15AD2
+C END JULY 1989
+      C(5,4)=    -CM1*B12*F24  +CM2*F14 -CM3*B12*G24 +CM4*G14
+C BEG JULY 1989
+     1           +CX(4,5,1) +C45AD1 +C45AD2
+C END JULY 1989
+      C(5,5)= -CM1*B12*F25+CM2*F15 +CM3*(1.-B12*G25) +CM4*G15
+     1       +FM2*STFMM2
+      MTY =    CM1*B12*F21-CM2*F11 +CM3*B12*G21      -CM4*G11
+     1            +B22*THERMX(5,1) +B21*THERMY(4,2)          +STFMT2
+C
+C  SYMMETRIZE...
+C
+C     C(2,1) = C(1,2)
+C     C(4,1) = C(1,4)
+C     C(5,1) = C(1,5)
+C     C(4,2) = C(2,4)
+C     C(5,2) = C(2,5)
+C     C(5,4) = C(4,5)
+C
+C  CHECK FOR MAXWELL RECIPROCITY [C(I,J) = C(J,I)]..
+C
+      CALL MAXWEL(IFILE,1,2,C(1,2),C(2,1),CX(1,1,1))
+      CALL MAXWEL(IFILE,1,4,C(1,4),C(4,1),CX(1,1,1))
+      CALL MAXWEL(IFILE,1,5,C(1,5),C(5,1),CX(1,1,1))
+      CALL MAXWEL(IFILE,2,4,C(2,4),C(4,2),CX(1,1,1))
+      CALL MAXWEL(IFILE,2,5,C(2,5),C(5,2),CX(1,1,1))
+      CALL MAXWEL(IFILE,4,5,C(4,5),C(5,4),CX(1,1,1))
+C
+C
+C  SHEAR OR TORSION CALCULATED BASED ON ASSUMPTION THAT RESULTANT IS
+C  UNIFORM OVER ENTIRE STRUCTURE. We know that for the smeared
+C  stiffener case
+C
+C               Nxy = C33 exy
+C
+C  and that in each of the parts of the structure sketched above,
+C
+C     Nxy(in part 1) = C(3,3,1) exy(1)
+C     Nxy(in part 2) = C(3,3,2) exy(2)
+C     Nxy(in part 3) = C(3,3,3) exy(3)
+C
+C  Furthermore, we can assume that the average shear strain over
+C  parts 1 and 2 is given by
+C
+C       exy(average over parts 1 and 2) = exy(1)*b11 + exy(2)*b12
+C       exy(average over parts 1 and 3) = exy(1)*b22 + exy(3)*b21
+C
+C  The average shear strain overall is assumed to be
+C
+C       exy = 0.5[exy(ave. over 1 and 2) + exy(ave. over 1 and 3)]
+C
+C  as a result, taking into account that
+C
+C                Nxy(1) = Nxy(2) = Nxy(3) = Nxy
+C
+C  we obtain
+C
+C       exy = 0.5[(b11+b22)/C(3,3,1) +b12/C(3,3,2) +b21/C(3,3,3)]*Nxy
+C
+C  The coefficient of Nxy on the r.h.s. is the inverse of C(3,3) for
+C  the smeared stiffeners. The reasoning for the torsional rigidity
+C  C(6,6) is analogous.
+C
+      F2 = 0.
+      F3 = 0.
+      IF (B12.GT.0.) F2 = B12/CX(3,3,2)
+      IF (B21.GT.0.) F3 = B21/CY(3,3,2)
+C BEG 26 JAN 1989
+      C(3,3) = 2./((B11 +B22)/CX(3,3,1) + F2 + F3)
+     1        + C33AD1 + C33AD2
+C END 26 JAN 1989
+C
+      IF (B12.GT.0.) F2 = B12/CX(6,6,2)
+      IF (B21.GT.0.) F3 = B21/CY(6,6,2)
+      C(6,6) = 2./((B11 +B22)/CX(6,6,1) + F2 + F3) +STORS1 + STORS2
+C
+C BEG AUG 1992
+      C(3,6) = C36SM1 + C36SM2 + CX(3,6,1)
+C END AUG 1992
+      C(6,3) = C(3,6)
+C BEG FEB 1995
+C  COMPUTE THE NON-BOSOR4 TYPE C(I,J) FOR THE PANEL WITH SMEARED
+C  STIFFENERS: C(1,3), C(2,3), C(1,6), C(2,6), C(4,6), C(5,6).
+      IF (ISMEAR.EQ.1) THEN
+         C(1,3) = B11*CX(1,3,1) + B12*CX(1,3,2)
+         C(2,3) = B11*CX(2,3,1) + B12*CX(2,3,2)
+         C(1,6) = B11*CX(1,6,1) + B12*CX(1,6,2)
+         C(2,6) = B11*CX(2,6,1) + B12*CX(2,6,2)
+         C(4,6) = B11*CX(4,6,1) + B12*CX(4,6,2)
+         C(5,6) = B11*CX(5,6,1) + B12*CX(5,6,2)
+      ENDIF
+      IF (ISMEAR.EQ.2) THEN
+C BEG JULY 1998
+C        C(1,3) = B22*CY(1,3,1) + B21*CY(1,3,2)
+C        C(2,3) = B22*CY(2,3,1) + B21*CY(2,3,2)
+C        C(1,6) = B22*CY(1,6,1) + B21*CY(1,6,2)
+C        C(2,6) = B22*CY(2,6,1) + B21*CY(2,6,2)
+C        C(4,6) = B22*CY(4,6,1) + B21*CY(4,6,2)
+C        C(5,6) = B22*CY(5,6,1) + B21*CY(5,6,2)
+C   Corrected versions:
+         C(1,3) = -(B22*CY(2,3,1) + B21*CY(2,3,2))
+         C(2,3) = -(B22*CY(1,3,1) + B21*CY(1,3,2))
+         C(1,6) = -(B22*CY(2,6,1) + B21*CY(2,6,2))
+         C(2,6) = -(B22*CY(1,6,1) + B21*CY(1,6,2))
+         C(4,6) = -(B22*CY(5,6,1) + B21*CY(5,6,2))
+         C(5,6) = -(B22*CY(4,6,1) + B21*CY(4,6,2))
+C END JULY 1998
+      ENDIF
+      IF (ISMEAR.EQ.1.OR.ISMEAR.EQ.2) THEN
+         C(3,1) = C(1,3)
+         C(3,2) = C(2,3)
+         C(3,4) = C(1,6)
+         C(3,5) = C(2,6)
+         C(4,3) = C(3,4)
+         C(5,3) = C(3,5)
+         C(6,1) = C(1,6)
+         C(6,2) = C(2,6)
+         C(6,4) = C(4,6)
+         C(6,5) = C(5,6)
+      ENDIF
+C END FEB 1995 
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      MAXWEL
+      SUBROUTINE MAXWEL(IFILE,I,J,C12S,C21S,C11)
+      C12AVE = (C12S + C21S)/2.
+      IF (ABS(C12AVE).GT.(10E-15*C11)) THEN
+         DIF = ABS(C12S - C21S)/ABS(C12AVE)
+         IF (DIF.GT.0.1) THEN
+C           WRITE(IFILE,60) I,J,C12S,J,I,C21S,I,J,J,I
+   60       FORMAT(/' ************ NOTE ***************'/
+     1              ' ************ NOTE ***************'/
+     1              ' MAXWELL RECIPROCITY VIOLATED:'//
+     1              ' C(',I1,',',I1,') =',1PE12.4/
+     1              ' C(',I1,',',I1,') =',1PE12.4//
+     1        ' C(',I1,',',I1,') SHOULD BE EQUAL TO C(',I1,',',I1,').'/
+     1        ' C(i,j) and C(j,i) being set equal to the average.'/
+     1              ' *********************************'/
+     1              ' *********************************'/)
+         C12S = C12AVE
+         C21S = C12AVE
+         ENDIF
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      DEFCIJ
+C BEG 26 JAN 1989
+      SUBROUTINE DEFCIJ(IFILE,CX,CY,CTAN,CMIN,CS,GTX,GTY,GTS,TEFF,
+     1                  TBASE,IMOD,JJJ,NPRT,NNODES,TEMP,IMTEMP)
+C END 26 JAN 1989
+C
+C  PURPOSE IS TO RECALCULATE SMEARED STIFFENER C(I,J) TO ACCOUNT
+C  FOR DELETERIOUS EFFECT OF LOCAL DEFORMATIONS OF SKIN AND
+C  STRINGERS DUE TO INITIAL LOCAL IMPERFECTIONS AND LOCAL BUCKLING.
+C
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C  19 NOVEMBER, 1988 MODIFICATION:
+      COMMON/REDGEN/CSREDU(6,6)
+C  END 19 NOVEMBER, 1988 MODIFICATION.
+      COMMON/DEFSTF/STIFL,STIFM,STIFMM
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C BEG JULY 1989
+      COMMON/GEOM6/IFAY(2),IMISCL(28)
+      COMMON/LWRUPR/VARLOW(50),VARHI(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NNNCON,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDEC(50),ILV(50),IDLINK(50,5),ISCAPE(50),JTERMS(50)
+      COMMON/CX2SHR/CSHR2
+C END JULY 1989
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD
+      DIMENSION CX(6,6,5),CY(6,6,5),CS(6,6),CTAN(3,3),CMIN(5)
+      DIMENSION GTX(2,5),GTY(2,5),GS(2),TEFF(2)
+      DIMENSION THERMX(6,5),THERMY(6,5),THERMS(6)
+      DIMENSION ZPARTX(5),ZPARTY(5),TBASE(2)
+      DIMENSION F(5,2,5),G(5,2,5)
+C BEG 26 JAN 1989
+      DIMENSION TEMP(4,2)
+C BEG JULY 1989
+      COMMON/TANSTF/C11TAN(23,8),C12TAN(23,8),C22TAN(23,8),C33TAN(23,8)
+C END 26 JAN 1989
+C
+      IWEB = 3
+      IF (ISTIF(1).EQ.5) IWEB = 2
+      IWEBP = IWEB + 1
+      CX1SVE = CX(1,1,1)
+C BEG JULY 1989
+      CX2SVE = CX(2,2,1)
+      CX12SV = CX(1,2,1)
+      CSHR1  = CX(3,3,1)
+      IF (ISTIF(1).NE.0.AND.ISTIF(1).NE.5) THEN
+         RAT = B2(1)/B(1)
+C BEG MAY 1997
+         IF (IZSTIF(1).EQ.1) RAT = 0.0
+C END MAY 1997
+         IF (IFAY(1).EQ.1) RAT = (B2(1)-W2(1))/B(1)
+         RAT2= CX(2,2,1)/CX(2,2,2)
+         DEN = 1. + RAT2*RAT/(1.-RAT)
+         CX1SVE =  CX(1,1,1)*(1.-RAT) +CX(1,1,2)*RAT
+     1           - RAT*(CX(1,2,1)-CX(1,2,2))**2/(DEN*CX(2,2,2))
+         CX12SV =  (CX(1,2,1) +CX(1,2,2)*RAT2*RAT/(1.-RAT))/DEN
+         CX2SVE =  CX(2,2,1)*(1./(1.-RAT))/DEN
+         CSHR1  =  CX(3,3,5)
+      ENDIF
+      CX3SVE = CX(1,1,IWEB)
+      CX4SVE = CX(1,1,IWEBP)
+      CSHR2 = CX(3,3,2)
+C END JULY 1989
+      CSHR3  = CX(3,3,IWEB)
+      CSHR4  = CX(3,3,IWEBP)
+C
+      IF (ISTIF(1).NE.5) THEN
+         DO 10 I = 1,3
+         DO 10 J = 1,3
+            CX(I,J,1) = CTAN(I,J)
+            CX(I,J,2) = CTAN(I,J)
+   10    CONTINUE
+C BEG SEPT 1990
+            CX(1,1,1) = ABS(CX(1,1,1))
+            CX(2,2,1) = ABS(CX(2,2,1))
+            CX(3,3,1) = ABS(CX(3,3,1))
+C END SEPT 1990
+      ENDIF
+C
+C BEG OCT 1989
+      IUPP = 2
+C BEG MAY 1997
+C     IF (IZSTIF(1).EQ.1) IUPP = 1
+C END MAY 1997
+      IF (ISTIF(1).EQ.5) IUPP = 3
+      IF (ISTIF(1).NE.0.AND.IFAY(1).EQ.0) THEN
+         DO 20 ISEG = 1,IUPP
+            AVE11 = 0.
+            AVE12 = 0.
+            AVE22 = 0.
+            AVE33 = 0.
+            DO 15 I = 1,NNODES
+               AVE11 = AVE11 + C11TAN(I,ISEG)
+               AVE12 = AVE12 + C12TAN(I,ISEG)
+               AVE22 = AVE22 + C22TAN(I,ISEG)
+               AVE33 = AVE33 + C33TAN(I,ISEG)
+   15       CONTINUE
+C END OCT 1989
+            CX(1,1,ISEG) = AVE11/NNODES
+            CX(1,2,ISEG) = AVE12/NNODES
+            CX(2,2,ISEG) = AVE22/NNODES
+            CX(3,3,ISEG) = AVE33/NNODES
+            CX(2,1,ISEG) = CX(1,2,ISEG)
+            CX(1,3,ISEG) = 0.
+            CX(2,3,ISEG) = 0.
+            CX(3,1,ISEG) = 0.
+            CX(3,2,ISEG) = 0.
+C BEG SEPT 1990
+            CX(1,1,ISEG) = ABS(CX(1,1,ISEG))
+            CX(2,2,ISEG) = ABS(CX(2,2,ISEG))
+            CX(3,3,ISEG) = ABS(CX(3,3,ISEG))
+C BEG SEPT 1990
+   20    CONTINUE
+      ENDIF
+C
+         IUPP = 2
+C BEG MAY 1997
+C        IF (IZSTIF(1).EQ.1) IUPP = 1
+C END MAY 1997
+         IF (ISTIF(1).EQ.5) IUPP = 3
+         DO 25 I =1,IUPP
+C END JULY 1989
+         CX(1,4,I) = 0.
+         CX(4,1,I) = CX(1,4,I)
+         CX(1,5,I) = 0.
+         CX(5,1,I) = CX(1,5,I)
+         CX(1,6,I) = 0.
+         CX(6,1,I) = CX(1,6,I)
+         CX(2,4,I) = 0.
+         CX(4,2,I) = CX(2,4,I)
+         CX(2,5,I) = 0.
+         CX(5,2,I) = CX(2,5,I)
+         CX(2,6,I) = 0.
+         CX(6,2,I) = CX(2,6,I)
+         CX(3,6,I) = 0.
+         CX(6,3,I) = CX(3,6,I)
+         CX(4,6,I) = 0.
+         CX(6,4,I) = CX(4,6,I)
+   25    CONTINUE
+C
+C  19 NOVEMBER,1988 MODIFICATION:
+      IF (ISTIF(1).EQ.0.AND.ISTIF(2).EQ.0) THEN
+         CALL MOVER(CX(1,1,1),1,CS,1,36)
+         CALL MOVER(CX(1,1,1),1,CSREDU,1,36)
+      ENDIF
+C BEG APR 1991
+      IF (ISTIF(1).EQ.0) THEN
+         CALL MOVER(CX(1,1,1),1,CX(1,1,5),1,36)
+         IF (ISTIF(2).NE.0) THEN
+            CALL SMRCIJ(IFILE,2,B,B2,H,W,W2,NSEG,ISTIF,INTEXT,
+     1               TBASE,CX,CY,CS,THERMX,THERMY,THERMS,ZPARTX,ZPARTY,
+     1               GTX,GTY,GTS,TEFF,F(1,1,2),G(1,1,2),1,NNODES,TEMP,
+     1               IMTEMP)
+         ENDIF
+      ENDIF
+C END APR 1991
+C  END 19 NOVEMBER, 1988 MODIFICATION.
+C
+      IF (ISTIF(1).NE.0) THEN
+C
+C BEG JULY 1989
+         IF (ISTIF(1).NE.5) THEN
+            CX(1,1,IWEB) = CMIN(IWEB)
+            CX(1,1,IWEBP) = CMIN(IWEBP)
+            IF (CX3SVE.NE.0.) CX(1,2,IWEB) =
+     1                     CX(1,2,IWEB)*CMIN(IWEB)/CX3SVE
+            IF (CX4SVE.NE.0.) CX(1,2,IWEBP)=
+     1                     CX(1,2,IWEBP)*CMIN(IWEBP)/CX4SVE
+            CX(2,1,IWEB) = CX(1,2,IWEB)
+            CX(2,1,IWEBP) = CX(1,2,IWEBP)
+         ENDIF
+C END JULY 1989
+C BEG 26 JAN 1989
+         CALL SMRCIJ(IFILE,1,B,B2,H,W,W2,NSEG,ISTIF,INTEXT,
+     1               TBASE,CX,CY,CX(1,1,5),THERMX,THERMY,THERMX(1,5),
+     1               ZPARTX,ZPARTY,GTX,GTY,GTX(1,5),TEFF,F(1,1,1),
+     1               G(1,1,1),1,NNODES,TEMP,IMTEMP)
+C
+         CALL MOVER(CX(1,1,5),1,CS,1,36)
+C
+         IF (ISTIF(2).NE.0) THEN
+            CALL SMRCIJ(IFILE,3,B,B2,H,W,W2,NSEG,ISTIF,INTEXT,
+     1               TBASE,CX,CY,CS,THERMX,THERMY,THERMS,ZPARTX,ZPARTY,
+     1               GTX,GTY,GTS,TEFF,F(1,1,3),G(1,1,3),1,NNODES,TEMP,
+     1               IMTEMP)
+         ENDIF
+C END 26 JAN 1989
+C
+         IF ((JJJ.EQ.0.AND.IMOD.EQ.0.AND.NPRT.GE.1).OR.NPRT.GE.0) THEN
+C BEG JULY 1989
+            WRITE(IFILE,30)
+   30       FORMAT(' Effective stiffnesses of undeformed and of'/
+     1             ' locally deformed module segments:'/
+     1'                                                       Undeformed
+     1   Deformed')
+C BEG OCT 1989
+            IF (ISTIF(1).NE.5) WRITE(IFILE,40) CX1SVE,CTAN(1,1),
+     1                         CX2SVE,CTAN(2,2),CX12SV,CTAN(1,2),
+     1                         CX3SVE,CX(1,1,3),CX4SVE,CX(1,1,4)
+            IF (ISTIF(1).EQ.5) WRITE(IFILE,40) CX1SVE,CX(1,1,1),
+     1                         CX2SVE,CX(2,2,1),CX12SV,CX(1,2,1),
+     1                         CX3SVE,CX(1,1,2),CX4SVE,CX(1,1,3)
+   40       FORMAT(
+     1'     Effective axial stiffness of panel SKIN + BASE =',1P,2E12.4/
+     1'     Effective hoop  stiffness of panel SKIN + BASE =',1P,2E12.4/
+     1'     Effective (1,2) stiffness of panel SKIN + BASE =',1P,2E12.4/
+     1'     Effective axial stiffness of stringer   WEB    =',1P,2E12.4/
+     1'     Effective axial stiffness of stringer   FLANGE =',1P,2E12.4)
+C
+            IF (ISTIF(1).NE.5) WRITE(IFILE,50) CSHR1,CTAN(3,3),
+     1                         CSHR3,CX(3,3,3),CSHR4,CX(3,3,4)
+            IF (ISTIF(1).EQ.5) WRITE(IFILE,50) CSHR1,CX(3,3,1),
+     1                         CSHR3,CX(3,3,2),CSHR4,CX(3,3,3)
+C END OCT 1989
+   50       FORMAT(
+     1'     Effective shear stiffness of panel SKIN + BASE =',1P,2E12.4/
+     1'     Effective shear stiffness of stringer   WEB    =',1P,2E12.4/
+     1'     Effective shear stiffness of stringer   FLANGE =',1P,2E12.4)
+C
+C END JULY 1989
+C
+            IF (NPRT.GE.0) 
+     1         WRITE(IFILE,542) STIFL,STIFM,STIFMM
+  542       FORMAT(/' Integrated stringer stiffnesses...'/
+     1'     Effective axial stiffness of stringer,   STIFL =',1PE12.4/
+     1'     Effective first moment, Int[STIF*zdz],   STIFM =',1PE12.4/
+     1'     Effective second moment,Int[STIF*z**2dz],STIFMM=',1PE12.4)
+C
+C  19 NOVEMBER, 1988 MODIFICATION:
+C  SEVERAL STATEMENTS REMOVED AND SHIFTED OUT OF THE "IF (ISTIF(1).NE.0)"
+C  BRACKETS.
+C  END 19 NOVEMBER MODIFICATION.
+C
+         ENDIF
+      ENDIF
+C
+C 19 NOVEMBER, 1988 MODIFICATION:  (INSERT SEVERAL STATEMENTS, MOST OF
+C                                   THEM TAKEN FROM JUST ABOVE.)
+      IF ((IMOD.EQ.0.AND.NPRT.GE.1).OR.NPRT.GE.0) THEN
+         IF ((IMOD.EQ.0.AND.JJJ.EQ.0).OR.NPRT.GE.0) THEN
+            WRITE(IFILE,54)
+   54       FORMAT(/' Constitutive law, CS(i,j), for locally deformed'/
+     1' panel with smeared stringers and rings.....')
+            DO 56 I = 1,6
+               WRITE(IFILE,55) (CS(I,J),J=1,6)
+   55          FORMAT(5X,1P,6E12.4)
+   56       CONTINUE
+C
+            IF (ISTIF(2).NE.0) THEN
+               WRITE(IFILE,541)
+  541       FORMAT(/' Constitutive law, C(i,j), for locally deformed'/
+     1' panel between rings with smeared stringers.....')
+               DO 561 I = 1,6
+                  WRITE(IFILE,551) (CX(I,J,5),J=1,6)
+  551             FORMAT(5X,1P,6E12.4)
+  561          CONTINUE
+            ENDIF
+         ENDIF
+      ENDIF
+C  END 19 NOVEMBER, 1988 MODIFICATION.
+C
+C BEG MAY 1998
+      IF (ISTIF(1).EQ.4) THEN
+         IF (CS(2,2).LE.0.001*CX(2,2,1)) CS(2,2) = 0.001*CX(2,2,1)
+         IF (CS(5,5).LE.0.001*CX(5,5,1)) CS(5,5) = 0.001*CX(5,5,1)
+         IF (CS(3,3).LE.0.1*CX(3,3,1)) CS(3,3) = 0.1*CX(3,3,1)
+      ENDIF
+C END MAY 1998
+      CSMIN = CS(1,1)
+      DO 1000 I = 1,6
+         CSMIN = MIN(CSMIN,CS(I,I))
+         DO 995 J = 1,5
+           CX(I,I,J) = ABS(CX(I,I,J))
+  995    CONTINUE
+ 1000 CONTINUE
+      IF (CSMIN.LE.0.) THEN
+         WRITE(IFILE,1010) IMOD
+ 1010    FORMAT(//' ******** BAD CONSTITUTIVE MATRIX CS(I,J) *******'/
+     1'  THERE IS AT LEAST ONE NEGATIVE TERM ON THE DIAGONAL OF'/
+     1'  OF CS(I,J).  CS(I,J) IS THE CONSTITUTIVE MATRIX FOR THE'/
+     1'  LOCALLY POSTBUCKLED PANEL WITH SMEARED STRINGERS AND RINGS.'/
+     1'  THIS STATEMENT IS PRINTED OUT FROM SUBROUTINE DEFCIJ.'/
+     1'  PLEASE MAKE A RUN OF A FIXED DESIGN WITH PRINT OPTION 2'/
+     1'  WITH THE DESIGN LISTED BELOW. (NOTE THAT YOU MAY HAVE TO'/
+     1'  USE "CHANGE", "SETUP", "BOSMODEL" TO GENERATE THIS DESIGN.'/
+     1'  DESIGN MODIFICATION PARAMETER, IMOD =',I2/
+     1' ******** BAD CONSTITUTIVE MATRIX CS(I,J) *********')
+C
+      CALL OUTOPT(IFILE,NVAR,IDEC,ISCAPE,ILV,CLINK,IDLINK,VARLOW,VARHI,
+     1 VAR,WORDV,
+     1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+     1  ',57)
+C
+         CALL ERREX
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C BEG AUG 1992
+C=DECK      ISOGRX
+C BEG MAR 1995
+      SUBROUTINE ISOGRX(IFILE,CX,CS,IMTEMP,NNODES,TEMP,FMULT,GTX,GS,
+     1                  TEFF,ETHRMX,THERMS,ETHRMS,THSMRS,ETSMRS,
+     1                  FREDUC)
+C END MAR 1995
+C
+C  PURPOSE IS TO COMPUTE CONSTITUTIVE MATRIX AND THERMAL STRAINS AND
+C  STRESSES FOR THE ISOGRID CONFIGURATION WITH SMEARED ISOGRID.
+C
+      DIMENSION CX(6,6,5),CS(6,6),THERMS(6),ETHRMS(6),CSINV(6,6)
+      DIMENSION ETHRMX(6,5),THCURS(6),THSMRS(6),ETSMRS(6)
+      DIMENSION GTX(2,5),GT1(99),GT2(99),GS(2)
+      DIMENSION E1L(99),E2L(99),GL(99),ZETL(99),U12L(99),RHOL(99)
+      DIMENSION A1L(99),A2L(99),TL(99)
+      DIMENSION TEMP(4,2),FMULT(20,10,4,2)
+      DIMENSION A1CUR(99),A2CUR(99)
+      COMMON/WEBTH1/CX3(6,6,11),CY3(6,6,11),THRMX3(6,11),THRMY3(6,11)
+      COMMON/WEBTH2/TSMRX3(6,11),TSMRY3(6,11),ESMRX3(6,11),ESMRY3(6,11)
+      COMMON/WEBTH3/ETRMX3(6,11),ETRMY3(6,11),GTX3(2,11),GTY3(2,11)
+      COMMON/WEBTH5/THALLS(11),TCURE
+      COMMON/GEOM6/IFAY(2),IMISCL(28)
+      COMMON/THICK/TX(5),TY(5)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+      COMMON/MATRAN/G13(20),G23(20)
+C BEG MAR 1995
+      COMMON/TMATL2/PARMAT(20,10),TEMPJ(10,20,10),FTEMPJ(10,20,10)
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+      DIMENSION FACTOR(20,10)
+C END MAR 1995
+C
+         NWEB = 1
+         NFLANG = 0
+         IF (ISTIF(1).NE.3) NFLANG = 1
+         IF (IMTEMP.EQ.1.AND.TEMP(2,1).NE.TEMP(4,1)) NWEB = NNODES -1
+C BEG MAR 1995
+         TSKIN   = 0.
+         IF (IMTEMP.NE.0.AND.TEMP(2,1).NE.TEMP(1,1)) THEN
+            DO 22 J = 1,NLAYER(1,1)
+               K = LTYPE(J,1,1)
+               TL(J) =  T(K)
+               TSKIN = TSKIN + TL(J)
+   22       CONTINUE
+         ENDIF
+C END MAR 1995
+         GT1AVE = 0.
+         GT2AVE = 0.
+         TTOT   = 0.
+         DO 30 I = 1,NLAYER(1,1)
+            K = LTYPE(I,1,1)
+            M = MATL(K)
+            J = I + NWEB + NFLANG
+C BEG MAR 1995
+            TL(J) =  T(K)
+            IF (IMTEMP.NE.0.AND.TEMP(2,1).NE.TEMP(1,1)) THEN
+               ZDEEP = TTOT + 0.5*TL(J)
+               ACOEF = (TEMP(1,1) - TEMP(2,1))/TSKIN
+               BCOEF = TEMP(2,1)
+               TLOCAL = ACOEF*ZDEEP + BCOEF
+               DO 23 INPROP = 1,15
+                  CALL PROPNO(ISOMAT(M),ISOEFF(M),INPROP,IPROP)
+                  CALL INTERP(IFILE,10,TEMPJ(1,IPROP,M),
+     1                  FTEMPJ(1,IPROP,M),TLOCAL,FACTOR(INPROP,M))
+C           WRITE(8,*)' M,IPROP,TEMPJ(1,IPROP,M),TEMPJ(2,IPROP,M)=',
+C    1                  M,IPROP,TEMPJ(1,IPROP,M),TEMPJ(2,IPROP,M)
+C           WRITE(8,*)' M,IPROP,FTEMPJ(1,IPROP,M),FTEMPJ(2,IPROP,M)=',
+C    1                  M,IPROP,FTEMPJ(1,IPROP,M),FTEMPJ(2,IPROP,M)
+C           WRITE(8,*)' INODE,INPROP,IPROP,M,TLOCAL,FACTOR(INPROP,M)=',
+C    1                  INODE,INPROP,IPROP,M,TLOCAL,FACTOR(INPROP,M)
+   23          CONTINUE
+            ELSE
+               TLOCAL = TEMP(1,1)
+               CALL MOVER(FMULT(1,M,1,1),1,FACTOR(1,M),1,20)
+            ENDIF
+C END MAR 1995
+C BEG MAR 1995
+            E1L(J) = E1(M)*FACTOR(1,M)*FREDUC
+            E2L(J) = E2(M)*FACTOR(2,M)*FREDUC
+             GL(J) =  G(M)*FACTOR(3,M)*FREDUC
+            GT1(J) = G13(M)*FACTOR(5,M)
+            GT2(J) = G23(M)*FACTOR(6,M)
+            U12L(J)= FNU(M)*FACTOR(4,M)
+            RHOL(J)= DENS(M)*FACTOR(14,M)
+            ZETL(J)= ANGLE(K)
+            A1TH = ALPHA1(M)*FACTOR(7,M)
+            A2TH = ALPHA2(M)*FACTOR(8,M)
+            TCURE = -CURETP(M)
+            THALL = TCURE + TLOCAL
+C END MAR 1995
+            A1L(J) = A1TH*THALL
+            A2L(J) = A2TH*THALL
+            A1CUR(J) = A1TH*TCURE
+            A2CUR(J) = A2TH*TCURE
+            TTOT = TTOT + TL(J)
+            GT1AVE = GT1AVE + GT1(J)*TL(J)
+            GT2AVE = GT2AVE + GT2(J)*TL(J)
+C           WRITE(8,25) NWEB,NFLANG,K,M,J,TL(J),TTOT,GT1(J),GT2(J),
+C    1                  TCURE,THALL,E1L(J),E2L(J),GL(J),U12L(J),
+C    1                  A1TH,A2TH
+   25       FORMAT(/' NWEB,NFLANG,K,M,J=',5I5/
+     1              ' TL(J),TTOT,GT1(J),GT2(J) =',1P,4E10.2/
+     1              ' TCURE,THALL,EIL(J),E2L(J)=',1P,4E10.2/
+     1              ' GL(J),U12L(J),A1TH,A2TH  =',1P,4E10.2)
+   30    CONTINUE
+C BEG DEC 2000
+C  introduce modification analogous to that described in ITEM 117(e)
+C  of PANDA2.NEWS.
+         FKAP = 10.E+10
+         IF (NFLANG.EQ.1) THEN
+            CXAVE = 0.5*(CX(1,1,1) + CX(2,2,1))
+            FKAP = CXAVE/(CX(1,1,4)*W(1)/B(1))
+            IF (FKAP.LT.1.0) FKAP = 1./FKAP
+         ENDIF
+C END DEC 2000
+C
+C  NEXT, SIMULATE "WEB" LAYERS
+C
+         INODE = 1
+         DT = 0.
+         IF (NFLANG.GT.0) DT = .5*TX(4)
+         DO 40 I = 1,NWEB
+            J = NFLANG + NWEB - I + 1
+            IN1 = INODE
+            INODE = INODE + 1
+            CTXAVE = CX(1,1,3) -CX(1,2,3)**2/CX(2,2,3)
+            CTSAVE = CX(3,3,3)
+            ETHAVE = ETHRMX(1,3)
+            TEMPAV = TEMP(3,1)
+            IF (NWEB.GT.1) THEN
+               C11AVE = 0.5*(CX3(1,1,IN1)+CX3(1,1,INODE))
+               C12AVE = 0.5*(CX3(1,2,IN1)+CX3(1,2,INODE))
+               C22AVE = 0.5*(CX3(2,2,IN1)+CX3(2,2,INODE))
+               CTXAVE = C11AVE -C12AVE**2/C22AVE
+               CTSAVE = 0.5*(CX3(3,3,IN1)+CX3(3,3,INODE))
+               ETHAVE = 0.5*(ETRMX3(1,IN1)+ETRMX3(1,INODE))
+               TEMPAV = 0.5*(THALLS(IN1) +THALLS(INODE))
+            ENDIF
+            E1L(J) = CTXAVE/B(1)
+            E2L(J) = E1L(J)
+            U12L(J) = 1./3.
+            GL(J)  = 0.5*E1L(J)/(1.+ U12L(J))
+C BEG DEC 2000
+            GT1(J) = FKAP*CTSAVE/B(1)
+C END DEC 2000
+            GT2(J) = GT1(J)
+            RHOL(J)= 0.
+            FNWEB = NWEB
+            TL(J) = (H(1)-DT)/FNWEB
+            ZETL(J) = 0.
+            A1L(J) = ETHAVE
+            A2L(J) = A1L(J)
+            IF (TEMPAV.EQ.0.) THEN
+               A1CUR(J) = A1L(J)
+            ELSE
+               A1CUR(J) = A1L(J)*TCURE/TEMPAV
+            ENDIF
+            A2CUR(J) = A1CUR(J)
+            TTOT = TTOT + TL(J)
+            GT1AVE = GT1AVE + GT1(J)*TL(J)
+            GT2AVE = GT2AVE + GT2(J)*TL(J)
+C           WRITE(8,25) NWEB,NFLANG,K,M,J,TL(J),TTOT,GT1(J),GT2(J),
+C    1                  TCURE,TEMPAV,E1L(J),E2L(J),GL(J),U12L(J),
+C    1                  A1TH,A2TH
+   40    CONTINUE
+C
+         IF (ISTIF(1).NE.3) THEN
+C
+C  NEXT, SIMULATE THE FLANGE, IF ANY.
+C
+             TL(1) = TX(4)
+               CTXAVE = CX(1,1,4) -CX(1,2,4)**2/CX(2,2,4)
+            E1L(1) = CTXAVE*(W(1)/TL(1))/B(1)
+            E2L(1) = E1L(1)
+           U12L(1) = 1./3.
+             GL(1) = 0.5*E1L(1)/(1. + U12L(1))
+C BEG DEC 2000
+            GT1(1) = FKAP*GTX(1,4)*W(1)/B(1)
+C END DEC 2000
+            GT2(1) = GT1(1)
+           RHOL(1) = 0.
+           ZETL(1) = 0.
+            A1L(1) = ETHRMX(1,4)
+            A2L(1) = A1L(1)
+            IF (TEMP(4,1).EQ.0.) THEN
+               A1CUR(1) = A1L(1)
+            ELSE
+               A1CUR(1) = A1L(1)*TCURE/TEMP(4,1)
+            ENDIF
+            A2CUR(1) = A1CUR(1)
+            TTOT = TTOT + TL(1)
+            GT1AVE = GT1AVE + GT1(1)*TL(1)
+            GT2AVE = GT2AVE + GT2(1)*TL(1)
+            J = 1
+C           WRITE(8,25) NWEB,NFLANG,K,M,J,TL(J),TTOT,GT1(J),GT2(J),
+C    1                  TCURE,TEMP(4,1),E1L(J),E2L(J),GL(J),U12L(J),
+C    1                  A1TH,A2TH
+         ENDIF
+C
+         NLAY = NLAYER(1,1) + NWEB + NFLANG
+         GT1AVE = GT1AVE/TTOT
+         GT2AVE = GT2AVE/TTOT
+         DO 45 J = 1,NLAY
+            IF (GT1(J).LT.(.001*GT1AVE)) GT1(J) = .001*GT1AVE
+            IF (GT2(J).LT.(.001*GT2AVE)) GT2(J) = .001*GT2AVE
+   45    CONTINUE
+C
+         ZREF = 0.5*TX(1)
+         FACT = 1.0
+         CALL CFB1(NLAY,ZREF,E1L,E2L,GL,U12L,RHOL,TL,ZETL,CS,
+     1             TEFF,A1L,A2L,THERMS,GT1,GT2,GS,FACT,
+C BEG AUG 1996
+     1             A1CUR,A2CUR,THCURS,1)
+C END AUG 1996
+         COCUR1 = ICOCUR(1)
+         DO 47 J = 1,6
+            THSMRS(J) = THERMS(J) -(1.-COCUR1)*THCURS(J)
+   47    CONTINUE
+         CALL STRTHM(26,1,ETHRMS,CS,CSINV,THERMS)
+         CALL STRTHM(27,0,ETSMRS,CS,CSINV,THSMRS)
+      RETURN
+      END

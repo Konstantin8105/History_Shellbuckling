@@ -1,0 +1,664 @@
+C=DECK      ERREX
+      SUBROUTINE ERREX
+C
+C    PURPOSE IS TO TRIGGER A SYSTEM ERROR TERMINATION.
+C
+C BEG OCT 1995
+C     DENOM = 0.
+C     FNUM  = 1.
+C BEG 26 JAN 1989
+C     QUOT  = FNUM/(FNUM - FNUM)
+C END 26 JAN 1989
+      CALL EXIT(1)
+C END OCT 1995
+      RETURN
+      END
+C
+C
+C
+C=DECK      MOVERX 
+      SUBROUTINE MOVERX (KK,II,LL,JJ,N)    
+C        MOVE 4-BYTE WORDS FROM KK TO LL  
+C     
+      DIMENSION KK(1), LL(1)  
+      IF(N.LT.1) RETURN 
+      I=1   
+      J=1   
+      DO 10 K=1,N 
+      LL(J)=KK(I) 
+      I=I+II
+   10 J=J+JJ
+      RETURN
+      END   
+C
+C
+C
+C
+C=DECK      MOVER 
+      SUBROUTINE MOVER (KK,II,LL,JJ,N)    
+C        MOVE 4-BYTE WORDS FROM KK TO LL  
+C     
+      DIMENSION KK(1), LL(1)  
+      IF(N.LT.1) RETURN 
+      I=1   
+      J=1   
+      DO 10 K=1,N 
+      LL(J)=KK(I) 
+      I=I+II
+   10 J=J+JJ
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CONVRT
+      SUBROUTINE CONVRT(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*3 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100) WRITE(CN,'(I3)') I
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVR2
+      SUBROUTINE CONVR2(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*2 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVR1
+      SUBROUTINE CONVR1(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*1 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVRF
+      SUBROUTINE CONVRF(SLOPE,CN)
+C
+C  CONVERT FLOATING POINT NUMBER "SLOPE" TO CHARACTER FORMAT, CN
+C
+      CHARACTER*7 CN
+C
+      IF (ABS(SLOPE).LT.1.) WRITE(CN,'(F5.2)') SLOPE
+      IF (ABS(SLOPE).GE.1.0.AND.ABS(SLOPE).LT.10.)
+     1                      WRITE(CN,'(F6.2)') SLOPE
+      IF (ABS(SLOPE).GE.10.)WRITE(CN,'(F7.1)') SLOPE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVRH
+      SUBROUTINE CONVRH(PHRASE,HOLLER)
+C
+C  CONVERT CHARACTER STRING, CHARAC, TO HOLLERITH ARRAY, HOLLER
+C
+      CHARACTER*80 PHRASE
+      CHARACTER*4 HTEMP
+      DIMENSION HOLLER(20)
+C
+      DO 10 I = 1,20
+         ISTART = 4*I - 3
+         IEND   = 4*I
+         WRITE(HTEMP,100) PHRASE(ISTART:IEND)
+         READ (HTEMP,100) HOLLER(I)
+   10 CONTINUE
+  100 FORMAT(A)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CASSPC
+      SUBROUTINE CASSPC(IUNIT,CASE)
+C
+C  PURPOSE IS TO ALLOW USER TO SUPPLY NAME OF THE CASE
+C
+C BEG OCT 2005
+C     CHARACTER*12 CASE,CASE2
+      CHARACTER*28 CASE,CASE2
+C END OCT 2005
+C
+C BEG AUG 1990
+      IF (IUNIT.EQ.5)
+     1    WRITE(6,'(1X,A,$)')' ENTER THE SPECIFIC CASE NAME: '
+         READ(IUNIT,'(A)') CASE
+      IF (IUNIT.NE.5.AND.IUNIT.NE.6.AND.IUNIT.NE.0) REWIND IUNIT
+C END AUG 1990
+         DO 3 I = 1,12
+            ISTART = I
+            IF (CASE(I:I).NE.' ') GO TO 4
+    3    CONTINUE
+    4    CONTINUE
+         CASE2 = CASE(ISTART: )
+         CASE = CASE2
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CASGEN
+      SUBROUTINE CASGEN(IUNIT,CASE)
+C
+C  PURPOSE IS TO ALLOW USER TO SUPPLY NAME OF THE CASE
+C
+C BEG OCT 2005
+C     CHARACTER*12 CASE,CASE2
+      CHARACTER*28 CASE,CASE2
+C END OCT 2005
+C
+C BEG AUG 1990
+      IF (IUNIT.EQ.5)
+     1    WRITE(6,'(1X,A,$)')' ENTER THE GENERIC CASE NAME: '
+         READ(IUNIT,'(A)') CASE
+      IF (IUNIT.NE.5.AND.IUNIT.NE.6.AND.IUNIT.NE.0) REWIND IUNIT
+C END AUG 1990
+         DO 3 I = 1,12
+            ISTART = I
+            IF (CASE(I:I).NE.' ') GO TO 4
+    3    CONTINUE
+    4    CONTINUE
+         CASE2 = CASE(ISTART: )
+         CASE = CASE2
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      PRONAM
+      SUBROUTINE PRONAM(IUNIT,CASE)
+C
+C  PURPOSE IS TO ALLOW USER TO SUPPLY NAME OF THE PROMPT FILE.
+C
+C BEG OCT 2005
+C     CHARACTER*12 CASE,CASE2
+      CHARACTER*28 CASE,CASE2
+C END OCT 2005
+C
+C BEG AUG 1990
+      IF (IUNIT.EQ.5)
+     1    WRITE(6,'(1X,A,$)')' ENTER THE NAME OF THE PROMPT FILE: '
+         READ(IUNIT,'(A)') CASE
+      IF (IUNIT.NE.5.AND.IUNIT.NE.6.AND.IUNIT.NE.0) REWIND IUNIT
+C END AUG 1990
+         DO 3 I = 1,12
+            ISTART = I
+            IF (CASE(I:I).NE.' ') GO TO 4
+    3    CONTINUE
+    4    CONTINUE
+         CASE2 = CASE(ISTART: )
+         CASE = CASE2
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      BLANKX
+      SUBROUTINE BLANKX(PHRASE,J)
+C
+C   PURPOSE IS TO REMOVE TRAILING BLANKS FROM PHRASE
+C
+      CHARACTER*80 PHRASE
+C
+      LENGTH = LEN(PHRASE)
+      DO 20 K = LENGTH,1,-1
+      J = K
+      IF (PHRASE(K:K).NE.' ') GO TO 30
+   20 CONTINUE
+   30 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      BLANKZ
+      SUBROUTINE BLANKZ(PHRASE,J)
+C
+C   PURPOSE IS TO REMOVE TRAILING BLANKS FROM PHRASE
+C
+      CHARACTER*160 PHRASE
+C
+      LENGTH = LEN(PHRASE)
+      DO 20 K = LENGTH,1,-1
+      J = K
+      IF (PHRASE(K:K).NE.' ') GO TO 30
+   20 CONTINUE
+   30 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      INTERP
+      SUBROUTINE INTERP(IFILE,NVALU,XDATA,YDATA,X,Y)
+C
+C  PURPOSE IS TO PERFORM LINEAR INTERPOLATION (ONE-DIMENSIONAL)
+C  GIVEN X, FIND Y BY LINEAR INTERPOLATION.
+C
+C  INPUT VARIABLES:
+C
+C     NVALU = the number of data points in the input table
+C     XDATA = X-coordinates of user-supplied data points
+C     YDATA = Y-coordinates of user-supplied data points
+C         X = present value of x
+C
+C  OUTPUT VARIABLE:
+C
+C         Y = value of Y corresponding to given value of X
+C
+      DIMENSION XDATA(*), YDATA(*)
+C
+      DO 100 I = 1,NVALU
+      I1 = I
+      IM = I - 1
+      IF (X.LE.XDATA(I)) GO TO 110
+  100 CONTINUE
+      WRITE(IFILE,*)' NVALU,XDATA(1),X,XDATA(NVALU)=',
+     1                NVALU,XDATA(1),X,XDATA(NVALU)
+      WRITE(IFILE,*)' X IS OUTSIDE THE RANGE OF GIVEN DATA.'
+      WRITE(IFILE,*)' PLEASE NOTE THAT XDATA(1).LE.X.LE.XDATA(NVALU)'
+      WRITE(IFILE,*)' MUST HOLD.'
+      CALL EXIT(1)
+  110 CONTINUE
+      IF (X.EQ.XDATA(I1)) THEN
+         Y = YDATA(I1)
+         RETURN
+      ENDIF
+      IF (I1.EQ.1) THEN
+         WRITE(IFILE,*)' NVALU,XDATA(1),X,XDATA(NVALU)=',
+     1                   NVALU,XDATA(1),X,XDATA(NVALU)
+         WRITE(IFILE,*)' X IS OUTSIDE THE RANGE OF GIVEN DATA.'
+         WRITE(IFILE,*)' PLEASE NOTE THAT XDATA(1).LE.X.LE.XDATA(NVALU)'
+         WRITE(IFILE,*)' MUST HOLD.'
+         CALL EXIT(1)
+      ENDIF
+C
+      YDIFF = YDATA(I1) - YDATA(IM)
+      XDIFF = XDATA(I1) - XDATA(IM)
+      IF (XDIFF.LE.0.) THEN
+         WRITE(6,*)' XDATA(I), I = 1,2,.. MUST BE GIVEN IN'
+         WRITE(6,*)' MONOTONICALLY INCREASING ORDER.'
+         CALL EXIT(1)
+      ENDIF
+      DY    = YDIFF*(X - XDATA(IM))/XDIFF
+      Y = YDATA(IM) + DY
+      RETURN
+      END
+C
+C
+C
+C=DECK      NAMES
+      SUBROUTINE NAMES(IFILE,INAME,NVAR,WORDV,NAME,LENGTH)
+C
+C  PURPOSE IS TO EXTRACT NAME OF A VARIABLE FROM ITS DEFINING PHRASE.
+C
+C  DEFINITION OF VARIABLES:
+C
+C   IFILE = NUMBER OF FILE FOR LIST OUTPUT.
+C   INAME = 1 FOR ROLE 1 VARIABLE (DESIGN PARAMETER OR OBJECTIVE)
+C           2 FOR DESIGN MARGIN
+C   NVAR  = NUMBER OF VARIABLES IN THE VECTOR, WORDV
+C   WORDV = VECTOR OF PHRASES THAT DEFINE THE VARIABLES. EACH OF
+C           THESE PHRASES HAS THE FOLLOWING STRUCTURE:
+C           IF (INAME.EQ.1)   (defining phrase): (variable name)
+C           IF (INAME.EQ.2)   (variable name)/[denominator]
+C   NAME  = VECTOR OF VARIABLE NAMES.  NAME  CONSISTS OF THE PART OF
+C           WORDV AFTER THE COLON WITH ALL BLANKS REMOVED.
+C
+      DIMENSION WORDV(*),NAME(*),LENGTH(*)
+      CHARACTER*80 WORDV
+      CHARACTER*12 NAME
+      CHARACTER*1  CIVAR
+C
+      DO 100 IVAR = 1,NVAR
+         CALL BLANKX(WORDV(IVAR),IEND)
+         LENGTH(IVAR) = IEND
+         IF (IVAR.EQ.1) WRITE(IFILE,30)
+   30    FORMAT(//' NAMES OF VARIABLES TO BE USED IN PLOT LEGEND'//
+     1'  NO. OF    LENGTH      NAME OF'/
+     1' VARIABLE   OF NAME     VARIABLE'/)
+         WRITE(IFILE,40) IVAR, IEND, WORDV(IVAR)(1:IEND)
+   40    FORMAT(I5,I10,4X,A)
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      VARNAM
+      SUBROUTINE VARNAM(IFILE,INAME,NVAR,WORDV,NAME)
+C
+C  PURPOSE IS TO EXTRACT NAME OF A VARIABLE FROM ITS DEFINING PHRASE.
+C
+C  DEFINITION OF VARIABLES:
+C
+C   IFILE = NUMBER OF FILE FOR LIST OUTPUT.
+C   INAME = 1 FOR ROLE 1 VARIABLE (DESIGN PARAMETER OR OBJECTIVE)
+C           2 FOR DESIGN MARGIN
+C   NVAR  = NUMBER OF VARIABLES IN THE VECTOR, WORDV
+C   WORDV = VECTOR OF PHRASES THAT DEFINE THE VARIABLES. EACH OF
+C           THESE PHRASES HAS THE FOLLOWING STRUCTURE:
+C           IF (INAME.EQ.1)   (defining phrase): (variable name)
+C           IF (INAME.EQ.2)   (variable name)/[denominator]
+C   NAME  = VECTOR OF VARIABLE NAMES.  NAME  CONSISTS OF THE PART OF
+C           WORDV AFTER THE COLON WITH ALL BLANKS REMOVED.
+C
+      DIMENSION WORDV(*),NAME(*),LENGTH(50)
+      CHARACTER*80 WORDV
+      CHARACTER*12 NAME
+      CHARACTER*1  CIVAR
+C
+      DO 100 IVAR = 1,NVAR
+       IF (INAME.EQ.1) THEN
+         CALL BLANKX(WORDV(IVAR),IEND)
+         DO 10 I = 1,80
+            ILET = IEND + 1 - I
+            IF (ILET.LE.0) THEN
+              WRITE(IFILE,'(A,I3)')
+     1      ' ERROR:  COLON NOT FOUND IN PHRASE FOR VARIABLE NO. ',IVAR
+              CALL EXIT(1)
+            ENDIF
+            IF (WORDV(IVAR)(ILET:ILET).EQ.':') THEN
+              IBEG = ILET + 1
+              GO TO 11
+            ENDIF
+   10    CONTINUE
+   11    CONTINUE
+       ELSE
+         IBEG = 1
+         IEND = INDEX(WORDV(IVAR),'/[')
+         IEND = IEND - 1
+       ENDIF
+C
+         KOUNT = 0
+         IF (IEND.GE.IBEG) THEN
+            DO 20 I = IBEG,IEND
+               IF (WORDV(IVAR)(I:I).EQ.' ') GO TO 20
+               KOUNT = KOUNT + 1
+               NAME(IVAR)(KOUNT:KOUNT) = WORDV(IVAR)(I:I)
+   20       CONTINUE
+         ELSE
+            CALL CONVR1(IVAR,CIVAR)
+            NAME(IVAR) = 'MARGIN NO. '//CIVAR
+            KOUNT = 12
+         ENDIF
+         LENGTH(IVAR) = IEND
+         LDIFF = 12 - KOUNT
+         IF (LDIFF.GT.0) THEN
+            K1 = KOUNT + 1
+            DO 25 I = K1,12
+   25       NAME(IVAR)(I:I) = ' '
+         ENDIF
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SIMPSN
+      SUBROUTINE SIMPSN(IFILE,NNODES,DX,Y,YINT)
+C
+C  SIMPSON'S RULE INTEGRATION:
+C
+C  NNODES = NUMBER OF NODAL POINTS SPANNING INTEGRATION DOMAIN (ODD)
+C  DX     = SPACING OF POINTS (UNIFORM)
+C   Y     = VALUES OF FUNCTION TO BE INTEGRATED AT THE NODAL POINTS
+C   YINT  = THE INTEGRAL OF Y WITH RESPECT TO X
+C
+      DIMENSION Y(*)
+C
+      NPOINT = NNODES - 1
+      ITEST = MOD(NPOINT,2)
+      IF (ITEST.NE.0) THEN
+         WRITE(IFILE,*)' YOU MUST HAVE AN ODD NUMBER OF NODAL POINTS'
+         WRITE(IFILE,*)' FOR SIMPSONS RULE INTEGRATION. ABORTING RUN.'
+         WRITE(IFILE,*)' NNODES, NPOINT, ITEST =', NNODES,NPOINT,ITEST
+         CALL ERREX
+      ENDIF
+      YINT = 0.
+      DO 10 I = 1,NPOINT,2
+      YINT = YINT + Y(I) + 4.*Y(I+1) + Y(I+2)
+   10 CONTINUE
+      YINT = DX*YINT/3.
+      RETURN
+      END
+C
+C
+C
+C=DECK      SHIFTC
+      SUBROUTINE SHIFTC(ANS)
+C
+C  PURPOSE IS TO REMOVE LEADING BLANKS FROM CHARACTER STRING.
+C  THIS TROUBLE HAS TO BE ENDURED BECAUSE OF STUPID FORTRAN
+C  CARRIAGE CONTROL BUSINESS.
+C
+C ===========================================
+C     ALL NEW CODE WRITTEN SEPTEMBER 21, 2011
+C ===========================================
+      CHARACTER  ANS*(*)
+      CHARACTER  NEW*16
+      INTEGER    I, IB, IE
+
+C     1ST, CHECK FOR BEGINING OF CHARACTERS
+
+      IB = 0
+      DO 10 I = 1,LEN(ANS)
+        IF (ANS(I:I) .NE. " ") THEN
+          IB = I
+          GO TO 20
+        ENDIF
+   10 CONTINUE
+
+   20 IF (IB .EQ. 0) THEN
+        WRITE(6,3000)
+        RETURN
+      ENDIF
+
+C     2ND, CHECK FOR ENDING OF CHARACTERS
+
+      IE = 0
+      DO 30 I = IB,LEN(ANS)
+        IF (ANS(I:I) .EQ. " ") THEN
+          IE = I - 1
+          GO TO 40
+        ENDIF
+   30 CONTINUE
+      IE = LEN(ANS)
+
+   40 IF (IE .EQ. 0) THEN
+        WRITE(6,3001) ANS
+        RETURN
+      ENDIF
+
+      NEW = ANS(IB:IE)//' '
+      ANS = NEW
+
+      RETURN
+
+ 3000 FORMAT('SHIFTC ERROR:  ANS = all blanks')
+ 3001 FORMAT('SHIFTC ERROR:  cannot find end of ANS = ',A)
+
+      END
+C
+C
+C
+C=DECK      SHIFTP
+      SUBROUTINE SHIFTP(ANS)
+C
+C  PURPOSE IS TO REMOVE LEADING BLANKS FROM CHARACTER STRING.
+C  THIS TROUBLE HAS TO BE ENDURED BECAUSE OF STUPID FORTRAN
+C  CARRIAGE CONTROL BUSINESS.
+C
+C ===========================================
+C     ALL NEW CODE WRITTEN SEPTEMBER 21, 2011
+C ===========================================
+      CHARACTER  ANS*(*)
+      CHARACTER  NEW*128
+      INTEGER    I, IB, IE
+
+C     1ST, CHECK FOR BEGINING OF CHARACTERS
+
+      IB = 0
+      DO 10 I = 1,LEN(ANS)
+        IF (ANS(I:I) .NE. " ") THEN
+          IB = I
+          GO TO 20
+        ENDIF
+   10 CONTINUE
+
+C  input strain = "ALL BLANKS", that's OK
+
+   20 IF (IB .EQ. 0) THEN
+*       WRITE(6,3000)
+        RETURN
+      ENDIF
+
+      NEW = ANS(IB:)//' '
+      ANS = NEW
+
+      RETURN
+
+*3000 FORMAT('SHIFTP ERROR:  ANS = all blanks')
+
+      END
+C
+C
+C
+C=DECK      URVEC
+      subroutine urvec(n, u)
+c
+c  urvec places n pseudo-random numbers, x ~ U(0,1), in vector u
+c
+      integer i, n
+      double precision u
+#if cray
+      double precision ranf
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = ranf()
+   10 continue
+#endif
+#if (sun3 || sun4 || cnvx)
+      double precision drand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = drand(0)
+   10 continue
+#endif
+#if (sgi || rs6k)
+      double precision rand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = rand()
+   10 continue
+#endif
+#if dec
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RAN(1234567891)
+   10 continue
+#endif
+#if !(cray || sun3 || sun4 || cnvx || sgi || rs6k || dec)
+      real RANDOM
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RANDOM(0)
+   10 continue
+#endif
+      return
+      end
+c
+C
+C
+      function RANDOM (start)
+* -------------------------------------------------------------------- *
+*     Linear Congruential Method (LCM) Random Number Generator         *
+*                                                                      *
+*     Values for LCM used here are optimal for 32-bit words.           *
+*     A sequence of M psuedo-random REAL numbers, uniform on the       *
+*     interval [0..1) will be repeated.  A new sequence is started     *
+*     when a non-zero value is passed in via the parameter "start".    *
+*                                                                      *
+*     CAUTION: It is best to use a high-quality random number          *
+*              generator from your FORTRAN system library,             *
+*              if one is available.                                    *
+*                                                                      *
+*     Harold D. Cabiness     December, 1990                            *
+* -------------------------------------------------------------------- *
+      IMPLICIT   NONE
+      REAL       RANDOM
+      INTEGER    start,   seed,   L,   C,   M
+      LOGICAL    init
+      SAVE       init,    seed,   L,   C,   M
+      DATA       init  / .true. /
+      if (init) then
+         M = 2**20
+         C = M * (3.0-SQRT(3.0))/6.0
+         C = C + 1 - MOD(C,2)
+         L = 1029
+         seed = MOD(start*L+C, M)
+         if (start .ne. 0) then
+            seed = MOD(ABS(seed*L+C), M)
+         endif
+         init = .false.
+      endif
+      seed   = MOD(seed*L+C, M)
+      RANDOM = REAL(seed) / M
+      return
+      end
+C
+C
+C
+      integer function lastch(str)
+      character*(*) str
+c lastch returns the index of the last character in a string that is not
+c whitespace.  ASSUMES ASCII CODING SCHEME!
+c input:  str - the string
+c output: lastch
+c ----------------- Declarations -----------------------------------
+#define debug 0
+      integer i, ch
+c ----------------- Executable Code --------------------------------
+      do 10 i = len(str), 1, -1
+        ch = ichar(str(i:i))
+c If character is printing non-whitespace, then end-of-string found.
+        if (ch .ge. 33 .and. ch .le. 126) then
+          go to 20
+        endif
+   10 continue
+   20 lastch = i
+      return
+      end

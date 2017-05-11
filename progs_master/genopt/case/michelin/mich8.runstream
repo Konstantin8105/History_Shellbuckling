@@ -1,0 +1,211 @@
+
+mich8.runstream [for a previously nonlinearly optimized
+                "mich8" shell]
+
+[How to re-run a "mich8" case with the use of the nonlinear
+(INDIC = -2) analysis branch for both local and general
+buckling (ISTRAT = 13 in mich8.BEG)]:
+===========================================================
+
+[First run GENOPT/BIGBOSOR4 in a NONLINEAR mode]:
+
+cd /home/progs/genoptcase [directory for GENOPT execution]
+begin [use ISTRAT = 13 in mich8.BEG, that is,
+       LENGTH = 13 (2nd record in mich8.BEG)]
+cp mich8.istrat13.veryverylatest.chg mich8.CHG
+change [restore the archived nonlinearly optimized design]
+cp mich8.nonlinear.dec mich8.DEC
+decide [obtain upper,lower bounds, linking, inequalities]
+mainsetup [establish strategies, type of analysis]
+optimize  [run "mich8" in fixed design mode]
+vi mich8.OPM [inspect the output file, mich8.OPM]
+-----------------------------------------------------------
+
+[Next run "stand-alone" BIGBOSOR4 several times]:
+
+cd /home/progs/work4 [working directory for BIGBOSOR4 runs]
+bigbosor4log [activate the set of commands for BIGBOSOR4]
+
+[First, get the axisymmetric pre-buckling behavior}:
+
+cp ../genoptcase/mich8.BEHX5 mich8.ALL [get the BIGBOSOR4
+    input file for axisymmetric nonlinear pre-buckling
+    deformation and maximum effective stress]
+bigbosorall  [execute BIGBOSOR4 with INDIC = 0: mich8.ALL]
+vi mich8.OUT [inspect the BIGBOSOR4 output file. Search
+              for the string "STRMAX" (maximum eff. stress)]
+bosorplot    [get a plot of the discretized BIGBOSOR4 model]
+gv metafile.ps [view the discretized model on your screen]
+bosorplot    [get a plot of the pre-buckling deformation]
+gv metafile.ps [view the pre-buckling deformation]
+'rm' * [remove all files from /home/progs/work4]
+
+[Next, get the nonlinear LOCAL buckling behavior]:
+
+cp ../genoptcase/mich8.BEHX1 mich8.ALL [get the BIGBOSOR4
+    input file for nonlinear (INDIC=-2) LOCAL buckling 
+    of the "mich8" shell
+bigbosorall  [execute BIGBOSOR4 with INDIC = -2: mich8.ALL]
+vi mich8.OUT [inspect the BIGBOSOR4 output file. Search
+              for the string "EIGENVALUE(", then look at
+              the part of the file that follows that string.
+              Or, simpler, go to the end of the file, then
+              search backward for the string, "PRESSURE".
+              Look for the local buckling load factor.]
+bosorplot    [get a plot of the nonlinear LOCAL buckling mode]
+gv metafile.ps [view the LOCAL buckling mode on your screen]
+'rm' * [remove all files from /home/progs/work4]
+
+[Next, get the nonlinear "symsymgenbuck" GENERAL buckling]:
+
+cp ../genoptcase/mich8.BEHX2 mich8.ALL [get the BIGBOSOR4
+    input file for nonlinear (INDIC=-2) GENERAL "symsymgenbuck"
+    buckling of the "mich8" shell]
+bigbosorall  [execute BIGBOSOR4 with INDIC = -2: mich8.ALL]
+vi mich8.OUT [inspect the BIGBOSOR4 output file. Search
+              for the string "EIGENVALUE(", then look at
+              the part of the file that follows that string.
+              Or, simpler, go to the end of the file, then
+              search backward for the string, "PRESSURE".
+              Look for the "symsymgenbuck" GENERAL buckling
+              load factor.]
+bosorplot    [get a plot of the nonlinear "symsymgenbuck"
+              GENERAL buckling mode]
+gv metafile.ps [view the "symsymgenbuck" GENERAL buckling mode
+                on your screen]
+'rm' * [remove all files from /home/progs/work4]
+
+[Next, get the nonlinear "symantigenbuck" GENERAL buckling]:
+
+cp ../genoptcase/mich8.BEHX2 mich8.ALL [get the BIGBOSOR4
+    input file for nonlinear (INDIC=-2) GENERAL "symantigenbuck"
+    buckling of the "mich8" shell]
+bigbosorall  [execute BIGBOSOR4 with INDIC = -2: mich8.ALL]
+vi mich8.OUT [inspect the BIGBOSOR4 output file. Search
+              for the string "EIGENVALUE(", then look at
+              the part of the file that follows that string.
+              Or, simpler, go to the end of the file, then
+              search backward for the string, "PRESSURE".
+              Look for the "symantigenbuck" GENERAL buckling
+              load factor.]
+bosorplot    [get a plot of the nonlinear "symantigenbuck"
+              GENERAL buckling mode]
+gv metafile.ps [view the "symantigenbuck" GENERAL buckling mode
+                on your screen]
+'rm' * [remove all files from /home/progs/work4]
+
+[Next, get the nonlinear "antiantigenbuck" GENERAL buckling]:
+
+cp ../genoptcase/mich8.BEHX2 mich8.ALL [get the BIGBOSOR4
+    input file for nonlinear (INDIC=-2) GENERAL "antiantigenbuck"
+    buckling of the "mich8" shell]
+bigbosorall  [execute BIGBOSOR4 with INDIC = -2: mich8.ALL]
+vi mich8.OUT [inspect the BIGBOSOR4 output file. Search
+              for the string "EIGENVALUE(", then look at
+              the part of the file that follows that string.
+              Or, simpler, go to the end of the file, then
+              search backward for the string, "PRESSURE".
+              Look for the "antiantigenbuck" GENERAL buckling
+              load factor.]
+bosorplot    [get a plot of the nonlinear "antiantigenbuck"
+              GENERAL buckling mode]
+gv metafile.ps [view the "antiantigenbuck" GENERAL buckling mode
+                on your screen]
+'rm' * [remove all files from /home/progs/work4]
+---------------------------------------------------------------
+
+[Next, run STAGS for two cases: "symantigenbuck" nonlinear
+ GENERAL buckling and "antiantigenbuck" nonlinear GENERAL
+ buckling]:
+
+cd /home/stags/stagsops [go to working directory for STAGS
+                         executions]
+source /home/stags/prc/initialize  [activate STAGS]
+
+[First run STAGS for "symantigenbuck" GENERAL buckling]:
+
+cp /home/progs/genoptcase/mich8.inp4 mich8.inp [get the
+      STAGS *.inp file for "symantigenbuck" GENERAL buckling]
+cp nonlinearbuck.bin mich8.bin   [get STAGS *.bin file.
+                      Edit the mich8.bin file, if necessary]
+/home/stags/prc/stags -b mich8 [run STAGS]
+[Inspect the STAGS output file, mich8.out2. First, look for the
+ string "roots", then look for the string "CONV" to see the
+ "symantigenbuck" nonlinear GENERAL buckling load factor
+ predicted by STAGS.]
+cp nonlinearbuck.pin mich8.pin  [*.pin file for plotting the
+                                 buckling mode from STAGS]
+[Edit the mich8.pin file for the correct load step]
+stapl mich8     [execute the STAGS post-processor, STAPL]
+acroread mich8.pdf  [see the "symantigenbuck" GENERAL buckling
+                     mode from STAGS on your screen]
+'rm' mich8*        [remove all the "mich8" files]
+
+[Next run STAGS for "antiantigenbuck" GENERAL buckling]:
+
+cp /home/progs/genoptcase/mich8.inp5 mich8.inp [get the 
+      STAGS *.inp file for "antiantigenbuck" GENERAL buckling]
+cp nonlinearbuck.bin mich8.bin   [get STAGS *.bin file.
+                      Edit the mich8.bin file, if necessary]
+/home/stags/prc/stags -b mich8 [run STAGS]
+[Inspect the STAGS output file, mich8.out2. First, look for the
+ string "roots", then look for the string "CONV" to see the
+ "antiantigenbuck" nonlinear GENERAL buckling load factor
+ predicted by STAGS.]
+cp nonlinearbuck.pin mich8.pin  [*.pin file for plotting the
+                                 buckling mode from STAGS]
+[Edit the mich8.pin file for the correct load step]
+stapl mich8     [execute the STAGS post-processor, STAPL]
+acroread mich8.pdf  [see the "antiantigenbuck" GENERAL
+                     buckling mode from STAGS on your screen]
+'rm' mich8*         [remove all the "mich8" files]
+------------------------------------------------------------
+
+[Next, run STAGS for nonlinear LOCAL buckling. This step is
+ a bit "tricky" because, in order to get the proper mich8.inp
+ file for the prediction of local buckling by STAGS, we have
+ to first run GENOPT/BIGBOSOR4 in a LINEAR mode so that the
+ STAGS input file, mich8.inp2, gets created. This "tricky"
+ business is required because of the lack of the inclusion
+ of "smoothing" segments in the "mmm0.5" STAGS half-module
+ models. (An example of a STAGS half-module model is shown
+ in Fig. 1 of the paper. Erroneously, there are no
+ "smoothing" segments in that STAGS model that should be
+ there. These "smoothing" segments are absent because
+ The author of this paper never re-programmed
+ SUBROUTINE BEHX1 to include "smoothing" segments in a
+ STAGS half-module model, that is, in a STAGS model of
+ axial length equal to WIDTH/2.]
+
+[First run GENOPT/BIGBOSOR4 in a LINEAR mode]:
+
+cd /home/progs/genoptcase [directory for GENOPT execution]
+begin [use ISTRAT = 1 in mich8.BEG, that is,
+       LENGTH = 1 (2nd record in mich8.BEG)]
+cp mich8.linear.dec mich8.DEC
+decide [obtain upper,lower bounds, linking, inequalities]
+mainsetup [establish strategies, type of analysis]
+optimize  [run "mich8" in fixed design mode]
+
+cd /home/stags/stagsops [go to working directory for STAGS
+                         executions]
+source /home/stags/prc/initialize  [activate STAGS]
+
+[Run STAGS for nonlinaer LOCAL buckling]:
+
+cp /home/progs/genoptcase/mich8.inp2 mich8.inp [get the
+      STAGS *.inp file for LOCAL buckling]
+cp nonlinearbuck.bin mich8.bin   [get STAGS *.bin file.
+                      Edit the mich8.bin file, if necessary]
+/home/stags/prc/stags -b mich8 [run STAGS]
+[Inspect the STAGS output file, mich8.out2. First, look for the
+ string "roots", then look for the string "CONV" to see the
+ nonlinear LOCAL buckling load factor predicted by STAGS.]
+cp nonlinearbuck.pin mich8.pin  [*.pin file for plotting the
+                                 buckling mode from STAGS]
+[Edit the mich8.pin file for the correct load step]
+stapl mich8     [execute the STAGS post-processor, STAPL]
+acroread mich8.pdf  [see the nonlinear LOCAL buckling
+                     mode from STAGS on your screen]
+'rm' mich8*        [remove all the "mich8" files]
+==============================================================

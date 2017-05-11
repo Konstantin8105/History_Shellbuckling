@@ -1,0 +1,1291 @@
+              NEW BOSOR4 CAPABILITIES....  (NOVEMBER, 1985)
+
+1983-1984 ENHANCEMENTS:
+
+(1)  Up to 95 segments, 98 discrete rings, 2000 d.o.f. in the pre-
+buckling problem and 3000 d.o.f. in the bifurcation buckling, vibration
+and nonsymmetric stress problems can now be handled. Formerly the
+maximum values were 25 segments, 50 discrete rings, 1000 d.o.f. and
+2000 d.o.f., respectively.
+
+(2)  Two load sets, called "LOAD SET A" and "LOAD SET B", are now
+handled in buckling problems.  LOAD SET A is considered to be
+multiplied by the eigenvalue whereas LOAD SET B is considered to be
+constant.  Both load sets "A" and "B" can have different variations in
+the meridional and circumferential coordinate directions.
+
+(3)  BOSOR4 cases can be restarted.  There are two modes of restart:
+
+   (a) A given type of analysis (given INDIC) can be continued in a
+       series of runs.
+
+   (b) The restart capability is used to determine response of
+       structures to base excitation. 
+
+(4) Up to 90 circumferential harmonics can now be handled in a
+nonsymmetric stress analysis (INDIC = 3).  Actually the maximum number
+of circumferential harmonics is
+
+    NHARM MAX. = MIN [ 90, 1250/NSEG ]
+
+where NSEG is the number of structural segments in the BOSOR4 model.
+
+(5) BOSOR4 now includes the capability to handle
+    (a) constant rotation OMEGA about the axis of revolution(any INDIC)
+
+    (b) steady-state response to harmonic excitation at an angular
+        frequency OMEGDR. The harmonic excitation may be applied as
+        any combination of loads acting on a stationary structure or
+        as support motion.  If the user specifies support excitation,
+        he is asked to provide the number of g's lateral and axial
+        components applied to the support(s). (INDIC = 3 or 4)
+
+    (c) response to base excitation as follows:
+
+         (i) harmonic excitation at a series of natural frequencies
+        (ii) random excitation
+       (iii) shock  excitation
+
+       Depending on which analysis type i, ii, or iii the user is
+       asked to provide load factors, damping factors, and spectral
+       densities as functions of the frequency. The analysis here is
+       different from that of (b) in that (b) is not valid for
+       response at resonance, whereas (c) estimates the response
+       based on behavior at the resonances only.
+
+       For more information on response to base excitation, go to
+       the file PROMPT3.DAT and search for "750". Read the "help"
+       paragraphs in PROMPT3.DAT from 750 to 820. (This material is
+       repeated here for your convenience. Also, it appears in the
+       file bosor4.story.
+
+========== more information of transient response to base excitation =======
+BOSOR4 will do transient response to base excitation. The explanation is
+provided in certain "help" paragraphs in the PROMPT3.DAT file...
+
+            Section of the file ../bosor4/execute/PROMPT3.DAT
+            That deals with response to base excitation...
+=========================================================================
+750.1 Do you want response at resonance to base excitation?
+750.2  
+      You can type Y only if you have just run an INDIC = 2
+      (modal vibration case) with n = 0 only or n = 1 only. (n is
+      the number of circumferential waves.)  This program estimates
+      the response by RSS (square root of the sum of the squares).
+      The sum is over the number of modes calculated in the previous
+      (INDIC = 2) run.  This program will handle
+      response to harmonic excitation, response to random excitation,
+      and response to shock. You will be asked to provide input data
+      such as load factor (number of g's acceleration), damping
+      factor, and/or spectral density.
+
+770.0  
+      To use this branch you must just have run a modal vibration
+      analysis for a single number of circumferential waves: either
+      n = 0 or n = 1. The purpose here is to find the response of the
+      structure to either:
+
+      1. sinusoidal excitation    or
+
+      2. random excitation        or
+
+      3. shock
+
+780.1 Want more information?
+790.0  
+
+      There are four kinds of information that must be supplied
+      in order to perform all of the three types of analysis just
+      listed:
+
+      a.  gravity in the units of this case (e.g. 386.4 in/sec**2)
+
+      b.  a table of load factors or shock levels (g's) vs.
+          frequency in hertz:                               [N = N(f)]
+
+      c.  a table of damping factor vs. frequency in hertz: [B = B(f)]
+
+      d. a table of spectral density vs. frequency in hertz:[W = W(f)],
+         in which W is in units of g's-squared-per-hertz (N**2/hertz).
+
+      For harmonic excitation you must supply a., b., and c.
+      For random   vibration  you must supply a., c., and d.
+      For shock    response   you must supply a. and b.
+
+800.1 Want more information?
+810.0
+      Suppose you calculated the first five vibration frequencies
+      and modes for n = 1 circumferential wave in your previous run,
+      call it run no. 1.  Suppose you now want to calculate the
+      response to random excitation.  In the present run, call it
+      run no. 2, the state of the shell from random lateral or
+      axial excitation [no rotational excitation (pitching)
+      allowed!] is estimated by superposition of quantities
+      calculated for each resonance:
+
+       w(response) = SQRT{ sum from 1 to 5 of [m(i)*P(i)*phi(i)]**2 }
+
+      in which m(i) is a frequency-dependent multiplier,
+      P(i) is a modal participation factor, and phi(i) is the ith
+      vibration mode, including modal stresses derived from
+      appropriate differentiations of the modal displacements.
+      For response to harmonic excitation, each mode is treated
+      separately; the responses from the various modes are not
+      superposed.
+
+812.1 Want more information?
+813.0  
+      For all of the three types of analysis listed above an
+      amplitude factor is derived which is a product of the
+      modal participation factor, P(i), and the multiplier, m(i).
+      The frequency-dependent multiplier, m(i), is given for each
+      of the three analysis types by:
+
+      For harmonic excitation (analysis type 1):
+
+        m(i) = N(i)*g/[OMEGA**2*BETA(i)]
+
+      For random excitation   (analysis type 2):
+
+        m(i) = SQRT[OMEGA*SPECD/(2*BETA)]*g/OMEGA**2
+
+      For shock response      (analysis type 3):
+
+        m(i) = 2*N(i)*g/OMEGA**2
+
+      [ N(i)=load factor, g = acceleration of gravity,
+        OMEGA=freq.(rad/sec), BETA=damping, SPECD=spectral density]
+
+815.1 Type of response analysis (1 or 2  or 3)
+815.2  
+      1 means response to sinusoidal excitation
+      2 means response to random excitation
+      3 means response to shock
+
+820.1 Value of acceleration of gravity in the units of this case
+830.0  
+      Next, provide number of g's (N) vs. frequency (f) in hertz.
+      If N varies with f, make sure that the data span the range of
+      frequencies for which you calculated vibration modes in your
+      previous INDIC = 2 run.
+
+      NOTE: MAXIMUM OF 20  (N,f)  PAIRS IS ALLOWED.
+
+840.1 Does N (no. of g's) vary with f (frequency)?
+850.1 Number of g's, N
+860.1 Frequency, f, corresponding to N
+870.1 Want more entries in the N = N(f) table?
+880.0  
+      Next, provide damping factor (B) vs. frequency (f) in hertz.
+      NOTE: MAXIMUM OF 20  (B,f)  PAIRS IS ALLOWED.
+
+890.1 Does B (damping factor) vary with f (frequency)?
+900.1 Damping factor, B
+910.1 Frequency, f, corresponding to B
+920.1 Want more entries in the B = B(f) table?
+930.0  
+      Next, provide spectral density (W) vs. frequency (f) in hertz.
+      NOTE: MAXIMUM OF 20  (W,f)  PAIRS IS ALLOWED.
+
+940.1 Does W (spectral density) vary with f (frequency)?
+950.1 Spectral density (N**2/hertz), W
+960.1 Frequency, f, corresponding to W
+970.1 Want more entries in the W = W(f) table?
+980.1 Do you want to find buckling load factors?
+982.0  
+      For horizontal (lateral) base motion, maximum compressive
+      stress resultants are either at circumferential coordinate
+      THETA = 0 degrees or THETA = 180 degrees. Print out meridional
+      distributions of prebuckling membrane resultants along both the
+      meridian at THETA = 0 deg. and at THETA = 180 deg; then decide
+      which meridian to choose for the buckling analysis.  It may be
+      a good idea to do buckling analyses corresponding to the stress
+      states at both THETA = 0 and THETA = 180 deg.
+
+===== end of information about transient response to base excitation ========
+===== that is contained in the ...bosor4/execute/PROMPT3.DAT file  =========
+
+
+(6)  The user can now call for listing and plotting of the strains
+and changes in curvature.  This is especially useful if one wishes 
+to obtain a comparison with tests or an indication of material
+failure for layered shell walls.  Expanded plots of local areas
+are included if the user wants them.
+
+(7)  BOSOR4 will now handle cases in which the shell is supported on
+an elastic foundation with uniform stiffness (Winkler type) within
+each shell segment.
+
+(8)  BOSOR4 will now handle imposed symmetric or nonsymmetric
+displacements. One uses the load input.  The program knows that the
+input provided in response to questions about loads is actually
+displacement input because the user provides 2's instead of 1's in
+the boundary condition part of the input.
+
+(9)  A system for automatic editing of BOSOR4 cases has been created.
+This system, called MODIFY, is described next:
+
+  GENERATING BLOCKS OF INPUT DATA PERTAINING TO SEVERAL CATEGORIES
+      AND AUTOMATICALLY MODIFYING  NAME.SEG  FILES.
+
+It frequently occurs that you have a large case set up and you want to
+make modifications that involve data for one or more of the segments
+or one or more of the boundary and junction conditions.  You do not
+want to have to set up a new case from scratch in the interactive mode.
+A utility called MODIFY is now available to permit you to modify certain
+data while leaving the rest alone.  MODIFY generates blocks of input
+data pertaining to nodal point distribution, meridional geometry,
+imperfections, discrete rings, line loads, distributed loads, wall
+construction, constraint conditions, and global data. You execute
+MODIFY by typing:
+
+        MODIFY
+
+and answering interactively the questions that follow this command.
+When an interactive session is finished, a file with a name such as
+MESH.QUE, GEOM.QUE, IMPERF.QUE, RINGS.QUE, LINELOADS.QUE, etc will
+exist in your subdirectory.  This file is then used by MODIFY to modify
+the NAME.SEGn file that you indicate needs modification.  The
+following table lists the options that exist for generating blocks
+of input data in this manner:
+
+   BLOCKS OF INPUT DATA GENERATED BY USE OF THE UTILITY "MODIFY"
+      Generate proper input data for the following categories by
+      responding with the appropriate index:
+      ===========================================================
+      Index     Type of BOSOR input data            File generated
+      -----------------------------------------------------------
+        1      nodal point distribution in segment       MESH.QUE
+        2      shape of meridian of segment              GEOM.QUE
+        3      location of reference surface in wall  REFSURF.QUE
+        4      initial imperfection shape in segment   IMPERF.QUE
+        5      discrete rings in segment                RINGS.QUE
+        6      line loads in segment                LINELOADS.QUE
+        7      distributed (surface) loads in seg.  DISTLOADS.QUE
+        8      wall construction of segment              WALL.QUE
+        9      smeared stiffeners in segment          SMEARED.QUE
+       10      direct input of prestress            PRESTRESS.QUE
+       11      constraint conditions of segment     CONSTRAIN.QUE
+       12      rigid body motion prevention         RIGIDBODY.QUE
+       13      global parameters at beginning         GLOBAL1.QUE
+       14      global parameters after segment data   GLOBAL2.QUE
+       15      output indicators                      GLOBAL3.QUE
+      =============================================================
+
+
+MODIFY works because of certain key phrases embedded in the 'NAME'.SEG
+files.  These key phrases tell MODIFY where the new data should
+be inserted.  Because of this, MODIFY should only be used with NAME.SEG
+files that have been generated from a good NAME.DOC file via the
+utility GETSEGS. (GETSEGS disassembles the NAME.DOC file into NAME.SEG
+files.) MODIFY may not work when you apply it to NAME.SEG files that
+have been generated in some shortcut manner, such as by means copying
+from other segments or otherwise using the VAX editor to generate
+NAME.SEG files.
+
+     SAMPLE RUNSTREAM INCLUDING RESTART AND MODIFICATION OF MODEL..
+
+The runstream listed below illustrates the recommended way of modifying
+a case and re-running.  Notice that new NAME.SEG files are obtained
+from the NAME.DOC file that was generated during the first successful
+pass through the preprocessor BOSORREAD.
+
+    SAMPLE RUNSTREAM  (Set up case, run, restart, modify, run again)
+       INPUT             You supply data interactively for segments
+       ASSEMBLE          You cause segment data & b.c.'s to be concat.
+       BOSORALL          You launch a batch run of the case
+       BOSORPLOT         You launch a batch run for plots
+       RESETUP           You decide to do more analysis, same model
+                         (Interactive input is required from you now.)
+       RESTART           You launch a batch run for more analysis on
+                         the same model. (example: additional circum-
+                         ferential wave numbers for bifurcation buckling)
+       BOSORPLOT         You launch batch run for plots
+
+       CLEANUP           Get rid of all NAME.* files except .DOC & .ALL
+       GETSEGS           NAME.DOC file is broken down into segment files
+       MODIFY            One of the segments is modified in some way
+       MODIFY            Another segment is modified (e.g. ring added)
+       MODIFY            Same segment is modified again (e.g. more nodes)
+       MODIFY            Same segment is modified again (e.g. new loading)
+       ASSEMBLE          Segment data are reassembled
+       BOSORALL          You launch another batch run for modified model
+       BOSORPLOT         You launch a batch run for plots
+
+Note that you do not have to use MODIFY in order to change a case.
+However, it is the safest way.  In certain cases, for example, when
+you just want to change a dimension, it will doubtless be easier just
+to quickly change the NAME.ALL file and then rerun.  However, if you
+are at all in doubt, use the CLEANUP - GETSEGS - MODIFY - ASSEMBLE
+route.
+
+************************************************************************
+
+1985 ENHANCEMENTS:
+
+(1) BOSOR4 will now calculate d'Alembert loads for free-free shells
+subjected to non-self-equilibrating loads. This new capability,
+installed 17-21 August, 1985, works as follows:
+
+      If the loads in either Load Set A or Load Set B or both are
+      not self-equilibrating, such as is true for a free-free shell
+      subjected to a blast load from the side, you may want BOSOR4
+      to compute the inertial reactions from the applied loads.
+      This BOSOR does in the following way:
+
+       1. BOSOR calculates the total mass, c.g. location, and
+          mass moments of inertia of the entire structure.
+
+       2. BOSOR calculates the total forces Fx, Fy, Fz applied at
+          the origin of the global X,Y,Z cartesian coordinate
+          system, and total moments Mx, My, Mz about these axes.
+          The origin of the global X,Y,Z frame is on the axis of
+          revolution at Z = 0. Note that in order for the mass
+          properties (M, z(c.g.), I(c.g.), Iz) and forces Fx,Fy,Fz
+          and moments Mx,My,Mz to be properly calculated you must have
+          already provided the geometry of each segment of the
+          structure in terms of the global Z coordinate.
+
+       3. Given the six equations for rigid-body dynamics, accelerations
+          of the c.g. and angular accelerations about the c.g. are
+          calculated.
+
+       4. The components of linear acceleration in the normal,
+          meridional, and circumferential directions everywhere in the
+          structure are then calculated. These accelerations
+          yield inertial loads (F=ma!) that contribute to the line
+          loads (from discrete ring inertia) and distributed loads
+          corresponding to n = +1, n = 0, and n = -1 circumferential
+          waves. The applied line loads, pressures, and surface
+          tractions plus the inertial reactions in the n = +1, 0,
+          and -1 circumferential harmonics form a self-equilibrating
+          load system. (All applied load harmonics with circum-
+          ferential waves greater than or equal to 2 are self-
+          equilibrating, and therefore do not generate rigid body
+          motions.)
+
+       The above steps 2., 3., and 4. are performed for either or both
+       Load Set A and/or Load Set B, if you indicate that rigid body
+       motion is possible and that you wish dynamic reactions
+       (d'alembert forces) to be included for Load Set A and/or for
+       Load Set B.
+
+       Please note that the calculations just described are performed
+       only for INDIC = 3 or 4.
+
+       Also note: You must of course supply masses for all the
+       structural parts, even though you regard this as a statics
+       problem.  No mass, no inertial reaction! Remember, the axial
+       coordinate input for each segment must be global for this to
+       work properly.
+
+(2) As of 21 August, 1985, there is a new wall property routine,
+CFB4,  for providing input for laminated, composite shell walls.
+The thicknesses in these walls must be constant. The winding angles
+of each lamina must also be constant. BOSOR4 will calculate stress
+components in each lamina in the material coordinates, which are
+oriented along the fibers and perpendicular to the fibers of each
+lamina. These lamina stress components are compared to the following
+allowables: maximum tension along fibers, maximum compression along
+fibers, maximum tension normal to fibers, maximum compression normal
+to fibers, and maximum in-plane shear. In the listed output of the
+stresses any failures relative to these five allowables are indicated.
+
+Please note that stresses in any layered shell wall with properties
+constant along the meridian can be obtained whether or not the wall
+is of composite material if you use NWALL = 4 for that segment.
+
+(3) Several of the subroutines in BOSOR4 have been modified to make
+it much easier to convert BOSOR4 for operation on a UNIX-based
+workstation. In particular, a FORTRAN version of SUBROUTINE GASP is
+now included among the source decks. It is called GASP.NEW. The version
+of SUBROUTINE GASP used with the VAX VMS version of BOSOR4 is called
+GASPOLD.OLD. (GASP transfers data to and from direct access storage.
+Parts of GASPOLD are written in VAX assembly language and do block IO.
+GASP.NEW is written in FORTRAN. With large cases BOSOR4 runs much
+more slowly with GASP.NEW than it does with GASPOLD.OLD.
+
+The PROMPTER.NEW library has been updated to make conversion to
+UNIX-based workstations easier.
+
+There is now a source library called PLOT.UNIX which should be used
+to get plotting working on UNIX-based systems.
+*********************************************************************
+
+1989-1992 BOSOR4 NOW WORKS ON MOST UNIX-BASED WORKSTATIONS AND ON
+THE CRAY:
+
+During the past few years the BOSOR4 program has been installed on
+several computers, including DEC workstations, Sun workstations, MAC II,
+Silicongraphics, Convex, and Cray. Except for MACBOSOR these are all
+UNIX versions.  The installations were performed by Bill Bushnell.
+
+**********************************************************************
+
+APRIL - MAY, 1992 BOSOR4 MODIFICATIONS: BOSOR4 was modified to improve
+the composite material capability:
+
+  1.  Thermal loading from other than curing was introduced. Now you
+      can run cases involving temperature distributions over the
+      surface of the structure. 
+
+  2.  A new wall type (NWALL = 9) was introduced. In this branch you
+      provide input for laminated composite walls in which one or more
+      of the layers can have thickness that varies in the meridional
+      direction. (Variation must be axisymmetric, however!) The input
+      with NWALL = 9 is similar to that for NWALL = 4.
+
+  3.  BOSOR4 now computes margins corresponding to stresses calculated
+      in segments with NWALL = 4 or NWALL = 9. (Composite layups).
+***********************************************************************
+
+
+JANUARY, 1993:  A bug in QUESTIONS.NEW was eliminated.  This bug affected
+the way MODIFY worked. Previously, the REREAD feature of a partially
+completed *.QUE file sometimes did not work.  The user had to be very
+careful not to make a mistake while interactively answering the prompts
+during a MODIFY session because the usual BOSOR4 method of correcting
+a file did not work in many of the MODIFY branches.  This has been
+corrected by changing SUBROUTINE QUEST in the QUESTIONS.NEW file.
+
+JANUARY, 1993: A bug was found in PLOT.NEW. A wrong index was being
+used to generate arrays of circumferential variation of von Mises stress
+in nonsymmetric (INDIC=3,4) cases.
+
+JANUARY, 1993: A bug was found in MODE.NEW. Occasionally the EBAND2
+routine of BOSOR4 fails to converge to an eigenvalue. If this happens,
+then no mode is stored.  If the BOSOR4 postprocessor tries to read a
+nonexistent mode from the disk, it bombs in GASP because the storage
+location identifier (IDMODE or IDMOD2) is zero. SUBROUTINE MODE was
+modified to avoid this difficulty.
+
+NOVEMBER, 1995: A BOSOR4 user discovered that he could not easily
+provide input for a tori-ellipsoidal tank, that is a toroidal tank with
+ellipsoidal end domes. It turns out that the coding for GEOM4, NST = 4
+was incomplete. A new input datum was required if NST = 4 and ALPHAT is
+greater than XMAX (see p 66 BOSOR4 user's manual). The new input datum
+prompt and "help" paragraph explains this BOSOR4 update:
+------------------------------------------------------------------
+582.1 Do you have a complete tori-ellipsoidal dome?
+582.2
+      If you answer "Y", BOSOR4 reflects the right-hand portion,
+      input for which is depicted on p.66 of the BOSOR4 user's manual,
+      over to the left side of the centerline of the dome, and the
+      total arc length of the segment becomes double that of the
+      segment you just provided geometry input data for. Note that
+      you are permitted to answer "Y" only if the dome is closed at
+      its apex.
+
+      NOTE: INPUT FOR BOUNDARY AND/OR JUNCTION CONDITIONS MAY BE
+            VERY TRICKY DUE TO POSSIBLE AUTOMATED MODIFICATION OF THE
+            NUMBER OF NODAL POINTS IN THE "DOUBLED" TORI-ELLIPSOIDAL
+            SEGMENT. IT IS BEST IF YOU ALWAYS USE:
+                     NMESH  between 51 and 97 (preferably 97)
+            FOR THE NUMBER OF NODES IN THIS SEGMENT. THEN THE END OF
+            THE NEW "DOUBLED" SEGMENT WILL AUTOMATICALLY HAVE THE
+            SAME NODAL POINT NUMBER, NMESH, THAT YOU JUST SPECIFIED
+            IN YOUR INPUT SESSION.  IF YOU ALWAYS USE NMESH = 97,
+            THERE WILL PROBABLY ALWAYS BE ENOUGH NODES IN THE "DOUBLED"
+            SEGMENT TO AVOID ELEMENT LOCKING.
+      NOTE2:WHEN USING CALLOUTS, ALWAYS USE r (NOT z) AND FOR A CLOSED
+            TOROID FOLLOW THE INPUT SCHEME LISTED IN THE EXAMPLE IN
+            THE FILE ...bosor5/doc/bosor5.news, ITEM 2, DATED NOV 1995.
+            YOU MUST USE THE END POINT "r" VALUES APPROPRIATE FOR THE
+            "DOUBLED" SEGMENTS (SEE EXAMPLE BELOW).
+
+------------------------------------------------------------------------
+The following libraries were modified: GEOM, QUESTIONS . The following
+"link" commands were used to update the absolute elements: LINKBREADVAX,
+LINKMODIFY, LINKINPUT .  The prompt file, PROMPT3.DAT, was updated by
+addition of the material listed above between the dashed lines.
+***********************************************************************
+NOTE: THE ABOVE ITEM IS MADE OBSOLETE BY THE NEXT ITEM
+************************************************************************
+
+
+6. July, 1996
+This represents a correction to News Item November, 1995. It turned out
+that the method of "reflection" described above did not work
+because of element "locking" in segments with crowns or valleys and with
+meridional curvature that varies within a segment. Now the user must use
+additional segments, (two segments per dome, one going up, the other coming
+down). The new input datum called for in the PROMPT3.DAT file is as follows:
+---------------------------------------------------------------------------
+584.1 Is this segment an INNER part of the toroid?
+584.2 
+      By "INNER" is meant the part of the toroid with negative
+      Gaussian curvature, the portion of the toroid with radius
+      less than the radius, ALPHAT, to the center of the toroid.
+
+      The OUTER part of the toroid is the part with positive
+      Gaussian curvature, the portion of the toroid with radius
+      greater than the radius, ALPHAT, to the center of the toroid.
+----------------------------------------------------------------------------
+This new input datum replaces that with the prompting index 582 listed in
+the previous News item. The libraries GEOM and QUESTIONS were modified.
+
+
+7. Multisegment shells with initial axisymmetric sinusoidal imperfections
+
+14 August, 1996
+
+Dear Customer:
+
+This is in reply to your email message, a copy of which follows.
+
+---------------------------- Customer's  email --------------------------
+I am editing an existing BOSOR5 input deck (.ALL deck enclosed) to include
+shell imperfections in segments 3 and 4.  The added input lines appear to be
+processed OK but the subsequent shell reference input keep on echoing "$ R(I) 
+= radial coordinate of Ith callout, r( 1)" and "$ R(I)  = radial coordinate of
+Ith callout, r( 2)" in the .DOC file (enclosed).
+
+Would you please examine the two enclosed decks (mcdon.ALL and mcdon.DOC)
+and tell me what's wrong?
+------------------------------------------------------------------------------
+
+--------------------- Dave Bushnell's Reply ----------------------------------
+BOSOR4/BOSOR5 present difficulties in the case of multisegment shells with
+imperfections. The difficulty arises from the fact that in the coding of
+SUBROUTINE IMPERF (copy below), BOSOR4/BOSOR5 assume that the sinusoidal
+imperfection is a function of arc length S along the meridian, with the
+origin of the arc length S being at the beginning of the first segment and
+running thru the end of the last segment. 
+
+You wanted a sinusoidal imperfection only in segments 3 and 4. At the
+beginning of segment 3 the arc length (called S in BOSOR4/5) has some
+value. Therefore, the sinusoidal imperfection has some non-zero value in
+general. I should have asked the user if he/she wanted the origin of the
+imperfection to start at the beginning of the segment rather than just
+assume that it starts at the beginning of Seg. 1, but I did not and I
+don't want to add another question at this time. (Even if the origin of
+arc length S for the purpose of computation of the imperfection started at
+the beginning of some interior segment rather than at the beginning of
+Seg. 1, you would still have a problem with the imperfection having in
+general a non-zero value at the end of that segment). 
+
+The fact that the imperfection has, in general, some non-zero values at
+the beginning and at the end of the segment in which it occurs give rise
+to problems in BOSOR4/BOSOR5 of identifying just where the segment ends
+are in (R,Z) space for the purpose of the user's providing appropriate R
+or Z callouts for thickness, temperature, pressure, etc. BOSOR4/BOSOR5
+bombs with messages printed to the *.ERR file if the user provides R or Z
+values for end point callouts that are not close enough to where
+BOSOR4/BOSOR5 thinks these end points are in (R,Z) space, and the
+BOSOR4/BOSOR5 "opinion" unfortunately includes the effect of any initial
+imperfection. Without some kind of independent computation on the side,
+(which might be very difficult), the user does not know in advance where
+the (R,Z) end points are of an interior segment with an initial
+axisymmetric sinusoidal imperfection. 
+
+What I did with your input data is the following:
+
+1. I tried to run your *.ALL file. (I ran BOSORREAD). It bombed, just the
+way it did when you ran it. When it bombed it left a file called *.ERR,
+where * stands for the name I gave the case. (I called the case "mcdon"). 
+
+2. I searched the mcdon.ERR file for the first occurrence of an error
+message concerning improper user identification of the end points of the
+first segment with a nonzero imperfection. You can do this by searching
+for the string "W0" (that's a w-zero, not w-oh) in the mcdon.ERR file.
+BOSOR4/5 prints out the following error message in the mcdon.ERR file: 
+
+------------------ fragment of mcdon.ERR file -------------------------------
+ Imperfection geometry....                                                      
+                                                                                
+$IMP   = indicator for imperfection (0=none, 1=some)=
+  There is no more help. Do your best.
+$IMP   = indicator for imperfection (0=none, 1=some)=
+                                                  1
+$ITYPE = indicator (1 or 2 or 3) for type of imperfection=
+                                                  2
+$W0    = amplitude of pure sinusoidal imperfection=
+                                           0.2000000    
+$WLNGTH= half-wavelength of pure sinusoidal imperfection=
+                                            6.250000    
+$NTYPEZ= control (1 or 3) for reference surface location=
+                                                                                
+ NTYPEZ = 1 means that the distance from the shell wall                         
+ leftmost surface to the reference surface varies along                         
+ the meridian.  By "leftmost" we mean as we face in the                         
+ direction of increasing meridional arc length, s.  See                         
+ the figure (a) on p. P13.                                                      
+                                                                                
+ NTYPEZ = 3 means that the distance from  the  leftmost                         
+ surface of the wall to the reference surface is const-                         
+ ant as we proceed along the meridian, s.                                       
+                                                                                
+$NTYPEZ= control (1 or 3) for reference surface location=
+                                                  1
+$NZVALU= number of meridional callouts for ref. surf.=
+                                                  2
+$NTYPE = control for meaning of callout (2=z, 3=r)=
+                                                  3
+$R(I)  = radial coordinate of Ith callout, r( 1)=
+                                            13.77950    
+$R(I)  = radial coordinate of Ith callout, r( 2)=
+                                            24.90310    
+
+
+ INPUT DATA ERROR...
+   CALLOUT =      1.3780E+01
+   IT SHOULD BE BETWEEN      1.3825E+01 AND     2.4929E+01
+   OR EQUAL TO ONE OF THEM.
+
+
+$R(I)  = radial coordinate of Ith callout, r( 1)=
+                                           0.0000000E+00
+$R(I)  = radial coordinate of Ith callout, r( 2)=
+                                           0.0000000E+00
+             .
+             .
+             .
+    (it just keeps going and going and going....)
+------------------------------------------------------------------------------
+
+3. I updated the mcdon.ALL file by changing the beginning R-callout in
+Seg. 3 from 13.780 to 13.825 and the end R-callout in Seg. 3 from 24.9031
+to 24.929. NOTE: DO NOT CHANGE THE GEOMETRY INPUT, ONLY THE CALLOUTS. 
+
+4. I ran the updated mcdon.ALL file (BOSORREAD) again. Of course, it
+bombed again because there are other callouts in both Segments 3 and 4
+that have not yet been updated to account for the effect of the initial
+imperfection. The first occurrence of the callout error message this time
+was as follows: 
+
+------------------ fragment of mcdon.ERR file, 2nd try ---------------------
+                                                                                
+$NPSTAT = number of meridional callouts for pressure=
+                                                  2
+                                                                                
+ Next provide meridional callout points for pressure...                         
+                                                                                
+$NTYPE = control for meaning of loading callout (2=z, 3=r)=
+                                                  2
+$Z(I)  = axial coordinate of Ith loading callout, z( 1)=
+                                           -44.12790    
+$Z(I)  = axial coordinate of Ith loading callout, z( 2)=
+                                           -40.72710    
+
+
+ INPUT DATA ERROR...
+   CALLOUT =     -4.0727E+01
+   IT SHOULD BE BETWEEN     -4.4277E+01 AND    -4.0811E+01
+   OR EQUAL TO ONE OF THEM.
+
+
+$Z(I)  = axial coordinate of Ith loading callout, z( 1)=
+                                            1.000000    
+$Z(I)  = axial coordinate of Ith loading callout, z( 2)=
+                                            1.000000    
+                     .
+                     .
+                     .
+    (It just keeps going and going and going...)
+----------------------------------------------------------------------------
+
+5. Again I edited the mcdon.ALL file, this time changing all the beginning
+Z callouts to -44.277 and the ending Z callouts to -40.811 in Segment 3.
+
+6. Again I ran BOSORREAD. This time it bombed in Segment 4, and I had to
+change all beginning Z callouts to 3.5599 and ending Z callouts to 8.7720.
+
+7. The final run I tried bombed in Segment 8 because I apparently no
+longer allow specification of "1" for a callout type in my version of
+BOSOR5, which you provided for temperature callouts in Segment 8. (You
+probably have an old version of BOSOR5). 
+
+8. The final version of input for the two segments with the initial
+imperfections, Segments 3 and 4, after all corrections in Segments
+3 and 4 follows (not included here to save space).
+
+
+NOTE: When you change the mcdon.ALL file as listed above, you get
+discontinuities in the shell meridian between the end of Segment 2 and the
+beginning of Segment 3 and between the end of Segment 4 and the beginning
+of Segment 5. This is because the amplitude of the initial imperfection is
+nonzero at the ends of segments 3 and 4. Please inspect the fragment of
+the mcdon.OUT file at the end of this message to see what I mean. These
+meridional discontinuities might give rise to significant phony stress
+concentrations because of the resulting discontinuities in meridional
+moment. 
+
+The relevant portion of SUBROUTINE IMPERF, where the new (imperfect) 
+geometry of each shell segment is computed, follows. You are free to change
+the logic any way you wish to in order to make BOSOR5 easier to use at
+mcdon for imperfect multisegment shells. However, keep careful notes/files
+of what you do so that should you ever get a new BOSOR4/BOSOR5 you can
+again update my (unchanged) versions of IMPERF to resurrect whatever
+modifications you might have made.
+
+-------------------- part of the GEOM source library ----------------------
+C=DECK      IMPERF
+      SUBROUTINE IMPERF(NFLAG,I5,R,RD,C1,C2,C1D,S,SEND,ISEG,DS,Z)
+C     CALLED FROM GEOM, WHOSE TRACE IS GEOMTY, READIT, MAIN.
+C     CALCULATES GEOMETRICAL PARAMETERS R, RD, C1, C2, C1D ( SEE GEOM
+C     FOR DEFINITIONS) FOR IMPERFECT SHELL
+      DOUBLE PRECISION W,PHI,FL
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT
+      CHARACTER*4 CHARAC
+      LOGICAL ANSL1
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),WTOT(100)
+      DIMENSION W(20),PHI(20),FL(20)
+      DIMENSION DS(*) ,Z(*)
+C BEG DEC 1992
+      DIMENSION WTRIG(20),FLTRIG(20)
+C END DEC 1992
+C     ITYPE = TYPE OF IMPERFECTION
+      CALL DATUM(IFILE2,134,1,2,ITYPE,REALL,CHARAC,IOUT,0,1)
+C BEG DEC 1992
+      IF (ITYPE.NE.1.AND.ITYPE.NE.2.AND.ITYPE.NE.3) THEN
+       WRITE(6,*)' ITYPE MUST BE EITHER 1 OR 2 OR 3'
+C END DEC 1992
+       CALL ERREX
+      ENDIF
+C
+   10 FORMAT(10I6)
+   20 FORMAT(6E12.8)
+      PI = 3.1415927
+C BEG DEC 1992
+      GO TO (30,130,170,179),ITYPE
+C END DEC 1992
+   30 CONTINUE
+C
+C     RANDOM SERIES OF SINUSOIDAL IMPERFECTIONS
+C
+      IF (NFLAG.EQ.1) GO TO 60
+      CALL DATUM(IFILE2,135,1,1,INT,FM   ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,136,1,1,INT,C    ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,137,1,1,INT,FLMIN,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,138,1,1,INT,FLMAX,CHARAC,IOUT,0,1)
+      M = FM
+      CALL URNDM(0,M,W)
+      CALL URNDM(0,M,PHI)
+      CALL URNDM(0,M,FL)
+      WSUM = 0.0
+      DO 40 I=1,M
+      WSUM = WSUM + W(I)
+      PHI(I) = PHI(I)*2.*PI
+      FL(I) = FL(I)*(FLMAX-FLMIN) + FLMIN
+   40 CONTINUE
+      DO 50 I=1,M
+   50 W(I) = W(I)*C/WSUM
+   60 CONTINUE
+      WRITE (IFILE4,70)ISEG
+   70 FORMAT(// 47H COMPONENTS OF RANDOM IMPERFECTION FOR SEGMENT  I3//)
+      WRITE (IFILE4,80)
+   80 FORMAT(//67H    COMPONENT     AMPLITUDE      HALF-WAVELENGTH    PH
+     1ASE(RADIANS)               //)
+      DO 90 I=1,M
+   90 WRITE (IFILE4,100)I,W(I),FL(I),PHI(I)
+  100 FORMAT(I9,1P3E18.8)
+      DO 120 I=1,I5
+      WTOT(I) = 0.0
+      ARC = SEND + S(I)
+      WD = 0.0
+      WDD = 0.0
+      WDDD = 0.0
+      DO 110 J=1,M
+      ARG = PI/FL(J)
+      SI = SIN(ARG*ARC + PHI(J))
+      CO = COS(ARG*ARC + PHI(J))
+      WTOT(I) = WTOT(I) + W(J)*SI
+      WD = WD + W(J)*ARG*CO
+      WDD = WDD - W(J)*ARG**2*SI
+      WDDD = WDDD - W(J)*ARG**3*CO
+  110 CONTINUE
+      FACT = 1./SQRT(1.+ WD**2)
+      SPHI = R(I)*C2(I)
+      CPHI = RD(I)
+      FK1 = C1(I)
+      R(I) = R(I) + WTOT(I)*SPHI
+      RD(I) = FACT*(CPHI + WD*SPHI)
+      C1(I) = FK1-WDD
+      C1D(I) = C1D(I)-WDDD
+      IF (R(I).GT.0.) C2(I) = FACT*(SPHI - CPHI*WD)/R(I)
+  120 CONTINUE
+      NFLAG = 0
+      GO TO 220
+C
+C     IMPERFECTION IS SIMPLE SINE WAVE
+C
+  130 CONTINUE
+      SEND0 = 0.
+      IF (NFLAG.EQ.1) GO TO 140
+      CALL DATUM(IFILE2,139,1,1,INT,W0    ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,140,1,2,INT,WLNGTH,CHARAC,IOUT,0,1)
+C     SEND0 = WLNGTH/2.
+      SEND0 = 0.
+  140 ARG = PI/WLNGTH
+      WRITE (IFILE4,150)ISEG,W0,WLNGTH
+  150 FORMAT(//34H SINUSOIDAL IMPERFECTION, SEGMENT  I3,13H AMPLITUDE =
+     1 1PE12.4,19H HALF-WAVELENGTH =  1PE12.4    //)
+      DO 160 I=1,I5
+      ARC = S(I) + SEND - SEND0
+C BEG JAN 1991
+C  FOR ORIGIN OF ARC LENGTH AT THE BEGINNING OF THE CURRENT SEGMENT...
+C     ARC = S(I) - S(1)
+C END JAN 1991
+      SI = SIN(ARG*ARC)
+      CO = COS(ARG*ARC)
+      WTOT(I) = W0*SI
+      WD = W0*ARG*CO
+      WDD = - W0*ARG**2*SI
+      WDDD = -W0*ARG**3*CO
+      FACT = 1./SQRT(1.+ WD**2)
+      SPHI = R(I)*C2(I)
+      CPHI = RD(I)
+      FK1 = C1(I)
+      R(I) = R(I) + WTOT(I)*SPHI
+      Z(I) = Z(I) - WTOT(I)*CPHI
+      RD(I) = FACT*(CPHI + WD*SPHI)
+      C1(I) = FK1 - WDD*FACT**3
+      C1D(I) = C1D(I) - WDDD*FACT**2 + 3.*WD*WDD*WDD/FACT**2
+      IF (R(I).GT.0.) C2(I) = FACT*(SPHI - CPHI*WD)/R(I)
+      DS(I) = DS(I)/FACT
+  160 CONTINUE
+      NFLAG = 0
+      GO TO 220
+  170 CONTINUE
+C BEG DEC 1992
+C     DETERMINISTIC SUM OF SINUSOIDAL TERMS (1 DEC 1992)
+------------------------------------------------------------------------------
+
+
+NOTE: I must caution you that there is a chance that BOSOR4/BOSOR5 may
+"lock up" for imperfect shells with rather large amplitude or short
+wavelength imperfections. BOSOR4/BOSOR5 doesn't work properly if there are
+very significant changes in meridional curvature within a given segment.
+
+(See the BOSOR4/BOSOR5 handout entitled "BOSOR4 (or 5) PACKET - BOSOR4
+BOSOR5 WARNING")
+
+Of course, I tested BOSOR4/BOSOR5 for axisymmetrically imperfect
+cylindrical shells under axial compression, and everything seemed to work
+okay as long as the imperfection amplitude was less than a wall thickness
+and the meridional wavelength of the imperfection was at least as long as
+that of the axisymmetric buckling mode of the perfect shell. You should
+take BOSOR4/BOSOR5 imperfection stuff with a grain of salt, I think, both
+for the "element locking" reason and because an axisymmetric sinusoidal
+initial imperfection is rather strange and unlikely to occur in practice. 
+
+If you have any questions, please send email.
+
+-------------------- fragment of mcdon.OUT file resulting from --------------
+-------------------- "corrected" mcdon.ALL file. -------------------------
+
+         (omitted to save space).
+
+
+
+
+8. September, 1997
+A customer called and wanted an analysis of a tank completely filled with
+liquid. The tank was subjected to uniform external pressure plus
+nonuniform pressure distributions caused by quasi-static g-forces
+(accelerations) in both the axial and lateral directions. Until now the
+surface loading generated by this combination of pressures was not
+included in the BOSOR4-type of loading, in which it is assumed that for
+nonsymmetric pressure loading the spatial distribution of pressure can
+be expressed as the product, p(s,theta) = f(s)*g(theta).  BOSOR4 was
+modified to handle the new type of loading.
+
+It was necessary to introduce new entries into one of the prompting
+files, the one called PROMPT.DAT. The following new entries were introduced
+into PROMPT.DAT:
+-------------------------------------------------------------------------
+134.1 Is there a tank filled with fluid?
+134.2 
+      This section is entered only if there exists at least one
+      non-zero component of acceleration of gravity (axial, lateral,
+      or both), such as would be experienced by a payload in a
+      launch vehicle.
+
+      If you answer "Y" (you are allowed only one fluid-filled tank
+      per case!), you will next be asked to supply the following
+      information:
+
+       1. The WEIGHT density (e.g. lb/in**3) of the fluid, GAMMA
+       2. The axial length of the tank, AXLONG
+       3. The radius of the largest parallel circle in the tank, RBIG
+       4. The axial coordinate of the bottom of the tank, ZBEGIN
+       5. The segment numbers that comprise the tank, ISTANK(j),j=1,2,..
+       6. Whether the inside of the tank is on the left or right side
+          of the wall as you travel along the meridian.
+
+      NOTE: The tank is assumed to be completely full of the fluid.
+      BOSOR4 uses the above information plus the meridional geometry
+      of the tank and the axial and lateral g's, GAXIAL and GLATRL,
+      to which the tank is subjected to compute the pressure of the
+      fluid acting on the tank wall:
+
+      p(fluid) =
+        k*GAMMA{abs(GLATRL)*[RBIG -(GLATRL/abs(GLATRL))*r*cos(theta)]
+              +GAXIAL*[0.5*AXLONG*(1+GAXIAL/abs(GAXIAL)) -(z-ZBEGIN)]}
+
+      in which r is the radius of the parallel circle at z, z is the
+      axial coordinate of an arbitrary point on the tank meridian, and
+      theta is the circumferential coordinate. The factor k is +1.0 if
+      the inside of the tank is on the left side of the wall as you
+      travel along the meridian in the direction of increasing arc
+      length, s; k= -1.0 otherwise. (See p 66, bottom, of "BOSOR4:
+      Program for stress, buckling, and vibration of complex shells of
+      revolution", in STRUCTURAL MECHANICS SOFTWARE SERIES, Vol. 1,
+      N. Perrone and W. Pilkey, editors, Univ. Press of Virginia,
+      pp 11-141 (1974)).
+
+136.1 WEIGHT density (e.g. lb/in**3) of the fluid, GAMMA
+138.1 Axial length of the tank, AXLONG
+140.1 Radius of largest parallel circle in the tank, RBIG
+142.1 Axial coordinate of the bottom of the tank, ZBEGIN
+144.0 
+      Next, please provide the numbers of the segments of the tank wall
+      that "see" the normal pressure applied by the fluid.
+ 
+      NOTE: INCLUDE ONLY THOSE SEGMENTS THAT EXPERIENCE A DELTA-p
+            from the fluid across the wall!
+
+146.1 How many BOSOR4 segments in the tank "see" delta-p(fluid)?
+146.2 
+      NOTE: Include only those segments upon which a net fluid pressure
+            acts on the wall of the tank!
+
+148.1 Segment number, ISTANK
+149.1 Is the inside of the tank to the left of increasing arc, s?
+149.2 
+      The pressure of the fluid acting on the tank wall is given by:
+
+      p(fluid) =
+        k*GAMMA{abs(GLATRL)*[RBIG -(GLATRL/abs(GLATRL))*r*cos(theta)]
+              +GAXIAL*[0.5*AXLONG*(1+GAXIAL/abs(GAXIAL)) -(z-ZBEGIN)]}
+
+      in which r is the radius of the parallel circle at z, z is the
+      axial coordinate of an arbitrary point on the tank meridian, and
+      theta is the circumferential coordinate. The factor k is +1.0 if
+      the inside of the tank is on the left side of the wall as you
+      travel along the meridian in the direction of increasing arc
+      length, s; k= -1.0 otherwise. (See p 66, bottom, of "BOSOR4:
+      Program for stress, buckling, and vibration of complex shells of
+      revolution", in STRUCTURAL MECHANICS SOFTWARE SERIES, Vol. 1,
+      N. Perrone and W. Pilkey, editors, Univ. Press of Virginia,
+      pp 11-141 (1974)).
+      
+150.0 
+------------------------------------------------------------------------------
+
+The new entries in PROMPT.DAT explain the loading and give the formula for
+the normal pressure distribution on the tank wall generated by the axial
+and lateral quasi-static accelerations, GAXIAL and GLATRL. In order to
+implement the new capability in BOSOR4, I had to modify the following
+libraries: ARRAYS, B4READ, QUESTIONS, and STOGET. Note that there are
+new data entries, so that in the case when you have base motion your old
+BOSOR4 data decks will not work: at least one additional input datum will
+be required, the one called for by the following prompting question:
+
+             Is there a tank filled with fluid?
+
+The implementation was checked by modifying the case called "8.ALL" in
+the directory ...bosor4/case. The following new entries would appear in a
+modified "8.ALL" file directly following the two entries,
+    2      $ GLATRL = no. of g's lateral forcing (base excitation only)
+    0      $ GAXIAL = no. of g's axial forcing (base excitation only)
+New entries:
+---------------------------------------------------------------------------
+ Y         $ Is there a tank filled with fluid?
+ 0.0193    $ WEIGHT density (e.g. lb/in**3) of the fluid, GAMMA
+  100      $ Axial length of the tank, AXLONG
+    1      $ Radius of largest parallel circle in the tank, RBIG
+    0      $ Axial coordinate of the bottom of the tank, ZBEGIN
+    1      $ How many BOSOR4 segments in the tank "see" delta-p(fluid)?
+    1      $ Segment number, ISTANK( 1)
+ Y         $ Is the inside of the tank to the left of increasing arc, s?
+---------------------------------------------------------------------------
+The next (old) entry is:
+ H         $ CONSTRAINT CONDITIONS FOLLOW....
+
+
+
+9. September, 2000: BOSOR plotting capability on
+   SGI IRIX 6.** work station.
+The following letter was written on this subject:
+
+12 September, 2000
+
+Dear......
+
+While my son, Bill, was at Lockheed several years ago one
+of the things he did just before he left for greener
+pastures was to start working on the capability to get
+BOSOR4 plots working on an SGI with IRIX operating system with the
+64 bit architecture (IRIX 6.5, for example). This task
+was never completed. However, there are two programs in existence
+that might be helpful:
+
+    gawk.sgi8
+  plotps.sgi8
+
+I have just "ftp'd" these programs to ....
+
+Unfortunately, there is no xgraph.sgi8 file. However, I
+don't think the customer needs it as long as he always choose the "P"
+option in BOSORPLOT. The "gawk" and "plotps" programs are
+called from the script, bosorplot.bat, which is reproduced at
+the end of this message.
+
+NOTE TO BOSOR CUSTOMER:
+In order to try again to get bosor4 plots, replace the
+gawk.sgi and plotps.sgi files that you now have with the 
+gawk.sgi8 and plotps.sgi8 files
+(with the "sgi8" changed to "sgi"). I'm not sure this will
+work. 
+
+If it does not, then you will have to try something
+else: The BOSOR4 plot data are contained in the file, *.PLT2.
+You will have to write some software that uses the *.PLT2
+file as input and produces plots. This goes for BOSOR5 also.
+
+Sorry for the inconvenience. The IRIX 6.** operating system
+was working at Lockheed only just before my son, Bill
+Bushnell, left. He did not have a chance to finish his effort 
+getting the bosor programs completely working for this
+particular SGI workstation architecture (bosor plotting).
+Unfortunately, my knowledge of unix is insufficient to do
+this myself.
+
+Sincerely, 
+Dave Bushnell 
+
+
+
+------------- email from disgruntled BOSOR customer -------
+The programmes
+*	gawk.sgi
+*	xgraph.sgi
+are not running properly.
+
+The error message reads:
+
+"cannot execute binary file"
+
+Can you provide us with a working versions of mentioned programs?
+
+We run IRIX 6.5
+
+------------------- end of email to me ------
+
+
+
+------ username/bosor4/bin/bosorplot.bat script --------------
+
+#
+# bosorplot.bat
+# bosorplot.bat takes the name of a file containing a set of plot data.  The
+  (more bosorplot.bat omitted in order to save space here)
+-------- end of bosorplot.bat ------------
+
+
+
+10.July 2001
+During 1999 - 2000 a UNIX-based capability to incorporate
+BOSOR4 in an optimization context was generated. The results
+of this effort are reported in the following:
+
+David Bushnell, AUTOMATED OPTIMUM DESIGN OF SHELLS OF
+REVOLUTION WITH APPLICATION TO RING-STIFFENED CYLINDRICAL
+SHELLS WITH WAVY WALLS, Lockheed Martin Missiles and Space
+Report LMMS-P525674, November 1999
+
+David Bushnell, (same title, condensed version of report),
+Proceedings 41st AIAA Structures, Structural Dynamics and
+Materials meeting, AIAA Paper 2000-1663, April 2000
+
+As part of this project, the BOSOR4 capability was expanded
+to permit more shell segments, more discrete rings, and
+more degrees of freedom in both the prebuckling and buckling
+parts of the model (as well as in the nonsymmetric stress
+and modal vibration branches). However, in this project the
+BOSOR4 coding was introduced as a bundle of subroutines. A
+"stand-alone" version of the expanded BOSOR4 capability was
+not generated. 
+
+Now a "stand-alone" version of the expanded BOSOR4 has been
+created. It is called "BIGBOSOR4".
+
+Some of the original BOSOR4 commands have been changed,
+as follows:
+
+The old command:         has been changed to:
+   BOSOR4LOG                BIGBOSOR4LOG
+   BOSORALL                 BIGBOSORALL
+   RESTART                  BIGRESTART
+
+The other BOSOR4 commands remain unchanged.
+
+To get started, the user types the following two commands:
+
+   source ~bush/bigbosor4/bin/initialize
+
+and
+
+   bigbosor4log
+
+In the new BOSOR4 the three executable elements, BOSORREAD,
+BOSORMAIN, and BOSORPOST, have been combined into one
+large executable element, MAINB4. Rather than being main
+programs, the three elements, B4READ, B4MAIN, and B4POST are
+now subroutines called by MAINB4. 
+
+Dr. Frank Weiler created a new subroutine INTER. The old
+version of INTER (an interpolating routine) did not work
+properly on LINIX-based workstations.
+
+Dr. Weiler also provided a version of GAWK that runs on
+modern SGI workstations. Therefore, the modern SGI version
+of BOSOR4 will produce plots.
+
+In December, 2003 bigbosor4 was generated and checked for
+running on LINUX .
+
+
+
+11. 26 October, 2004
+The bigbosor4 mainprocessors, bigbosorall and bigrestart, could not
+handle cases with long names. Some of the libraries had not been updated
+with respect to the number of characters permitted in the name "case" or
+"CASE". The following libraries were updated: mainb4, addbosor4, opngen,
+and restart. The character variable "case" (or "CASE") was increased in
+length to 28 characters and the updated code was tested.
+
+12. 26 October, 2004
+A decision was made to change the script, .../bin/cleanup.com, because
+it was written in such a way as to destroy files that the user wanted
+to keep, especially when BOSOR4 is run in connection with cases generated
+by PANDA2. The new "cleanup" script follows:
+--------------------------------------------------------------------
+# THIS IS THE CLEANUP COM FILE...
+
+# THIS PROCEDURE IS FOR CLEARING OUT OLD FILES DURING TESTING. DO NOT
+# USE IT UNLESS YOUR 'NAME'.DOC FILE IS GOOD!!!
+ 
+   echo  "   "
+   echo  "This procedure clears out old files and replaces"
+   echo  "the 'NAME'.ALL file with the most recent 'NAME'.DOC"
+   echo  "file."
+   echo  "     "
+   echo  "WARNING:  DO NOT USE THIS PROCEDURE UNLESS YOU ARE"
+   echo  "          SURE THAT YOU HAVE A COMPLETE, GOOD "
+   echo  "          'NAME'.DOC FILE."
+   echo  "    "
+   echo -n  "Enter case name: "
+   set case = $<
+/bin/rm -f ${case}.BLK >& /dev/null
+/bin/rm -f ${case}.LAB >& /dev/null
+/bin/rm -f ${case}.OUT >& /dev/null
+/bin/rm -f ${case}.PLT2 >& /dev/null
+/bin/rm -f ${case}.RAN >& /dev/null
+/bin/rm -f ${case}.WAV >& /dev/null
+/bin/rm -f ${case}.m.ERR >& /dev/null
+   'rm'  $case FOR0* fort.* BIGBOSOR4 >& /dev/null
+   'cp'  ${case}.DOC  ${case}.ALL
+   echo  "    "
+   echo  "You now have the following files with the name"
+   echo  "${case}.* :"
+   'ls' -al  ${case}.*
+   echo  "If you want to get ${case}.SEG files, please type"
+   echo  ""
+   echo  "          getsegs"
+-----------------------------------------------------------------
+
+A sample of one of the new lines in "cleanup" is:
+
+/bin/rm -f ${case}.BLK >& /dev/null
+
+"cleanup" used to delete all the files generated in a BOSOR4 run.
+
+
+
+
+12. 1 November, 2004
+A rather serious bug was found in BOSOR4 that has to do with
+computations involving laminated composite walls with lamina
+laid up at various angles. In particular, SUBROUTINEs CFB4 and
+CFB9 had to be modified. CFB4 was modified as follows:
+---------------------------------------------------------------
+      SUBROUTINE CFB4(ISEG,IPOINT,RAD,NWALL,Z,I5,S,C,RADD,THERM,
+     1 T1,T2,T3,TIO)
+C
+C  OBTAIN CONSTITUTIVE LAW FOR COMPOSITE WALL WITH LAMINAE AT
+C  VARIOUS ANGLES WITH RESPECT TO THE MERIDIONAL COORDINATE.
+C
+C BEG OCT 2004
+      COMMON/ZGRAD/NTSGD
+C END OCT 2004
+      COMMON/LAYER/MATL(90),LTYPE(1500),T(90),ANGLE(90),NLAYER(95)
+
+   (many lines skipped to save space)
+
+  100 CONTINUE
+      Z1 = -Z
+      Z2 = Z1 + TD
+C BEG OCT 2004
+      NTSGD = 0
+C END OCT 2004
+      TIO(IPOINT,1) = FUNCT(T1,T2,T3,Z1)
+      TIO(IPOINT,2) = FUNCT(T1,T2,T3,Z2)
+--------------------------------------------------------------------
+
+SUBROUTINE CFB9 was modified as follows:
+--------------------------------------------------------------------
+  110 CONTINUE
+      Z1 = -Z
+      Z2 = Z1 + TD
+C BEG OCT 2004
+      NTSGD = 0
+C END OCT 2004
+      TIO(IPOINT,1) = FUNCT(T1,T2,T3,Z1)
+      TIO(IPOINT,2) = FUNCT(T1,T2,T3,Z2)
+---------------------------------------------------------------------
+The effect of the bug was to cause thermal loading to be wildly
+erroneous in multisegment shells if SUBROUTINE CFB2 or SUBROUTINE CFB5
+were called in a segment preceeding a segment with laminated composite
+construction. The thermal loads were erroneous becase the index NTSGD
+was not reset from segment to segment in such cases.
+
+
+13. February, 2008
+New files were added to the ...bosor4/doc directory;
+
+1. bosor4papers.tar	(a collection of published papers/reports about bosor4)
+2. bushnell.bio.pdf	(short biography/photograph of David Bushnell)
+3. howtorunlinux.pdf	(directions on how to get started)
+
+In order to "unpack" the compressed "tar" file, bosor4papers.tar, type the
+following command:
+
+tar xvf bosor4papers.tar
+
+This command will generate the following *.pdf files:
+
+-rw-r--r--   1 bush bush  2349718 Feb  9 13:29 1974bosor4.pdf
+-rw-r--r--   1 bush bush  7846088 Feb  8  2006 1981pitfalls.pdf
+-r--r--r--   1 bush bush  4017513 Feb  7 13:46 BIGBOSOR4-Vol-1.pdf
+-r--r--r--   1 bush bush  4367312 Feb  7 13:51 BIGBOSOR4-Vol-2.pdf
+-r--r--r--   1 bush bush  3309691 Feb  7 15:03 BIGBOSOR4-Vol-3.pdf
+-rw-r--r--   1 bush bush  2242182 Nov 20  2006 bosor4nikulari.pdf
+-rw-r--r--   1 bush bush  4695863 Dec  1  2005 governingequations.pdf
+-rw-r--r--   1 bush bush 11786187 Nov 24  2006 oldusersmanual.pdf
+-rw-r--r--   1 bush bush   439788 Jan 25  2006 prismaticshells.pdf
+
+The three files, BIGBOSOR4-Vol-1.pdf, BIGBOSOR4-Vol-2.pdf, BIGBOSOR4-Vol-3.pdf, are:
+
+ BIGBOSOR4-Vol-1.pdf  (first  third of Lockheed report LMMS P525674, Nov. 1999)
+ BIGBOSOR4-Vol-2.pdf  (second third of Lockheed report LMMS P525674, Nov. 1999)
+ BIGBOSOR4-Vol-3.pdf  (final  third of Lockheed report LMMS P525674, Nov. 1999)
+
+
+
+
+14.

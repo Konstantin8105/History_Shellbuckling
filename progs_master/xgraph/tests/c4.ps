@@ -1,0 +1,392 @@
+%!
+% Xgraph postscript output
+% Rick Spickelmier and David Harrison
+% University of California, Berkeley
+%
+% Scaling information
+%
+% Change these if you would like to change the
+% centering of the plot in either dimension
+/X-CENTER-PLOT 1 def
+/Y-CENTER-PLOT 1 def
+% Set the initial scale factors
+/x-factor 0.06 def
+/y-factor 0.06 def
+% plot size in (cm)
+/plot-width  10200 x-factor mul def
+/plot-height 13200 y-factor mul def
+/plot-ratio  plot-width plot-height div def
+% page size in (cm)
+/page-width  612 def
+/page-height 792 def
+/page-ratio  page-width page-height div def
+% original drawing area
+/area-width  391 def
+/area-height 792 def
+/area-ratio area-width  area-height div def
+%
+% Determine whether rotation is required
+% --------------------------------------
+area-width area-height gt
+{ % Rotation required
+   90 rotate
+   0 plot-width neg translate
+   % Handle centering
+   Y-CENTER-PLOT 1 eq { % Center in y
+      0
+   } { % Don't center in y
+      0
+   } ifelse
+   X-CENTER-PLOT 1 eq { % Center in x
+      plot-width area-height sub 2 div
+   } { % Don't center in x
+      0
+   } ifelse
+   translate
+} { % No rotation - just handle centering
+   X-CENTER-PLOT 1 eq { % Center in x
+      plot-width area-width sub 2 div
+   } { % Don't center in x
+      0
+   } ifelse
+   Y-CENTER-PLOT 1 eq { % Center in y
+      0
+   } { % Don't center in y
+      0
+   } ifelse
+   translate
+} ifelse
+% Set the scale
+% -------------
+x-factor y-factor scale
+% Font Handling Functions
+%
+% Function giving y-offset to center of font
+% Assumes font is set and uses numbers to gauge center
+%
+/choose-font	% stack: fontsize fontname => ---
+{
+   findfont 
+   exch scalefont 
+   setfont
+   newpath
+   0 0 moveto (0) true charpath flattenpath pathbbox
+   /top exch def pop
+   /bottom exch def pop
+   bottom top bottom top add 2 div
+   /center-font-val exch def 
+   /upper-font-val exch def 
+   /lower-font-val exch def
+} def
+%
+% Justfication offset routines
+%
+/center-x-just	% stack: (string) x y => (string) newx y
+{
+   exch 2 index stringwidth pop 2 div sub exch
+} def
+%
+/left-x-just	% stack: (string) x y => (string) newx y
+{ 
+} def
+%
+/right-x-just	% stack: (string) x y => (string) newx y
+{
+   exch 2 index stringwidth pop sub exch
+} def
+%
+/center-y-just	% stack: (string) x y => (string) x newy
+{
+   center-font-val sub
+} def
+%
+/lower-y-just	% stack: (string) x y => (string) x newy
+{
+   lower-font-val sub
+} def
+%
+/upper-y-just	% stack: (string) x y => (string) x newy
+{
+   upper-font-val sub
+} def
+%
+% Shows a string on the page subject to justification
+%   
+/just-string	% stack: (string) x y just => ---
+{
+   dup 0 eq { pop center-x-just center-y-just 		} if
+   dup 1 eq { pop left-x-just center-y-just		} if
+   dup 2 eq { pop left-x-just upper-y-just	 	} if
+   dup 3 eq { pop center-x-just upper-y-just 		} if
+   dup 4 eq { pop right-x-just upper-y-just	 	} if
+   dup 5 eq { pop right-x-just center-y-just 		} if
+   dup 6 eq { pop right-x-just lower-y-just	 	} if
+   dup 7 eq { pop center-x-just lower-y-just  		} if
+   dup 8 eq { pop left-x-just lower-y-just	 	} if
+   moveto show
+} def
+%
+% Marker definitions
+/mark0 {/size exch def /y exch def /x exch def
+newpath x size sub y size sub moveto
+size size add 0 rlineto 0 size size add rlineto
+0 size size add sub 0 rlineto closepath fill} def
+/mark1 {/size exch def /y exch def /x exch def
+newpath x size sub y size sub moveto
+size size add 0 rlineto 0 size size add rlineto
+0 size size add sub 0 rlineto closepath stroke} def
+/mark2 {/size exch def /y exch def /x exch def
+newpath x y moveto x y size 0 360 arc stroke} def
+/mark3 {/size exch def /y exch def /x exch def
+newpath x size sub y size sub moveto x size add y size add lineto
+x size sub y size add moveto x size add y size sub lineto stroke} def
+/mark4 {/size exch def /y exch def /x exch def
+newpath x size sub y moveto x y size add lineto
+x size add y lineto x y size sub lineto
+closepath stroke} def
+/mark5 {/size exch def /y exch def /x exch def
+x y size mark1
+newpath x size sub y moveto size size add 0 rlineto stroke} def
+/mark6 {/size exch def /y exch def /x exch def
+newpath x y moveto x y size 0 360 arc fill} def
+/mark7 {/size exch def /y exch def /x exch def
+newpath x y moveto x size sub y size sub lineto
+x size add y size sub lineto closepath fill
+newpath x y moveto x size add y size add lineto
+x size sub y size add lineto closepath fill} def
+%
+% Main body begins here
+%
+0 setgray
+300 /Times-Bold choose-font
+(X Graph Title) 3366 12840 0 just-string
+200 /Times-Roman choose-font
+(cnt) 6002 12232 2 just-string
+(avg) 6002 11940 2 just-string
+1 setlinewidth
+[] 0 setdash
+newpath
+  6002 12264 moveto
+  6332 12264 lineto
+stroke
+[25] 0 setdash
+newpath
+  6002 11972 moveto
+  6332 11972 lineto
+stroke
+(Y-Axis x 10) 1355 12530 5 just-string
+(2) 1410 12530 8 just-string
+(X-Axis) 3366 436 0 just-string
+(0.960) 709 966 5 just-string
+(1.000) 709 1629 5 just-string
+(1.040) 709 2292 5 just-string
+(1.080) 709 2954 5 just-string
+(1.120) 709 3617 5 just-string
+(1.160) 709 4280 5 just-string
+(1.200) 709 4943 5 just-string
+(1.240) 709 5606 5 just-string
+(1.280) 709 6269 5 just-string
+(1.320) 709 6931 5 just-string
+(1.360) 709 7594 5 just-string
+(1.400) 709 8257 5 just-string
+(1.440) 709 8920 5 just-string
+(1.480) 709 9583 5 just-string
+(1.520) 709 10246 5 just-string
+(1.560) 709 10908 5 just-string
+(1.600) 709 11571 5 just-string
+(1.640) 709 12234 5 just-string
+(0.00) 931 586 7 just-string
+(20.00) 2149 586 7 just-string
+(40.00) 3366 586 7 just-string
+(60.00) 4584 586 7 just-string
+(80.00) 5802 586 7 just-string
+[] 0 setdash
+0 setlinewidth
+newpath
+  859 966 moveto
+  5874 966 lineto
+stroke
+newpath
+  859 1629 moveto
+  5874 1629 lineto
+stroke
+newpath
+  859 2292 moveto
+  5874 2292 lineto
+stroke
+newpath
+  859 2954 moveto
+  5874 2954 lineto
+stroke
+newpath
+  859 3617 moveto
+  5874 3617 lineto
+stroke
+newpath
+  859 4280 moveto
+  5874 4280 lineto
+stroke
+newpath
+  859 4943 moveto
+  5874 4943 lineto
+stroke
+newpath
+  859 5606 moveto
+  5874 5606 lineto
+stroke
+newpath
+  859 6269 moveto
+  5874 6269 lineto
+stroke
+newpath
+  859 6931 moveto
+  5874 6931 lineto
+stroke
+newpath
+  859 7594 moveto
+  5874 7594 lineto
+stroke
+newpath
+  859 8257 moveto
+  5874 8257 lineto
+stroke
+newpath
+  859 8920 moveto
+  5874 8920 lineto
+stroke
+newpath
+  859 9583 moveto
+  5874 9583 lineto
+stroke
+newpath
+  859 10246 moveto
+  5874 10246 lineto
+stroke
+newpath
+  859 10908 moveto
+  5874 10908 lineto
+stroke
+newpath
+  859 11571 moveto
+  5874 11571 lineto
+stroke
+newpath
+  859 12234 moveto
+  5874 12234 lineto
+stroke
+[] 0 setdash
+0 setlinewidth
+newpath
+  931 894 moveto
+  931 12306 lineto
+stroke
+[] 0 setdash
+0 setlinewidth
+newpath
+  2149 894 moveto
+  2149 12306 lineto
+stroke
+newpath
+  3366 894 moveto
+  3366 12306 lineto
+stroke
+newpath
+  4584 894 moveto
+  4584 12306 lineto
+stroke
+newpath
+  5802 894 moveto
+  5802 12306 lineto
+stroke
+[] 0 setdash
+8 setlinewidth
+0 13200 24 mark0
+6518 13200 24 mark0
+6518 0 24 mark0
+0 0 24 mark0
+0 setlinewidth
+[] 0 setdash
+newpath
+  992 7097 moveto
+  1053 1463 lineto
+  1114 5440 lineto
+  1175 4446 lineto
+  1235 7760 lineto
+  1296 1960 lineto
+  1357 5937 lineto
+  1418 4114 lineto
+  1479 2623 lineto
+  1540 4114 lineto
+  1601 5440 lineto
+  1662 4777 lineto
+  1723 2457 lineto
+  1783 11903 lineto
+  1844 3949 lineto
+  1905 3286 lineto
+  1966 2457 lineto
+  2027 3120 lineto
+  2088 2954 lineto
+  2149 4446 lineto
+  2210 5274 lineto
+  2271 3120 lineto
+  2331 1795 lineto
+  2392 4612 lineto
+  2453 3120 lineto
+  2514 3783 lineto
+  2575 4114 lineto
+  2636 5606 lineto
+  2697 5771 lineto
+  2758 4612 lineto
+  2819 3617 lineto
+  2879 4114 lineto
+  2940 3286 lineto
+  3001 2457 lineto
+  3062 6931 lineto
+  3123 3452 lineto
+  3184 3783 lineto
+  3245 2789 lineto
+  3306 7097 lineto
+  3366 3286 lineto
+  3427 1463 lineto
+  3488 5937 lineto
+  3549 6600 lineto
+  3610 3617 lineto
+  3671 4777 lineto
+  3732 3949 lineto
+  3793 3286 lineto
+  3854 3452 lineto
+  3914 5109 lineto
+  3975 2457 lineto
+  4036 5274 lineto
+  4097 2126 lineto
+  4158 3286 lineto
+  4219 4280 lineto
+  4280 2954 lineto
+  4341 2954 lineto
+  4402 2623 lineto
+  4462 4114 lineto
+  4523 2126 lineto
+  4584 3783 lineto
+  4645 6103 lineto
+  4706 4943 lineto
+  4767 4114 lineto
+  4828 2623 lineto
+  4889 3120 lineto
+  4950 2789 lineto
+  5010 2623 lineto
+  5071 1960 lineto
+  5132 2292 lineto
+  5193 2126 lineto
+  5254 4612 lineto
+  5315 3949 lineto
+  5376 3783 lineto
+  5437 4943 lineto
+  5498 4446 lineto
+stroke
+[25] 0 setdash
+newpath
+  992 3906 moveto
+  5498 3906 lineto
+stroke
+showpage
+% End of xgraph output

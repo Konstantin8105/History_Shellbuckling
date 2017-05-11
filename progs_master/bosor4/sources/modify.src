@@ -1,0 +1,449 @@
+C=DECK      MODIFY
+      PROGRAM MODIFY
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C
+C  PURPOSE IS TO PERMIT USER TO MODIFY SEGMENT DATA VIA KEY PHRASES.
+C
+      CHARACTER*1 ANS, upcase
+      CHARACTER*33 VNAME
+      character*28 case
+c
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C
+#if hp700
+      call getarg(2, case)
+#else
+      call getarg(1, case)
+#endif
+C
+      NLET = INDEX(CASE,' ') - 1
+      IF (NLET.LE.0) NLET = LEN(CASE)
+      WRITE(6,10) CASE(:NLET),CASE(:NLET),CASE(:NLET)
+   10 FORMAT(/' You can generate new input data for part of one or'/
+     1' more of your ',A,'.SEGn files by answering questions in an'/
+     1' interactive mode. (See HELP4 COMMAND MODIFY). This'/
+     1' interactive session produces a file called *.QUE, in which *'/
+     1' stands for a keyword such as MESH, GEOM, LINELOADS, DISTLOADS'/
+     1' etc. The *.QUE file is then automatically inserted in the'/
+     1' proper location in the ',A,'.SEGn file, where n is an integer'/
+     1' chosen by you later to indicate one of the structural segments'/
+     1' or part of the global data which follow the segment data.'//
+     1' You may have previously generated a *.QUE file that you want'/
+     1' to insert in many different ',A,'.SEGm files. If so, you can'/
+     1' now bypass the interactive session by answering the next'/
+     1' question N .'/)
+C
+      ICATEG = 0
+      WRITE(6,'(1X,A)')' Do you want to bypass the interactive input'
+      WRITE(6,'(1X,A,$)')' stage (Please answer Y or N)? '
+      READ(5,'(A)') ANS
+      IF (upcase(ANS).EQ.'Y') GO TO 20
+C
+      CALL QUEST(CASE,ICATEG)
+C
+   20 CONTINUE
+C
+      CALL EDSEG(CASE,ICATEG,IKIND,VNAME,NLETV)
+C
+      WRITE(6,'(1X,A,A,A,$)')
+     1 ' Want to check the new ',VNAME(1:NLETV),' file (Y or N)? '
+      READ(5,'(A)') ANS
+      IF (upcase(ANS).EQ.'N') GO TO 50
+      IF (IKIND.EQ.1) CALL SEGMT(CASE)
+      IF (IKIND.EQ.2) CALL BOUNDY(CASE)
+   50 CONTINUE
+C
+      WRITE(6,100) VNAME(1:NLETV),CASE,CASE
+  100 FORMAT(///' MODIFY appears to have been successful. Next, you'/
+     1' may do another MODIFY on the latest version of ',A,' or you'/
+     1' may MODIFY other ',A,'.SEG files, or you may reassemble an'/
+     1' updated ', A,'.ALL file via the ASSEMBLE command.'/)
+c
+C BEG JULY 1989
+C     CLOSE(7)
+C     CLOSE(25)
+C     CLOSE(26)
+C     CLOSE(27)
+C END JULY 1989
+      END
+C
+C
+C
+C=DECK      EDITSEG
+C
+      SUBROUTINE EDSEG(CASE,ICATEG,IKIND,VNAME,NLETV)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C   PURPOSE IS TO MODIFY 'NAME'.ISEG FILE BY INSERTING SECTION THAT
+C   IS OUTPUT FROM "QUESTIONS".
+C
+C   OLD FILE = CNAME.SEG           (IUSEG)
+C   QUESTIONS FILE = QNAME.QUE     (IUQUE)
+C   NEW FILE = CNAME.NEW           (IUNEW)
+C
+      CHARACTER*80 PHRASE
+      CHARACTER*33 VNAME,VNAM2,VNAM3
+      CHARACTER*65 KEY1,KEY2
+      CHARACTER*15 KEYBND
+      CHARACTER*2 CN
+      CHARACTER*28 CASE
+C
+C BEG JULY 1989
+C  VAX VERSION OPEN STATEMENT...
+C        OPEN(UNIT=10,FILE='FOR010.DAT',STATUS='SCRATCH')
+C UNIX VERSION OPEN STATEMENT...
+         OPEN(UNIT=10,STATUS='SCRATCH')
+C END JULY 1989
+C
+C   OPEN VARIOUS FILES AND ESTABLISH KEY WORDS FOR SEARCHING FILE
+C   CNAME.SEG TO FIND REGION TO BE CHANGED...
+C
+      CALL CNAMES(IUQUE,IUSEG,IUNEW,VNAME,VNAM2,VNAM3,KEY1,KEY2,IKIND,
+     1            ISEG,ITYPE,CASE,ICATEG)
+C
+C   FIND KEYWORD AT BEGINNING OF CONSTRAINT SEGMENT TO BE REPLACED...
+C
+      IF (ITYPE.EQ.11) THEN
+        IF (ISEG.GE.10) THEN
+         WRITE(CN,'(I2)') ISEG
+         KEYBND = '   '//CN//'   '//CN//'   '//CN
+        ELSE
+         WRITE(CN,'(I1)') ISEG
+         KEYBND = '    '//CN(1:1)//'    '//CN(1:1)//'    '//CN(1:1)
+        ENDIF
+C
+C    COPY OLD FILE TO NEW FILE UP TO SEGMENT NUMBER OF CONSTRAINT MOD.
+C
+        WRITE(6,7) KEYBND
+    7   FORMAT(/' SEGMENT FOR CONSTRAINT MOD= ',A)
+        DO 10 I = 1,10000
+        READ(IUSEG,'(A)',END=15) PHRASE
+        ILET = INDEX(PHRASE,KEYBND)
+        CALL BLANKX(PHRASE,J)
+        WRITE(IUNEW,'(A)') PHRASE(:J)
+        IF (ILET.NE.0) GO TO 20
+   10   CONTINUE
+   15   CONTINUE
+        WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+        WRITE(6,'(A,A)')' Starting key phrase=',KEYBND
+        WRITE(6,*)' FILE NOT MODIFIED.'
+        CALL ERREX
+   20   CONTINUE
+C
+      ENDIF
+C
+      NLET = INDEX(KEY1,'  ') - 1
+      IF (NLET.LE.0) NLET = LEN(KEY1)
+      MLET = INDEX(KEY2,'  ') - 1
+      IF (MLET.LE.0) MLET = LEN(KEY2)
+C
+      WRITE(6,30) VNAME,VNAM3,KEY1(:NLET),KEY2(:MLET)
+   30 FORMAT(/' FILE THAT WAS MODIFIED     = ',A/
+     1        ' FILE CONTAINING NEW INSERT = ',A/
+     1        ' BEGINNING KEY PHRASE       = ',A/
+     1        ' ENDING    KEY PHRASE       = ',A/)
+C
+C   DIAGNOSTICS...
+C
+      IF (ITYPE.EQ.13.AND.ISEG.NE.1) THEN
+          WRITE(6,*)'  '
+          WRITE(6,*)' GLOBAL1.QUE CAN ONLY BE USED WITH SEGMENT 1.'
+          WRITE(6,*)'  '
+          CALL ERREX
+      ENDIF
+C
+      IF (ITYPE.LE.10.AND.IKIND.EQ.2) THEN
+          WRITE(6,*)'  '
+          WRITE(6,*)' NEW INSERT ',VNAM3(:13),
+     1    ' CAN BE USED ONLY TO MODIFY A STRUCTURAL SEGMENT FILE.'
+          WRITE(6,*)'  '
+          CALL ERREX
+      ENDIF
+C
+      IF (ITYPE.EQ.11.OR.ITYPE.EQ.12.OR.ITYPE.EQ.14.OR.ITYPE.EQ.15)THEN
+          IF (IKIND.EQ.1) THEN
+             WRITE(6,*)'  '
+             WRITE(6,*)' NEW INSERT ',VNAM3(:13),
+     1               ' CAN ONLY BE USED WITH A GLOBAL/CONSTRAINT FILE.'
+             WRITE(6,*)'  '
+             CALL ERREX
+          ENDIF
+      ENDIF
+C
+      IF (ITYPE.EQ.13) GO TO 50
+C
+      DO 40 I = 1,10000
+      READ(IUSEG,'(A)',END=45) PHRASE
+      ILET = INDEX(PHRASE,KEY1(:NLET))
+      CALL BLANKX(PHRASE,J)
+      WRITE(IUNEW,'(A)') PHRASE(:J)
+      IF (ILET.NE.0) GO TO 50
+   40 CONTINUE
+   45 CONTINUE
+      WRITE(6,*)' STARTING KEY PHRASE NOT FOUND.'
+      WRITE(6,'(A,A)')' Starting key phrase=',KEY1(:NLET)
+      WRITE(6,*)' FILE NOT MODIFIED.'
+      CALL ERREX
+   50 CONTINUE
+C
+C  NEXT, READ QNAME.QUE ONTO NEW FILE...
+C
+      DO 60 I = 1,10000
+      READ(IUQUE,'(A)',END=70) PHRASE
+      CALL BLANKX(PHRASE,J)
+      IF (I.GT.1.OR.ITYPE.EQ.13) WRITE(IUNEW,'(A)') PHRASE(:J)
+   60 CONTINUE
+   70 CONTINUE
+C
+C  NEXT, POSITION THE OLD FILE, CNAME.SEG, TO THE 2ND KEY WORD...
+C
+      IF (ITYPE.EQ.15) GO TO 120
+      DO 80 I = 1,10000
+      READ(IUSEG,'(A)',END=85) PHRASE
+      ILET = INDEX(PHRASE,KEY2(:MLET))
+      CALL BLANKX(PHRASE,J)
+      IF (ILET.NE.0) GO TO 90
+   80 CONTINUE
+   85 CONTINUE
+      WRITE(6,*)' ENDING KEY WORD NOT FOUND.'
+      WRITE(6,'(A,A)')' Ending key word=',KEY2(:MLET)
+      WRITE(6,*)' FILE NOT MODIFIED.'
+      CALL ERREX
+   90 CONTINUE
+      WRITE(IUNEW,'(A)') PHRASE(:J)
+C
+C  NEXT, COPY REST OF THE FILE CNAME.ISEG ONTO THE NEW FILE CNAME.NEW
+C
+      DO 100 I = 1,10000
+      READ(IUSEG,'(A)',END=120) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(IUNEW,'(A)') PHRASE(:J)
+  100 CONTINUE
+  120 CONTINUE
+C
+      CLOSE(UNIT=25,STATUS='KEEP')
+C
+C  OPEN STATEMENT FOR VAX/VMS VERSION...
+C     OPEN(UNIT=25,FILE=VNAME,STATUS='NEW')
+C
+C  OPEN STATEMENT FOR UNIX VERSION...
+      OPEN(UNIT=25,FILE=VNAME,STATUS='OLD')
+#if rs6k
+        rewind(25)
+#endif
+C
+      REWIND IUNEW
+      REWIND IUSEG
+C
+      DO 300 I = 1,10000
+         III = I
+         READ(IUNEW,'(A)',ERR=400,END=500) PHRASE
+         WRITE(IUSEG,'(A)') PHRASE
+  300 CONTINUE
+  400 CONTINUE
+      WRITE(6,'(1X,A,A)')' ERROR READING FILE ',VNAM2
+      WRITE(6,'(A,A,A,A)')' Input file=',VNAM2,', Output file=',VNAME
+      WRITE(6,'(A,I3)')' Line number=',III
+      WRITE(6,'(A)') PHRASE
+      CALL EXIT
+  500 CONTINUE
+      NLET = INDEX(VNAME,' ') - 1
+      IF (NLET.LE.0) NLET = LEN(VNAME)
+      WRITE(6,140) VNAME(:NLET)
+      NLETV = NLET
+  140 FORMAT(/' You now have a new BOSOR4 segment file,',A)
+      REWIND IUSEG
+C
+      END
+C=DECK      CNAMES
+      SUBROUTINE CNAMES(IUQUE,IUSEG,IUNEW,VNAME,VNAM2,VNAM3,KEY1,KEY2,
+     1                  IKIND,ISEG,ITYPE,CNAME,ICATEG)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C   PURPOSE IS TO OPEN CNAME.SEG, QNAME.QUE, AND CNAME.NEW AND TO
+C   ESTABLISH KEYWORD (KEY2) WHICH REPRESENTS THE FIRST LINE OF THE
+C   FILE (CNAME.NEW) FOLLOWING THE SECTION OF THE OLD FILE (CNAME.SEG)
+C   TO BE DELETED.
+C   ALSO, ESTABLISH KEYWORD (KEY1), THE FIRST LINE OF THE OLD FILE
+C   TO BE DELETED.
+C   CNAME.SEG IS ASSIGNED TO UNIT 25
+C   QNAME.QUE IS ASSIGNED TO UNIT 26
+C   CNAME.NEW IS ASSIGNED TO UNIT 27
+C
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INDAT/INFILE
+      CHARACTER*33 VNAME, CNAME, FNAM2, QNAME, VNAM2,VNAM3     
+      character*2 CN
+      CHARACTER *65 KEY1,KEY2
+      CHARACTER*4 CHARAC
+C
+      INFILE = 5
+      IFILE3 = 7  
+C
+C  OPEN STATEMENT FOR VAX/VMS VERSION...
+C     OPEN(UNIT=7,FILE='BOSOR4:PROMPT3.DAT',STATUS='OLD',READONLY)
+C
+C  OPEN STATEMENT FOR UNIX VERSION...
+      OPEN(UNIT=IFILE3,FILE='PROMPT3.DAT',STATUS='OLD')
+#if rs6k
+      rewind(IFILE3)
+#endif
+C     
+      REWIND IFILE3
+      CALL DATUM(IFILE3,555,1,2,IKIND,REALL,CHARAC,10,0,1)
+      IF(IKIND.EQ.1)CALL DATUM(IFILE3,570,1,1,ISEG,REALL,CHARAC,10,0,1)
+      IF(IKIND.EQ.2)CALL DATUM(IFILE3,580,1,1,NSEG,REALL,CHARAC,10,0,1)
+C
+      N = ISEG
+      IF (IKIND.EQ.2) N = NSEG+1
+      IF(N.GE.10) THEN
+         WRITE(CN,'(I2)') N
+      ELSE
+         WRITE(CN,'(I1)') N
+      ENDIF
+C
+      I=INDEX(CNAME,' ')
+      IF(I.NE.0) THEN   
+         VNAME=CNAME(:I-1)//'.SEG'//CN  
+         VNAM2=CNAME(:I-1)//'.NEW'  
+      ELSE  
+         VNAME=CNAME//'.SEG'//CN  
+         VNAM2=CNAME//'.NEW'  
+      ENDIF 
+C
+      REWIND IFILE3
+      IF (ICATEG.EQ.0) THEN
+         CALL DATUM(IFILE3,300,0,0,INT,REALL,CHARAC,10,0,1)
+         CALL DATUM(IFILE3,320,1,1,ITYPE,REALL,CHARAC,10,0,1)
+      ELSE
+         ITYPE = ICATEG
+      ENDIF
+      IF (ITYPE.EQ.11)
+     1 CALL DATUM(IFILE3,575,1,1,ISEG,REALL,CHARAC,10,0,1)
+C
+      GO TO (5,10,20,15,25,30,35,40,45,50,55,60,65,70,75),ITYPE
+C
+    5 QNAME ='MESH'
+      KEY1  ='NODAL POINT DISTRIBUTION'
+      KEY2='REFERENCE SURFACE GEOMETRY'
+      GO TO 100
+   10 QNAME ='GEOM'
+      KEY1  ='REFERENCE SURFACE GEOMETRY'
+      KEY2='IMPERFECTION SHAPE'
+      GO TO 100
+   15 QNAME ='IMPERF'
+      KEY1='IMPERFECTION SHAPE'
+      KEY2='REFERENCE SURFACE LOCATION'
+      GO TO 100
+   20 QNAME ='REFSURF'
+      KEY1='REFERENCE SURFACE LOCATION'
+      KEY2='DISCRETE RING'
+      GO TO 100
+   25 QNAME ='RINGS'
+      KEY1='DISCRETE RING'
+      KEY2='K=elastic foundation'
+      GO TO 100
+   30 QNAME ='LINELOADS'
+      KEY1  ='LINE LOAD INPUT'
+      KEY2='DISTRIBUTED LOAD'
+      GO TO 100
+   35 QNAME ='DISTLOADS'
+      KEY1='DISTRIBUTED LOAD'
+      KEY2='SHELL WALL CONSTRUCTION'
+      GO TO 100
+   40 QNAME ='WALL'
+      KEY1='SHELL WALL CONSTRUCTION'
+      KEY2='distributed loads along meridian'
+      GO TO 100
+   45 QNAME ='SMEARED'
+      KEY1  ='SMEARED STIFFENER'
+      KEY2='C(i,j) at meridional stations'
+      GO TO 100
+   50 QNAME ='PRESTRESS'
+      KEY1  ='PREBUCKLING RESULTANTS'
+      KEY2='SHELL WALL CONSTRUCTION'
+      GO TO 100
+   55 QNAME ='CONSTRAIN'
+      KEY1 = 'POLES INPUT'
+      KEY2 = 'CONSTRAINT CONDITIONS FOR SEGMENT NO.'
+      IF (ISEG.EQ.NSEG)
+     1KEY2='RIGID BODY CONSTRAINT'
+      GO TO 100
+   60 QNAME ='RIGIDBODY'
+      KEY1='RIGID BODY CONSTRAINT'
+      KEY2='"GLOBAL3" QUESTIONS'
+      GO TO 100
+   65 QNAME ='GLOBAL1'
+      KEY1='TITLE'
+      KEY2='SEGMENT NUMBER  '
+      GO TO 100
+   70 QNAME ='GLOBAL2'
+      KEY1='GLOBAL DATA BEGINS'
+      KEY2='CONSTRAINT CONDITIONS FOR SEGMENT NO.'
+      GO TO 100
+   75 QNAME ='GLOBAL3'
+      KEY1  ='"GLOBAL3" QUESTIONS'
+      KEY2='END OF CASE'
+  100 CONTINUE
+C
+      I=INDEX(QNAME,' ')
+      IF (I.NE.0) THEN
+         VNAM3=QNAME(:I-1)//'.QUE'
+      ELSE
+         VNAM3=QNAME//'.QUE'  
+      ENDIF 
+C     
+      OPEN(UNIT=25,FILE=VNAME,STATUS='OLD')
+#if rs6k
+        rewind(25)
+#endif
+      OPEN(UNIT=26,FILE=VNAM3,STATUS='OLD')
+#if rs6k
+        rewind(26)
+#endif
+      OPEN(UNIT=27,STATUS='SCRATCH')
+C     
+      IUSEG = 25   
+      IUQUE = 26   
+      IUNEW = 27   
+C     
+      RETURN
+      END   
+C=DECK      BLANKX
+      SUBROUTINE BLANKX(PHRASE,J)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C   PURPOSE IS TO REMOVE TRAILING BLANKS FROM PHRASE
+C
+      CHARACTER*80 PHRASE
+C
+      LENGTH = LEN(PHRASE)
+      DO 20 K = LENGTH,1,-1
+      J = K
+      IF (PHRASE(K:K).NE.' ') GO TO 30
+   20 CONTINUE
+   30 CONTINUE
+      RETURN
+      END

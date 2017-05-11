@@ -1,0 +1,1506 @@
+
+
+
+trusscomp.runstream
+
+The following references apply here:
+
+  REFERENCE [1]:
+ "Use of GENOPT and BIGBOSOR4 to obtain optimum designs
+  of an axially compressed cylindrical shell with a
+  composite truss-core sandwich wall", David Bushnell
+  and Charles Rankin, AIAA Paper 2010-xxxx, 52nd AIAA
+  structures meeting, Denver, CO, April 2011.
+  NOTE: The references to figure numbers are from that
+  paper. This is Reference [1] referred to below.
+
+  REFERENCE [3] cited in Reference [1]:
+ "Use of GENOPT and BIGBOSOR4 to obtain optimum designs
+  of a cylindrical shell with a composite truss-core
+  sandwich wall", David Bushnell, June 20, 2009
+
+
+(NOTE: This file was created in 2009 and
+pertains to the specific case called "test" [3],
+not to the specific case called "nasatruss2" [1].
+At that time (2009) there was no "true prismatic
+shell" formulation in BIGBOSOR4, only the "huge
+torus" model. Hence, the wave number ranges
+in the BIGBOSOR4 results are very different from
+those in the "nasatruss2" case (Table 3, for example).
+Don't worry about that; it's the sequence of
+commands that matters here, not the numerical results.
+The run stream is essentially the same now as
+it was in 2009.)
+
+
+RUNSTREAM USED TO PRODUCE THE OPTIMUM DESIGN
+OF THE TRUSS-CORE SANDWICH CYLINRICAL SHELL
+UNDER AXIAL COMPRESSION
+
+[In this case the GENOPT user (the writer) selected
+ "trusscomp" for the GENERIC case name and "test"
+ for the SPECIFIC case name. The case is run in the
+ directory, ../home/progs/genoptcase, in which
+ "/home/progs" is the PARENT directory of GENOPT,
+ BIGBOSOR4, PANDA2, etc. At your facility, replace
+ the string, /home/progs with whatever directory is
+ the PARENT directory of GENOPT, BIGBOSOR4, etc. where
+ you are using GENOPT.]
+
+cd /home/progs/genoptcase
+
+genoptlog	(activate GENOPT command set)
+
+(The command, "genoptlog", produces the following screen:
+--------------------------------------------------------------
+GENOPT commands have been activated.
+
+  gentext      GENOPT user generates a prompt file.
+  genprograms  GENOPT user generates (makes) executables:
+               begin, decide, mainsetup, optimize,
+               change, chooseplot, and diplot.
+  begin        End user provides starting data.
+  decide       End user chooses decision variables, bounds,
+               linked variables, and inequality constraints.
+  mainsetup    End user sets up strategy parameters.
+  optimize     End user performs optimization.
+  change       End user changes some parameters.
+  autochange   New values for decision variables randomly
+  superopt     End user find global optimum (autochange/optimize)...
+  chooseplot   End user chooses which variable to plot vs.
+               iterations.
+  diplot       End user plots variables vs. iterations.
+  insert       GENOPT user adds parameters to the problem.
+  cleangen     GENOPT user cleans up GENeric case files.
+  cleanspec    End user cleans up SPECific case files.
+----------------------------------------------------------------
+
+gentext		[provide generic case name ("trusscomp"),
+		 variable names, roles, one-line definitions,
+		 "help" paragraphs, etc. The input data from
+                 the long GENTEXT interactive session are saved
+                 in the file, "trusscomp.INP" (Table 9 in [3]). Also, see
+                 the files produced by GENTEXT called "trusscomp.DEF"
+                 (the first part of Table 12 in [3], Table 10 in [3]) and
+                  "trusscomp.PRO" (Table 11 in [3]).]
+
+************* A SMALL DIGRESSION FROM THE RUN STREAM ***************
+ After execution of GENTEXT the following "trusscomp" files
+ exist in the directory where GENTEXT was executed, that is,
+ in the directory, /home/progs/genoptcase :]
+------------------------------------------------------------------
+-rw-r--r--  1 bush bush  4529 Jun 12 11:11 trusscomp.CHA
+-rw-r--r--  1 bush bush  1378 Jun 12 11:11 trusscomp.COM (common blocks)
+-rw-r--r--  1 bush bush  6339 Jun 12 11:11 trusscomp.CON
+-rw-r--r--  1 bush bush 58128 Jun 12 11:11 trusscomp.DAT
+-rw-r--r--  1 bush bush 32086 Jun 12 11:11 trusscomp.DEF (documentation)
+-rw-r--r--  1 bush bush 58161 Jun 12 09:57 trusscomp.INP (input for GENTEXT)
+-rw-r--r--  1 bush bush 29517 Jun 12 11:11 trusscomp.NEW
+-rw-r--r--  1 bush bush 21560 Jun 12 11:11 trusscomp.PRO (prompting file)
+-rw-r--r--  1 bush bush  1882 Jun 12 11:11 trusscomp.REA
+-rw-r--r--  1 bush bush 45038 Jun  4 10:26 trusscomp.SAV
+-rw-r--r--  1 bush bush   383 Jun 12 11:11 trusscomp.SET
+-rw-r--r--  1 bush bush 11357 Jun 12 11:11 trusscomp.SUB
+-rw-r--r--  1 bush bush  1882 Jun 12 11:11 trusscomp.WRI
+----------------------------------------------------------------
+
+ The contents of these files is described in the truscomp.DEF file.
+ See pages 2 and 3 of Table 6 of [8b], for example.
+
+ Next, create software that computes the design constraints
+ and the objective. In this example create bosdec.trusscomp (Table 13 of [3]),
+ which generates valid input files for the BIGBOSOR4 preprocessor,
+ B4READ, and "flesh out" the skeletal behavior.new file and the
+ struct.new file that are automatically created by GENOPT. That is,
+ create behavior.trusscomp (Table 12 of [3]) from behavior.new and
+ struct.trusscomp from struct.new. The "fleshing out" of struct.new
+ is very simple in this "trusscomp" application: only THREE lines
+ are added to the version of struct.new created automatically
+ by GENOPT. These three added lines are indicated below:
+
+ The following is part of the "fleshed out" version of the struct.new file:
+----------------------------------------------------------------------
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+C
+      CALL OPNGEN  <--added by the GENOPT user (the writer)
+      CALL RWDGEN  <--added by the GENOPT user (the writer)
+C
+----------------------------------------------------------------------
+
+ and
+
+ The following is part of the struct.new file:
+----------------------------------------------------------------------
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='weight/area of the truss-core sandwich wall'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'weight/area of the truss-core sandwich wall')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN  <--added by the GENOPT user (the writer)
+C
+      RETURN
+      END
+---------------------------------------------------------------------
+
+ The three added statements, CALL OPNGEN, CALL RWDGEN, and CALL CLSGEN,
+ open, rewind, and close various files used by BIGBOSOR4. If you
+ plan to optimize some other shell using GENOPT/BIGBOSOR4 you can
+ "flesh out" struct.new in exactly the same way. To find the places
+ in the "skeletal" version of struct.new that is automatically
+ produced by GENTEXT, search for the string, "YOU MAY WANT" in order
+ to find where you should insert the two lines, CALL OPNGEN and
+ CALL RWDGEN. Search for the string, "NCONSX", in order to find
+ where you should insert the line, CALL CLSGEN. If you want to see
+ what struct.new looks like, see Table 8 of [8b] (the case called
+ "weldland"). In this case called "trusscomp" struct.new is different
+ in detail from that listed in [8b] (e.g. different variable names and
+ definitions and four BEHXi subroutines here instead of three in [8b]),
+ but the overall structure of struct.new is the same. Sometimes, in
+ your other applications of GENOPT, you may want to add more coding
+ to the "skeletal" version of struct.new, as was done in [5] and [7],
+ especially in [7], where all of the computations are done in struct.new
+ and the "skeletal" version of behavior.new produced automatically
+ by GENOPT remains unchanged.
+
+ Most of the work in this project was the creation by the GENOPT user
+ (the writer of this report) of the file, bosdec.trusscomp. Some
+ effort was also required to "flesh out" the skeletal "behavior.new"
+ file automatically created by GENOPT. The "fleshed out" version is
+ called "behavior.trusscomp" (Table 12 of [3]). There are four "behavior"
+ subroutines: BEHX1, BEHX2, BEHX3, BEHX4. The GENOPT user must also
+ "flesh out" the subroutine that computes the objective, SUBROUTINE
+ OBJECT. The "BEHXi", i = 1,2,3,4, subroutines compute the following:
+ SUBROUTINE BEHX1 computes the local   buckling load.
+ SUBROUTINE BEHX2 computes the general buckling load.
+ SUBROUTINE BEHX3 computes 5 stress components for
+                  material type 1.
+ SUBROUTINE BEHX4 computes 5 stress components for
+                  material type 2.
+ SUBROUTINE OBJECT computes the objective, which in this case
+                   is the weight/area of the shell wall.
+
+ The 5 stress components referred to in connection with SUBROUTINE
+ BEHX3 and SUBROUTINE BEHX4 are those components used for generating
+ stress constraints typical for a composite laminate:
+
+  Maximum stress components from BEHX3 and BEHX4:
+  0 deg. tension  (tension in the fiber direction of a layer)
+  0 deg. comp.    (compression in the fiber direction of a layer)
+ 90 deg. tension  (tension normal to the fibers of a layer)
+ 90 deg. comp.    (compression normal to the fibers of a layer)
+  in-plane shear  (shear in the plane of the layer) 
+
+ These 5 stress constraints for each material type are used
+ as stress constraints and margins PANDA2 [4], for example.
+
+ ************************ NOTE ************************************
+ If you plan to use GENOPT in combination with BIGBOSOR4 for
+ optimizing other shells of revolution which have buckling
+ behavior, you can use the list of SUBROUTINE BEHX1 or of
+ SUBROUTINE BEHX2 here as a guide. This is what the writer did
+ in the present "trusscomp" case. The writer simply took the
+ coding he had added to the "skeletal" versions of SUBROUTINE BEHXi,
+ i = 1 and 2, listed in Table 10 of [8b] (the "weldland" case) and
+ inserted that coding where it says "INSERT SUBROUTINE STATEMENTS HERE"
+ in the "skeletal" BEHX1 and BEHX2 subroutines in the "trusscomp" case.
+ Then he edited that "weldland" coding in order to make it applicable
+ to the buckling behavior in the "trusscomp" case. (Note: much more
+ than this was done after 2009 when the above lines were written).
+ ********************* END NOTE ***********************************]
+
+
+ NOTE: make it a habit to develop the "behavior", "struct", and
+ "bosdec" files using different suffices than ".new" or ".src".
+ By this practice you will not lose work should you execute
+ GENTEXT again after you have already added FORTRAN coding to behavior.new
+ and to struct.new, which are over-written by GENTEXT. In this
+ "trusscomp" case the writer initially copied behavior.new
+ and struct.new (the "skeletal" versions created automatically by
+ GENOPT after completion of the GENTEXT interactive session) to
+ behavior.trusscomp and struct.trusscomp, then "fleshed out"
+ the behavior.trusscomp and struct.trusscomp files. Also, the
+ writer developed his version of "bosdec" in a file called
+ "bosdec.trusscomp". Then, just before execution of "genprograms",
+ the writer did the following:
+-----------------------------------------------------------------------------------
+ cp behavior.trusscomp behavior.new  (behavior.trusscomp and struct.trusscomp are
+ cp struct.trusscomp struct.new       developed in the directory: /home/progs/genoptcase)
+ cd /home/progs/bosdec/sources       (NOTE: "bosdec" is stored in a different directory)
+ cp bosdec.trusscomp bosdec.src
+ cd /home/progs/genoptcase           (return to the "genoptcase" directory before
+                                      executing "genprograms")
+----------------------------------------------------------------------------------
+************* END OF A SMALL DIGRESSION FROM THE RUN STREAM **********
+
+
+genprograms	(compiles the software created by GENOPT and
+		 "fleshed out" and added by the GENOPT user)
+
+
+*********** ANOTHER "SMALL" DIGRESSION FROM THE RUN STREAM *************
+ If compilation is successful, the following is listed on
+ your computer screen:
+--------------------------------------------------------------
+Congratulations!  Your code compiled successfully.  You should
+now check to make sure that you get correct results from a
+simple test case with a known answer before attempting a more
+complicated case.
+
+Here is a list of all your newly created executables:
+-rwxr-xr-x  1 bush bush 83839 Jun 12 11:17 autochange.linux
+-rwxr-xr-x  1 bush bush 190917 Jun 12 11:17 begin.linux
+-rwxr-xr-x  1 bush bush 135079 Jun 12 11:17 change.linux
+-rwxr-xr-x  1 bush bush 157882 Jun 12 11:17 chooseplot.linux
+-rwxr-xr-x  1 bush bush 160553 Jun 12 11:17 decide.linux
+-rwxr-xr-x  1 bush bush 105947 Jun 12 11:17 mainsetup.linux
+-rwxr-xr-x  1 bush bush 1603626 Jun 17 14:24 optimize.linux
+-rwxr-xr-x  1 bush bush 124325 Jun 12 11:17 store.linux
+
+Next, type the command BEGIN to input data for a new case.
+--------------------------------------------------------------
+ NOTE: You may see the lines above even when you still have errors
+       in your newly "fleshed out" and created FORTRAN coding. You
+       will doubtless discover additional errors when you first execute
+       "OPTIMIZE". Make your corrections to the behavior.trusscomp,
+       struct.trusscomp, and bosdec.trusscomp files, then again copy
+       them to behavior.new, struct.new, and bosdec.src as specified
+       above, and then give the command, "genprograms" again. Keep
+       doing this until you are satisfied that there are no more
+       errors in your FORTRAN coding. Go through this "error
+       elimination loop" before you try to do any optimization.
+       That is, specify ITYPE = 2 and NPRINT = 2 in the *.OPT
+       file (input for MAINSETUP, listed below) while you are in this
+       error elimination phase of your work. Only when you are satisfied
+       that behavior.trusscomp, struct.truscomp, and bosdec.trusscomp
+       are correct should you attempt to do any optimization (ITYPE = 1
+       and NPRINT = 0 in the *.OPT file).
+
+ 
+ Concerning the use of the GENOPT processor called "INSERT":
+
+ It may well happen that, after you have already developed
+ behavior.trusscomp, struct.trusscomp, and bosdec.trusscomp as just
+ described, you may want to add one or more variables to your generic
+ case. You can use "INSERT" to do this. However, note that if you add
+ (or take away) any variables, the labelled common blocks produced
+ automatically by GENTEXT will change. These new common blocks will be
+ present in the new "skeletal" versions of behavior.new and struct.new
+ generated automatically by your re-run of GENTEXT. Also, if you add
+ one or more "behaviors", GENTEXT creates additional FORTRAN coding in
+ the behavior.new and struct.new libraries.
+
+
+ Concerning "behavior" and "struct" after you have used "INSERT":
+
+ With regard to the "behavior" and the "struct" libraries,
+ do the following:
+
+ Add your "fleshed out" FORTRAN coding now contained only in
+ behavior.trusscomp, struct.trusscomp, to the latest "skeletal" versions,
+ behavior.new and struct.new, then type the commands:
+
+ cp behavior.new behavior.trusscomp  (Be careful! you may be destroying
+ cp struct.new struct.trusscomp       your previous work if you have not
+                                      updated behavior.new and/or
+                                      struct.new correctly.)
+
+
+ A good way to generate an updated version of behavior.new after using
+ "INSERT" or after eliminating variables, changing their names, or in
+ any way making changes that result in changes in the labeled common
+ blocks automatically created by GENOPT;
+
+ You have to update each of the SUBROUTINE BEHXi, i = 1, 2, 3, ...
+ in the new skeletal behavior.new library.
+
+ For each SUBROUTINE BEHXi, i = 1, 2, 3, ... in the new
+ skeletal behavior.new library do the following:
+
+ cp behavior.trusscomp temp.trusscomp (this is the old version)
+
+ Edit temp.trusscomp as follows:
+   a. Go to the SUBROUTINE BEHXi that you want to process by
+      searching for the string, "C=D". Let us say that this time
+      you want to extract lines from the old SUBROUTINE BEHX2.
+   b. Within SUBROUTINE BEHX2 search for the string:
+      "C  INSERT SUBROUTINE STATEMENTS HERE."
+   c. Delete everything above that string.
+   d. Search for the next occurrence of the string, "C=D".
+   e. Go up a few lines to the string, "RETURN".
+   f. Delete everythingj below and including that "RETURN".
+      Now you have in your edited version of temp.trusscomp
+      the entire body of SUBROUTINE BEHX2 that you created after
+      the string, "C  INSERT SUBROUTINE STATEMENTS HERE." and
+      before the string, "RETURN" adjacent to the end of
+      SUBROUTINE BEHX2.
+   
+ Edit behavior.new as follows:
+   a. Go to SUBROUTINE BEHX2 by searching for the string, "C=D"
+      just above the line with the string, "SUBROUTINE BEHX2".
+   b. Within SUBROUTINE BEHX2 search for the string,
+      "C  INSERT SUBROUTINE STATEMENTS HERE."
+   c. Insert the edited file, temp.trusscomp, immediately
+      following the string, "C  INSERT SUBROUTINE STATEMENTS HERE."
+   d. Remove any repititions of the string,
+      "C  INSERT SUBROUTINE STATEMENTS HERE."
+      and any empty comment lines, "C          " that you
+      want to eliminate.
+   e. Remove any blank lines and empty comment lines
+      at the end of SUBROUTINE BEHX2 that you want to eliminate.
+
+ Repeat the process just described for all the other
+ SUBROUTINE BEHXi in the file, behavior.new, starting with the line,
+
+ cp behavior.trusscomp temp.trusscomp (this is the old version)
+
+ Repeat the process just described for SUBROUTINE OBJECT, which
+ is the last subroutine in the files, behavior.trusscomp and
+ behavior.new.
+
+ When you have finished this process you have transferred all your
+ "fleshed out" coding in the file, behavior.trusscomp to what was
+ originally the new skeletal behavior.new, and you
+ have preseved the new labeled common blocks in each of the
+ SUBROUTINE BEHXi and SUBROUTINE OBJECT.
+
+ Concerning SUBROUTINE STRUCT: Add the three calls, CALL OPNGEN,
+ CALL RWDGEN, and CALL CLSGEN to STRUCT.NEW as desribed above
+ in connection with your original "fleshing out" of STRUCT.NEW.
+ Those lines are repeated here for your convenience:
+-------------------------------------------------------------------
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+C
+      CALL OPNGEN  <--added by the GENOPT user (the writer)
+      CALL RWDGEN  <--added by the GENOPT user (the writer)
+C
+
+ and
+
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='weight/area of the truss-core sandwich wall'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'weight/area of the truss-core sandwich wall')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN  <--added by the GENOPT user (the writer)
+C
+      RETURN
+      END
+---------------------------------------------------------------------
+
+
+ When you are certain that you have done all this correctly, update
+ your behavior.trusscomp and struct.trusscomp files as follows:
+
+ cp behavior.new behavior.trusscomp  (Be careful! you may be destroying
+ cp struct.new struct.trusscomp       your previous work if you have not
+                                      updated behavior.new and/or
+                                      struct.new correctly.)
+
+
+
+ Concerning "bosdec":
+
+ In the case of the file, /home/progs/bosdec/sources/bosdec.trusscomp,
+ You have to copy the new GENTEXT-created common blocks, located in
+ trusscomp.COM, into the proper place in the bosdec.trusscomp file and
+ then remove the old GENTEXT-created common blocks. Since bosdec.trusscomp
+ contains only FORTRAN code produced by you, you don't have to worry about
+ any new GENTEXT-created FORTRAN code there.
+
+
+
+ Concerning modification of only the "help" paragraphs in the file *.INP
+ (trusscomp.INP):
+
+ After you run BEGIN you will probably come to the conclusion that the
+ end user will need more "help" information than you have provided. You
+ can do this by editing the *.INP (trusscomp.INP) file. Just be sure to
+ follow the pattern that exists in the *.INP file. For example, for each
+ new line of a "help" paragraph there exists a following line:
+
+        y         $ Are there more lines in the "help" paragraph?
+
+ As you add new "help" lines make sure in your editing that you follow
+ each new "help" line with the line printed above. The last line in
+ the "help" input is always followed by the line:
+
+        n         $ Are there more lines in the "help" paragraph?
+
+ You can, in the same way, add a new "help" paragraph where there was
+ none previously. You would change the line:
+
+        n         $ Do you want to include a "help" paragraph?
+
+ to
+
+        y         $ Do you want to include a "help" paragraph?
+
+ and then proceed as is done elsewhere in the *.INP file for variables
+ that have "help" paragraphs.
+*********************** END OF "SMALL" DIGRESSION *************************
+
+
+begin		{provide starting design, material, loading,
+		 allowables and factors of safety for the
+                 following "behaviors":
+		  1. local   buckling (computed in SUBROUTINE BEHX1)
+		  2. general buckling (computed in SUBROUTINE BEHX2)
+		  3. five stress constraints for material type 1
+		     (computed in SUBROUTINE BEHX3)
+                  4. five stress constraints for material type 2
+                     (computed in SUBROUTINE BEHX4
+		 As a starting design, use the optimum design
+                 found for the case called "nasatruss" [2]. BEGIN
+		 saves your interactive input in the file, test.BEG (Table 14 of [3]).
+		 In this first run all the factors of safety are set
+		 equal to unity, which is not a good practice because
+		 the cylindrical shell in the GENOPT/BIGBOSOR4 model
+		 is assumed to be perfect. The GENOPT/BIGBOSOR4 model
+                 does not handle initial imperfections directly.
+                 Therefore, factors of safety greater than unity
+                 should be used to compensate for this lack of
+                 capability. This is done later in this runstream.}
+
+(The command, BEGIN, starts an interactive session, the beginning
+ of which presents the following to your computer screen:)
+------------------------------------------------------------------
+ THE NAME OF THE PROMPT FILE ASKED FOR NEXT
+ IS THE NAME OF THE CLASS OF PROBLEMS THAT THE GENOPT-USER
+ HAS CHOSEN, NOT THE NAME OF THE PARTICULAR CASE BEING
+ STUDIED HERE. IT IS THE "NAME" PART OF "NAME".PRO.
+
+  ENTER THE GENERIC CASE NAME: trusscomp
+
+ FROM HERE ON, WHENEVER THE CASE NAME IS REQUESTED,
+ YOU PROVIDE THE NAME OF THE PARTICULAR INSTANCE IN THE CLASS
+ OF PROBLEMS THAT YOU ARE NOW STUDYING.  THIS NAME MUST BE
+ DIFFERENT FROM THE NAME YOU HAVE JUST PROVIDED ABOVE.
+
+  ENTER THE SPECIFIC CASE NAME: test
+
+
+ ****************   BEGIN   ******************
+
+ Purpose of BEGIN is to permit you to provide a starting design
+ in an interactive mode. You give starting dimensions, material
+ properties, allowables. The interactive session is stored on
+ a file called test.BEG, in which test is a name that you
+ have chosen for the specific case. (The name, test, must
+ remain the same as you use BEGIN, DECIDE, MAINSETUP, OPTIMIZE,
+ and CHANGE.)  In future runs of the same or a
+ slightly modified case, you will find it convenient to use the
+ file test.BEG as input.  Rather than answer all the questions
+ interactively, you can use test.BEG or an edited version of
+ test.BEG as input to BEGIN.  BEGIN also generates an output
+ file called test.OPB. OPB lists a summary of the case, and if
+ you choose the tutorial option, the questions, helps, and your
+ answers for each input datum.
+
+ *************************************************
+------------------------------------------------------------------
+
+(When you have completed BEGIN you will have the file, test.BEG,
+ which can be used in any future execution of BEGIN.)
+
+decide		(provide decision variables, bounds, equality
+		 constraints (linking expressions), and inequality
+		 constraints. DECIDE saves your interactive input
+		 in the file, test.DEC (Table 15 of [3])).
+
+mainsetup	{provide strategy, analysis type, etc.. MAINSETUP
+		 saves your interactive input in the file, test.OPT (Table 16 of [3]).
+		 In this first execution of MAINSETUP do an analysis
+                 of a fixed design (ITYPE = 2) so that you can obtain
+		 results for the same optimum design obtained in [2].}
+
+optimize	(Start the "batch" run that computes results for the
+		 fixed design, the optimum design determined in the
+                 project reported in [2]. These results are listed in
+		 the file, test.OPM (Table 17 of [3]). "OPTIMIZE", when executed in the
+                 ITYPE = 2 mode, produces two files that contain valid
+		 input for BIGBOSOR4:
+		 test.BEHX1 = BIGBOSOR4 input file for LOCAL   buckling
+                 test.BEHX2 = BIGBOSOR4 input file for GENERAL buckling.
+		 Just below in this runstream test.BEHX1 and test.BEHX2
+		 are used, as you will see next.)
+
+(Next, we want to execute BIGBOSOR4 to obtain plots corresponding to
+ local buckling and general buckling. First, copy the two files,
+ test.BEHX1 and test.BEHX2, into a directory from which you want to
+ execute BIGBOSOR4:)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/.    (LOCAL   buckling input)
+cp test.BEHX2 /home/progs/bigbosor4/workspace/.    (GENERAL buckling input)
+
+(Go to the directory where you want to run BIGBOSOR4.)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log	(activate BIGBOSOR4 commands)
+
+(The command, "bigbosor4log", presents the following to
+ your screen:)
+---------------------------------------------------------
+The BIGBOSOR4 commands, in the general order in which
+you would probably use them (except in GENOPT applications), are:
+
+help4           (get information on BOSOR4.)
+input           (you provide segment-by-seg. input)
+assemble        (concatenates segment data files)
+bigbosorall     (batch run of pre, main, post proc.)
+bosorplot       (batch run for generating plot files)
+resetup         (input for restart run, same model)
+bigrestart              (batch run of main & postprocessors)
+cleanup         (delete all except for .DOC file)
+getsegs         (generate segment files from .DOC)
+modify          (modify a segment file)
+-----------------------------------------------------------
+
+
+(Copy the BIGBOSOR4 input file for LOCAL buckling, test.BEHX1,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX1 test.ALL
+
+bigbosorall	(Start "batch" run for LOCAL buckling. The output
+		 file that you want to inspect is called test.OUT.
+		 This will be a long file, so search specifically
+		 for the string, "EIGENVALUE(", typed with the
+		 "(" at the end of the string. You will find the
+		 following output there:
+-----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.6694E+00; NO. OF CIRC. WAVES, NWVCRT=  400
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    6.0133E+00( 100)
+    2.5222E+00( 200)
+    1.8161E+00( 300)
+    1.6694E+00( 400)
+    1.7336E+00( 500)
+    1.9141E+00( 600)
+    2.1764E+00( 700)
+    2.5054E+00( 800)
+    2.8934E+00( 900)
+ =======================================
+------------------------------------------------------------------
+
+(The critical buckling mode has 400 circumferential waves around
+ the entire circumference of the "huge torus" model of the
+ cylindrical shell, and the critical LOCAL buckling load factor
+ computed from the elaborate 22-segment single module model
+ displayed in Fig. 4 of [1] is 1.6694. The LOCAL buckling mode is
+ shown in Fig. 3 of [3]. The critical number of circumferential waves,
+ 400, corresponds to 4 half-waves along the part of the axial
+ length of the cylindrical shell that is used for local buckling,
+ axial length of cylindrical shell used for local buckling = LENGTH x FACLEN,
+ in which LENGTH is the actual length of the cylindrical shell,
+ 96 inches in this case, and FACLEN is the fraction of the
+ actual length, LENGTH, used in the local buckling model. Please
+ read Appendix 1 to obtain a better understanding of the "huge
+ torus" BIGBOSOR4 model.)
+
+
+bosorplot	(obtain a plot of the critical LOCAL buckling mode.
+		 The postscript file is called "metafile.ps" (Fig. 3 of [3]).)
+
+(execution of bosorplot presents the following to your computer
+ screen:)
+----------------------------------------------------------------
+Please enter the BIGBOSOR4 case name: test
+
+Do you want to use Xgraph or create a PostScript file? (Choose X or P) p
+
+One, maybe Two moments please...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      test..R,Z_EIGENMODE_1--N_100
+2)      test..R,Z_EIGENMODE_1--N_200
+3)      test..R,Z_EIGENMODE_1--N_300
+4)      test..R,Z_EIGENMODE_1--N_400
+5)      test..R,Z_EIGENMODE_1--N_500
+6)      test..R,Z_EIGENMODE_1--N_600
+7)      test..R,Z_EIGENMODE_1--N_700
+8)      test..R,Z_EIGENMODE_1--N_800
+9)      test..R,Z_EIGENMODE_1--N_900
+10)     test..R,Z_RingLocation
+CR)     to QUIT
+Please choose the number of the file you wish to plot: 4
+Plotting: Undeformed & Deformed Axial Station as a function of Radius
+
+The PostScript file, metafile.ps, has been created.
+Please choose one of the three options below:
+
+   1) Rename the PostScript file.  This is useful if
+      you don't have access to a PostScript printer on your
+      machine, but you wish to save to a file so you can later
+      transfer it to a different machine for printing.
+
+         Example:  mv metafile.ps plot1.ps
+
+   2) Enter an "lpr" command.  This is useful if your default
+      printer is not PostScript, but there is a PostScript
+      printer available on your system.
+
+         Example:  lpr -PApplelaser metafile.ps
+
+   3) Press the return key.  This executes the command:
+
+                   lpr metafile.ps
+
+      This assumes that your default printer is a PostScript
+      printer.
+
+Enter your command> <CR>
+Printing PostScript plot on the default printer...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      test..R,Z_EIGENMODE_1--N_100
+2)      test..R,Z_EIGENMODE_1--N_200
+3)      test..R,Z_EIGENMODE_1--N_300
+4)      test..R,Z_EIGENMODE_1--N_400
+5)      test..R,Z_EIGENMODE_1--N_500
+6)      test..R,Z_EIGENMODE_1--N_600
+7)      test..R,Z_EIGENMODE_1--N_700
+8)      test..R,Z_EIGENMODE_1--N_800
+9)      test..R,Z_EIGENMODE_1--N_900
+10)     test..R,Z_RingLocation
+CR)     to QUIT
+Please choose the number of the file you wish to plot: <CR>
+---------------------------------------------------------------------
+
+(In order to view the plot of the local buckling mode, type
+ the command:)
+
+gv metafile.ps
+
+("gv" stands for "ghost view" a LINUX utility which presents
+ the postscript file, metafile.ps, as a plot on your screen.
+ If you do not have "ghost view", just send the postscript
+ file to your printer with whatever command is appropriate at
+ your facility for obtaining plots from postscript files.)
+
+(Next, "clean up" the BIGBOSOR4 files:)
+
+cleanup		(deletes unneeded BIGBOSOR4 files and
+		 generates a properly annotated test.ALL
+		 file and a properly annotated test.DOC file.
+		 (Table 19 of [3] is an abridged version))
+
+
+(Next, we wish to obtain a plot of the critical GENERAL
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT:)
+
+(Copy the BIGBOSOR4 input file for GENERAL buckling, test.BEHX2,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX2 test.ALL
+
+bigbosorall     (Start "batch" run for GENERAL buckling. The output
+                 file that you want to inspect is called test.OUT.
+                 This will be a very, very long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+-----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  2.3655E+00; NO. OF CIRC. WAVES, NWVCRT=  100
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    2.3655E+00( 100)
+    2.8234E+00( 200)
+    3.5544E+00( 300)
+    4.4168E+00( 400)
+    5.2736E+00( 500)
+ =======================================
+-----------------------------------------------------------------
+
+(The critical buckling mode has 100 circumferential waves around
+ the entire circumference of the "huge torus" model of the
+ cylindrical shell, and the critical GENERAL buckling load factor
+ computed from the multiple-6-segment-module model displayed
+ in Figs. 4, 5 and 6 of [3] is 2.3655. The GENERAL buckling mode is
+ shown in Fig. 5 of [3]. The critical number of circumferential waves,
+ 100, corresponds to one half-wave along the complete axial
+ length of the cylindrical shell that is used for GENERAL buckling,
+ axial length of cylindrical shell used for GENERAL buckling = LENGTH,
+ in which LENGTH is the actual length of the cylindrical shell,
+ 96 inches in this case. Please read Appendix 1 of [3] to obtain a better
+ understanding of the "huge torus" BIGBOSOR4 model.)
+
+
+bosorplot       (obtain a plot of the critical GENERAL buckling mode.
+                 The postscript file is called "metafile.ps"(Fig. 5 of [3]).)
+
+(execution of bosorplot presents the following to your computer
+ screen:)
+----------------------------------------------------------------
+Please enter the BIGBOSOR4 case name: test
+
+Do you want to use Xgraph or create a PostScript file? (Choose X or P) p
+
+One, maybe Two moments please...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      test..R,Z_EIGENMODE_1--N_100
+2)      test..R,Z_EIGENMODE_1--N_200
+3)      test..R,Z_EIGENMODE_1--N_300
+4)      test..R,Z_EIGENMODE_1--N_400
+5)      test..R,Z_EIGENMODE_1--N_500
+6)      test..R,Z_RingLocation
+CR)     to QUIT
+Please choose the number of the file you wish to plot: 1
+Plotting: Undeformed & Deformed Axial Station as a function of Radius
+
+etc. etc. (as above in the local buckling example).
+-----------------------------------------------------------------------
+
+(Next, "clean up" the BIGBOSOR4 files:)
+
+cleanup         (deletes unneeded BIGBOSOR4 files and
+                 generates  properly annotated test.ALL
+                 and test.DOC files (Table 18 of [3] is abridged version).)
+
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "test".)
+
+cd /home/progs/genoptcase
+
+mainsetup	(provide input for an optimization. The
+		 interactive input for MAINSETUP is saved
+		 in the file, test.OPT (Table 20 of [3]).)
+
+superopt	(obtain a "global" optimum design. Use
+		 5 "OPTIMIZEs" per AUTOCHANGE. This computer
+		 run takes about 2 days on my LINUX machine
+		 if the run is allowed to continue until it
+		 is complete. In this case we allow SUPEROPT
+		 to run for about 6 hours, then terminate it
+		 because we want to obtain some plots for a
+		 partial execution of SUPEROPT. In this run
+		 all the factors of safety are equal to 1.0.)
+
+(Inspect the test.OPP file)
+
+chooseplot	(choose what to plot vs design iterations. The
+		 interactive CHOOSEPLOT session is saved in the
+		 file, test.CPL (Table 21 of [3]).)
+
+diplot		[obtain postscript files, test.3.ps (design
+		 margins vs design iterations), test.4.ps
+		 (decision variables vs design iterations),
+		 and test.5.ps (objective vs design iterations)
+		 for the case with all factors of safety = 1.0.]
+
+xprw test.3.ps	(get a hard copy of the plot of margins v iterations, Fig.17 of [3])
+xprw test.4.ps	(get a hard copy of the plot of variables v iterations,Fig.18 of [3])
+xprw test.5.ps  (get a hard copy of the plot of objective v iterations,Fig. 19 of [3])
+
+chooseplot      (choose what to plot vs design iterations. The
+                 interactive CHOOSEPLOT session is saved in the
+                 file, test.CPL (Table 22 of [3]).)
+
+diplot          [obtain the postscript file, test.4.ps (more decision
+                 variables vs design iterations) for the case with
+		 all factors of safety = 1.0.]
+
+xprw test.4.ps  (get a hard copy of the plot of variables v iterations,Fig.20 of [3])
+
+chooseplot      (choose what to plot vs design iterations. The
+                 interactive CHOOSEPLOT session is saved in the
+                 file, test.CPL (Table 23 of [3]).)
+
+diplot          [obtain the postscript file, test.4.ps (more decision
+                 variables vs design iterations) for the case with
+		 all factors of safety = 1.0.]
+
+xprw test.4.ps  (get a hard copy of the plot of variables v iterations,Fig.21 of [3])
+
+chooseplot      (choose what to plot vs design iterations. The
+                 interactive CHOOSEPLOT session is saved in the
+                 file, test.CPL (Table 24 of [3]).)
+
+diplot          [obtain the postscript file, test.4.ps (more decision
+                 variables vs design iterations) for the case with
+		 all factors of safety equal to 1.0.]
+
+xprw test.4.ps  (get a hard copy of the plot of variables v iterations.Fig. 22 of [3])
+
+
+(Edit the test.OPT file in order to obtain the analysis of a fixed
+ design, that is, change ITYPE from 1 to 2 and change NPRINT from 1 to 2)
+
+mainsetup	(set up a run for the fixed, previously optimized, design,
+		 see the top part of Table 25 of [3])
+
+optimize	(obtain the test.OPM file (Table 25) corresponding to the
+		 optimized design with all factors of safety = 1.0.)
+
+change		(Use the processor, CHANGE, to save the optimum design.
+		 The interactive CHANGE session is saved in the file,
+		 test.CHG (Table 26 of [3]).)
+
+(Next, we want to execute BIGBOSOR4 to obtain plots corresponding to
+ LOCAL buckling and GENERAL buckling for the case with all factors
+ of safety equal to 1.0. First, copy the two files,
+ test.BEHX1 and test.BEHX2, into a directory from which you want to
+ execute BIGBOSOR4:)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/.    (LOCAL   buckling input)
+cp test.BEHX2 /home/progs/bigbosor4/workspace/.    (GENERAL buckling input)
+
+(Go to the directory where you want to run BIGBOSOR4.)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+(First, we wish to obtain a plot of the critical LOCAL 
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT
+ for the case with all factors of safety equal to 1.0:)
+
+(Copy the BIGBOSOR4 input file for LOCAL buckling, test.BEHX1,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX1 test.ALL
+
+bigbosorall     (Start "batch" run for LOCAL buckling. The output
+                 file that you want to inspect is called test.OUT.
+                 This will be a long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+-----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.5085E+00; NO. OF CIRC. WAVES, NWVCRT=  800
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    4.3598E+00( 100)
+    3.2431E+00( 200)
+    2.7198E+00( 300)
+    2.0904E+00( 400)
+    1.7450E+00( 500)
+    1.5788E+00( 600)
+    1.5129E+00( 700)
+    1.5085E+00( 800) <--critical local buckling
+    1.5457E+00( 900)
+ =======================================
+---------------------------------------------------------------
+
+bosorplot	(obtain a plot of the critical local buckling mode,
+		 which corresponds to N = 800 circumferential waves
+                 around the huge torus. N = 800 corresponds to
+                 8 half waves over the axial length of the
+                 cylindrical shell equal to FACLEN x LENGTH.
+                 The postscript file is called "metafile.ps"(Fig. 23 of [3]).)
+
+cleanup         (deletes unneeded BIGBOSOR4 files and
+                 generates  properly annotated test.ALL
+                 and test.DOC files.)
+
+
+(Next, we wish to obtain a plot of the critical GENERAL
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT
+ for the case with all factors of safety equal to 1.0:)
+
+(Copy the BIGBOSOR4 input file for GENERAL buckling, test.BEHX2,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX2 test.ALL
+
+bigbosorall     (Start "batch" run for GENERAL buckling. The output
+                 file that you want to inspect is called test.OUT.
+                 This will be a very, very long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+---------------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  9.9806E-01; NO. OF CIRC. WAVES, NWVCRT=  500
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    1.2862E+00( 100)
+    1.1139E+00( 200)
+    1.0491E+00( 300)
+    1.0120E+00( 400)
+    9.9806E-01( 500) <--critical GENERAL buckling mode
+ =======================================
+---------------------------------------------------------------------
+
+bosorplot       (obtain a plot of the critical GENERAL buckling mode,
+                 which corresponds to N = 500 circumferential waves
+                 around the huge torus. N = 500 corresponds to
+                 5 half waves over the axial length of the
+                 cylindrical shell equal to LENGTH.
+                 The postscript file is called "metafile.ps"(Fig. 24 of [3]).)
+
+cleanup         (deletes unneeded BIGBOSOR4 files and
+                 generates  properly annotated test.ALL
+                 and test.DOC files.)
+
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "test".)
+
+cd /home/progs/genoptcase
+
+(First, clean up the files "test" associated with the specific
+ case:)
+
+cleanspec	(clean up SPECIFIC case files, "test".)
+
+
+(Next, change the file, test.BEG. Reset the factors of safety
+to values greater than 1.0 that reflect the fact that in our
+GENOPT/BIGBOSOR4 model we cannot account directly for initial
+imperfections but must compensate for them by using appropriate
+factors of safety for general buckling (f.s. = 2.0), local
+buckling (f.s. = 1.5), and stress (f.s. different for different
+stress constraints). The new factors of safety are included in
+the part of the new test.BEG file as listed here:
+-------------------------------------------------------------------------
+   1.000000     $ allowable for local buckling load factor: LOCBUKA( 1)
+   1.500000     $ factor of safety for local buckling: LOCBUKF( 1)
+   1.000000     $ allowable for general buckling load factor: GENBUKA( 1)
+   2.000000     $ general buckling factor of safety: GENBUKF( 1)
+         5      $ Number JSTRM1  of columns in the array, STRM1: JSTRM1
+   200798.0     $ allowable stress in material 1: STRM1A( 1, 1)
+    185925      $ allowable stress in material 1: STRM1A( 1, 2)
+   8350.000     $ allowable stress in material 1: STRM1A( 1, 3)
+   16400.00     $ allowable stress in material 1: STRM1A( 1, 4)
+   17357.00     $ allowable stress in material 1: STRM1A( 1, 5)
+   1.500000     $ factor of safety for stress in material 1: STRM1F( 1, 1)
+   1.500000     $ factor of safety for stress in material 1: STRM1F( 1, 2)
+   1.100000     $ factor of safety for stress in material 1: STRM1F( 1, 3)
+   1.500000     $ factor of safety for stress in material 1: STRM1F( 1, 4)
+   1.500000     $ factor of safety for stress in material 1: STRM1F( 1, 5)
+--------------------------------------------------------------------------
+
+
+begin           (provide starting design, material, loading,
+                 allowables and factors of safety. The interactive
+		 BEGIN session is saved in the file, test.BEG (Table 14 of [3]
+		 with the changes in factors of safety listed above and
+		 in Table 27 of [3]))
+
+decide          (provide decision variables, bounds, equality
+                 constraints (linking expressions), and inequality
+                 constraints. DECIDE saves your interactive input
+                 in the file, test.DEC (Table 15 of [3])).
+
+mainsetup       (provide input for an optimization. The
+                 interactive input for MAINSETUP is saved
+                 in the file, test.OPT (Table 20 of [3].)
+
+superopt        (obtain a "global" optimum design. Use
+                 5 "OPTIMIZEs" per AUTOCHANGE. This computer
+                 run takes about 3 days on my LINUX machine.
+		 In this case the factors of safety greater
+		 than unity compensate for initial imperfections,
+		 which cannot be modeled directly in the
+		 GENOPT/BIGBOSOR4 "huge torus" model.)
+
+(About 2 days later, when the SUPEROPT run is finally finished,
+ inspect the test.OPP file)
+
+chooseplot      (choose what to plot vs design iterations. The
+                 interactive CHOOSEPLOT session is saved in the
+                 file, test.CPL, which is as follows:)
+---------------------------------------------------------------------------
+      n         $ Do you want a tutorial session and tutorial output?
+      n         $ Any design variables to be plotted v. iterations (Y or N)?
+      n         $ Any design margins to be plotted v. iterations (Y or N)?
+      n         $ Do you want to get more plots before your next "SUPEROPT"?
+---------------------------------------------------------------------------
+
+[Note that following a complete SUPEROPT run (about 470 design iterations)
+ we make no attempt to plot design variables or margins vs design iterations.
+ The plots would be too messy because there are so many design iterations.
+ We therefore obtain only a plot of the objective vs design iterations.]
+
+diplot          [obtain the postscript file, test.5.ps (design
+                 objective vs design iterations) for the case
+                 with all factors of safety greater than 1.0.]
+
+xprw test.5.ps	(obtain a hard copy of the postscript plot, test.5.ps (Fig.25 of [3]).
+
+(Edit the test.OPT file in order to obtain the analysis of a fixed
+ design, that is, change ITYPE from 1 to 2 and change NPRINT from 1 to 2)
+
+mainsetup       (set up a run for the fixed, previously optimized, design.
+		 see the top part of Table 28 of [3])
+
+optimize        (obtain the test.OPM file (Table 28 of [3]) corresponding to the
+                 optimized design with all factors of safety greater than 1.0
+		 in order to compensate for initial imperfections.)
+
+change          (Use the processor, CHANGE, to save the optimum design.
+                 The interactive CHANGE session is saved in the file,
+                 test.CHG (Table 29).)
+
+(Next, we want to execute BIGBOSOR4 to obtain plots corresponding to
+ LOCAL buckling and GENERAL buckling for the optimized case with all
+ factors of safety greater than 1.0. First, copy the two files,
+ test.BEHX1 and test.BEHX2, into a directory from which you want to
+ execute BIGBOSOR4:)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/.    (LOCAL   buckling input)
+cp test.BEHX2 /home/progs/bigbosor4/workspace/.    (GENERAL buckling input)
+
+(Go to the directory where you want to run BIGBOSOR4.)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+(First, we wish to obtain a plot of the critical LOCAL
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT
+ for the case with all factors of safety greater than 1.0:)
+
+(Copy the BIGBOSOR4 input file for LOCAL buckling, test.BEHX1,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX1 test.ALL
+
+bigbosorall     (Start "batch" run for LOCAL buckling. The output
+                 file that you want to inspect is called test.OUT.
+                 This will be a long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.5094E+00; NO. OF CIRC. WAVES, NWVCRT=  700
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    9.3595E+00( 100)
+    4.4118E+00( 200)
+    2.6284E+00( 300)
+    1.9540E+00( 400)
+    1.6638E+00( 500)
+    1.5419E+00( 600)
+    1.5094E+00( 700)
+    1.5322E+00( 800)
+    1.5936E+00( 900)
+ =======================================
+-----------------------------------------------------------------
+
+
+bosorplot       (obtain a plot of the critical LOCAL buckling mode.
+		 The postscript file is called "metafile.ps"(Fig. 26 of [3]).)
+
+cleanup		(clean up BIGBOSOR4 files called "test" and
+		 generate the version of test.ALL and test.DOC
+		 with proper annotation throughout.)
+
+
+(Next, we wish to obtain a plot of the critical GENERAL
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT
+ for the case with all factors of safety greater than 1.0:)
+
+(Copy the BIGBOSOR4 input file for GENERAL buckling, test.BEHX2,
+ into test.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp test.BEHX2 test.ALL
+
+bigbosorall     (Start "batch" run for GENERAL buckling. The output
+                 file that you want to inspect is called test.OUT.
+                 This will be a very, very long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+---------------------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  2.0048E+00; NO. OF CIRC. WAVES, NWVCRT=  300
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    2.5384E+00( 100)
+    2.0644E+00( 200)
+    2.0048E+00( 300)
+    2.1052E+00( 400)
+    2.2525E+00( 500)
+ =======================================
+--------------------------------------------------------------------------
+
+
+bosorplot       (obtain a plot of the critical GENERAL buckling mode.
+                 The postscript file is called "metafile.ps"(Fig. 27 of [3]).)
+
+cleanup		(clean up BIGBOSOR4 files called "test.*)
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "test".)
+
+cd /home/progs/genoptcase
+
+(Next, do a convergence study of the prediction of local buckling
+vs the number of modules, NMODULL, used in the local buckling model).
+
+cleanspec	(clean up the SPECIFIC files, test.*)
+
+(Edit the test.BEG file to change the number of modules used for
+ local buckling from NMODULL = 1 to NMODULL = 2 .)
+
+begin		(execute BEGIN, using the file, test.BEG, for input
+		 Table 14 with Table 27 changes in factors of safety
+		 and with NMODULL changed from 1 to 2)
+
+change		(execute CHANGE, using the file, test.CHG for input (Table 29 of [3]))
+
+decide		(execute DECIDE, using the file, test.DEC, for input (Table 15 of [3]))
+
+mainsetup	(execute MAINSETUP, using the file, test.OPT, for input.
+		 Make sure that NPRINT = 2 and ITYPE = 2 in test.OPT.)
+
+optimize	(generate the test.OPM file for the fixed design)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/test.ALL (LOCAL buckling input)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+bigbosorall	(execute BIGBOSOR4)
+
+(Search for the string, "EIGENVALUE(" and find eigenvalue vx. circumferential
+ waves)
+
+bosorplot       (get the file, metafile.ps, for 700 circ. waves (Fig. 28 of [3]))
+
+cleanup		(clean up BIGBOSOR4 files, test.*)
+
+cd /home/progs/genoptcase
+
+cleanspec       (clean up the SPECIFIC files, test.*)
+
+(Edit the test.BEG file to change the number of modules used for
+ local buckling from NMODULL = 2 to NMODULL = 3 .)
+
+begin           (execute BEGIN, using the file, test.BEG, for input)
+
+change          (execute CHANGE, using the file, test.CHG for input (Table 29 of [3]))
+
+decide          (execute DECIDE, using the file, test.DEC, for input (Table 15 of [3]))
+
+mainsetup       (execute MAINSETUP, using the file, test.OPT, for input.
+                 Make sure that NPRINT = 2 and ITYPE = 2 in test.OPT.)
+
+optimize        (generate the test.OPM file for the fixed design)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/test.ALL (LOCAL buckling input)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+bigbosorall     (execute BIGBOSOR4)
+
+(Search for the string, "EIGENVALUE(" and find eigenvalue vx. circumferential
+ waves)
+
+bosorplot       (get the file, metafile.ps, for 700 circ. waves (Fig. 29 of [3]))
+
+cleanup         (clean up BIGBOSOR4 files, test.*)
+
+cd /home/progs/genoptcase
+
+cleanspec       (clean up the SPECIFIC files, test.*)
+
+(Edit the test.BEG file to change the number of modules used for
+ local buckling from NMODULL = 3 to NMODULL = 13 (maximum permitted).)
+
+begin           (execute BEGIN, using the file, test.BEG, for input)
+
+change          (execute CHANGE, using the file, test.CHG for input (Table 29 of [3]))
+
+decide          (execute DECIDE, using the file, test.DEC, for input (Table 15 of [3]))
+
+mainsetup       (execute MAINSETUP, using the file, test.OPT, for input.
+                 Make sure that NPRINT = 2 and ITYPE = 2 in test.OPT.)
+
+optimize        (generate the test.OPM file for the fixed design)
+
+cp test.BEHX1 /home/progs/bigbosor4/workspace/test.ALL (LOCAL buckling input)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+bigbosorall     (execute BIGBOSOR4)
+
+(Search for the string, "EIGENVALUE(" and find eigenvalue vx. circumferential
+ waves)
+
+bosorplot       (get the file, metafile.ps, for 700 circ. waves (Fig. 30 of [3]))
+
+cleanup         (clean up BIGBOSOR4 files, test.*)
+
+
+[Next we wish to compare predictions for local buckling of the optimized
+ design listed in Table 28 of [3] from a BIGBOSOR4 model and from a PANDA2 model.
+ For local buckling of a truss-core sandwich, PANDA2 uses a single discretized
+ module model that very much resembles the single general buckling module used
+ in this "trusscomp" project. A sketch of the single module model used in PANDA2
+ is presented on page 1 of Table 7 of [3]. The output for local buckling from PANDA2
+ for the optimum design obtained in the "nasatruss" project appears at the
+ top of page 3 of Table 7 of [3]. We wish to generate that type of output from PANDA2
+ for the optimum "trusscomp" design listed in Table 28 of [3]. Then we want to
+ compare the PANDA2 predictions with those from BIGBOSOR4 for the optimum
+ "trusscomp" configuration modeled as is done for general buckling, that is,
+ a multi-module model with only six shell segments in each module, as depicted
+ at the top of Fig. 6 of [3]. The following run stream will accomplish
+ this.]
+
+[First, find  where the "nasatruss" files, nasatruss.BEG, nasatruss.DEC,
+and nasatruss.OPT are stored. (e.g. ...genopt/case/truss3) The "nasatruss"
+files that we want are contained in the nasatruss.tar file. Copy this file
+to a working space for PANDA2 executions and "untar" it:
+
+cp /home/progs/panda2/case/truss3/nasatruss.tar /home/progs/panda2/workspace/.
+
+cd /home/progs/panda2/workspace
+
+tar xvf nasatruss.tar
+
+[Find nasatruss.BEG, nasatruss.DEC, nasatruss.OPT, and copy these
+ files to files with a relevant name, such as comptruss.BEG, etc:)
+
+cp nasatruss.BEG comptruss.BEG
+cp nasatruss.DEC comptruss.DEC
+cp nasatruss.OPT comptruss.OPT
+
+(Edit the comptruss.BEG file by replacing three values there with the
+ appropriate optimized values listed on the first page of Table 28 of [3].
+ The three quantities in the nasatruss.BEG file,
+
+   3.700000     $ pitch of truss core, b
+  0.7000000     $ width over which truss core contacts each face sheet, b2
+   1.400000     $ height of truss, h
+
+ must be replaced by the following optimum values from the "trusscomp"
+ project:
+
+   2.810600     $ pitch of truss core, b
+   1.000400     $ width over which truss core contacts each face sheet, b2
+   0.888720     $ height of truss, h
+
+ The rest of the comptruss file needs no further changes. The comptruss.DEC
+ file needs no changing. In the comptruss.OPT file make sure that the
+ initial imperfection components are all zero and that ITYPE = 2 (analysis
+ of a fixed design). Then give the following commnds:]
+
+panda2log	(activate the PANDA2 command set)
+
+begin		(use comptruss.BEG as input)
+
+setup		(no input required from the user)
+
+decide		(use comptruss.DEC as input)
+
+mainsetup	(use comptruss.OPT, suitably edited, as input)
+
+pandaopt	(execute PANDA2 in the fixed design (ITYPE=2) mode)
+
+[Inspect the test.OPM file. In particular, we are interested in local
+ buckling results for which the PANDA2 single discretized module model
+ is used. Search for the string, "EIGOLD". This will lead you to the
+ following output in the test.OPM file obtained from the execution of
+ pandaopt:]
+----------------------------------------------------------------------------
+ BUCKLING LOAD FACTORS FROM BOSOR4-TYPE DISCRETIZED MODEL...
+          (skin-stringer discretized module of local buckling)
+  AXIAL     BUCKLING        KNOCKDOWN FOR    KNOCKDOWN FOR      BUCKLING
+  HALF-    LOAD FACTOR     TRANSVERSE SHEAR  IN-PLANE SHEAR    LOAD FACTOR
+  WAVES  BEFORE KNOCKDOWN    DEFORMATION     LOADING AND/OR  AFTER KNOCKDOWN
+                                               ANISOTROPY
+    M        EIGOLD             KSTAR            KNOCK     EIGOLD*KSTAR*KNOCK
+   57      1.26900E+00       1.00000E+00      9.97192E-01     1.26543E+00
+   61      1.24883E+00       1.00000E+00      9.97192E-01     1.24532E+00
+   66      1.24861E+00       1.00000E+00      9.97192E-01     1.24510E+00
+   71      1.23999E+00       1.00000E+00      9.97192E-01     1.23651E+00
+   76      1.25295E+00       1.00000E+00      9.97192E-01     1.24943E+00
+ Buckling load factor before t.s.d.=  1.2365E+00 After t.s.d.=  1.1674E+00
+   70      1.23999E+00       9.44586E-01      9.97192E-01     1.16736E+00
+--------------------------------------------------------------------------
+(The critical local buckling mode has 70 axial half-waves over the 96-inch
+ length of the cylindrical shell.
+
+ This same PANDA2 output appears at the bottom of Table 31 of [3]. Next, we want
+ to compare these PANDA2 results with "equivalent" results from our use of
+ the "trusscomp" project procedures.)
+
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "test".)
+
+cd /home/progs/genoptcase
+
+genoptlog	(activate the GENOPT commands)
+
+cleanspec	(clean up the "test" files)
+
+[Edit the begin file, test.BEG, listed in Table 14 of [3]. Set very small
+ values for ENOODL and DNOODL, as follows:
+ 0.1851110E+00 $ axial modulus of a corner "noodle": ENOODL
+ 0.5700000E-08 $ weight density of the "noodle" material: DNOODL
+ This gets rid of the effect of the "noodles", which are not
+ present in the PANDA2 model of the composite truss-core sandwich.]
+
+begin		(execute begin, using the suitably edited test.BEG file))
+
+change		(execute CHANGE with the test.CHG file
+		 listed in Table 29 of [3] as input)
+
+decide		(execute DECIDE with test.DEC in Table 15 of [3] as input)
+
+mainsetup	(execute MAINSETUP with test.OPT as listed at the
+		 top of Table 28 of [3] as input)
+
+optimize	(execute OPTIMIZE in the ITYPE=2 mode of operation)
+
+[OPTIMIZE with ITYPE = 2 generates the two valid input files for
+ BIGBOSOR4, test.BEHX1 and test.BEHX2. Now we are interested only in
+ the file, test.BEHX2 (general buckling model). That is because the
+ general buckling single module (6 shell segments) is very similar
+ to the discretized single module model used by PANDA2 for computing
+ local buckling.)
+
+cp /home/progs/genoptcase/test.BEHX2 /home/progs/bigbosor4/workspace/test.ALL
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+bigbosorall     (execute BIGBOSOR4 with test.ALL as input)
+
+[This execution of bigbosorall will yield the output file, test.OUT
+ which contains the following general buckling loads:]
+------------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.9480E+00; NO. OF CIRC. WAVES, NWVCRT=  300
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    2.4656E+00( 100)
+    2.0161E+00( 200)
+    1.9480E+00( 300)
+    2.0364E+00( 400)
+    2.1631E+00( 500)
+ =======================================
+-----------------------------------------------------------------
+
+[The eigenvalues above are slightly lower than those
+ listed for general buckling on page 2 of Table 28 of [3]
+ because we have taken away the "noodles" by suitably
+ editing the test.BEG file, as described earlier.]
+
+[For now we are not interested in the general buckling
+ eigenvalues because we want to simulate local buckling
+ with use of the general buckling "trusscomp" model. To
+ obtain local buckling eigenvalues we must compute results
+ for a much higher range of wave numbers. PANDA2 estimates
+ that there are about 70 axial half-waves along the 96-inch
+ length of the cylindrical shell. 70 axial half-waves over
+ the 96-inch length of the cylindrical shell corresponds to
+ 7000 circumferential waves around the "huge torus" (see
+ Appendix 1 of [3] for an explanation of the factor of 100). In
+ order to explore the high-N range of wave numbers, we
+ must edit the test.ALL file. However, the version of
+ test.ALL generated by SUBROUTINE BEHX2, called test.BEHX2,
+ is not properly annotated. Therefore, it is difficult for
+ the user to find where to do the suitable editing. In order
+ to obtain a suitably annotated test.ALL file, you must
+ type the following command:]
+
+
+cleanup         (deletes unneeded BIGBOSOR4 "test" files and
+                 generates a properly annotated test.ALL
+                 file and a properly annotated test.DOC file.
+                 Table 18 of [3] is an abridged version, except for
+                 the "noodle" axial stiffness, ENOODL, and
+                 density, DNOODL, and therefore also the
+                 "noodle" prebuckling loads.)
+
+
+[In the properly annotated test.ALL file we find the following lines:]
+-----------------------------------------------------------------------
+      H         $ GLOBAL DATA BEGINS...
+         0      $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)
+      N         $ Are there any regions for which you want expanded plots?
+       100      $ N0B   = starting number of circ. waves (buckling analysis)
+       100      $ NMINB = minimum number of circ. waves  (buckling analysis)
+       500      $ NMAXB = maximum number of circ. waves  (buckling analysis)
+       100      $ INCRB = increment in number of circ. waves (buckling)
+         1      $ NVEC  = number of eigenvalues for each wave number
+------------------------------------------------------------------------
+
+[We arrive at this section in the very long test.ALL file by searching for
+ the string, "N0B" (N - zero - B). We wish now to change these input data to
+ the values listed near the top of Table 31 of [3]. Note that nothing else in the
+ test.ALL file need be changed. We are simply exploring a different range of
+ circumferential wave numbers for buckling of exactly the same model as
+ that used for the prediction of general buckling modes of the type shown
+ in Fig. 27 of [3]. In the new input we want to obtain 3 eigenvalues for each
+ circumferential wave number. Why is that? Because the first two eigenvalues
+ might well correspond to edge buckling, not to real local buckling of a
+ complete (360-degree) cylindrical shell. (See the small inserts in the
+ two figures in Appendix 1 of [3] for samples of edge buckling.)  We execute
+ BIGBOSORALL again:]
+
+bigbosorall	(execute BIGBOSOR4)
+
+bosorplot	(execute BOSORPLOT repeatedly until you see everthing
+                 you want to see.)
+
+[Inspect the test.OUT file. Search for the string, "EIGENVALUE(" and find
+ the output similar to that listed in the middle of Table 31 of [3]. Figures 34,
+ 35, and 36 of [3] show the critical first, second, and third eigenvalues. The
+ first two eigenvalues correspond to edge buckling, which we are not
+ interested in. The third eigenvalue represents true local buckling.]
+=========================================================================

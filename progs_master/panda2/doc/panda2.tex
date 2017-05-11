@@ -1,0 +1,1827 @@
+     PANDA2 -- PROGRAM FOR MINIMUM WEIGHT DESIGN
+               OF STIFFENED, COMPOSITE, LOCALLY BUCKLED PANELS
+
+    David Bushnell, Dept. L1-24, Bldg. 204, (650) 424-3237
+
+
+                       ABSTRACT
+
+PANDA2 finds minimum weight designs of laminated composite flat or curved
+cylindrical panels  or cylindrical shells with stiffeners in one or two
+directions. Stiffeners can be blades, tees, angles, hats, or zees. Truss-core
+sandwich panels can also be handled, as well as isogrid-stiffened panels
+with added rings. The panels or shells may have initial imperfections of
+the form of general, inter-ring, and local buckling modes. The panels or
+shells can be loaded by as many as five combinations of in-plane loads,
+edge moments, normal pressure, and temperature.  The material properties
+can be temperature-dependent. The axial load can vary across the panel.
+The presence of overall (bowing, ovalization, general buckling modal)
+imperfections as well as inter-ring and local imperfections in the form of
+the inter-ring and local buckling modes, respectively, can be included.
+Constraints on the design include local buckling of stiffener segments and
+rolling of stiffeners, local, inter-ring, and general buckling, maximum
+displacement under pressure, maximum tensile or compressive stress along
+the fibers and normal to the fibers in each lamina, and maximum in-plane
+shear stress in each lamina. 
+
+Local, inter-ring, and general buckling loads are calculated with use of
+either closed-form expressions or with use of discretized models of panel
+cross sections. The discretized model is based on one-dimensional
+discretization similar to that used in the BOSOR4 computer code. An
+analysis branch exists in which local post buckling of the panel skin is
+accounted for. In this branch a constraint condition that prevents
+stiffener popoff is introduced into the optimization calculations. The
+postbuckling theory incorporated into PANDA2 is similar to that formulated
+by Koiter for panels loaded into the far-postbuckling regime. 
+
+
+PANDA2 can be run in five modes: 
+
+ 1. optimization,
+ 2. simple analysis of a fixed design,
+ 3. test simulation,
+ 4. design sensitivity, and
+ 5. load-interaction.
+
+Plots of decision variables, design margins, and weight vs. design
+iterations can be obtained following use of PANDA2 in the optimization
+mode. Plots of user-selected behaviors and design margins vs load can be
+obtained following use of PANDA2 in the test-simulation mode. Plots of
+margins vs a user-selected design variable can be obtained following use
+of PANDA2 in the design sensitivity mode. Plots of in-plane load
+interaction curves and margins v. load combination number can be obtained
+following use of PANDA2 in the load-interaction mode. 
+
+There is a processor in the PANDA2 system called STAGSMODEL that
+automatically generates an input file for the STAGS computer program.
+Thus, STAGS, which is a general purpose nonlinear finite element analyzer,
+can be used with reasonable ease to check the load-carrying capacity of
+panels designed with PANDA2. 
+
+
+                     INTRODUCTION
+
+There is an extensive literature on the buckling and postbuckling behavior
+of stiffened plates and shells. This literature covers metallic panels and
+panels fabricated from laminated composite materials.  Leissa [1] has
+gathered results from almost 400 sources on the buckling and postbuckling
+behavior of flat and cylindrical panels made of composite material with
+various stacking sequences and boundary conditions and subjected to
+various in-plane loads. The emphasis in his survey is on theoretical
+results, although some experimental results are included. He includes
+several examples in which the effect of transverse shear deformation is
+explored. Emphasis is given also to the effects of anisotropy on
+bifurcation buckling and on postbuckling behavior. Wiggenraad [2] surveys
+the literature on design of composite panels permitted to buckle locally
+under operating loads.  Included in his survey are damage tolerance,
+fatigue, and optimization. Arnold and Parekh [3] emphasize in their survey
+and theoretical development the effect of in-plane shear load on the
+postbuckling behavior of stiffened, composite cylindrical panels. Surveys
+of earlier work on buckling of stiffened panels and shells appear in [4]
+and [5]. 
+
+Among the foremost contributors of information about buckling of stiffened
+shells are Josef Singer and his colleagues at the Technion in Haifa,
+Israel. In particular, the Baruch-Singer theory [6] for averaging the
+properties of stiffeners over a shell surface while retaining the
+important eccentricity effects has been incorporated into many widely used
+computer programs for the stress, vibration, and buckling analysis of
+stiffened shells. 
+
+The literature in the field of buckling of stiffened shells can be divided
+into three categories, one in which test results are emphasized, a second
+in which structural analysis is emphasized, and a third in which optimum
+designs are obtained. References [7] through [17] feature test results for
+plates, shells, and stiffeners made of laminated composite material; [18]
+through [25] feature structural analysis with structural properties fixed;
+and [26] through [35] feature structural analysis with optimum
+configurations sought in most cases via the widely used optimizers CONMIN
+and ADS, written by Vanderplaats and his colleagues [36 - 38].  This is
+just a sample of the literature on the subject. The reader is referred to
+the surveys given in [1] through [5] and references cited there for other
+sources. 
+
+
+       REVIEW OF THE SCOPE AND PHILOSOPHY  OF PANDA2
+
+The purpose of PANDA2 is to find the minimum weight design of a stiffened
+flat or curved, perfect or imperfect, panel made of laminated composite
+material. 
+
+
+Geometry
+
+The kinds of stiffening handled by PANDA2 are: 
+
+ 1. unstiffened
+ 2. T-shaped stiffeners
+ 3. J-shaped stiffeners
+ 4. Rectangular (blade) stiffeners
+ 5. Hat-shaped stiffeners
+ 6. truss-core sandwich (with no other
+    stiffeners)
+ 7. isogrid-stiffened with added rings
+ 8. honeycomb core and foam core sandwich panels
+ 9. riveted Z-shaped stiffeners
+10. substiffeners of rectangular cross section
+    attached to the panel skin between major
+    stringers and rings.
+
+The properties of the panel are assumed to be uniform in the axial (x)
+direction and periodic (consisting of repetitive modules) in the
+circumferential (y) direction.  If the panel is other than of truss-core
+sandwich construction or isogrid-stiffened, it may be stiffened by
+uniformly spaced stringers alone, stiffened by uniformly spaced rings
+alone, or stiffened by both rings and stringers. All stringers must be the
+same. All rings must be the same. The rings can be different from the
+stringers. Truss-core sandwich panels cannot be further stiffened by
+either stringers or rings. In isogrid panels rings may be added. 
+
+Note that the theory on which PANDA2 is based is valid only if the panel
+is either unstiffened or, if stiffeners exist in either or both coordinate
+directions, there are several of them within the span of the panel. One
+cannot accurately determine the behavior of a panel with only one
+stiffener, for example.  The panel, if axially stiffened, for example, has
+a "field" of equally spaced, identical stringers. The same holds for a
+ring-stiffened panel. 
+
+In PANDA2 local buckling behavior is predicted from analysis of a single
+module which is assumed to repeat several times over the width of the
+panel. (With ring-stiffened panels the assumption is that the "skin"-ring
+modules repeat several times over the length of the panel).
+         ___                  ___                   ___
+          |                    |                     |
+          |                    |                     |
+--------=====----------------=====-----------------=====---------
+|<---Module No. 1-->|<-- Module No. 2 --->|<--- Module No. 3 -->|
+
+A panel module consists of one stiffener plus skin of width equal to the
+spacing between stiffeners. The single module is considered to be composed
+of segments, each of which has its own laminated wall construction. 
+
+
+      MODULE WITH T-SHAPED STIFFENER...
+
+       Seg. No. 4-.
+                    . !<------  w  ------>!
+                     ._____________________
+                                !   ^
+           Segment No. 3 -----> !   !
+                                !   !
+               Seg. No. 2-.     !   h
+                           .    !   !
+         Seg. No. 1-.       .   !   !          .-Seg. No. 5
+                   .         .  !   V         .(same as Seg. 1)
+        --------------=====================--------------
+                      !<------ b2 ------->!
+        !<--- Module width  =  stiffener spacing, b --->!
+
+
+    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS
+
+                   Layer No. 1------.
+                                     .
+ (Segment,Node) = (4,1)_____________________(4,11)
+                                       .
+                              (3,11)     ._____ Layer No. j
+                                !  
+             Layer No. 1 -----> ! <----------- Layer No. k
+                                !   
+          Layer No. 1-.         !   
+                       .        !   
+    Layer No. 1-.       .       !               .-Layer No. 1
+               .         .      !                .
+              .           .   (3,1)               .
+    --------------    =====================    --------------
+  (1,1)   .   (1,11)(2,1)   . (2,6)    (2,11)(5,1)  .    (5,11)
+           .                 .                       .
+            .                 .                       .
+             Layer No. m       Layer No. n    Layer No. m
+
+
+
+General instability is predicted from a model in which the stiffeners are
+"smeared" in the manner of Baruch and Singer [6] over the width
+(stringers) and length (rings) of the panel. 
+
+
+Boundary Conditions
+
+In the PANDA2 system the panel is assumed to be simply supported along the
+two edges normal to the plane of the screen (at y = 0 and at y = panel
+width). The panel can be either simply supported or clamped along the
+other two boundaries (at x = 0 and x = L), but the conditions must be the
+same at both of these two boundaries.  The PANDA2 analysis is always
+performed for simple support on all four edges. However, experience has
+shown that for the purpose of calculating panel and general instability
+load factors, clamping at x = 0 and at x = L can be simulated by the
+analysis of a shorter simply supported panel: For example, an axially
+compressed, flat panel clamped at x = 0 and x = L has general instability
+loads approximately equal to those of a panel simply supported at x = 0
+and x = L/sqrt[3.85]. In PANDA2, clamping at x = 0 and x = L is simulated
+by calculation of general instability or wide column instability of a
+simply supported panel with a shorter length, an "effective" length that
+depends on the ratios of in-plane loads and on the "boundary layer length"
+in the axial direction. This "effective" length is calculated by PANDA2
+and is provided as output. 
+
+In PANDA2 local buckling behavior and local stress concentrations near
+stringers are assumed to be independent of the boundary conditions along
+the four panel edges.  This is likely to be a good assumption if there are
+more than two or three halfwaves in the local buckling pattern over the
+length and width of the panel. 
+
+
+Loading
+
+PANDA2 allows the panel to be loaded by as many as five independent sets
+of in-plane load combinations, Nx, Ny, Nxy, Mx, My, normal pressure p, and
+temperature T(z) that is nonuniform over the panel cross section but
+uniform in the (x,y) coordinates.  Buckling loads, postbuckling behavior,
+and maximum stresses are calculated for each of the five load sets applied
+by itself. PANDA2 determines the best design that is capable of surviving
+all of the five load sets when each set is applied separately, as it would
+be during different phases of a panel's lifetime or over different areas
+of a large, uniform structure such as a complete cylindrical shell
+subjected to spatially varying loads (See [35]). Associated with each of
+the five independent load sets there can be two load subsets, Load Set A
+and Load Set B. Load Set A consists of what are termed in the PANDA2
+output as "eigenvalue loads": These are loads that are to be multiplied by
+the critical buckling load factor (eigenvalue). Load Set B consists of
+loads that are not multiplied by the critical buckling load factor. 
+
+
+Types of Analysis
+
+PANDA2 performs the following analyses:
+
+1. CONSTITUTIVE LAW:
+
+a. PANDA2 computes the integrated constitutive law [the 6x6 matrix C(i,j)
+that relates reference surface strains, changes in curvature, and twist to
+stress and moment resultants] for each segment of a panel module. 
+
+b. It computes thermal resultants and strains from curing and from applied
+temperature during service for each segment of a panel module. 
+
+c. It computes the integrated constitutive law [the 6x6 matrix Cs(i,j)]
+for the panel with either and both sets of stiffeners "smeared out".
+("Smearing out" the stiffeners means averaging their properties over the
+entire area of the panel as prescribed by Baruch and Singer [6]). 
+
+d. It computes the tangent stiffness CTAN(i,j) of the panel skin in its
+locally postbuckled state, if applicable. 
+
+e. It computes the tangent stiffness CsTAN(i,j) of the panel with smeared
+stiffeners, using CTAN(i,j) for the locally postbuckled stiffness of the
+panel skin. 
+
+
+2. EQUILIBRIUM:
+
+a. PANDA2 computes bowing of the panel due to curing. 
+
+b. It computes static response of the panel to uniform normal pressure,
+using either linear or nonlinear theory.  Two problems are solved: 
+
+b(1) overall static response of entire panel with smeared stiffeners, and 
+
+b(2) local static response of a single panel module with a discretized
+cross section. 
+
+c. Average strain and resultant distribution in all of the panel module
+cross section segments are determined for: 
+
+c(1) the panel loaded by all loads except normal pressure. The effect of
+bowing of the panel due to curing, applied temperature during service,
+normal pressure, and edge moments is included, as well as the effect of
+initial imperfections in the form of general, inter-ring, and local
+buckling modes.
+
+c(2) the panel loaded by normal pressure.
+
+d. Stresses in material coordinates in each layer in each laminate
+(segment) of the panel module are calculated either for the post-locally
+buckled panel, or for the unbuckled panel, whichever is applicable. The
+effect of a local imperfection in the form of the local buckling mode is
+included, as well as axial bowing from either cure, temperature change
+during service, pressure, edge moments, eccentrically applied axial load,
+initial imperfection, or any combination of these effects. 
+
+e. Tensile forces in parts of the stiffener web(s) that tend to pull the
+web from the panel skin are calculated, and these forces are compared to a
+maximum allowable "peel force" that the user has previously obtained from
+peel tests on sample coupons that bear some similarity to the concept for
+which he or she is seeking an optimum design. 
+
+
+3. BUCKLING:
+
+a. PANDA2 computes buckling load factors from a PANDA-type of analysis
+(closed form, see Ref [4]) for general instability, local buckling of the
+panel skin, local buckling of stiffener segments, and rolling of
+stiffeners with and without participation of the panel skin. (IQUICK = 1
+mode of operation). 
+
+b. It computes the load factor for local skin buckling from a BOSOR4-type
+[39] of analysis (finite strip method) in which the cross section of a
+single panel module is discretized, as shown in Fig. 8. (IQUICK = 0 mode
+of operation). 
+
+c. It computes a load factor for wide column buckling from a BOSOR4-type
+of analysis of a discretized single panel module. In this analysis the
+reduced effective stiffness of the locally buckled panel skin is used, if
+applicable. (IQUICK = 0 mode of operation). 
+
+d. If the axial load varies over the width of the panel, PANDA2 computes a
+load factor for general instability from a BOSOR4-type of analysis of the
+entire panel with smeared stiffeners. The width of the panel is
+discretized. Again, the reduced effective stiffness of the locally buckled
+panel skin is used for this analysis, if applicable. 
+
+e. A PANDA2 processor called PANEL generates a refined discretized model
+of the entire panel width with stringer parts treated as flexible shell
+branches. This model can be used directly as input to BOSOR4.
+
+f. A PANDA2 processor called STAGSMODEL generates a STAGS finite element
+model of as many skin-stringer modules of the panel as the user chooses.
+STAGSMODEL produces data files, *.bin and *.inp, that can be used
+directly as input to STAGS.
+
+g. A PANDA2 processor called STAGSUNIT generates a STAGS finite element
+model of a ring and stringer stiffened panel. STAGSUNIT produces input
+data files, *.bin and *.inp, that can be used directly as input to STAGS.
+
+h. PANDA2 computes various kinds of general, semi-general, and local
+buckling loads from an alternative theory in which each type of buckling mode
+is expanded in double trigonometric series of the buckling modal displacement
+components, u, v, w.
+
+
+Philosophy embodied in PANDA2
+
+PANDA2 represents a more detailed treatment of certain behavior not
+handled by PANDA [4].  In particular, optimum designs can be obtained for
+imperfect panels, for panels with locally post-buckled skin for panels
+with hat stiffeners, and for panels with truss-core sandwich construction
+or isogrid-stiffened panels or panels with riveted Z-shaped stiffeners. In
+addition, PANDA2 will handle linear or nonlinear static response to normal
+pressure, panels with nonuniform axial loading, panels with edge moments,
+and panels with thermal loading and temperature-dependent material
+properties. Also, PANDA2 optimizes panels for multiple sets of loads,
+whereas PANDA [4] optimizes for a single set of in-plane loads.  PANDA2
+accounts for the effect of transverse shear deformation. 
+
+Optimization is carried out based on several independently treated
+structural models of the panel.  These might be classified into three
+model types, as follows: 
+
+1. Model type 1: Included are PANDA-type models [4] for general, local,
+and panel buckling, bifurcation buckling of stiffener parts, and rolling
+of stiffeners with and without participation of the panel skin.  With
+PANDA-type models, buckling load factors are calculated from closed-form
+equations rather than from discretized models. The formulas are given in
+[4].  (See Table 1 and Figs. 1-4 of [4]). Model type 1 is used with both
+the IQUICK = 1 and IQUICK = 0 modes of operation. 
+
+2. Model type 2: Buckling load factors and post-local buckling behavior
+are calculated for what is termed in PANDA2 a "skin-stringer panel
+module."  A module includes the cross section of a stiffener plus the
+panel skin of width equal to the spacing between stiffeners.  In this
+model the panel module cross section is divided into segments, each of
+which is discretized and analyzed via the finite difference energy method
+[39] (finite strip method). Variation of deflection in the axial direction
+is assumed to be harmonic [sin(nx) or cos(nx)].  This one-dimensional
+discretization is similar to that used in the BOSOR4 and BOSOR5 programs
+for the analysis of shells of revolution [39]. In fact, many of the
+subroutines for buckling and vibration analysis are taken from BOSOR4 and
+modified slightly in order to handle prismatic structures instead of
+shells of revolution.  Model type 2 is used with the IQUICK = 0 mode of
+operation. (NOTE: Model type 2 is not available for isogrid-stiffened
+panels). 
+
+The single module model gives a good approximation to the local skin
+buckling mode if there are more than three equally spaced stringers in the
+panel.  What goes on locally between interior stringers in a panel,
+stringers which are rotating about their axes only, not bending, is only
+weakly affected by the boundary conditions at panel edges that may be
+several bays away. 
+
+Both local and wide-column instability can be handled with the same
+discretized structural model. For all except truss-core sandwich panels,
+symmetry conditions are applied at the left and right edges of the single
+module model, that is, symmetry conditions are applied midway between
+stringers.  Edge conditions for the single module of the truss-core
+sandwich panel are discussed in Ref. [43]. 
+
+The wide column buckling model in PANDA2 is applied to an axial length of
+panel between adjacent rings, or if there are no rings, to the entire
+axial length of the panel, L or for clamped panels the modified length
+L/sqrt{3.85} or other modified length derived in the PANDA2 mainprocessor.
+The wide-column buckling load predicted from the single panel module is
+always lower and, if the panel is not of the truss-core sandwich type and
+is stringer-stiffened, usually reasonably close to the general instability
+load of the entire width of the panel between rings because the axial
+bending stiffness of a stringer-stiffened panel is usually much, much
+greater than the transverse bending stiffness of the portion of the panel
+between adjacent rings. Hence, the strain energy in the buckled panel, and
+therefore the buckling behavior, is only weakly dependent on bending of
+the panel transverse to the stringers. Therefore, the boundary conditions
+along the edges of the panel parallel to the stringers are not important. 
+On the other hand, local bending of the skin and local deformation of the
+stringer parts in the wide column buckling mode may significantly affect
+the wide column buckling load.  These effects are not included in the
+closed-form PANDA-type model of general instability, but they are included
+in the single panel module model of wide column buckling. 
+
+The wide-column buckling model should not be used for prediction of
+general buckling of truss-core sandwich panels or isogrid-stiffened
+panels. It is too conservative because, unlike T, J, Blade, and
+Hat-stiffened panels, sandwich panels and isogrid-stiffened panels have
+bending stiffnesses in the x and y directions which are of the same
+magnitude.  Therefore, one cannot ignore the longitudinal boundaries in
+the calculation of general instability load factors of truss-core sandwich
+panels.
+
+In October, 1998 a new "skin"-ring discretized module model analogous
+to the skin-stringer discretized module model was introduced. In this
+model the stringers (if any) are smeared out, and a cross section
+involving one ring and the skin-smeared-stringer panel wall of axial
+length equal to one ring spacing (b(ring)/2 on each side of the ring
+web root) is segmented and discretized exactly as described above for
+the skin-stringer module. The "skin"-ring discretized module is generated
+only for panels stiffened with rings that are blades or Tees or Jays or
+Zees. (Not hats or truss-core).
+
+3. Model type 3: Also included in the PANDA2 collection of models is a
+discretized model of the entire width of the panel, treated in this case
+with stiffeners smeared out. This model is introduced only if the axial
+load varies across the width of the panel or if there exists normal
+pressure. 
+
+The purpose of PANDA2 is to yield optimum PRELIMINARY designs of rather
+sophisticated panels that may experience very complex and very nonlinear
+behavior. The goal is to do this without having to use large,
+general-purpose programs with their elaborate data base management
+systems.  This goal is achieved through the use of several separate
+relatively simple models, each designed to capture a specific phenomenon,
+rather than through the use of a single multi-dimensionally discretized
+finite element model with a large number of degrees of freedom. 
+
+For example, PANDA-type models (Model type 1) are used in the IQUICK = 1
+mode of operation of the PANDA2 mainprocessor in order to obtain quick,
+preliminary designs which one can then use as starting designs in
+optimization analyses based on the more elaborate discretized panel module
+model that is used in the IQUICK = 0 mode of operation. Also, PANDA-type
+models are used to obtain buckling load factors in cases for which the
+discretized panel module model is not applicable, to obtain knockdown
+factors for the effect of in-plane shear loading, to obtain preliminary
+estimates of how much growth in any initial panel bowing to expect under
+compressive in-plane loads, and to check if it is likely that a curved
+panel with uniform external pressure will collapse under the pressure
+acting by itself. 
+
+Models of type 2 (single discretized module) and type 3 (discretization of
+entire width with smeared stiffeners) are used in tandem to obtain from
+nonlinear theory the complex behavior of a stiffened plate or shell loaded
+by normal pressure. Model type 3 is the only one that is valid if the
+axial load varies across the width of the panel. 
+
+In the panels designed by PANDA2 (except for isogrid-stiffened) the skin
+between stringers and the stringer parts will deform if they are locally
+imperfect, and even if they are perfect they may buckle well before
+failure of the panel. The maximum stress components and therefore stress
+constraints in the optimization analysis are computed including local
+prebuckling deformation and local post buckling growth and modification of
+the local skin buckling mode as predicted by a modified form of a theory
+formulated by Koiter in 1946 [40, 35]. Model type 2 (single discretized
+module) is the only model in PANDA2 valid for these analyses. 
+
+After the optimum design is obtained, the user can, if no in-plane shear
+load is applied, check the accuracy of the general instability load
+predicted from the single-module model by running a multi-module model
+with BOSOR4 [39].  The input data file for this multi-module model is
+generated automatically by the "PANEL" processor of the PANDA2 system. 
+
+A PANDA2 processor called "STAGSMODEL" has been written.  This processor,
+using the PANDA2 data base for a panel optimized by PANDA2, generates
+input files for the STAGS computer program and the STAGS postprocessor
+[21, 22, 48].  With STAGSMODEL the user can check designs obtained from
+PANDA2 with a widely used, general purpose, nonlinear static and dynamic
+finite element program. (As of this writing STAGSMODEL will not handle
+truss-core stiffened panels or isogrid-stiffened panels). 
+
+
+Architecture of the PANDA2 system
+
+As with PANDA [4], the program PANDA2 [35] consists of several
+independently executable processors which share a common data base. In the
+processor BEGIN the user supplies a starting design (perhaps a design
+produced by PANDA).  In DECIDE the user chooses decision variables for the
+optimization analysis and their upper and lower bounds, linking variables
+and their factors of proportionality, and "escape" variables (explained in
+[35]). In MAINSETUP the user chooses up to five sets of combined in-plane
+loads and normal pressure; factors of safety for general instability,
+panel (between rings) instability, local instability, and material
+failure; strategy parameters such as number and range of axial half-waves
+in the local buckling mode; and number of design iterations in the
+optimization problem. The command PANDAOPT initiates a batch run of the
+PANDA2 mainprocessor, which consists of two main branches:  in one branch
+the structural analyses (stress, buckling and post-buckling) are performed
+and in the other new designs are produced by the optimizer ADS [37, 38]. 
+Results can be plotted with use of the processors CHOOSEPLOT and DIPLOT.
+Input data files for BOSOR4 and STAGS can be generated with use of the
+processors PANEL and STAGSMODEL, respectively. Searches for a global
+optimum design can be conducted with use of the processor SUPEROPT, which
+represents a runstream consisting of many PANDAOPTs with intermittant
+establishment of new "starting" designs via a random process coded in
+a processor called AUTOCHANGE.
+
+
+Improvements to PANDA2
+
+Details about improvements to PANDA2 since publication of the original
+paper in 1987 are provided in [41, 42]. A summary of the most significant
+modifications and additions is provided here. 
+
+1. Plots of dimensions, objective, and design margins vs. design
+iterations are generated by new processors, CHOOSEPLOT and DIPLOT,
+described in [41, 42]. Many of the plots in [43] were generated
+with the CHOOSEPLOT/DIPLOT processors. 
+
+2. There is new flexibility with regard to the in-plane movability of the
+edges as the panel is loaded by normal pressure. Indeed, with movable
+boundaries of flat panels especially, the increased bowing and lack of
+development of average in-plane tension caused by bending can greatly
+reduce local buckling load factors, affecting the local postbuckling
+behavior and therefore the stress constraints that influence the evolution
+of the optimum design during optimization iterations. 
+
+3. New logic has been introduced to generate a "knockdown" factor to
+compensate for the inherent unconservativeness of smearing stiffeners in
+the prediction of general (overall) and panel (between rings) instability,
+especially in cases where there is significant applied in-plane shear
+loading. The amount of knockdown is related (a) to the ratio of the
+wavelength of the buckles in the in-plane coordinate y normal to the
+stiffeners to the spacing b of the stiffeners, and (b) to the ratio of the
+applied in-plane shear load to the axial load. 
+
+4. Edge moments may be applied to the panel.
+
+5. Temperature distributions may be applied to the panel and the material
+may be temperature-dependent. (Material must still behave linearly,
+however). 
+
+6. If the panel is loaded by normal pressure, buckling and stress
+constraints are generated for conditions both at the midlength and at the
+ends of the panel.  This modification is important because the very
+different distributions of axial compression over the skin-stringer cross
+section cause very different buckling and stress behavior at these
+different axial locations.  Behavioral constraint conditions corresponding
+to both panel midlength and panel ends may influence the evolution of the
+design during optimization iterations. 
+
+7. A new behavioral constraint condition based on bending-torsional
+buckling with a long axial wavelength has been introduced. 
+
+8. There may now be different boundary conditions for the prebuckling and
+bifurcation buckling phases of the problem.  This modification is
+important for finding optimum designs of panels under normal pressure in
+which the panel being optimized spans large rings. In the prebuckling
+phase the rings act like clamps, preventing edge rotation because of
+symmetrical behavior on either side of the ring.  However, practical
+rings, especially those with open cross sections, are likely to be too
+weak to prevent edge rotation in the bifurcation buckling phase of
+behavior.  Therefore, simple support conditions are usually called for
+then. 
+
+9. If the panel is considered to be clamped in the prebuckling phase and
+if it is axially stiffened, its overall response to normal pressure is
+predicted from wide-beam bending theory in which the effect of axial
+compression is included. The theory is taken from Roark [44]. At the
+midlength of the panel the change in curvature is given by: 
+
+        Kappax(midlength) = p*(a/sin(a) - 1)/[EI(eff)*k**2]    (1)
+
+in which
+           a = k*L/2 ;     k = SQRT[-Nx(eff)/EI(eff)]          (2)
+
+where EI(eff) is the effective axial bending stiffness of the panel with
+smeared stringers and Nx(eff) is the effective axial resultant (positive
+for tension) acting on the panel. 
+
+The effective axial bending stiffness is obtained through a PANDA-type [4]
+general instability analysis of a wide panel clamped at its axially loaded
+ends with the effective axial stiffness of the panel skin and base under
+the stringer set equal to one half their nominal values in order to
+account for the diminished effective flange width of a beam with a wide
+flange. The quantity EI(eff) is calculated with use of the Euler buckling
+formula for a clamped-clamped column,  P(Euler) = 4*pi**2*EI/L**2. Since
+P(Euler) = LAMBDA*ABS(Nx), the effective axial bending stiffness EI(eff)
+of the wide column is given by 
+
+          EI(eff) = LAMBDA*ABS(Nx)*L**2/4*pi**2.               (3)
+
+in which LAMBDA is the eigenvalue found from the PANDA-type buckling
+analysis of the panel with smeared stiffeners. 
+
+The effective axial resultant, Nx(eff) = EBEAMR*Nx, accounts for the
+presence of in-plane shear Nxy combined with the axial load Nx. The factor
+EBEAMR is given by EBEAMR = LAMBDA/LAMBDA2, in which LAMBDA is the general
+instability buckling load factor with just Nx acting on the panel and
+LAMBDA2 is the general instability buckling load factor with both Nx and
+Nxy acting on the panel. 
+
+The normal deflection at the midlength of the panel, Wpressure, is given
+by: 
+
+        w(midlength) = p*L*[tan(a/2) - a/2]/[2*k*Nx(eff)]      (4)
+
+At the ends of the panel the change in curvature is given by:
+
+         Kappax(ends) = -p*[1 - a/tan(a)]/[EI(eff)*k**2]       (5)  
+ 
+For a panel with no axial load and with the panel skin considered to be
+fully effective as the beam-column bends, Equations (1), (4) and (5)
+assume the well-known forms: 
+
+     Kappax(midlength) =  (1/24)*p*L**2/C44(neutral axis)      (6)
+     w(midlength)      = (1/384)*p*L**4/C44(neutral axis)      (7)
+     Kappax(ends)      = -(1/12)*p*L**2/C44(neutral axis)      (8)
+
+The maximum web shear resultant, Nxy(due to pressure) is
+
+         Nxy(p) = (1/2)*p*L*b/h                                (9)
+
+In the formulas above, p is the normal pressure, positive as shown in Fig.
+8, page 490 of [35], L is the length of the panel between the large rings
+(which are not present as actual structures in the PANDA2 model, and
+C44(neutral axis) is the bending stiffness per transverse arc length when
+the reference surface is the neutral plane in the x-direction. 
+ 
+The beam bending model is used only for the deformation of the entire
+panel with smeared stiffeners. The local model for bending and stretching
+under pressure (single module) has not been changed, except that the user
+now has a choice as to whether the longitudinal edges are in-plane movable
+or not. 
+
+
+10. More general linking expressions and inequality constraints based on
+the panel cross section dimensions have been introduced into the DECIDE
+processor. A general expression for a linked variable now has the form: 
+   
+       (linked variable)  =  C1*(decision variable no. j1)
+                            +C2*(decision variable no. j2)
+                            +C3*(decision variable no. j3)
+                            +etc (up to max. of 5 terms)
+                            +C0                                   (10)
+ 
+in which C1, C2,..;  and C0 are constants.  Inequality relations among
+variables may have either of the two forms: 
+
+       1.0 < f(v1,v2,v3,...)    or   1.0 > f(v1,v2,v3,...)        (11)
+ 
+where the expression f(v1,v2,v3,...) has the form:
+ 
+    f(v1,v2,v3,...) = C0 +C1*v1**D1 +C2*v2**D2 +C3*v3**D3 + ...
+                             +etc (up to max. of 5 terms).        (12)
+ 
+The variables, v1, v2, v3,..., can be any of the variables that are
+decision variables or potential candidates for decision variables or
+linked variables. 
+ 
+11. Whereas formerly there were two choices for type of analysis,
+
+   (1) optimization and
+   (2) analysis of a fixed design at a fixed load,
+
+there are now also third, fourth, and fifth choices:
+
+   (3) test simulation
+   (4) design sensitivity
+   (5) in-plane load interaction
+
+In the "test simulation" mode the user supplies starting loads, load
+increments and the number of load steps.  PANDA2 calculates the response
+of a panel of fixed design for a number of load steps until general
+instability is detected or until the maximum number of load steps
+specified by the user is reached. 
+
+In the "design sensitivity" mode the user chooses a particular design
+variable and beginning and ending values of that variable.  PANDA2
+calculates the response with fixed loads and a number of panel designs in
+which the user-chosen design variable increases from its beginning value
+to its ending value.  Margins can be plotted v. the chosen design variable
+with use of the PANDA2 processor "CHOOSEPLOT".. 
+
+In the "in-plane load interaction" mode the user selects the type of
+load-interaction, (Nx,Ny) with constant Nxy or (Nx,Nxy) with constant Ny
+or (Ny,Nxy) with constant Nx, the ranges to be covered for the varying
+in-plane loads in the interaction, and the number of load combinations for
+which to obtain margins. PANDA2 yields interaction plots for user-selected
+margins. 
+
+12. The assumed displacement field for calculation of PANDA-type buckling
+load factors has been modified for flat panels.  In [4b] a Rayleigh-Ritz
+method for obtaining bifurcation buckling loads of anisotropic flat and
+cylindrical panels is described. The assumed displacement field (u,v,w)
+for the buckling mode is given by Eqs. (50), p 552, of [4b]: 
+
+ u = A[n2**2*m1*sin(n1*y -m1*x) +n1**2*m2*sin(n2*y +m2*x)]
+ v = B[      n2*sin(n1*y -m1*x) -      n1*sin(n2*y +m2*x)]     (13)
+ w = C[         cos(n1*y -m1*x) -         cos(n2*y +m2*x)]
+
+in which n1, n2, m1, m2 are given by
+
+     n1 = n+mc;   n2 = n-mc;   m1 = m+nd;   m2 = m-nd          (14)
+
+where c and d are the slopes of the buckling nodal lines as shown in Fig.
+9 of [4b]. The axial and circumferential wave indices m and n are defined
+as 
+
+           m = M*pi/x(max);    n = N*pi/y(max)                 (15)
+
+where M and N are the number of halfwaves over the axial length x(max) and
+the circumferential length y(max), respectively. 
+
+This formulation has been retained because it usually gives the best
+results for curved (cylindrical) panels, especially if the curved panel
+spans more than one radian.  However, while comparing buckling loads for
+flat panels with unbalanced laminates from results obtained with the STAGS
+computer program [21,22], especially when in-plane shear predominates, it
+was found that the following assumed displacement pattern yields better
+predictions: 
+
+     u = A[m1*sin(n1*y -m1*x) + m2*sin(n2*y +m2*x)]
+     v = B[n1*sin(n1*y -m1*x) - n2*sin(n2*y +m2*x)]            (16)
+     w = C[   cos(n1*y -m1*x) -    cos(n2*y +m2*x)]
+
+13. A rather elaborate strategy has been introduced to obtain improved
+accuracy of buckling load factors for curved panels in which in-plane
+shear is a significant load component.  Details of the strategy are
+included in the file called "PANDA2.NEWS" [42], which forms part of the
+PANDA2 literature distributed with the program. 
+
+14. The local postbuckling theory, based on the work of Koiter [40], has
+been improved to allow for change in the axial wavelength of the local
+buckles as the panel is loaded further and further into the postbuckling
+regime. 
+
+15. Axial bending induced by neutral plane shift after local buckling has
+been introduced into the local postbuckling anslysis. 
+
+16. The PANDA2 user may now obtain plots of extreme fiber strains vs. load
+(test simulation mode) at several user-selected points in the panel module
+cross section. 
+
+17. The move limits for decision variables during optimization cycles now
+depend to a certain extent on the value of the gradients of the behavioral
+constraint conditions. 
+
+18. The thermal buckling capability of PANDA2 has been improved. It is now
+possible to perform an ITYPE=3 analysis (test simulation) with thermal
+loading only. 
+
+19. A PANDA2 processor called "STAGSMODEL" has been written.  This
+processor, using the PANDA2 data base for a panel optimized by PANDA2,
+generates input files for the STAGS computer program and the STAGS
+postprocessor [21, 22].  With STAGSMODEL the user can check designs
+obtained from PANDA2 with a widely used, general purpose, nonlinear static
+and dynamic finite element program. 
+
+20. Often when a stiffened panel is designed to withstand loads much
+higher than the local buckling load of the panel skin, there is "secondary
+local buckling" or "mode jumping".  That is, in tests of optimized panels
+bifurcation buckling of the already locally buckled panel skin has been
+observed at loads considerably above the initial local buckling load. If a
+panel is made of composite material which can delaminate relatively easily
+this secondary buckling, which usually occurs with a loud snapping noise,
+might well lead to early failure of the structure.  Therefore, it is
+advantageous to be able to find optimum designs for which secondary
+buckling of the panel skin is unlikely to occur. Coding has been
+introduced into PANDA2 by means of which optimum designs of panels can be
+obtained for which secondary buckling is postponed to loads that are
+higher than the design load. 
+
+21. PANDA2 now runs with UNIX-based operating systems.
+
+22. Improvements have been made in the special case of a ring stiffened
+panel or shell under uniform pressure. The "hungry horse" prebuckling
+bending is now included in the analysis. See ITEM 116 of PANDA2.NEWS. 
+
+23. Linear variation of the axial resultant across the height of stiffener
+webs is now included in the calculation of local web buckling and local
+rolling of stiffeners. 
+
+24. Panels with isogrid stiffening with added rings can be handled with
+the IQUICK = 1 (PANDA-type) models for buckling and stress. 
+
+25. Predictions of the buckling and stress behavior of imperfect
+unstiffened and stiffened cylindrical panels has been improved. The effect
+on buckling load factors and stress for cylindrical panels with buckling
+modal initial imperfections for local, panel (inter-ring), and general
+instability modes, as well as overall ovalization, has been incorporated
+into PANDA2. (See PANDA2.NEWS ITEM 124 and Ref. 4 under "Recent PANDA2
+references" ). 
+
+26. Predictions of buckling by PANDA-type (closed-form) buckling formulas
+are now available in PANDA2 based on either Donnell equations or Sanders
+equations.  A new input datum called ISAND is required for MAINSETUP and
+PANDAOPT.  Details appear in ITEM 128 of PANDA2.NEWS. 
+
+27. There is now a processor called AUTOCHANGE by means of which the
+decision variables are automatically changed as described in ITEM 151 in
+PANDA2.NEWS. This processor makes the task of looking for a global optimum
+design much easier. AUTOCHANGE can be used by itself (via the command
+"autochange"). AUTOCHANGE is run as part of the SUPEROPT process. SUPEROPT
+looks for a global optimum design. See ITEM 152 in PANDA2.NEWS. 
+
+28. PANDA2 ordinarily optimizes for conditions both at the midlength and
+at the ends of a panel or cylindrical shell. Sometimes there may be high
+stress concentrations within a relatively narrow "boundary length" of the
+ends of a clamped panel or near heavy rings in a ring-stiffened
+cylindrical panel or shell. It may be best to design a panel with
+different properties in the end regions and more than a "boundary layer"
+away from the ends. This can now be done. Judgment is required if the user
+wishes to take advantage of this feature. Details and an example are
+presented in ITEMs 175 and 378 of PANDA2.NEWS .
+
+30. The section of PANDA2 having to do with buckling of imperfect
+cylindrical panels and shells (see Paragraph No. 25 in this section) has
+been considerably improved by incorporation of Johann Arbocz' extended
+version of Koiter's Special (1963) theory for buckling of axisymmetrically
+imperfect cylindrical shells. See panda2.news ITEM 201 for details. 
+
+31. The permitted cross-section geometry of a truss-core sandwich panel
+has been expanded beyond that shown in Ref. [43]: There may now be a
+region b2 of finite width over which the truss core is integrated into
+the panel face sheets, as shown below:
+
+      Truss-core sandwich wall construction
+       with extra segments of width b2....
+
+                 < b2 >  ---- Seg. 3 ---->
+      -----------======--------------------======-----------<-Upper skin
+                /-Seg6>\S                 /      \        ^    middle surface
+               /        \e              4/        \       |
+              /        . \g.           g/          \      |
+             /         |\ \           e/ /          \     h=(skin-middle-surf.
+            /            \ \2        S/ /            \    |   to-skin-middle-
+           /                \        /|/              \   |   surface height)
+          /  --- Seg. 1----> \<Seg5-/ '                \  V
+      ====--------------------======--------------------==--<-lower skin
+                              < b2 >                         middle surface
+          <---------- b ----------->
+
+          -----> "y" coordinate direction
+
+       A single module consists of Seg. 1 through Seg. 6.
+       Seg. 4 has the same wall construction as Seg. 2.
+       Soon you will be asked:
+         "Are the segs. of width b2 thicker than face sheets?"
+       If you answer N to this question, then:
+          Seg. 5 has the same wall construction as Seg. 1.
+          Seg. 6 has the same wall construction as Seg. 3.
+       If you answer Y to this question, then:
+          Seg. 5 has stacked wall construction: Seg.5 = Seg.1+Seg.2.
+          Seg. 6 has stacked wall construction: Seg.6 = Seg.3+Seg.2.
+
+See ITEMs 222 and 265 in PANDA2.NEWS for more details.
+
+
+32. The prompting coding (PROMPTER library) was modified to permit the
+user to supply default values of input simply by hitting "return". This
+modification is especially important in MAINSETUP, where many of the
+strategy input values require sophisticated knowledge on the part of
+the user.  The following notice was added to the SAMPLE.CAS file and
+is repeated twice in PANDA2.NEWS Items 171 and 224:
+
+ ************ NOTE ************** NOTE ************** NOTE **************
+ ************ NOTE ************** NOTE ************** NOTE **************
+ ************ NOTE ************** NOTE ************** NOTE **************
+ Some of the prompts for input require sophisticated knowledge on the
+ part of the user. However, default options are available for most of
+ the input. If you are not sure of your reply, simply hit "return" and
+ the default value will automatically be supplied. If, upon your hitting
+ "return", PANDA2 replies, "PLEASE SAY SOMETHING", then you must supply
+ an input datum. If you are not sure what to supply, type "H" (for "Help")
+ and more information will be provided.
+ ************ NOTE ************** NOTE ************** NOTE **************
+ ************ NOTE ************** NOTE ************** NOTE **************
+ ************ NOTE ************** NOTE ************** NOTE **************
+
+
+33. PANDA2 can now be used to find optimum cross sections of beams. The
+user sets the total width, CIRC, of the panel equal to a single skin-stringer
+module, b. Then PANDA2 asks the user if he/she wants to analyze a beam.
+If the user answers Y, then PANDA2 resets the boundary conditions along
+the two longitudinal edges of the one-module "panel" to free-free. Please
+see ITEM 246 in PANDA2.NEWS for more details.
+
+
+34. PANDA2 will now handle the following failure modes and phenomena in
+sandwich panels or in panels in which one or more segments of the panel
+module has a sandwich wall construction: face wrinkling, face dimpling,
+core shear crimping, core crushing, core tension failure, core failure due
+to excess transverse shear stresses applied to either the x-z or y-z faces
+of the core, face sheet pull-off, the effects of initial face sheet
+waviness. Also, PANDA2 will handle buckling of panels with segments on
+elastic foundations. Please see ITEM 271 in the file 
+
+         ...panda2/doc/panda2.news
+
+for more details. 
+
+35. PANDA2 now permits taking advantage of "bending overshoot" in
+one-layered panel module segments. This means that different stress
+allowables may be applied to the membrane and bending components of
+the stress. Different "bending overshoot" constants, fxt, fxc, fyt,
+fyc, and fxy may be applied for tensile ("t") and compressive ("c")
+membrane stresses in the axial ("x") and hoop ("y") directions and
+in-plane membrane shear and twist. Please see ITEM 299 in panda2.news.
+NOTE: because of this capability there now exists a new input datum
+in BEGIN.
+
+36. PANDA2 now permits optimization of panels with Z-shaped stringers
+and rings. Please see ITEM 375 in panda2.news. Part of ITEM 375 is
+repeated here for convenience:
+
+A new stiffener cross section was introduced into PANDA2: Z-shaped
+stiffener for which the faying flange is considered to be riveted to the
+panel skin at the midwidth of this flange. New sketches were introduced
+into the PROMPT.DAT file and into SUBROUTINES PICTS, PICT2, and PICT3 of
+the UTIL library, as follows: 
+
+       Module with Z-shaped stiffener...
+
+                                     |<-- w -->|
+                                     ___________
+                                     |   ^    .
+                Segment No. 3 -----> |   |     .
+                                     |   |      .Seg. No. 4
+                    Seg. No. 2-.     |   h
+                                .    |   |
+              Seg. No. 1-.       .   |   |          .-Seg. No. 5
+                        .      R  .  |   |         .(same as Seg.1)
+                       .  _____I_____|   V        .
+      ------------------------ V ------------------------
+                          |    E     |
+                          |    T     |
+                          |<---b2--->|
+      |<---- Module width  =  stiffener spacing, b ---->|
+
+
+         Fig. 1 Sketch of the Z-shaped stiffener in the PROMPT.DAT file
+
+
+    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS
+
+                       Layer No. 1___
+                                     . 
+                                      . 
+             (Segment,Node)=(4,1)____________(4,11)
+                                         . 
+                              (3,11)      .__Layer No. j
+                                !  
+             Layer No. 1 -----> ! <----------- Layer No. k
+                                !   
+             Layer No. 1-.      !   
+ Layer No. 1-.            .     !         .-Layer No. 1
+            .              .    !          .
+           .             R  . (3,1)         .
+          .   (2,1)______I______(2,11)       .
+ ----------------------  V  ------------------------
+ (1,1)    .       (1,11) E (5,1)              .   (5,11)
+           .             T                     .
+            .                                   .
+             Layer No. m                         Layer No. m
+
+
+        Fig. 2  Sketch of Z-shaped stiffener added to SUB. PICTS
+
+
+The riveting of the faying flange to the panel skin is simulated by
+a junction constraint on displacements u,v,w, and rotation ROT at the
+midwidth of the faying flange (2,6) to the end node of Segment 1: (1,11).
+The heel of the Z-shaped stringer (intersection of Segment 2 with Segment
+3) is free to lift off the panel skin. This renders the behavior of
+Z-shaped stringers considerably different from that of J-shaped stringers,
+especially for non-optimum designs.
+
+
+37. Alternative buckling solution installed in PANDA2 (July-Aug. 1998):
+See ITEMs 438 and 444 in ..panda2/doc/panda2.news. A major new branch was
+inserted into PANDA2: an alternate "PANDA-type" solution for buckling
+("PANDA-type" in contrast to the discretized single module model). The
+alternate solution is needed for squarish flat or curved panels subjected
+to significant in-plane shear loading and flat or curved composite
+laminates with significant anisotropic terms, B16, B26, or D16, D26, such
+as occur especially in angle-ply laminates with few layers. In addition,
+the alternate solution will handle buckling of stiffened panels in which
+the stiffeners are treated as discrete rather than being "smeared"
+(averaged) over the panel surface. The alternative solution involves
+double trigonometric series expansions of the buckling modal displacement
+components, u,v,w. The "alternative" solution is of the type described by
+Timoshenko (pp 357-360, 1936 1st edition) by Whitney (pp 152-156), by
+Jones, and by others. The alternative solution is now computed in the new
+SUBROUTINE ALTSOL (BUCPAN2 library). Numerous comparisons have been made
+with predictions from STAGS, and there is very good agreement. A new input
+datum has been introduced into the *.OPT file (MAINSETUP/PANDAOPT input)
+whereby the PANDA2 user chooses whether or not to use the alternate
+solution branch. 
+
+38. There is a new "skin"-ring discretized module in PANDA2. In this model
+the stringers are smeared out, and the skin-stringer panel wall plus ring
+cross section is segmented and discretized in a manner completely
+analogous to the skin-stringer discretized module described in the
+original long 1987 paper on PANDA2. For details, please read ITEM 463 in
+the file ...panda2/doc/panda2.news. 
+
+39. The model for prebuckling behavior of a ring and stringer stiffened
+flat panel under normal pressure has been improved. Please read ITEM 470
+in the file ...panda2/doc/panda2.news.
+
+40. A processor called STAGSUNIT has been added. STAGSUNIT uses panda2
+data plus some user input to generate the stags input files *.inp and
+*.bin for a cylindrical panel or complete cylindrical shell stiffened by
+rings and stringers with either rectangular, tee, jay, or z cross
+sections. STAGSUNIT is analogous to STAGSMODEL. It builds up a stags model
+with shell units rather than with a single element unit, as does
+STAGSMODEL. (See "Recent PANDA2 references" No. [10] for more details about
+STAGSUNIT).
+
+41. With IQUICK = 0 models (discretized skin-stringer module model), the
+user can now choose to retain the curvature of the panel skin in the
+discretized module model. See ...panda2.news Item. No. 530 and Entries
+807 and 809 in the prompting file, PROMPT.DAT.
+
+
+42. September 2003 (defunct)
+A new version of PANDA2 (called PANDA3) has been developed. In this version material
+properties and most of the allowables can be decision variables in addition to the
+panel cross section dimensions, layer thicknesses and winding angles. This work was
+done at the request of Prof. Raphael Haftka of the Aerospace Dept. of the University
+of Florida in Gainesville, FL.
+In PANDA3 there are new input data required in BEGIN. For every variable PANDA3 asks, 
+" Is this variable a decision variable candidate?" Therefore, input files for BEGIN
+in PANDA2 (*.BEG) will not work on PANDA3 and input files for BEGIN in PANDA3 (*.BEG)
+will not work on PANDA2.
+The input files for DECIDE (*.DEC) and for MAINSETUP/PANDA2 (*.OPT) and for
+CHOOSEPLOT (*.CPL) are the same for both PANDA2 and PANDA3.
+
+43. January 2005
+The capability of the computer program PANDA2 for the minimum-weight design
+of stiffened panels and cylindrical shells is enhanced to permit the
+adding of substiffeners with rectangular cross sections between adjacent major
+stringers and rings. As a result many new buckling margins exist that
+govern buckling over various domains and subdomains of the doubly stiffened
+panel or shell. These generally influence the evolution of the design during
+optimization cycles. The substiffeners may be stringers and/or rings or may
+form an isogrid pattern. The effects of Local, inter-ring, and general buckling
+modal imperfections are accounted for during optimization. Perfect and
+imperfect cylindrical shells with external T-shaped stringers and T-shaped
+rings and with and without external substringers and subrings and under combined
+axial compression, external pressure, and in-plane shear are optimized
+by multiple executions of a "global" optimizer called SUPEROPT. It is found
+that from the point of view of minimum weight there is little advantage of
+adding substiffeners. However, with substiffeners present the major stringers
+and rings are spaced farther apart at the optimum than is the case with
+no substiffeners. The weight of a cylindrical shell with substiffeners is much
+less sensitive to the spacing of the major T-shaped stringers than is the case
+for a cylindrical shell without substiffeners. The optimum designs obtained
+by PANDA2 are evaluated by comparisons of buckling loads obtained from a
+general-purpose finite element program called STAGS. Predictions from STAGS
+agree well with those from PANDA2.
+
+Please see the paper,  David Bushnell, OPTIMUM DESIGN OF STIFFENED PANELS WITH
+SUBSTIFFENERS, AIAA PAPER 1932, 46th AIAA SDM Meeting, Austin, TX, April 2005
+and ITEM NO. 600 in the file ...panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+44. March 2007
+A new section was added to the PANDA2 mainprocessor (SUBROUTINE STRUCT) in
+which a knockdown factor is computed to compensate for the inherent
+unconservativeness of smearing stringers. Details appear in Items 724 and
+725 of ..panda2/doc/panda2.news.
+
+
+                         CAPABILITY OF STAGS
+
+STAGS (STructural Analysis of General Shells) is a finite element code for
+general-purpose nonlinear analysis of stiffened shell structures of
+arbitrary shape and complexity. Its capabilities include stress,
+stability, vibration, and transient analyses with both material and
+geometric nonlinearities permitted in all analysis types. Currently a new
+version of STAGS, scheduled for release through COSMIC in 1992, is under
+development. New enhancements include a higher order thick shell element,
+more advanced nonlinear solution strategies, and more comprehensive
+post-processing features such as a link with PATRAN [45]. 
+
+Research and development of STAGS by Brogan, Almroth, Rankin, Stanley,
+Cabiness, Stehlin and others of the Computational Mechanics Department of
+the Lockheed Palo Alto Research Laboratory has been under continuous
+sponsorship from U.S. government agencies and internal Lockheed funding
+for the past 20 years.  During this time particular emphasis has been
+placed on improvement of the capability to solve difficult nonlinear
+problems such as the prediction of the behavior of axially compressed
+stiffened panels loaded far into their locally postbuckled states. STAGS
+has been extensively used worldwide for the evaluation of stiffened panels
+and shells loaded well into their locally postbuckled states. See [7], for
+example. 
+
+A large rotation algorithm that is independent of the finite element
+library has been incorporated into STAGS [46].  With this algorithm there
+is no artificial stiffening due to large rotations.  The finite elements
+in the STAGS library do not store energy under arbitrary rigid-body motion
+and the first and second variations of the strain energy are consistent.
+These properties lead to quadratic convergence during Newton iterations. 
+
+Solution control in nonlinear problems includes specification of load
+levels or use of the advanced Riks-Crisfield path parameter that enables
+traversal of limit points into the post-buckling regime. Two load systems
+with different histories (Load Sets A and B) can be defined and controlled
+separately during the solution process. Flexible restart procedures permit
+switching from one strategy to another during an analysis.  This includes
+shifts from bifurcation buckling to nonlinear collapse analyses and back
+and shifts from static to transient and transient to static analyses with
+modified boundary conditions and loading.  STAGS provides solutions to the
+generalized eigenvalue problem for buckling and vibration from a linear or
+nonlinear stress state. 
+
+Quadric surfaces can be modeled with minimal user input as individual
+substructures called "shell units" in which the analytic geometry is
+represented exactly. "Shell units" can be connected along edges or
+internal grid lines with partial or complete compatibility.  In this way
+complex structures can be assembled from relatively simple units.
+Alternatively, a structure of arbitrary shape can be modelled with use of
+an "element unit". 
+
+Geometric imperfections can be generated automatically in a variety of
+ways, thereby permitting imperfection-sensitivity studies to be performed.
+ For example,  imperfections can be generated by superposition of several
+buckling modes determined from previous STAGS analyses of a given case. 
+
+A variety of material models is available, including both plasticity and
+creep.  STAGS handles isotropic and anisotropic materials, including
+composites consisting of up to 60 layers of arbitrary orientation. Four
+plasticity models are available, including isotropic strain hardening, the
+White Besseling (mechanical sublayer model), kinematic strain hardening,
+and deformation theory. 
+
+Two independent load sets, each composed from simple parts that may be
+specified with minimal input, define a spatial variation of loading. Any
+number of point loads, prescribed displacements, line loads, surface
+tractions, thermal loads, and "live" pressure (hydrostatic pressure which
+remains normal to the shell surface throughout large deformations) can be
+combined to make a load set. For transient analysis the user may select
+from a menu of loading histories, or a general temporal variation may be
+specified in a user-written subroutine. 
+
+Boundary conditions (B.C.) may be imposed either by reference to certain
+standard conditions or by the use of single- and multi-point constraints.
+Simple support, symmetry, antisymmetry, clamped, or user-defined B.C. can
+be defined on a "shell unit" edge.  Single-point constraints which allow
+individual freedoms to be free, fixed, or a prescribed non-zero value may
+be applied to grid lines and surfaces in "shell units" or "element units".
+ A useful feature for buckling analysis allows these constraints to differ
+for the prestress and eigenvalue analyses. Langrangian constraint
+equations containing up to 100 terms may be defined to impose multi-point
+constraints. 
+
+STAGS has a variety of finite elements suitable for the analysis of
+stiffened plates and shells.  Simple four node quadrilateral plate
+elements with a cubic lateral displacement field (called "410" and "411"
+elements) are effective and efficient for the prediction of postbuckling
+thin shell response.  A linear (410) or quadratic (411) membrane
+interpolation can be selected.  For thicker shells in which transverse
+shear deformation is important, STAGS provides the Assumed Natural Strain
+(ANS) nine node element (called "480" element).  A two node beam element
+compatible with the four node quadrilateral plate element is provided to
+simulate stiffeners and beam assemblies.  Other finite elements included
+in STAGS are described in the STAGS literature [47]. 
+
+
+              PANDA2 - to - STAGS  MODEL GENERATION
+
+A PANDA2 processor, executed by the command "STAGSMODEL", creates
+input files for STAGS corresponding to panel configurations optimized with
+PANDA2.  With STAGSMODEL/STAGS the load-carrying capacity of optimum
+designs obtained by PANDA2 can be checked without the user having to spend
+time setting up elaborate finite element models for STAGS from directions
+in the STAGS user's manual. The STAGSMODEL processor can be used to create
+a succession of STAGS models by means of which bifurcation buckling
+behavior and nonlinear post-local-buckling behavior of a panel optimized
+by PANDA2 can be determined. This is a valuable feature because panels
+designed by the approximate methods used in PANDA2 can now easily be
+"tested" by a widely used, rigorous, general, nonlinear finite element
+general purpose program. 
+
+The STAGSMODEL processor creates a finite element model of the part of a
+panel between adjacent rings. The stiffness along the axes of the rings is
+accounted for in the finite element model created by STAGSMODEL/STAGS. The
+panel can be loaded by any combination of uniform axial load Nx, uniform
+hoop load, Ny, uniform in-plane shear Nxy, and uniform normal pressure p. 
+
+LIMITATIONS IN STAGSMODEL: Thermal loading and edge moments cannot yet be
+included. Truss-core sandwich panels cannot be handled. Also, if the panel
+is axially stiffened the axially loaded edges cannot rotate in either the
+prebuckling or bifurcation buckling phases of the analysis. The material
+must remain elastic. The loading/end shortening must be uniform. 
+STAGSMODEL will not handle truss-core stiffened panels or
+isogrid-stiffened panels. 
+
+Depending on a user-selected index, the normal projection of the two edges
+parallel to the stringers may be forced to remain straight or may be
+allowed to undergo in-plane warping (varying circumferential
+displacement). At the axially loaded ends of the panel the cross sections
+of the stringers are not allowed to warp. In non-bifurcation phases of
+analyses the axial displacement u is zero at one end of the STAGS model
+and is uniform at the other end. The user chooses whether or not stringer
+sidesway is permitted at the axially loaded ends of the panel. 
+
+The entire STAGS model is created in what in STAGS jargon is called an
+"element unit".  The stringer web(s) and outstanding flange are also
+modelled with finite elements. The line loads Nx, Ny and Nxy and pressure
+p are modelled as nodal point loads.  The user may choose to employ 410,
+411, or 480 elements [47]. If the user chooses 410 elements all segments
+of the panel are modelled with 410 elements except the bases under the
+stringers, which are modelled with 411 elements. If the user chooses
+either 411 or 480 elements the entire panel is modelled with those
+elements. 
+
+ *************** NOTE **** STAGSUNIT **** NOTE *********************
+ANOTHER NEW PANDA2-to-STAGS processor called STAGSUNIT: see No. 40
+above and "recent PANDA2 reference" No. [10] listed below.
+ ******************************************************************
+
+
+                       REFERENCES
+
+[1] A. W. Leissa, ``Buckling of laminated composite plates and shell
+panels," AFWAL-TR-85-3069, Air Force Wright Aeronautical
+Laboratories, Wright-Patterson AFB, Ohio 45433, June, 1985. 
+
+[2] J. F. M. Wiggenraad, ``Postbuckling of thin-walled composite
+structures - design, analysis, and experimental verification,"
+National Aerospace Laboratory (NLR), The Netherlands, Memorandum
+SC-86-013 U, Feb. 28, 1986. 
+
+[3] R. R. Arnold and J. C. Parekh, ``Buckling, postbuckling, and
+failure of flat and shallow-curved, edge-stiffened composite plates
+subject to combined axial compression and shear loads", Presented at
+27th SDM Meeting, San Antonio, Tx., April 1986, AIAA Paper No.
+86-1027-CP, 1986, Proceedings pp. 769-782. 
+
+[4] D. Bushnell, ``PANDA-Interactive program for minimum weight
+design of stiffened cylindrical panels and shells,'' Computers and
+Structures, 16, 1983, pp. 167-185.
+
+[4b] D. Bushnell, ``Theoretical basis of the PANDA computer program
+for preliminary design of stiffened panels under combined in-plane
+loads," Computers and Structures, Vol. 27, No. 4, pp 541-563 (1987) 
+
+[5] D. Bushnell,  Computerized Buckling Analysis of Shells, Martinus
+Nijhoff Publishers, The Netherlands, 1985; reprinted 1989 by Kluwer.
+
+[6] M. Baruch and J. Singer, ``Effect of eccentricity of stiffeners
+on the general instability of stiffened cylindrical shells under
+hydrostatic pressure," Journal of Mechanical Engineering Science, 5,
+(1) (1963) pp.23-27. 
+
+[7] J. H. Starnes,Jr., N. F. Knight,Jr. and M. Rouse, ``Postbuckling
+behavior of selected flat stiffened graphite- epoxy panels loaded in
+compression,'' AIAA Paper 82-0777, presented at AIAA 23rd Structures,
+Structural Dynamics, and Materials Conference, New Orleans, May,
+1982.  See also, AIAA J., 23, (8) (1985) pp.1236-1246. 
+
+[8] E. E. Spier, ``On experimental versus theoretical incipient
+buckling of narrow graphite/epoxy plates in compression," Proc. AIAA
+21st SDM Conference, AIAA Paper 80-0686-CP, May, 1980. 
+
+[9] E. E. Spier, ``Local buckling, postbuckling, and crippling
+behavior of graphite-epoxy short thin-walled compression members,"
+Naval Air Systems Command, Washington, D. C., NASC-N00019-80-C-0174,
+July 1981. 
+
+[10] M. P. Renieri and R. A. Garrett, ``Investigation of the local
+buckling, postbuckling and crippling behavior of graphite/epoxy short
+thin-walled compression members," McDonnell Douglas Corporation, St.
+Louis, Missouri, MDC A7091, July 1981. 
+
+[11] M. P. Renieri and R. A. Garrett, ``Postbuckling fatigue behavior
+of flat stiffened graphite/epoxy panels under shear loading," Naval
+Air Development Center, Warminster, PA, NADC-81-168-60, July 1982. 
+
+[12] L. W. Rehfield and A. D. Reddy, ``Observations on compressive
+local buckling, postbuckling, and crippling of graphite/epoxy
+airframe structure," Proc. 27th AIAA SDM Conference, AIAA Paper
+86-0923-CP, May 1986. 
+
+[13] T. Weller, G. Messer and A. Libai, ``Repeated buckling of
+graphite epoxy shear panels with bonded metal stiffeners," Dept. of
+Aeronautical Engineering, Technion, Haifa, Israel, TAE No. 546,
+August 1984. 
+
+[14] B. L. Agarwal, ``Postbuckling behavior of composite, stiffened,
+curved panels loaded in compression," Experimental Mechanics, Vol.
+22, June 1982. 
+
+[15] C. Blaas and J. F. M. Wiggenraad, ``Development and test
+verification of the ARIANE 4 interstage 2/3 in CFRP", Proceedings of
+the AIAA/ASME 27th Structures, Structural Dynamics and Materials
+Conference, Part 1, May 1986, pp. 307-313. 
+
+[16] J. M. T. Thompson, J. D. Tulk and A. C. Walker, ``An
+experimental study of imperfection-sensitivity in the interactive
+buckling of stiffened plates", in:  Buckling of Structures, B.
+Budiansky, ed., Springer-Verlag, 1976, pp 149-159. 
+
+[17] Bushnell, D., Holmes, A.M.C, Flaggs, D.L., and McCormick, P.J.,
+``Optimum design, fabrication, and test of graphite-epoxy, curved,
+stiffened, locally buckled panels loaded in axial compression,'',
+in BUCKLING OF STRUCTURES, edited by I. Elishakoff, et al, Elsevier
+Science Publishers, Amsterdam, pp 61-131 (1988)
+
+[18] N. R. Bauld, Jr. and N. S. Khot, ``A numerical and experimental
+investigation of the buckling behavior of composite panels",
+Computers and Structures, 15 (1982) pp. 393-403. 
+
+[19] N. S. Khot and N. R. Bauld, Jr., ``Further comparison of the
+numerical and experimental buckling behaviors of composite panels,"
+Computers and Structures, 17, (1983) pp. 61-68. 
+
+[20] Y. Zhang and F. L. Matthews, ``Postbuckling behavior of
+anisotropic laminated plates under pure shear and shear combined with
+compressive loading", AIAA Journal, 22, (2), (1984) pp 281-286. 
+
+[21] B. O. Almroth and F. A. Brogan, ``The STAGS Computer Code", NASA
+CR-2950, Nasa Langley Research Center, Hampton, Va., 1978. 
+
+[22] C. C. Rankin, P. Stehlin and F. A. Brogan, ``Enhancements to the
+STAGS computer code", NASA CR 4000, NASA Langley Research Center,
+Hampton, Va, November 1986. See also, G. A. Thurston, F. A. Brogan
+and P. Stehlin, ``Postbuckling analysis using a general purpose
+code", AIAA Journal, 24, (6) (1986) pp. 1013-1020. 
+
+[23] Graves-Smith, T.R. and Sridharan, S., ``A finite strip method
+for the post-locally-buckled analysis of plate structures,'' Int.
+J. Mech. Sci., Vol. 20, pp 833-843 (1978)
+
+[24] Stoll, F. and Gurdal, Z., ``Nonlinear analysis of compressively
+loaded linked-plate structures,'' AIAA Paper 90-0968-CP,
+Proceedings 31st AIAA/ASME Structures, Structural Dynamics,
+and Materials Meeting, pp 903-913 (1990).
+
+[24b] Stoll, F. and Gurdal, Z., and Starnes, J. H., Jr., ``A method for
+the geometrically nonlinear analysis of compressively loaded prismatic
+composite structures,'' VIPSU Center for Composite Materials and
+Structures Report CCMS-91-03 (VPI-E-91-01), February, 1991
+
+[24c] Shin, D. K., Gurdal, Z., and Griffin, O. H., Jr., ``Minimum
+weight design of laminated composite plates for postbuckling
+performance,'' AIAA Paper 91-0969-CP, Proceedings 32nd AIAA/ASME
+Structures, Structural Dynamics, and Materials Meeting, pp 257-266 (1991)
+
+[25] Riks, E., ``A finite strip method for the buckling and
+postbuckling analysis of stiffened panels in wing box structures,''
+National Aerospace Laboratory (NLR), Report NLR CR 89383 L, The
+Netherlands, November 1989
+
+[26] M. S. Anderson and W. J. Stroud, ``General panel sizing computer
+code and its application to composite structural panels,'' AIAA
+Journal, 17, (8) (1979) pp. 892-897. 
+
+[27] W. J. Stroud and M. S. Anderson, ``PASCO: Structural panel
+analysis and sizing code, capability and analytical foundations,''
+NASA TM-80181, NASA Langley Research Center, Hampton, Va., 1981. 
+
+[28] W. J. Stroud, W. H. Greene and M. S. Anderson, ``Buckling loads
+of stiffened panels subjected to combined longitudinal compression
+and shear: Results obtained with PASCO, EAL, and STAGS computer
+programs,'' NASA TP 2215, Nasa Langley Research Center, Hampton, Va.,
+January 1984. 
+
+[29] J. N. Dickson, R. T. Cole and J. T. S. Wang, ``Design of
+stiffened composite panels in the post-buckling range," in: Fibrous
+Composites in Structural Design, E. M. Lenoe, D. W. Oplinger, and J.
+J. Burke, editors, Plenum Press, New York, 1980, pp 313-327. 
+
+[30] J. N. Dickson, S. B. Biggers, and J. T. S. Wang, ``Preliminary
+design procedure for composite panels with open-section stiffeners
+loaded in the post-buckling range," in:  Advances in Composite
+Materials, A. R. Bunsell, et al,editors, Pergamon Press Ltd., Oxford,
+England, 1980, pp 812-825. 
+
+[31] J. N. Dickson and S. B. Biggers, ``POSTOP: Postbuckled open-
+stiffened optimum panels, theory and capability", NASA Langley
+Research Center, Hampton, Va., NASA Contractor Report from NASA
+Contract NAS1 - 15949, May 1982. 
+
+[32] Butler, R. and Williams, F. W., ``Optimuam design features
+of VICONOPT, an exact buckling program for prismatic assemblies of
+anisotropic plates,''  AIAA Paper 90-1068-CP, 
+Proceedings 31st AIAA/ASME Structures, Structural Dynamics,
+and Materials Meeting, pp 1289-1299
+
+[33] Williams, F. W., Kennedy, D., Anderson, M.S., ``Analysis features
+of VICONOPT, an exact buckling and vibration program for prismatic
+assemblies of anisotropic plates,'', AIAA Paper 90-0970-CP,
+Proceedings 31st AIAA/ASME Structures, Structural Dynamics,
+and Materials Meeting, pp 920-929
+
+[34] Peng, M-H and Sridharan, S., ``Optimized design of stiffened
+panels subject to interactive buckling,'' AIAA Paper 90-1067-CP,
+Proceedings 31st AIAA/ASME Structures, Structural Dynamics, and
+Materials Meeting, pp 1279-1288 
+
+[35] D. Bushnell, ``PANDA2-Program for minimum weight design of
+stiffened, composite, locally buckled panels", Computers and
+Structures, Vol. 25 (1987) pp. 469-605. See also, D. Bushnell,
+``Optimization of composite, stiffened, imperfect panels under
+combined loads for service in the postbuckling regime", Computer
+Methods in Applied Mechanics and Engineering, Vol. 103, pp. 43-114,
+(1993) (volume in honor of Hans Besseling's 65th birthday).
+
+[36] G. N. Vanderplaats, ``CONMIN-a FORTRAN program for constrained
+function minimization,'' NASA TM X 62-282, version updated in March,
+1975, Ames Research Center, Moffett Field, CA (Aug.1973) See also, G.
+N. Vanderplaats and F. Moses, ``Structural optimization by methods of
+feasible directions,'' Computers and Structures, 3 (1973) pp.
+739-755. 
+
+[37] Vanderplaats, G. N., "ADS--a FORTRAN program for automated
+design synthesis, Version 2.01", Engineering Design Optimization,
+Inc, Santa Barbara, CA, January, 1987 
+
+[38] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+optimization program for engineering design", Computers and
+Structures, Vol. 24, pp 13-21, 1986 
+ 
+[39] D. Bushnell, ``BOSOR4: Program for stress, buckling, and
+vibration of complex shells of revolution,'' Structural Mechanics
+Software Series - Vol. 1, (N. Perrone and W. Pilkey, editors),
+University Press of Virginia, Charlottesville, 1977, pp. 11-131. See
+also Computers and Structures, Vol. 4, (1974) pp. 399-435;  AIAA J,
+Vol. 9, No. 10, (1971) pp. 2004-2013; Structural Analysis Systems,
+Vol. 2, A. Niku-Lari, editor, Pergamon Press, Oxford, 1986, pp.
+25-54, and Computers and Structures, 18, (3), (1984) pp. 471-536. 
+ 
+[40] W. T. Koiter, ``Het Schuifplooiveld by Grote Overshrijdingen van
+de Knikspanning,'' Nationaal Luchtvaart Laboratorium, The
+Netherlands, Report X295, November 1946 (in Dutch) 
+
+[41] Bushnell, D., "Improvements to PANDA2", May 1989, revised November
+1991, Volume 1 and Vol. 2, parts 1 and 2, unpublished "handout"
+distributed with PANDA2
+(These documents are no longer distributed with PANDA2 literature. Please
+see "Recent PANDA2 references" listed below.) 
+
+[42] Bushnell, D., a file ....panda2/doc/panda2.news, kept up-to-date.
+
+[43] Bushnell, D., "Truss-core sandwich design via PANDA2", 
+COMPUTERS AND STRUCTURES, Vol. 44, No. 5, pp 1091-1119 (1992)
+
+[44] Roark, R. J. and Young, W. C., FORMULAS FOR STRESS AND STRAIN,
+5th Edition, McGraw-Hill, 1975 (in particular Table 10, p. 158,
+Formula 2d) 
+
+[45] "PATRAN-Plus User Manual, Release 2.4, PDA Engineering, Costa Mesa,
+California, September 1989
+
+[46] Rankin, C. C. and Brogan, F. A., "An element independent corotational
+procedure for the treatment of large rotations", Journal of Pressure
+Vessel Technology, Vol. 108, pp 165-174 (1986)
+
+[47] STAGS user's manual (latest version, on which the work reported here
+is based, has not yet been released.)
+
+[48] Brogan, F.A., Bushnell, W. D., Cabiness, H., and Rankin, C., STAGSPP,
+a postprocessor for STAGS (not released as of this writing).
+
+
+                       Recent PANDA2 references
+
+[1] Bushnell, D. and Bushnell, W. D., "Minimum-weight design of a
+stiffened panel via PANDA2 and evaluation of the optimized panel via
+STAGS", Computers and Structures, Vol. 50, no. 4, p569-602 (1994)
+
+[2] Bushnell, D. and Bushnell, W. D., "Optimum design of composite
+stiffened panels under combined loading", Computers and Structures,
+Vol. 55, No. 5, pp 819-856 (1995)
+
+[3] Bushnell, D., "Optimization of composite, stiffened, imperfect
+panels under combined loads for service in the postbuckling regime",
+Computer Methods in Applied Mechanics and Engineering, Vol. 103, pp
+43-114 (1993) 
+
+[4] Bushnell, D. and Bushnell, W.,"Approximate method for the optimum
+design of ring and stringer stiffened cylindrical panels and shells
+with local, inter-ring, and general buckling modal imperfections", 
+Computers and Structures, Vol. 59, No. 3, pp. 489-527 (1996)
+
+[5] Bushnell, D., "Optimization of panels with riveted Z-shaped
+          stiffeners via PANDA2, in Advances in the Mechanics of Plates and
+          Shells", Durban, D, Givoli, D., and Simmonds, J.G., Eds, Kluwer
+          Academic Publishers,  79-102, 2001. See also,  Proc. 39th AIAA
+          Structures, Materials and Dynamics meeting, 2357-2388, AIAA. 1998. 
+
+[6] Bushnell, D., "Optimum design via PANDA2 of composite sandwich
+panels with honeycomb or foam cores,  Paper 97-1142, 38th AIAA Structures,
+Structural Dynamics and Materials Conference, April, 1997.
+
+[7] Bushnell, D., Rankin, C. C., Riks, E, "Optimization of stiffened
+panels in which mode jumping is accounted for", AIAA Paper 97-1141, 38th
+AIAA SDM Conference, April 1997 
+
+[8] Bushnell, D., "Optimization of panels with riveted Z-shaped
+stiffeners via PANDA2, in Advances in the Mechanics of Plates and
+Shells", Durban, D, Givoli, D., and Simmonds, J.G., Eds, Kluwer
+Academic Publishers,  79-102, 2001. See also,  Proc. 39th AIAA
+Structures, Materials and Dynamics meeting, 2357-2388, AIAA. 1998. 
+
+[9] Bushnell, D., Jiang, H., and Knight, N. F., Jr., Additional buckling
+solutions in PANDA2", 40th AIAA SDM Conference, pp 302-345, Paper 99-1233,
+April 1999
+
+[10] David Bushnell and Charles C. Rankin, Optimization of perfect and
+imperfect ring and stringer stiffened cylindrical shells with PANDA2 and
+evaluation of optimum designs with STAGS, AIAA 43rd SDM Meeting, April
+2002, AIAA Paper 2002-1408
+
+[11] David Bushnell, Global optimum design of externally pressurized
+isogrid stiffened cylindrical shells with added T-rings, Int. J. of
+Non-Linear Mechanics, Vol. 37, Nos 4-5, (special "Arbocz" issue)
+pp801-831 (2002)
+
+[12] David Bushnell, Optimum design of stiffened panels with substiffeners,
+AIAA Paper 1932, 46th AIAA SDM Meeting, Austin, TX, April 2005
+
+[13] Bushnell, D. and Rankin, C.C.,
+"Difficulties in optimization of imperfect stiffened
+cylindrical shells",
+AIAA Paper 1943, 47th AIAA Structures, Structural Dynamics and
+Materials Meeting, Newport RI, April 2006
+
+[14] Bushnell, D.
+"Optimization of an axially compressed ring and stringer stiffened
+cylindrical shell with a general buckling modal imperfection",
+AIAA Paper 2007-2216, 48th AIAA SDM Meeting, Honolulu, Hawaii,
+April 2007.
+

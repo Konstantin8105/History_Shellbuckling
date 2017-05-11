@@ -1,0 +1,794 @@
+
+
+
+
+
+INTRODUCTION:
+
+The GENOPT/BIGBOSOR4 capability [1-3] is used to obtain an optimum
+design of a titanium cylindrical tank with hemispherical ends.
+The tank is subjected to 15000 psi uniform external pressure.
+The objective of the optimization is to minimize the weight of
+the tank subject to stress and buckling design constraints. The
+decision variables establish the distribution of the shell wall
+material in a wide neighborhood of the junction between the
+hemispherical and cylindrical segments of the tank. The titanium
+is assumed to remain elastic. Creep is not included. The maximum
+allowable effective stress is assumed to be 120000 psi. A factor
+of safety of 1.3 is used for buckling and a factor of safety of
+1.0 is used for stress.
+
+The GENERIC  case described in this report is called "submarine".
+The SPECIFIC case is called "doer".
+
+Some references are listed in Table 1. The work in this paper
+was motivated by Grant Cutler of the DOER Company in
+Alameda, California. The DOER Company wants to build a
+deep submergence vehicle for operation anywhere in the ocean.
+This vehicle will include several different geometries of
+shells that must withstand the high pressure that exists
+in the deepest parts of the ocean. The example presented here
+might represent a shell that protects a battery. However, no
+dimensions or material properties were obtained from the DOER
+Company during the generation of the results presented here.
+This is merely an example that the reader can use as a guide
+for producing analogous results for configurations of particular
+interest to him or her.
+
+Another, perhaps stronger, motivation to do this work is the
+desire to encourage engineers and researchers at NASA and
+elsewhere to use GENOPT at their own facilities. The results
+presented and the discussion in this "submarine" report
+provide yet another example that will, it is hoped, make it
+easier for others to learn how to set up GENOPT cases.
+
+
+BIGBOSOR4:
+
+BIGBOSOR4 is executed multiple times inside the optimization loop.
+As is described in [2], the originally "stand alone" version of
+BOSOR4 [8] has been divided into subroutines: B4READ (the preprocessor),
+B4MAIN (the mainprocessor), and B4POST (the postprocessor) for execution 
+in an optimization context. The capability of BOSOR4 [8] has been
+expanded to handle many more shell segments [2]. This expanded version
+is called "BIGBOSOR4" here and in other reports. BIGBOSOR4 can
+now handle up to 295 shell segments [5]. There now exists a "stand
+alone" version of BIGBOSOR4 as well as the version of BIGBOSOR4
+designed to be used in connection with GENOPT. This "stand alone"
+version of BIGBOSOR4 is used to produce plots such as those
+shown in Figs. 1 - 4.
+
+The models used here are BIGBOSOR4 models. Therefore, the
+discretization is one-dimensional, which causes solution times
+on the computer to be much less than for the usual two-dimensionally
+discretized models such as those used in connection with the STAGS
+computer program [9 - 11].
+
+
+SUPEROPT:
+
+SUPEROPT is a script by means of which GENOPT attempts to find a
+"global" optimum design. A SUPEROPT execution generates about 470
+design iterations. SUPEROPT is described in [12]. A SUPEROPT run
+consists of many optimizations starting from different points in
+design space. Each new "starting" design in a single SUPEROPT
+execution is generated randomly but consistent with upper and
+lower bounds and equality and inequality constraints. The results
+of a single SUPEROPT execution are displayed in Fig. 5. Each major
+"spike" in that plot represents a new, randomly obtained, "starting"
+design.
+
+
+ABOUT GENOPT:
+
+GENOPT [1 - 5] is a system by means of which one can convert
+any analysis into a user-friendly analysis and into an optimization
+capability. GENOPT is not limited to the field of structural
+mechanics.
+
+In the GENOPT "universe" there are considered to be two
+types of user: 1. the "GENOPT user", and 2. the "end user".
+The GENOPT user creates the user-friendly analysis and optimization
+capability for a class of problems, and the end user uses that
+capability to find optimum designs for a member of that class.
+(In this "submarine" case the GENOPT user and the end user are the
+same person: the writer).
+
+
+GENOPT user:
+
+It is the duty of the GENOPT user to create user-friendly names,
+one-line definitions, and "help" paragraphs for the variables to
+be used in the analysis or analyses [1]. The GENOPT user must also
+supply software (subroutines and/or FORTRAN statements) that perform 
+the analysis or analyses [1-5]. The GENOPT user must decide what behaviors
+will constrain the design during optimization cycles, behaviors such
+as general buckling, local buckling, stress, vibration, etc. While
+establishing problem variables, the GENOPT user must decide which of
+7 roles each of these variables plays [1]. The 7 possible roles are:
+
+1. decision variable candidate (such as a structural dimension)
+2. parameter that is not a decision variable candidate (such as a
+   material property)
+3. environmental variable (such as a load)
+4. behavioral variable (such as a stress)
+5. allowable variable (such as a maximum allowable effective stress)
+6. factor of safety (such as a factor of safety for stress)
+7. objective (such as weight)
+
+
+End user:
+
+It is the duty of the end user to provide a starting design, loads, and
+material properties, to choose decision variables, lower and upper
+bounds, equality constraints, and inequality constraints, and to choose
+whether to optimize or simply to analyze an existing design or both.
+
+
+Some advice:
+
+Please read [1] first, followed by the first part of [3], which contains
+many details about how to use GENOPT. Tables 2 and 3 (taken from [4])
+contain some information on the use of GENOPT. In Table 3 a generic name,
+"cylinder" frequently appears. In [4] the generic name specified by the
+writer is "weldland". In this report the generic name specified by the
+writer is "submarine". When studying Table 3 and setting up the proper
+files at his or her facility, the reader should substitute the generic
+name, "submarine" for the generic name, "cylinder" used in Table 3. The
+"setting up" operation in this case called "submarine" is completely
+analogous to that described for the generic cases called "weldland" in [4]
+and "trusscomp" in [5].
+
+
+The optimizer tool:
+
+GENOPT uses the optimizer, ADS, created by Vanderplaats and his colleagues
+many years ago [6,7]. In GENOPT the ADS software is "hard-wired" in the
+"1-5-7" mode: a modified steepest descent method.
+
+
+PRODUCTION OF THE PROGRAM SYSTEM TO OPTIMIZE AN EXTERNALLY PRESSURIZED 
+TANK CONSISTING OF A CYLINDRICAL SHELL WITH HEMISPHERICAL ENDS.
+THE GENERIC CASE IS CALLED "submarine"
+
+Table 4 lists the run stream used to obtain the results presented
+here. The reader should use Table 4 as a guide if he or she
+wants to reproduce the results in this report, or investigate
+further into other optimum designs in the "submarine" class, or
+obtain optimum designs of any other shells of revolution in which
+the intention is to use GENOPT in connection with BIGBOSOR4.
+
+The GENOPT user first provides input during a long GENTEXT interactive
+session. Reference [3] provides good examples of how this GENTEXT
+interactive session goes and what GENTEXT does as the interactive
+session proceeds. GENTEXT records the GENOPT user's input for the
+long interactive session in a file called *.INP, where "*" represents
+the GENOPT user's GENERIC name for the case. If the GENOPT user enters
+a wrong input by mistake, he or she can terminate the GENTEXT
+interactive session, edit the end of the *.INP file to eliminate the
+mistake, and then repeat the GENTEXT session, initially using the *.INP
+file as input rather than tediously repeating the interactive session
+up to the point where the mistake was made. At the point where the
+mistake was made GENTEXT returns control to the GENOPT user, and he or
+she then continues the session in an interactive mode. Table 5 lists
+the *.INP file after completion of the entire GENTEXT interactive
+session for the "submarine" case.
+
+GENTEXT automatically produces several files. They are described in
+[3]. Among them is a file called *.DEF (submarine.DEF), which the
+GENOPT user should inspect. The *.DEF file includes a glossary of
+the GENOPT-user-established variables and one-line definitions of
+the variables. Table 6 is this glossary for the case, "submarine".
+Additional sections of the submarine.DEF file are repeated at the
+beginning of the behavior.new library (Table 9), a "skeletal" version
+of which is automatically produced by GENTEXT. One of the most
+important files automatically produced by GENTEXT is the prompting
+file, *.PRO (Table 7). The prompting file, called "submarine.PRO"
+in this "submarine" case, contains the GENOPT-user-established
+variable names, one-line definitions, and "help" paragraphs. It is
+these items that make the GENOPT-user-created system "user-friendly",
+because the end user will depend on them for his or her input to the
+GENOPT-created processor, BEGIN.
+
+GENTEXT also produces FORTRAN fragments, submarine.*, analogous to
+those listed on page 1 of Table 4 in [4] and described on pages 2
+and 3 of Table 6 in [4]. GENTEXT automatically assembles these
+FORTRAN fragments into various programs (BEGIN.NEW, STOGET.NEW,
+STRUCT.NEW, BEHAVIOR.NEW, CHANGE.NEW) described on page 2 of
+Table 6 in [4]. BEGIN.NEW, STOGET.NEW, and CHANGE.NEW are complete programs
+and subroutines, created automatically entirely by GENOPT. The GENOPT
+user does not have to be concerned about them at all.
+
+It is a different matter in the case of STRUCT.NEW and BEHAVIOR.NEW.
+These are "skeletal" subroutine libraries either or both of which must
+be "fleshed out" by the GENOPT user. In this particular application
+the GENOPT user adds merely three statements, CALL OPNGEN, CALL RWDGEN,
+and CALL CLSGEN (open, rewind, and close BIGBOSOR4 files) to the version
+of STRUCT.NEW automatically created by GENOPT. (See p. 2 of Tables 4
+and Table 8). In this particular application the GENOPT user does
+more to "flesh out" the BEHAVIOR.NEW library. (See Table 9).
+
+During the GENTEXT interactive session the GENOPT user here decided to
+introduce two behaviors: 1. overall buckling and 2. stress in two shell
+segments. Corresponding to these two behaviors, GENTEXT automatically
+created two skeletal "behavioral" subroutines, SUBROUTINE BEHX1 and
+SUBROUTINE BEHX2. The GENOPT user had to "flesh out" each of these
+two "behavioral" subroutines, as listed in Table 9.
+
+The GENOPT user also had to "flesh out" the subroutine that computes
+the objective, SUBROUTINE OBJECT in Table 9. In this case the
+automatically produced skeletal version of SUBROUTINE OBJECT was
+modified only by the GENOPT user's adding the three lines:
+     COMMON/TOTMAX/TOTMAS
+     WEIGHT = TOTMAS
+     OBJGEN = WEIGHT
+just before the end of the subroutine.
+
+Notice that in the "fleshed out" versions of SUBROUTINE BEHX1 and
+SUBROUTINE BEHX2 there are calls to SUBROUTINE BOSDEC. SUBROUTINE
+BOSDEC must be written by the GENOPT user. For the present
+application SUBROUTINE BOSDEC ("BOSerDECk") is listed in Table 10.
+SUBROUTINE BOSDEC creates a valid input file for BIGBOSOR4. For
+a general guideline on how to create SUBROUTINE BOSDEC, see the
+file, ...genopt/case/cylinder/howto.bosdec.
+
+The best way for the GENOPT user to produce a valid BOSDEC
+routine is first to generate a valid input file for BIGBOSOR4 that
+represents an exact example of the geometry, etc. that GENOPT/BIGBOSOR4
+will later attempt to optimize. Table 11, which is the same as Table 16
+in [13], is a valid input file for BIGBOSOR4. This file contains
+the proper input data for BIGBOSOR4 for the specific case called
+"doer" in this report. SUBROUTINE BOSDEC, as listed in Table 10,
+produces BIGBOSOR4 input files in the form listed in Table 12,
+for example. Although the file listed in Table 12 looks quite
+different from that listed in a neat annotated form in Table 11,
+it contains the same input data in the same order as those listed
+in Table 11. Table 12 represents valid input for BIGBOSOR4.
+
+**************** IMPORTANT WARNING ***************************
+As a GENOPT user you will usually spend a considerable time
+creating "fleshed out" versions of BEHAVIOR.NEW and maybe
+also STRUCT.NEW. You must save these "fleshed out" versions
+with use of some other names. In this application the writer uses
+the names "behavior.submarine" and "struct.submarine". (also
+"bosdec.submarine"). You must save these important files for
+possible future use because execution of the GENOPT processor
+called GENTEXT destroys behavior.new and struct.new, replacing
+them with new "skeletal" versions of behavior.new and
+struct.new. During the development of this "submarine"
+capability the writer made it a habit always to work with
+the files, behavior.submarine and bosdec.submarine, then
+copy them as follows:
+cp behavior.submarine behavior.new
+cp bosdec.submarine bosdec.src
+just before typing the command "genprograms". (Please read
+carefully the "digressions" in Table 4).
+**************************************************************
+
+The present application is similar to the GENOPT cases called
+"weldland" [4] and "trusscomp" [5]. In the case, "trusscomp", more is
+done to "flesh out" the BEHAVIOR.NEW library than is done to
+"flesh out" the STRUCT.NEW library. In contrast, in the
+application described in [3] the BEHAVIOR.NEW library is
+not "fleshed out" at all, but instead a very long and elaborate
+"fleshed out" version of STRUCT.NEW is produced. In reading
+the very long paper [3], one should concentrate on the first
+part of [3], in which the role of the GENOPT user predominates.
+
+
+OPTIMIZATION OF THE SPECIFIC CASE CALLED "doer"
+
+Tables 13 - 26 and Figs. 1 - 17 pertain to this section.
+
+The GENOPT user has completed his tasks and now the end user
+takes over and performs his tasks.
+
+
+Input for BEGIN:
+
+Table 13 lists the input for the "BEGIN" processor. The
+starting design is the design listed in Table 16 of [13].
+
+
+Input for DECIDE:
+
+Table 14 lists the input for the "DECIDE" processor. Note that
+there are three linking expressions and no inequality constraints.
+The linking expressions are explained in Table 14.
+
+
+Analysis of the starting design:
+
+Table 15 lists the input for the "MAINSETUP" processor for a
+case in which a fixed design is being analyzed (not optimization,
+that is, ITYPE=2, not ITYPE=1). The intention here is first to
+check the GENOPT user's "fleshed out" coding in SUBROUTINE BEHX1,
+SUBROUTINE BEHX2 and SUBROUTINE BOSDEC before doing any
+optimization.
+
+Table 16 lists the doer.OPM file corresponding to the starting
+design established in BEGIN. Figures 1 - 4, generated by
+executions of BIGBOSOR4 with use of the doer.BEHX1 and doer.BEHX2
+files created by SUBROUTINE BEHX1 and SUBROUTINE BEHX2,
+respectively, show the geometry of the case (Fig. 1), the
+axisymmetrically deformed prebuckled state of the starting
+design (Fig.2), the critical buckling mode shape (Fig. 3),
+and the distribution of effective stress at the inner and
+outer fibers of the shell wall (Fig.4).
+
+
+Input for MAINSETUP for optimization (NPRINT = 0, ITYPE = 1):
+
+Table 17 lists the input for the "MAINSETUP" processor for a
+case in which optimization is desired, that is, ITYPE = 1 and
+NPRINT = 0. Some of the strategy input data is rather opaque.
+Therefore these data are explained in the following paragraphs:
+
+------------------------------------------------------------------
+IDESIGN = 2 is the preferred value for IDESIGN, and
+IMOVE = 1 is the preferred value for IMOVE. These input
+variables are described in the file,
+.../genopt/execute/URPROMPT.DAT
+as follows:
+
+For IDESIGN:
+------------------------------------------------------------
+ 725.1 Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+ 725.2
+       IDESIGN controls the quality of the best acceptable design,
+       as follows:
+
+       IDESIGN  accept only the best "---" design   minimum allowable
+                                                     design margin
+        1     "FEASIBLE"                                -0.01
+        2     "FEASIBLE or ALMOST FEASIBLE"             -0.05
+        3     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE"                       -0.10
+        4     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE or MORE UNFEASIBLE"    -0.15
+        5     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE or MORE UNFEASIBLE     -0.20
+               or MOSTLY UNFEASIBLE"
+
+       These choices are permitted because there are many cases
+       for which design iterations "wallow" in a region of design
+       space for which the design is in the range from "ALMOST
+       FEASIBLE" to "MOSTLY UNFEASIBLE". The best "MOSTLY
+       UNFEASIBLE" design may be a lot better (e.g. weigh much less)
+       than the best "ALMOST FEASIBLE" design, and the GENOPT user
+       may be willing to accept a few "MOSTLY UNFEASIBLE" margins,
+       depending upon what particular behavior(s) are "MOSTLY
+       UNFEASIBLE". For example, in the design of a shell structure
+       for which the maximum stress is generated mostly from bending,
+       the GENOPT user may feel that there is considerable residual
+       strength in the shell even if its extreme fibers are stressed
+       well beyond their elastic limit. Hence, if the behavioral
+       constraint is violated because the maximum allowable elastic
+       stress has been exceeded, this GENOPT user may feel that the
+       optimized design will still be safe.
+-------------------------------------------------------------
+
+
+For IMOVE:
+-------------------------------------------------------------
+ 730.0
+       Next, choose a control for move limits to be used during
+       optimization cycles. By "move limits" we are referring to
+       the size of the boxes that appear in Fig. 2 of the paper,
+       "GENOPT - a program that writes user-friendly optimization code",
+       Int. J. Solids and Structures, Vol. 26, pp 1173- 1210, 1990.
+       You are given five choices: IMOVE = 1 or 2 or 3 or 4 or 5:
+
+       IMOVE = 1 means SMOVE = 0.10
+       IMOVE = 2 means SMOVE = 0.50
+       IMOVE = 3 means SMOVE = 0.01
+       IMOVE = 4 means SMOVE = 0.02
+       IMOVE = 5 means SMOVE = 0.05
+
+       Small SMOVE (initial move limit) keeps the boxes small and
+       leads to the requirement for many "OPTIMIZE" commands to
+       obtain an optimum design; the "conservative" approach may
+       be boring, but it may be the most reliable.  "Liberal" move
+       limits allow bigger boxes, generally leading to the need for
+       fewer "OPTIMIZEs".  However, the decision variables may
+       jump around a lot and have difficulty converging to those
+       corresponding to an optimum design.
+
+       THE BEST CHOICE INITIALLY IS TO USE IMOVE = 1
+
+       For early optimization cycles you can choose "liberal" move
+       limits, changing to more "conservative" move limits after
+       several "OPTIMIZEs".
+
+       In practical problems (such as realistic design problems
+       as opposed to mathematical "toy" problems) it is best to
+       choose "conservative" move limits.
+
+ 740.1 Choose 1 or 2 or 3 or 4 or 5 for move limits, IMOVE
+ 740.2
+       IMOVE = 1 means that decision variables will generally
+                 change by less than 10 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+                 **** Ordinarily you should use this choice. ****
+
+       IMOVE = 2 means that decision variables will generally
+                 change by less than 50 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+
+       IMOVE = 3 means that decision variables will generally
+                 change by less than 1.0 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+                 You may want to use this choice: 1. if you already
+                 have a "global" optimum design from a SUPEROPT run,
+                 and 2. you want to explore more in the immediate
+                 neighborhood of the "global" optimum that you have
+                 already determined from your previous SUPEROPT run.
+
+       IMOVE = 4 means that decision variables will generally
+                 change by less than 2.0 percent in each optimization
+                 cycle. See "IMOVE = 3" for more.
+
+       IMOVE = 5 means that decision variables will generally
+                 change by less than 5.0 percent in each optimization
+                 cycle. See "IMOVE = 3" for more. You may want to
+                 use this option if the margins are "jumpy" from
+                 optimization cycle to cycle.
+------------------------------------------------------------------
+
+
+The same input data prompt file, ...genopt/execute/URPROMPT.DAT,
+has plenty to say about the next three MAINSETUP input data in Table 17:
+
+For the response to the prompt in Table 20:
+      y         $ Do you want default (RATIO=10) for initial move limit jump?
+-------------------------------------------------------------------------
+ 742.1 Do you want default (RATIO=10) for initial move limit jump?
+ 742.2
+       In the first optimization cycle following each "OPTIMIZE"
+       command the upper and lower bounds for each decision variable
+       (x) for that cycle may be expanded ("jumped").  Whether or not
+       this "move limit jump" occurs depends on the RATIO of the
+       absolute values of the upper (xmax) and lower (xmin) bounds
+       that were established by the user in "DECIDE" to the current
+       value of the decision variable:
+
+       If abs(xmax/x)/2**k > RATIO the current upper bound is expanded.
+       If abs(xmin/x)/2**k > RATIO the current lower bound is expanded.
+
+       in which k represents the number of times a "jump" has occurred
+       in previous executions of "OPTIMIZE" since the last time "DECIDE"
+       or "CHANGE" were used.  The default value of RATIO is 10.
+
+       The purposes of the "move limit jump" are: (1) to enable decision
+       variables that are near zero to escape this neighborhood,  and
+       (2) to permit exploration of an expanded segment of the domain
+       of the decision variable in the search for an optimum.
+
+       If you want to prevent the "jump" set RATIO very large.
+
+ 743.1 Provide a value for the "move limit jump" ratio, RATIO
+ 743.2
+       If zero is included in the domain of any decision variable
+       it may be best to use the default value, RATIO = 10.
+
+       If any of your decision values has lower and upper bounds
+       that span many orders of magnitude, it may be best to set
+       RATIO to a large number.
+
+       If in doubt, use the default value.
+----------------------------------------------------------------------
+
+
+In response to the prompt in Table 17:
+      y         $ Do you want the default perturbation (dx/x = 0.05)?
+----------------------------------------------------------------------
+ 745.1 Do you want the default perturbation (dx/x = 0.05)?
+ 745.2
+       See Fig. 1 and associated discussion on p. 1179 of the paper
+       "GENOPT - a program that writes user-friendly optimization code",
+       Int. J. of Solids and Structures, Vol. 26, pp 1173- 1210, 1990.
+       In order to get gradients of the behavioral constraints the
+       decision variables for the current design are perturbed one
+       at a time and the behavior is calculated for each perturbation.
+       The default perturbation is five per cent of the value of
+       each decision variable, x(i), i = 1, 2, 3... NDV.
+
+       Usually you will answer Y.  However, if there is difficulty
+       obtaining convergence to an optimum, or if the constraint
+       conditions jump around a lot from design iteration to design
+       iteration, then you might want to try a smaller perturbation,
+       such as 0.01 or 0.005.  Do not use a perturbation larger than
+       the default value of 0.05.
+
+ 747.1 Amount by which decision variables are perturbed, dx/x
+ 747.2
+       Try 0.01 or 0.005.
+---------------------------------------------------------------------
+
+
+In response to the prompt in Table 17:
+      n         $ Do you want to have dx/x modified by GENOPT?
+---------------------------------------------------------------------
+ 748.1 Do you want to have dx/x modified by GENOPT?
+ 748.2
+       For ordinary structures problems you should probably
+       answer N .  If you answer Y GENOPT will modify the
+       size of the perturbation, dx/x, by a factor that depends
+       on the history of the evolution of the design during
+       optimization cycles: the perturbation will be increased
+       by the ratio XAVE(IDV)/X(IDV), in which XAVE(IDV) is the
+       average value of the IDVth decision variable over the
+       last several design cycles and X(IDV) is the current
+       value of that decision variable. If XAVE(IDV)/X(IDV) is
+       less than 1.0, then the perturbation dx/x is not modified.
+--------------------------------------------------------------------
+
+
+Please do not be overly concerned with the detailed explanations
+just listed for your convenience only. If you simply use the values
+given in Table 17 for cases similar to "doer" you will probably be ok.
+
+
+Optimization:
+
+Figure 5 shows the objective versus design iterations. Each major
+"spike" in the plot corresponds to a new "starting" design,
+obtained randomly but consistent with upper and lower bounds,
+equality constraints, and now inequality constraints. (See
+Item no. 29 in the file,...genopt/doc/genopt.news). Each new
+"starting" design is obtained with the processor, AUTOCHANGE.
+By means of the automated repeating pattern of a new "starting"
+design generated by AUTOCHANGE followed by several sequential
+executions of OPTIMIZE, it is hoped that a "global" optimum design
+will be determined, since each new "starting" design represents
+a different point in design space. A typical repeating pattern
+taken from the doer.OPP file generated by SUPEROPT is as follows:
+--------------------------------------------------------------
+ ===============================================================
+ ITERATION                                       NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS                                             --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         1.5458E+03     ALMOST FEASIBLE         1
+     2         1.4199E+03     MORE UNFEASIBLE         2
+     3         1.3607E+03     MORE UNFEASIBLE         3
+     4         1.3508E+03     MOSTLY UNFEASIB         3
+     5         1.3918E+03      NOT FEASIBLE           2
+     6         1.3655E+03     MORE UNFEASIBLE         3
+ ------------------------------------------------------OPTIMIZE
+     7         1.3655E+03     MORE UNFEASIBLE         3
+     8         1.3389E+03      NOT FEASIBLE           3
+     9         1.3339E+03      NOT FEASIBLE           3
+    10         1.2939E+03      NOT FEASIBLE           3
+    11         1.3325E+03      NOT FEASIBLE           3
+    12         1.3728E+03      NOT FEASIBLE           2
+ ------------------------------------------------------OPTIMIZE
+    13         1.3728E+03      NOT FEASIBLE           2
+    14         1.3693E+03      NOT FEASIBLE           3
+    15         1.4196E+03     MORE UNFEASIBLE         2
+    16         1.4329E+03      NOT FEASIBLE           2
+    17         1.3873E+03     MORE UNFEASIBLE         2
+    18         1.4206E+03     MORE UNFEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    19         1.4206E+03     MORE UNFEASIBLE         2
+    20         1.3519E+03      NOT FEASIBLE           3
+    21         1.3187E+03      NOT FEASIBLE           3
+    22         1.2927E+03      NOT FEASIBLE           3
+    23         1.3442E+03     MOSTLY UNFEASIB         3
+    24         1.3735E+03     MORE UNFEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    25         1.3735E+03     MORE UNFEASIBLE         2
+    26         1.3450E+03      NOT FEASIBLE           3
+    27         1.3470E+03     MOSTLY UNFEASIB         3
+    28         1.3387E+03      NOT FEASIBLE           3
+    29         1.3793E+03     MOSTLY UNFEASIB         2
+    30         1.3567E+03     MOSTLY UNFEASIB         3
+ ----------------------------------------------------AUTOCHANGE
+ ------------------------------------------------------OPTIMIZE
+    31         1.5658E+03      NOT FEASIBLE           2
+    32         1.5921E+03      NOT FEASIBLE           2
+    33         1.6214E+03     MOSTLY UNFEASIB         2
+    34         1.6361E+03     MORE UNFEASIBLE         2
+    35         1.6061E+03     ALMOST FEASIBLE         2
+    36         1.5773E+03     ALMOST FEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    37         1.5773E+03     ALMOST FEASIBLE         2
+    38         1.4921E+03      NOT FEASIBLE           2
+    39         1.5824E+03     ALMOST FEASIBLE         2
+    40         1.5044E+03     MORE UNFEASIBLE         2
+    41         1.5126E+03     ALMOST FEASIBLE         2
+    42         1.4745E+03     ALMOST FEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    43         1.4745E+03     ALMOST FEASIBLE         2
+    44         1.4255E+03      NOT FEASIBLE           2
+    45         1.5104E+03     MILDLY UNFEASIB         2
+    46         1.4638E+03     MILDLY UNFEASIB         2
+    47         1.4255E+03     MILDLY UNFEASIB         2
+    48         1.4593E+03     MORE UNFEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    49         1.4593E+03     MORE UNFEASIBLE         2
+    50         1.3787E+03      NOT FEASIBLE           3
+    51         1.4598E+03     ALMOST FEASIBLE         2
+    52         1.3898E+03     MORE UNFEASIBLE         3
+    53         1.4423E+03     MILDLY UNFEASIB         2
+    54         1.4228E+03     MILDLY UNFEASIB         2
+ ------------------------------------------------------OPTIMIZE
+    55         1.4228E+03     MILDLY UNFEASIB         2
+    56         1.3608E+03     MOSTLY UNFEASIB         3
+    57         1.3850E+03      NOT FEASIBLE           3
+    58         1.4027E+03     MOSTLY UNFEASIB         2
+    59         1.3678E+03     MOSTLY UNFEASIB         3
+    60         1.3950E+03     MOSTLY UNFEASIB         2
+ ----------------------------------------------------AUTOCHANGE
+ ------------------------------------------------------OPTIMIZE
+
+        etc.
+
+
+Analysis of the optimized design obtained from SUPEROPT:
+
+Table 18 lists the doer.OPM file for the optimized design. This
+optimum design is preserved by execution of the processor, "CHANGE",
+which generates an input file for CHANGE called "doer.CHG" (Table 19).
+The user is urged always to use CHANGE to save optimum designs. By
+doing so, the user can easily resurrect previously obtained
+optimum designs in the future by executing CHANGE and using the
+file, doer.CHG, as input rather than having tediously to provide
+the previously obtained optimum design in an interactive mode.
+
+
+Searching for a better optimum design than that in Table 18:
+
+We felt that the maximum effective stress in Shell Segment
+1 (125968.0 psi) and in Shell Segment 2 (123558.8 psi), listed
+on page 2 of Table 18, are a bit too high. Perhaps with some
+"refined" optimization we might obtain a better optimum
+design. This we did by launching another optimization run,
+this time using the processor called OPTIMIZE rather than
+the processor called SUPEROPT.
+
+Table 20 lists the input file for MAINSETUP. Notice that
+we use 15 design iterations instead of the 5 design
+iterations specified in Table 17. Also, we choose IDESIGN = 1
+and IMOVE = 3. These values of IDESIGN and IMOVE are more
+restrictive than those listed in Table 17 because we now want
+to explore the region of design space in the immediate
+neighborhood of the optimum design listed in Table 18. Please
+see the text above for the exact meanings of IDESIGN = 1 and
+IMOVE = 3.
+
+The "OPTIMIZE" optimization run yields the results plotted
+in Figures 6 - 8 and listed in Table 22. Pages 10 - 13 of
+Table 4 explain how the new "refined" optimum design was
+obtained. Although this "refined" design weighs more than
+the optimum design obtained from SUPEROPT and listed in
+Table 18 (the "refined" design weighs 1403 lb versus 1369 lb
+listed at the bottom of page 2 of Table 18), we feel that
+it is a more acceptable design because the maximum effective
+stress is now 122083 psi compared to 125968 for the optimum
+design listed in Table 18.
+
+The new "refined" optimum design is preserved by execution
+of CHANGE. The input data for CHANGE are listed in Table 23.
+The reader is urged always to use CHANGE in order to preserve
+optimum designs for possible resurrection in the future.
+
+
+Using the "x,y" plotting capability called "plotps":
+
+Figures 9 and 10 show how the reference surface location
+and shell wall thickness vary in the wide neighborhood
+of the junction between the hemispherical end and the
+cylindrical shell. These plots are obtained via commands
+such as:
+
+/home/progs/bin/plotps.linux -ss < doer.wall.input > doer.wall.ps
+
+In the above command line, /home/progs/bin is the location of
+the file, plotps.linux, which generates "x,y" plots for LINUX
+operating systems. The "plotps" tool was created by the
+writer's son, Bill Bushnell, in the 1990s. The option "-ss"
+in the command line denotes "same scale" (x-axis and y-axis
+have the same scale). The file, doer.wall.input, contains the
+input data for plotps, and the file, doer.wall.ps, is a
+postscript file that generates the plot shown in Fig. 9.
+
+
+Obtaining plots from BIGBOSOR4 for the "refined" optimum:
+
+Next, we wish to use BIGBOSOR4 to obtain plots of some of the
+buckling modes of the "refined" optimized design. As indicated
+in Table 4, this is done with use of the file, doer.BEHX1.
+The file, doer.BEHX1, is generated in SUBROUTINE BEHX1 from
+the following FORTRAN code in SUBROUTINE BEHX1:
+----------------------------------------------------------------
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX1 file for input for BIGBOSOR4...
+C      CASE.BEHX1 is an input file for BIGBOSOR4 for behavior no. 1:
+C      buckling load
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX1'
+         ELSE
+            CASA=CASE//'.BEHX1'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(1,61,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' buckling load (INDIC=1)',
+     1   CASA
+      ENDIF
+----------------------------------------------------------------
+
+There is analogous coding in SUBROUTINE BEHX2 to generate the
+file, doer.BEHX2 for the stress model. These blocks of coding
+remain almost the same for any case that involves BIGBOSOR4
+and therefore a SUBROUTINE BOSDEC. The only differences are
+the comment line and the line that contains the string,
+' buckling load (INDIC=1)'. The GENOPT user only has to change
+these lines appropriately to reflect the particular "behavior"
+that the SUBROUTINE BEHXi, i = 1, 2, 3,.., computes.
+
+Figure 12 shows the critical buckling mode predicted by BIGBOSOR4,
+and Fig. 13 shows the buckling mode corresponding to the
+lowest eigenvalue for which the hemispherical shell
+participates significantly. An explanation of why we wish to
+obtain the information in Fig. 13 is provided on pages 13 and 14
+of Table 4.
+
+Figures 11 and 14 - 16 shows results from the BIGBOSOR4
+axisymmetric stress analysis conducted with use of the valid
+input file for BIGBOSOR4, doer.BEHX2.
+
+
+Optimum design obtained with the use of 10 callout points
+in each of shell segment 1 and shell segment 2:
+
+Tables 24 - 26 and Fig. 17 pertain to this section. Table 24
+is analogous to Table 13, and Table 25 is analogous to Table 14.
+Figure 17 is analogous to Fig. 5. The optimized design is
+presented in Table 26. This design does not appear to be
+as good as the optimum design obtained with the use of only
+five callout points in each of shell segments 1 and 2 because
+of the "oscillatory" distribution of shell wall thickness listed
+on page 2 of Table 26. The decision variables 31 - 35 [cylindrical
+shell wall thicknesses, THKCYL(1) - THKCYL(5)] have a "zig-zag"
+distribution which is questionable. Note from the entries in
+Table 24 that the axial locations of the callout points, ZCYL(1)
+through ZCYL(7), are spaced at one-inch intervals. The change
+in shell wall thickness from axial callout to callout is of
+the same order as the callout spacing. This abruptly changing
+wall thickness in such a thick shell wall represents a geometry
+that requires the use of solid finite elements rather than
+elements based on thin shell theory, which is based on the assumption
+that variations of thickness along the generator are much more
+gradual. The actual maximum stress in such a jagged shell wall
+is doubtless much higher than that predicted from thin shell
+theory because there probably exist stress concentrations where
+THKCYL(i) is small. The steep "valleys" in thickness are
+like circumferentially running notches in the shell wall.
+In order to avoid obtaining thickness distributions of this
+type during optimization cycles one would have to introduce
+inequality constraints that force each thickness, THKDYL(i),
+to be greater (or less) than its neighbors, THKCYL(i-1) and
+THKCYL(i+1) by not more than a certain relatively small percentage.
+
+
+CONCLUSION
+
+Engineers and researchers at the DOER Company and elsewhere
+are urged to use the "submarine" capability developed here
+for the generation of optimum designs of other pressure hull
+configurations for deep-diving vehicles or for any application
+in which the structure to be optimized is a shell of revolution.
+Enough detail is given here and in reports on other
+GENOPT/BIGBOSOR4 applications [1 - 5] to permit development
+by analogy of optimum designs of other systems.
+

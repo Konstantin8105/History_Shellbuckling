@@ -1,0 +1,3056 @@
+
+This is the michelin.readme file
+
+********************************************
+IMPORTANT NOTE (May 8,2014):
+This file, michelin.readme, was developed
+early in March, 2014. Several modifications
+were made after that, not only to the "michelin"
+software, behavior.michelin and bosdec.michelin,
+but also to BIGBOSOR4. Therefore, the optimized
+designs will now be somewhat different from
+those listed here. Also, the recommended series
+of runs may be somewhat different now from what it
+was early in March.
+******************************************
+
+===========================================================
+
+OVERALL DESCRIPTION OF THE "michelin" GENERIC CASE 
+
+The generic case called "michelin" involves
+externally pressurixed complexly corrugated shells
+in which the corrugations run in the circumferential
+direction. The external pressure is lateral pressure
+only, not hydrostatic pressure; there is no axial
+loading component of magnitude pr/2. The name for the
+generic case, michelin, was chosen because the complexly
+corrugated shell could potentially resemble the
+well-known Michelin Tire Man, a familiar icon of the
+Michelin Tire Company.
+
+The generic case called "michelin" is analogous to
+that for the generic case called "span9": in "michelin"
+the corrugations run in the circumferential direction
+("michelin" = shells of revolution), whereas in "span9"
+the corrugations run in the axial direction (span9 =
+prismatic panels).
+
+The software, behavior.michelin, struct.michelin and
+bosdec.michelin, for the generic case called "michelin" is
+analogous to that for the generic case called "span9", and
+the two input files for the GENOPT processor GENTEXT,
+michelin.INP for the generic case "michelin" and span9.INP
+for the generic case "span9", are identical. Therefore,
+the prompting files, michelin.PRO and span9.PRO, are
+identical.
+
+Since the GENTEXT input files, michelin.INP and span9.INP,
+are identical, some of the data names used in the generic
+case called "span9" are inappropriate for the generic case
+called "michelin". In particular, the first three data
+names and their definitions listed in the input file,
+*.BEG, for the BEGIN prcessor of GENOPT for a specific
+"michelin" case called "mich8" (mich8.BEG) are as follows:
+
+100.0  $ total width of the corrugated plate: WIDTH
+  4.0  $ axial length of the corrugated plate: LENGTH
+  3.0  $ fraction of LENGTH for local buckling model: FACLEN
+
+In "span9" these three data names and definitions are
+appropriate (although the data value, 4.0 for LENGTH,
+is dubious and the data value, 3.0 for FACLEN, is inappropriate.
+In "michelin" the first datum, 100.0, is the actually the axial
+length of the shell of revolution, the second datum, 4.0, is
+the value of the BIGBOSOR4 analysis type index, INDIC,
+and the third datum, 3.0, is the number, MMM, of repeating
+modules used in the BIGBOSOR4 model for general instability.
+
+The various meanings of what is now a strategy parameter, LENGTH:
+----------------------------------------------------
+Value of   various values of BIGBOSOR4 analysis type,INDIC
+LENGTH  for Local buckling      for general buckling
+(ISTRAT)
+  1             4                       4
+  2             4                       1
+  3             4                      -1
+  4             4                      -2 
+  5             1                       1
+  6             1                      -1
+  7             1                      -2
+  8            -1                       1
+  9            -1                      -1
+ 10            -1                      -2
+ 11            -2                       1
+ 12            -2                      -1
+ 13            -2                      -2
+----------------------------------------------------
+
+The parameter called "LENGTH" in the various
+input and output files is a "leftover" from
+the generic case "span9", in which the complex corrugations
+run in the axial direction rather than circumferenially,
+which is so for the generic case called "michelin".
+In the "michelin" application the parameter called
+"LENGTH" becomes a strategy parameter often
+called "strategy" or "ISTRAT" in the following text.
+
+In the work described here only two values of LENGTH
+are used: LENGTH = 1 for linear theory (BIGBOSOR4
+analysis type indicator, INDIC = 4) and LENGTH = 13 
+for nonlinear theory (BIGBOSOR4 analysis type indicator,
+INDIC = -2).
+
+INDIC = 4 correponds to the analysis
+branch in BIGBOSOR4 in which a linear static response
+for, in general, a non-axisymmetrically loaded shell
+of revolution is computed by Fourier superposition
+of deformations with n = 0, 1, 2,. .., NMAX circumferential
+waves. [In the present work only axisymmetric (n=0)
+deformations are considered for the pre-buckled
+state of the circumferentially corrugated shell.]
+Buckling load factors are computed corresponding to the
+state of the pre-buckled shell along a particular
+user-selected meridian, presumably the meridian
+that is associated with the most destabilizing pre-buckling
+("worst") stress resultants. (Here we select the meridian
+at circumferential coordinate, THETAS = 0.0 degrees.) 
+Whatever state exists along the user-selected
+meridian is assumed to be axisymmetric (a conservative
+approximation, since, for the purpose of the buckling
+phase of the computations, the "worst" stress resultants
+are assumed to exist at all circumferential coordinates).
+
+INDIC = -2 corresponds to one of the analysis branches
+in BIGBOSOR4 in which buckling is determined from
+nonlinear geometric theory for an axisymmetrically
+loaded, elastic, shell of revolution. A conservative
+approach to the buckling problem is taken. For a
+user-selected number of circumferential waves, the
+stability determinant is computed for a sequence
+of increasing loads. When it has been detected
+that one or more roots (changes in sign of the
+stability determinant) have been passed, the analysis
+type indicator, INDIC, is automatically changed
+from INDIC = -2 to INDIC = -1, and the buckling
+analysis proceeds as if INDIC had always been -1.
+In the INDIC = -1 analysis branch BIGBOSOR4 searches
+for a minimum buckling load factor in the
+neighborhood of circumferential waves surrounding
+the initially user-selected number of circumferential
+waves. At the critical circumferential wavenumber
+nonlinear iterations proceed until a certain
+pre-specified degree of convergence has been attained.
+
+In SUBROUTINE BOSDEC2 of the library called:
+ /home/progs/bosdec/sources/bosdec.michelin
+there exists the new statement:
+
+ MMM = FACLEN + 0.0001 
+
+in which MMM is the number of repeating sections of
+length = WIDTH that occur in the shell of revolution
+e.g. "mich8") that is being analyzed by BIGBOSOR4 for
+the prediction of general instability. 
+
+The BIGBOSOR4 model used for local buckling depends ot the
+value of INDIC. For INDIC = 4 (linear buckling) SUBROUTINE
+BOSDEC2 is called with MMM = 1. For INDIC < 4 (nonlinear
+buckling with the use of various strategies) SUBROUTINE
+BOSDEC is called. There is no parameter, MMM, used in BOSDEC.
+SUBROUTINE BOSDEC produces an input file for BIGBOSOR4 for a
+"half-model", that is a model that includes the shell segments
+from the bottom of the shell of revolution to its first plane
+of symmetry, an axial distance equal to length = WIDTH/2.
+(For the specific case, mich8, WIDTH/2 is approximately
+equal to 50 inches.
+
+In the input file, mich8.BEG, there exists the following line:
+
+   -20.0     $ total axial load (e.g. lb): TOTLOD(  1)
+
+In "michelin" this input datum is the lateral pressure
+(e.g. psi, negative for external pressure), not the total
+axial load, as is so for the old "span9" generic case.
+
+There are now no
+behavioral constraints corresponding to "classical" buckling
+of each corrugation, that is, CYLBUK(i), i=1,2,...NSEGS, are
+not computed. As with BUKASY, CYLBUK(i), i=1,2,...NSEGS, are
+set equal to very high values so that they do not affect
+the evolution of the design during optimization cycles.
+
+The behavioral constraint for maximum effective stress is
+computed from a "half-length" BIGBOSOR4 model (as if MMM = 0.5),
+that is, an axial length of the shell of revolution from
+the bottom to its first symmetry plane, which occurs at
+axial station, WIDTH/2. SUBROUTINE BOSDEC is used for
+the computation of maximum effective stress.
+
+-------------------------------------------------------
+
+
+HOW TO RUN michelin/mich8
+
+-----------------------------------------------------------
+Establishing for the first time the software for the
+generic case called "michelin":
+
+cd /home/progs/genoptcase     (go to directory for executing GENOPT)
+gentext (run the program that generates the prompt file: michelin.PRO)
+(Starting from struct.new and behavior.new, which are skeletal
+libraries created automatically by GENOPT during the GENTEXT process,
+you must "flesh out" struct.new and behavior.new so that these
+subroutines will now perform the analyseis you want. Also, you must
+create the libraries, bosdec.src and bosdec2.src, that generate input
+files for BIGBOSOR4 and STAGS. Save your "fleshed out" versions of
+behavior.new and struct.new and also save the subroutines, bosdec.src
+and bosdec2.src, which are  entirely created by you. You spent a lot
+of time creating these four files. Archive them with appropriate names,
+such as struct.michelin, behavior.michelin, bosdec.michelin (It is
+logical to include SUBROUTINE BOSDEC2 in bosdec.src, which is now a
+library of subroutines and not just one subroutine called BOSDEC.)
+
+In this particular generic case "michelin" I created the software,
+behavior.michelin and bosdec.michelin by analogy with the
+generic case called "span9". struct.michelin is identical to
+struct.span9. The overall structure of behavior.michelin is
+the same as the overall structure of behavior.span9, but
+there are many details that are different. For example,
+local bucking can now be determined from a BOSDEC2 model in
+which MMM = 1 or local buckling can be determined from a
+BOSDEC "half" model (in effect MMM=0.5). General buckling is now determined from
+a BOSDEC2 model in which MMM may have any value greater than 1. 
+Similarly, the overall
+structure of bosdec.michelin is the same as that in
+the file, bosdec.span9.smoothing. NOTE: Only the "smoothing"
+option is used in the generic case "michelin", and there is
+no option that is based on HUGEBOSOR4.)
+
+genprograms    (generate executable elements for michelin)
+(Doubtless there will be errors. Correct them and rerun
+genprograms. You will probably need to do this many times
+in order to eliminate all the errors. Each time you do this
+"loop" make sure to re-save the latest versions of struct.new,
+behavior.new and bosdec.src as the archived files:
+struct.michelin, behavior.michelin, bosdec.michelin)
+
+(If you wish to run GENTEXT and GENPROGRAMS for some generic
+case, michelin, that you have previously perfected, then do
+the following instead of what is written in the previous
+several paragraphs:)
+cd /home/progs/genoptcase     (go to directory for executing GENOPT)
+cp /home/progs/genopt/case/michelin/michelin.tar.gz/.
+gunzip michelin.tar.gz    (uncompress michelin.tar.gz)
+tar xvf michelin.tar      (get the files within michelin.tar)
+(one of these files is called michelin.INP: input for GENTEXT)
+gentext     (use michelin.INP as the input file)
+cp struct.michelin struct.new
+cp behavior.michelin behavior.new
+cp bosdec.michelin /home/progs/bosdec/sources/bosdec.src
+genprograms      (generates the generic "michelin" software)
+
+
+-----------------------------------------------------------------
+Optimizing via GENOPT/BIGBOSOR4:
+
+begin   (establish starting design: specific case mich8: mich8.BEG)
+decide  (choose decision/linked variables and bounds: mich8.DEC)
+mainsetup (set up to do optimization: ITYPE=1; mich8.OPT)
+
+      n         $ Do you want a tutorial session and tutorial output?
+         0      $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+         0      $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+         1      $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+         5      $ How many design iterations in this run (3 to 25)?
+      n         $ Take "shortcuts" for perturbed designs (Y or N)?
+         2      $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+         5      $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+      n         $ Do you want default (RATIO=10) for initial move limit jump?
+    100000      $ Provide a value for the "move limit jump" ratio, RATIO
+      n         $ Do you want the default perturbation (dx/x = 0.05)?
+  0.1000000E-01 $ Amount by which decision variables are perturbed, dx/x
+      n         $ Do you want to have dx/x modified by GENOPT?
+      n         $ Do you want to reset total iterations to zero (Type H)?
+         2      $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+superopt or superduperopt (generate "global" optimum design)
+(the command "superopt" generates a file: mich8.OPP. Inspect this file.)
+(the command "superduperopt" generates files, mich8.OPP.1, mich8.OPP.2,
+mich8.OPP.3, ... Inspect each one of these *.OPP.* files. Also,
+"superduperopt" generates files, mich8.PL2.1, mich8.PL2.2, mich8.PL2.3,
+... You can get plots of the objective (WEIGHT) versus design iteration
+corresponding to each of the mich8.OPP.i, i = 1, 2, 3,..., by doing
+the following:
+cp mich8.PL2.1 mich8.PL2
+chooseplot (choose what to plot. The input data file is mich8.CPL, which
+is as follows:
+  N     $ Do you want a tutorial session and tutorial output?
+  N     $ Any design variables to be plotted v. iterations (Y or N)?
+  N     $ Any design margins to be plotted v. iterations (Y or N)?
+  Y     $ Do you want to get more plots before your next "SUPEROPT"?
+NOTE: It is very important that the 4th and last entry be "Y"! If you
+      answer "N" to this last prompt, you will not be able to get
+      plots corresponding to mich8.OPP.2, mich8.OPP.3, etc.
+
+diplot  (generate the file, mich8.5.ps, which is a postscript file that
+         is used to produce a plot on your screen via the next "gv" command.)
+
+gv mich8.5.ps (get a plot of objective versus design iteration 
+               corresponding to mich8.OPP.1. You might want to
+               save this file because it will be over-written
+               by the following commands.)
+
+cp mich8.PL2.2 mich8.PL2
+chooseplot
+diplot
+gv mich1.5.ps (get a plot of objective versus design iteration
+               corresponding to mich8.OPP.2. Save this file.)
+
+cp mich8.PL2.3 mich8.PL2
+chooseplot
+diplot
+gv mich1.5.ps (get a plot of objective versus design iteration
+               corresponding to mich8.OPP.3. Save this file.)
+----------------------------------------------------------------
+
+Refine the optimum design:
+
+mainsetup (set up to do optimization: ITYPE=1; mich8.OPT)
+
+      n         $ Do you want a tutorial session and tutorial output?
+         0      $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+         0      $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+         1      $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+        15      $ How many design iterations in this run (3 to 25)?
+      n         $ Take "shortcuts" for perturbed designs (Y or N)?
+         2      $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+         6      $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+      n         $ Do you want default (RATIO=10) for initial move limit jump?
+    100000      $ Provide a value for the "move limit jump" ratio, RATIO
+      n         $ Do you want the default perturbation (dx/x = 0.05)?
+  0.1000000E-01 $ Amount by which decision variables are perturbed, dx/x
+      n         $ Do you want to have dx/x modified by GENOPT?
+      n         $ Do you want to reset total iterations to zero (Type H)?
+         2      $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+superopt or superduperopt (generate "global" optimum design)
+(the command "superopt" generates a file: mich8.OPP. Inspect this file.)
+(the command "superduperopt" generates files, mich8.OPP.1, mich8.OPP.2,
+mich8.OPP.3, ... Inspect each one of these *.OPP.* files.
+
+(archive the final "FEASIBLE" or "ALMOST FEASIBLE" optimum design:)
+change     (produces mich8.CHG, which, due to your interactive input,
+            contains the optimized values of all the decision variables.
+            You can use mich8.CHG in the future to restore this optimized
+            design.)
+
+
+---------------------------------------------------------------------
+Running GENOPT/BIGBOSOR4 for a previously archived optimized design:
+
+cd /home/progs/genoptcase     (go to directory for executing GENOPT)
+cleanspec     (specific case name = mich8; clean up specific files)
+begin   (establish starting design: specific case mich8: mich8.BEG)
+change  (restore archived optimized design: mich8.CHG)
+decide  (choose decision/linked variables and bounds: mich8.DEC)
+mainsetup (set up to run fixed design: ITYPE=2; mich8.OPT)
+
+      n         $ Do you want a tutorial session and tutorial output?
+         0      $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+         2      $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+         2      $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+        15      $ How many design iterations in this run (3 to 25)?
+      n         $ Take "shortcuts" for perturbed designs (Y or N)?
+         2      $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+         6      $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+      n         $ Do you want default (RATIO=10) for initial move limit jump?
+    100000      $ Provide a value for the "move limit jump" ratio, RATIO
+      n         $ Do you want the default perturbation (dx/x = 0.05)?
+  0.1000000E-01 $ Amount by which decision variables are perturbed, dx/x
+      n         $ Do you want to have dx/x modified by GENOPT?
+      n         $ Do you want to reset total iterations to zero (Type H)?
+         2      $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+optimize (get results, the mich8.OPM file, for the fixed, previously
+          optimized design, fixed because type of analysis, ITYPE = 2))
+
+(Inspect the mich8.OPM file to make sure the margins/objective are
+ reasonable.))
+
+
+---------------------------------------------------------------------
+Get BIGBOSOR4 plots of local and general buckling modes; stresses, etc.:
+
+cd /home/progs/work4     (working directory for BIGBOSOR4 runs)
+cp ../genoptcase/mich8.BEHX1 mich8.ALL  (BIGBOSOR4 input for LOCAL buckling)
+bigbosor4log              (initialize BIGBOSOR4)
+bigbosorall               (run BIGBOSOR4; the input data file is mich8.ALL))
+(view the mich8.OUT file. Search for "EIGENVALUE(". Include that open paren!
+ Look for one or more minimum eigenvalues versus circumferential wavenumber, n)
+bosorplot          (choose what to plot)
+gv metafile.ps     (get plot on screen)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.xxx.yyy.zzz.ps (save the plot)
+bosorplot          (choose something else to plot)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.www.xxx.yyy.ps (save the plot)
+cleanup            (get a properly annotated mich8.ALL file)
+
+cp ../genoptcase/mich8.BEHX2 mich8.ALL  (BIGBOSOR4 input for GENERAL buckling)
+bigbosorall               (run BIGBOSOR4)
+(view the mich8.OUT file. Search for "EIGENVALUE(". Include that open paren!))
+bosorplot          (choose what to plot)
+gv metafile.ps     (get plot on screen)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.vvv.www.yyy.ps (save the plot)
+bosorplot          (choose something else to plot)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.uuu.vvv.www.ps (save the plot)
+cleanup            (get a properly annotated mich8.ALL file)
+
+cp ../genoptcase/mich8.BEHX5 mich8.ALL  (BIGBOSOR4 input for stress)
+bigbosorall               (run BIGBOSOR4)
+(view the mich8.OUT file. Search for "STRMAX")
+bosorplot          (choose what to plot)
+gv metafile.ps     (get plot on screen)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.ttt.uuu.vvv.ps (save the plot)
+bosorplot          (choose something else to plot)
+(edit the metafile.ps file, if necessary)
+cp metafile.ps ../genoptcase/mich8.sss.ttt.uuu.ps (save the plot)
+cleanup            (get a properly annotated mich8.ALL file)
+
+NOTE: In order to get plots of the extreme fiber effective stress
+along the meridian of the shell, you have to edit the mich8.ALL
+file by changing NLAST from 0 to 1 . The relevant line in the mich8.ALL
+file is just after the line containing the string, "GLOBAL".
+Then you type the commands, bigbosorall followed by bosorplot.
+Choose the "X" option rather than the "P" option, then choose
+Item No. 6: mich8u..RESULTS_MERIDIAN_1 . You will get 4 successive
+"windows" with plots of (1) meridional stress, (2) circumferential
+stress, (3) in-plane shear stress, and (4) von Mises effective
+stress. You want (4). (You get each successive "window" by
+hitting the "close" icon in the upper right-hand corner of each
+"window" except the 4th (effective stress). That window you want
+to same. Hit "HRDCPY" on the upper left-hand side
+of the window; type an appropriate file name, such as "mich8.ps",
+then click on "Ok". The file "mich8.ps" will exist in the working
+directory for executions of BIGBOSOR4 (e.g. /home/progs/work4).
+Archive that file with the command:
+cp mich8.ps /home/progs/genoptcase/mich8.ploteffstress.linear.ps
+or some such archive file name.
+
+--------------------------------------------------------------------
+Getting STAGS predictions for optimized specific case called "mich8":
+
+cd /home/stags/stagsops  (working directory for stags runs)
+cp /home/progs/genoptcase/mich8.inp2 mich8.inp (local buckling)
+source /home/stags/prc/initialize      (initialize stags)
+cp linearbuck.bin mich8.bin            (get the STAGS input file, *.bin)
+(edit the mich8.bin file if necessary)
+/home/stags/prc/stags -b mich8         (run stags)
+cp linearbuck.pin mich8.pin            (get input for STAPL for plotting mode)
+(edit the mich8.pin file if necessary)
+stapl mich8                            (run STAPL to get the buckling mode)
+acroread mich8.pdf                     (view buckling mode on screen)
+cp mich8.pdf /home/progs/genoptcase/mich8.stags.localbucklingmode.pdf
+'rm' mich8*       (remove the mich8 files from /home/stags/stagsops)
+
+
+cp /home/progs/genoptcase/mich8.inp3 mich8.inp (general buckling)
+cp linearbuck.bin mich8.bin            (get the STAGS input file, *.bin)
+(edit the mich8.bin file if necessary)
+/home/stags/prc/stags -b mich8         (run stags)
+cp linearbuck.pin mich8.pin            (get input for STAPL for plotting mode)
+(edit the mich8.pin file if necessary)
+stapl mich8                            (run STAPL to get the buckling mode)
+acroread mich8.pdf                     (view buckling mode on screen)
+cp mich8.pdf /home/progs/genoptcase/mich8.stags.generalbucklingmode.pdf
+'rm' mich8*       (remove the mich8 files from /home/stags/stagsops)
+
+Typical mich8.bin and mich8.pin files are as follows:
+
+mich8.bin file:
+ STAGS INPUT FOR LINEAR BUCKLING.(STAGSUNIT=SHELL UNITS)
+ 1, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ ICHIST=index for crack archive option
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 1.000E+00, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 0.000E+00, $ STEP(1) = load factor increment, System A
+ 1.000E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+ 10000, $ NSEC= number of CPU seconds before run termination
+ 0., $ DELEV is eigenvalue error tolerance (0=.00001)
+ 0  $ IPRINT=0 means print modes, iteration data, END D-2 rec.
+  1, $ NEIGS= number of eigenvalues sought.  BEGIN D-3 rec.
+ 1.000, $ SHIFT=initial eigenvalue shift
+ 0.000E+00, $ EIGA =lower bound of eigenvalue range
+ 0.000E+00  $ EIGB =upper bound of eigenvalue range.      END D-3 rec.
+
+mich8.pin file:
+linear buckling of perfect shell from STAGS
+  1  0  1  0  $PL-2  NPLOT,IPREP,IPRS,KDEV
+     1     0     4     0     1  $PL-3  KPLOT,NUNIT,ITEM,STEP,MODE
+    0.0   3  $PL-5  DSCALE,NROTS
+  1   -35.84   $PL-6  IROT,ROT
+  2   -13.14   $PL-6  IROT,ROT
+  3    35.63   $PL-6  IROT,ROT
+
+---------------------------------------------------------------------
+
+Getting design sensitivity of the optimized mich8 for one of the
+decision variables:
+
+cd /home/progs/genoptcase    (go to directory for executing GENOPT)
+
+(First run MAINSETUP for the optimized design with
+NPRINT = 2 and ITYPE = 1:
+mainsetup         (use mich8.OPT with NPRINT=2; ITYPE=1)
+optimize          (the run terminates abnormally on purpose.
+                   Inspect the mich8.OPM file. Search for the
+                   string, "G R A D". Expand the window width-
+                   wise to obtain an easily readable output.
+                   Look at the values of the maximum gradient,
+                   and see which decision variable that maximum
+                   gradient corresponds to. Use that decision
+                   variable in your design sensitivity analysis,
+                   that is, the analysis for which ITYPE = 3
+                   in the input file for MAINSETUP: mich8.OPT.)
+
+(Next, run MAINSETUP with with input such as that listed below.)
+
+mainsetup (set up to run design sensitivity: ITYPE=3; mich8.OPT)
+(sample input data for mainsetup for design sensitivity case:)
+
+      N         $ Do you want a tutorial session and tutorial output?
+         0      $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+         0      $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+         3      $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+        17      $ Choose a design variable (1, 2, 3, ...), IBVAR
+        25      $ Starting value of the design parameter, VARBEG
+        37      $ Ending value of the design parameter, VAREND
+      Y         $ Do you want to use the default for the number of steps?
+
+optimize (get results for the design sensitivity study)
+chooseplot (choose which margins to plot: mich8.CPL)
+diplot     (generate the plot file for design margins: mich8.3.ps)
+gv mich8.3.ps (show design sensitivity plot, mich8.3.ps, on screen)
+(Archive mich8.3.ps with a name such as mich8.itype3.margins.ps .)
+
+-------------------------------------------------------------------
+
+Recommended series of optimizations:
+
+1. First optimize a uniform corrugation (specific case called "mich8u")
+   This requires a number of preliminary optimization runs (ITYPE=1)
+   in order to get the first and last shell segment to have the proper
+   geometry. This series of runs is done in a loop. In each pass through
+   this loop the following is performed:
+
+   cleanspec mich8u (clean up files for the specific case: mich8u)
+   begin (initial starting design; use mich8u.BEG as input)
+   decide (choose decision variables, bounds, etc.; YPLATE(i) are
+           fixed, that is, YPLATE(i) are NOT decision variables,
+           and PHISEG(i), i = 2, 3,...8, are linked to PHISEG(1).)
+   mainsetup (set up for optimization: ITYPE = 1; ITER = 5; IMOVE = 5)
+   superopt  (use 8 executions of OPTIMIZE per execution of AUTOCHANGE)
+   (You may want to terminate the SUPEROPT execution after about 10
+    minutes in order to save time. Remember, you are in an interation
+    loop. Inspect the mich8u.OPP file, especially the "BEST FEASIBLE"
+    design. Next, save the "BEST FEASIBLE" design via CHANGE.)
+   change  (archive the optimized design with the use of CHANGE)
+   mainsetup (provide input to perform the analysis of the "fixed"
+              design that was optimized via SUPEROPT: ITYPE = 2)
+   optimize (perform the "fixed design" analysis; Inspect the
+             mich8u.OPM file from the "fixed design" analysis.
+             Especially inspect THICK(i) and PHISEG(i), i=1,2,3..8)
+   cd /home/progs/work4 (working space for execution of BIGBOSOR4)
+   bigbosor4log (initialize BIGBOSOR4)
+   cp /home/progs/genoptcase/mich8u.BEHX5 mich8u.ALL (BOSOR input)
+   bigbosorall    (execute BIGBOSOR4)
+   cleanup        (get properly annotated mich8.ALL file)
+
+   (For each shell segment in the *.ALL file there exists the
+    following line:
+    N  $ Do you want to print out r(s), r'(s), etc. for this segment?
+    Change the "N" to "Y" because you need to see the values of
+    the maximum radius (called "RAD") and minimum radius in segments
+    that are not the end segment nor smoothing segments. The
+    maximum "RAD" is to be used as a new value of YPLATE(1), and
+    the minimum "RAD" is to be used as a new value of YPLATE(9).)
+
+   bigbosorall (execute BIGBOSOR4 with the revised mich8u.ALL file)
+
+   (Inspect the mich8u.OUT file. Find the maximum and minimum
+    values of radius "RAD" in non-smoothing and in non-end
+    segments. RAD(maximum) will become YPLATE(1) and
+    RAD(minimum) will become YPLATE(9) when you revise the
+    mich8u.BEG file in preparation for another trip through the
+    iteration loop.)
+
+   (insert the optimized thicknesses THICK(i) and angles PHISEG(i)
+    into a revised mich8u.BEG file in preparation for the next
+    trip through the loop. Insert RAD(maximum) in place of
+    YPLATE(1) and RAD(minimum) in place of YPLATE(9).)
+
+   cd /home/progs/genoptcase
+   cleanspec mich8u (clean up files for the specific case: mich8u)
+
+   (redo the loop by executing BEGIN with the revised input file,
+    mich8u.BEG, followed by executions of decide, mainsetup, superopt,
+    change, mainsetup, optimize, bigbosorall, cleanup, bigbosorall,
+    with intermediate editings as listed above.)
+
+   (In the present specific case, mich8u, three times through the
+    loop were required in order to get reasonably well converged
+    values of THICK(i) & PHISEG(i) and YPLATE(1) and YPLATE(9).
+    Here are the values of YPLATE(1) and YPLATE(9) for the design
+    before the loop was entered for the first time and each
+    subsequent trip through the loop:
+                  trip through the loop:      final values:
+                   0,      1,    2,    3
+    YPLATE(1): 38.57143, 36.69, 37.3, 37.1        37.1
+    YPLATE(9): 31.42857, 33.35, 32.9, 33.0        33.0
+    The first value corresponds to a configuration in which the
+    half-angle, PHISEG(2) = PHISEG(3) = ... = PHISEG(7) = 90 degrees,
+    and the half angles, PHISSEG(1)  = PHISEG(8) = 45 degrees.
+    The final optimum design corresponds to a configuration in which
+    PHISEG(2) = PHISEG(3) = ... = PHISEG(7) = 61.06 degrees,
+    and the half angles, PHISSEG(1)  = PHISEG(8) = 30.53 degrees.
+    The final optimized values of YPLATE(i), i = 1,2,3,...9, are:
+    YPLATE(i) = 37.1, 35., 35., 35., 35., 35., 35., 35., 33.0
+    The values of SUBWID(i), i = 1,2,3,...8, never change. They are:
+    3.571429,
+    7.142857, 7.142857, 7.142857, 7.142857, 7.142857, 7.142857,
+    3.571429
+    The sum of the 8 values of SUBWID(i) equals half the length
+    (called "WIDTH" in this generic "michelin" application) of the shell.
+
+   (We now have the optimized design of the uniformly corrugated shell.)
+
+   NOTE: The mich8u.BEG file has the following for YPLATE(i), i=1,2,..9:
+   36.55, 34.45, 34.45, 34.45, 34.45, 34.45, 34.45, 34.45, 34.45, 32.45
+   These values are different from the "final" values of YPLATE(i)
+   listed above as those for the optimized design of the uniformly
+   corrugated shell:
+    YPLATE(i) = 37.1, 35., 35., 35., 35., 35., 35., 35., 33.0
+   Unfortunately, I do not recall what computer runs produced the
+   quite different values, YPLATE(i) = 36.55, 34.45, 34.45,...32.45.
+   Nonetheless, those are the values that I now regard as "final"
+   for the specific case, mich8u.
+
+
+3. Next, we want to optimize a new specific case called "mich8",
+   in which YPLATE(I) are now included as decision variables,
+   PHISEG((i), i = 1,2,3...8, are all decision variables.
+
+   (See the list following the heading, "Refine the optimum design"
+    for details.)
+
+4. Step 3, optimization of the specific case called "mich8"
+   comes up with new values of YPLATE(i), i=1,2,...9. It is
+   important next to compare the value of YPLATE(1) (radius
+   at the bottom of the BIGBOSOR4 model) with the value of
+   YPLATE(1) used in the specific case called "mich8u" (Step 1).
+   Usually, YPLATE(1) in the optimized "mich8" case will be
+   somewhat less than YPLATE(1) in the "mich8u" case. Say that
+   YPLATE(1) in the optimized "mich8" case is less than
+   YPLATE(1) in the "mich8u" case. (In this study YPLATE(1)
+   in the optimized "mich8" case is 36.55 inches and YPLATE(1)
+   in the "mich8u" case is 37.1 inches. The difference,
+   DYPLATE(1) = 0.55 inches. In order to make the comparison
+   of WEIGHT fair, we must re-optimize "mich8u", first
+   subtracting DYPLATE(1) from all the YPLATE(i), i=1,2,...9,
+   in the mich8u.BEG file, and then reoptimizing mich8u from
+   the beginning.) Subtracting DYPLATE(1) from all the
+   YPLATE(i), i=1,2,...9, in the mich8u.BEG file moves the
+   starting mich8u profile either toward or away from the
+   axis of revolution, depending on whether DYPLATE(1) is
+   negative or positive, respectively.
+-------------------------------------------------------------------
+
+How to get plots of more than one optimized profile in the
+same plot frame:
+
+cd /home/progs/genoptcase
+(Get an optimized design in the usual way.)
+cd /home/progs/work4  (go to working directory for executions
+                       of BIGBOSOR4)
+cp /home/progs/genoptcase/mich8.BEHX5 mich8.ALL (input data for
+                                                 BIGBOSOR4)
+bigbosorall    (execute BIGBOSOR4)
+(One of the output files from BIGBOSOR4 is called mich8.PLT2.
+ mich8.PLT2 is a plot file that is used by BIGBOSOR4.
+ mich8.PLT2 is the wrong format to be used with Bill Bushnell's
+ stand-alone version of plotps: /home/progs/bin/plotps.x86_64.
+ Editing of mich8.PLT2 is needed. Here's how to edit mich8.PLT2:
+ 1. Delete the first approximately 20 lines that are not data.
+ 2. Search for the character R
+ 3. Delete all lines including and following $END PLOT
+ 4. The first column (nodal points) must be removed. Do this
+    for each line using the "vi" command "5x". You have to do
+    this many, many times (about 600 in the mich8 case).
+ 5. Add the following to the beginning of the data file:
+    # Global directives, optimized mich8 
+    =title(Optimized profiles, mich8u and mich8)
+    =xlabel(Radius (inches))
+    =ylabel(Axial coordinate (inches))
+    # data set 1
+    +legend(mich8)
+    +markeroff
+    #+linestyle(dashed)
+ (The "#" sign means "comment line")
+ You now have input data that are suitable for use with
+ Bill Bushnell's stand-alone utility, plotps.
+ Don't worry about the 7 columns of data that follow the
+ first two columns (radius, axial coordinate). plotps will
+ ignore those additional 7 columns.
+
+ IMPORTANT NOTE: You did lots of work producing the file
+ mich8.PLT2 in a form suitable for use with Bill Bushnell's
+ stand-alone version of plotps. Therefore, be sure to
+ save a copy of this file where it will not be accidentally
+ deleted! For example, I typed the following command:
+ cp mich8.PLT2 ../genoptcase/mich8.bigbosor4.plotprofile.plt2
+
+ Next, type the commands:
+ 'rm' mich8.ps
+ /home/progs/bin/plotps.x86_64 -ss < mich8.PLT2 > mich8.ps
+
+ The "-ss" option means "samescale", which means that the
+ axial and radial coordinates will be plotted to the same
+ scale and the optimized profile will therefore be true.
+ mich8.ps will contain a single trace: that corresponding
+ to the optimized profile for the specific case, mich8.
+ In order to see this plot on your screen, type the command:
+ gv mich8.ps     ("gv" means "ghost view")
+
+ So far, you only have the profile corresponding to the
+ optimized specific case called "mich8". You have to repeat
+ the above sequence of operations for the other case,
+ mich8u (uniform corrugations)
+ The two optimized profiles, mich8 and mich8u,
+ look the same when plotted individually from BIGBOSOR4.
+ The two traces must be plotted in the same frame in
+ order to see the difference.
+
+ After you have created suitable "PLT2" files for the
+ case, mich8u, you must add this new "PLT2"
+ data set to that for mich8. You do not repeat the initial
+ directives, of course, but you must introduce the new
+ data set with the following lines:
+ # data set 2
+ +legend(mich8u)
+ +markeroff
+ +linestyle(dashed)
+
+Suppose you call the combined plot file, that is the file with
+the two data sets, "combined.PLT2". Then, the commands:
+ 'rm' combined.ps
+ /home/progs/bin/plotps.x86_64 -ss < combined.PLT2 > combined.ps
+ will produce a handsome plot with the two optimized profiles
+ superposed. Be sure to archive the file, combined.PLT2.
+ I have archived the input and output plot files as follows:
+ /home/progs/work6/mich8.mich8u.optimizedprofiles.input
+ /home/progs/work6/mich8.mich8u.optimizedprofiles.ps
+ Therefore, in order to get the two-trace plot (mich8 and mich8u)
+ on my screen, I would type the lengthy command:
+ /home/progs/bin/plotps.x86_64 -ss
+  < /home/progs/work6/mich8.mich8u.optimizedprofiles.input
+  > /home/progs/work6/mich8.mich8u.optimizedprofiles.ps
+
+---------------------------------------------------------
+
+Linear and Nonlinear predictions for the specific case "mich1"
+
+First optimize mich1 with the use of linear bifurcation
+bucking (BIGBOSOR4 analysis type INDIC = 4).
+
+1. begin   (Use LENGTH = 1.0 (Strategy index = 1 and FACLEN (MMM) = 9),
+(The mich1.BEG file is as follows. It is archived as the file,
+ mich1.strategy1.fsloc2.0.mlowgs0.mlowl0.beg:)
+   n       $ Do you want a tutorial session and tutorial output?
+  9.346    $ total width of the corrugated panel: WIDTH
+  1.0000   $ axial length of the corrugated panel: LENGTH
+  9.0000   $ fraction of LENGTH for local buckling model: FACLEN
+      1    $ number of major segments in WIDTH/2: NSEG
+  0.10E+08 $ elastic modulus of the material: EMOD
+  0.3000   $ Poisson ratio of the panel material: NU
+  0.1000   $ weight density of the panel material: DENSTY
+      0    $ low end of M-range: symmetric GENERAL buckling: MLOWGS
+     10    $ high end of M-range: symmetric GENERAL buckling: MHIGHGS
+      0    $ low end of M-range: antisymmetric GENERAL buckling: MLOWGA
+     10    $ high end of M-range: antisymmetric GENERAL buckling: MHIGHGA
+      0    $ low end of the M-range: LOCAL buckling: MLOWL
+    200    $ high end of the M-range: LOCAL buckling: MHIGHL
+    480    $ finite element used in STAGS model: IELMNT
+      1    $ Number INSUBSE of rows in the array  NSUBSEG: INSUBSE
+      0    $ number of sub-segments in major segment: NSUBSEG(  1)
+      1    $ 1 = convex surface up; 2 = convex down: UPDOWN(  1)
+      0    $ Number JUPDWNS of columns in the array, UPDWNS: JUPDWNS
+      1    $ 1=convex up (hill); 2=convex down (valley): UPDNBIG
+      1    $ Number ITHICK  of rows in the array  THICK: ITHICK
+  0.1000   $ wall thickness of the major segment: THICK(  1)
+  4.673    $ projected width (x-width) of major segment: SUBWID(  1)
+ 60.0000   $ half-angle (deg.) of major corrugation: PHISEG(  1)
+ 70.0000   $ half-angle (deg.) of sub-corrugation: PHISUB(  1)
+      2    $ Number IYPLATE of rows in the array  YPLATE: IYPLATE
+ 35.0000   $ vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(  1)
+ 35.0000   $ vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(  2)
+  0.0100   $ half-angle (deg.) of overall arching: PHIBIG
+      1    $ Number NCASES  of load cases (environments): NCASES
+   -20.0   $ total axial load (e.g. lb) over WIDTH: TOTLOD(  1)
+  1.0000   $ allowable for local buckling: LOCBUKA(  1)
+  2.0000   $ factor of safety for local buckling: LOCBUKF(  1)
+  1.0000   $ allowable for sym. general buckling: BUKSYMA(  1)
+  1.4000   $ f.s. for symmetric general buckling: BUKSYMF(  1)
+  1.0000   $ allowable for antisym. general buckling: BUKASYA(  1)
+  1.4000   $ f.s. for antisym. general buckling: BUKASYF(  1)
+      1    $ Number JCYLBUK of columns in the array, CYLBUK: JCYLBUK
+  1.0000   $ allowable for classical buckling: CYLBUKA(  1,  1)
+  1.0000   $ factor of safety for classical buckling: CYLBUKF(  1,  1)
+  100000.0 $ allowable effective stress: STRESSA(  1)
+  1.5000   $ factor of safety for stress: STRESSF(  1)
+
+
+2. decide  (the input file, mich1.DEC, archived=mich1.strategy1.dec)
+(The mich1.DEC file is as follows:)
+   n       $ Do you want a tutorial session and tutorial output?
+      1    $ Choose a decision variable (1,2,3,...)
+  0.30E-01 $ Lower bound of variable no.(  1)
+  0.2000   $ Upper bound of variable no.(  1)
+   n       $ Do you want especially to restrict variable no.(  1)
+   y       $ Any more decision variables (Y or N) ?
+      3    $ Choose a decision variable (1,2,3,...)
+      5    $ Lower bound of variable no.(  3)
+     70    $ Upper bound of variable no.(  3)
+   n       $ Do you want especially to restrict variable no.(  3)
+   y       $ Any more decision variables (Y or N) ?
+      6    $ Choose a decision variable (1,2,3,...)
+     30    $ Lower bound of variable no.(  5)
+     40    $ Upper bound of variable no.(  5)
+   n       $ Do you want especially to restrict variable no.(  5)
+   n       $ Any more decision variables (Y or N) ?
+   n       $ Any linked variables (Y or N) ?
+   n       $ Any inequality relations among variables? (type H)
+   y       $ Any escape variables (Y or N) ?
+   y       $ Want to have escape variables chosen by default?
+
+3, mainsetup
+(The mich1.OPT file is as follows:)
+   n       $ Do you want a tutorial session and tutorial output?
+      0    $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+      0    $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+      1    $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+      5    $ How many design iterations in this run (3 to 25)?
+   n       $ Take "shortcuts" for perturbed designs (Y or N)?
+      2    $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+      5    $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+   n       $ Do you want default (RATIO=10) for initial move limit jump?
+  100000   $ Provide a value for the "move limit jump" ratio, RATIO
+   n       $ Do you want the default perturbation (dx/x = 0.05)?
+  0.10E-01 $ Amount by which decision variables are perturbed, dx/x
+   n       $ Do you want to have dx/x modified by GENOPT?
+   n       $ Do you want to reset total iterations to zero (Type H)?
+      2    $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+4. superduperopt (use 8 optimizes/autochange and execute 5 superopts)
+
+(The best FEASIBLE design, obtainable from mich1.OPP.5, is as follows:)
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.418E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.411E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.212E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1   -8.429E-03  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=2.
+  2    1.796E-02  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=1.4
+  3    7.143E+09  (BUKASY(1 )/BUKASYA(1 )) / BUKASYF(1 )-1; F.S.=1.4
+  4    1.000E+10  (CYLBUK(1 ,1 )/CYLBUKA(1 ,1 )) / CYLBUKF(1 ,1 )-1; F.S.=1.
+  5    8.467E-02  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=1.5
+
+ ******************** DESIGN OBJECTIVE *******************
+  CORRESPONDING VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.517E+00  weight of the corrugated panel: WEIGHT
+ *****************************************************
+
+5. Get plots of the objective versus design iterations
+corresponding to each of the 5 (or possibly fewer) executions
+of SUPEROPT during the long SUPERDUPEROPT run. How to
+do this is described above. The resulting plot files
+are as follows:
+ Mar  4 12:31 mich1.superopt1.852.linear.ps
+ Mar  4 12:32 mich1.superopt2.852.linear.ps
+ Mar  4 12:33 mich1.superopt3.852.linear.ps
+ Mar  4 12:34 mich1.superopt4.852.linear.ps
+ Mar  4 12:35 mich1.superopt5.852.linear.ps
+
+6. Use the GENOPT processor CHANGE to archive the best FEASIBLE
+design. The input file for CHANGE (mich1.CHG) is as follows:
+   N       $ Do you want a tutorial session and tutorial output?
+   Y       $ Do you want to change any values in Parameter Set No. 1?
+      1    $ Number of parameter to change (1, 2, 3, . .)
+ 0.04418   $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      2    $ Number of parameter to change (1, 2, 3, . .)
+ 4.673     $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      3    $ Number of parameter to change (1, 2, 3, . .)
+ 34.1100   $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      6    $ Number of parameter to change (1, 2, 3, . .)
+ 32.1200   $ New value of the parameter
+   n       $ Want to change any other parameters in this set?
+   N       $ Do you want to change values of any "fixed" parameters?
+   N       $ Do you want to change any loads?
+   N       $ Do you want to change values of allowables?
+   N       $ Do you want to change any factors of safety?
+
+7. Edit the mich1.OPT file (change NPRINT from 0 to 2 and
+change ITYPE from 1 to 2) in order to get the mich1.OPM
+file corresponding to the best FEASIBLE design. Then
+execute MAINSETUP and OPTIMIZE for the "fixed" design option:
+mainsetup    (the input file is mich1.OPT, as edited)
+optimize     (produces the mich1.OPM file for the best design)
+
+8. Archive the mich1.CHG and mich1.OPM files for the best
+design obtained with use of the "852" strategy parameters.
+In an execution of SUPEROPT (or SUPERDUPEROPT) "852" means
+"8 OPTIMIZEs/AUTOCHANGE, IMOVE = 5 and IAUTOF = 2", in which
+IMOVE and IAUTOF are described in the GENOPT permanent
+prompting file, /home/progs/genopt/execute/URPROMPT.DAT.
+The two archived files are as follows:
+-rw-rw-r-- 1 bush bush  1095 Mar  4 12:52 mich1.linear.852.chg
+-rw-rw-r-- 1 bush bush 12032 Mar  4 12:53 mich1.linear.852.opm
+
+9. Clean up mich1 files and start over. The plan is to use
+the file, mich1.CHG, with the GENOPT processor, CHANGE, to
+re-establish the best FEASIBLE optimum design from linear
+theory, then do some more optimizing using a more refined
+strategy than the "852" strategy. In particular, the "1562"
+strategy will be used, and instead of executing SUPEROPT
+or SUPERDUPEROPT, perhaps a better optimum design will
+be found by a few successive executions of OPTIMIZE.
+
+cleanspec
+begin      (use the same mich1.BEG file as before)
+change     (use the mich1.CHG file listed above)
+decide     (use the same mich1.DEC file as before)
+(edit the mich1.OPT file before executing MAINSETUP.
+The following mich1.OPT file is used as input to MAINSETUP:)
+   n       $ Do you want a tutorial session and tutorial output?
+      0    $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+      0    $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+      1    $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+     25    $ How many design iterations in this run (3 to 25)?
+   n       $ Take "shortcuts" for perturbed designs (Y or N)?
+      2    $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+      6    $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+   n       $ Do you want default (RATIO=10) for initial move limit jump?
+ 100000    $ Provide a value for the "move limit jump" ratio, RATIO
+   n         $ Do you want the default perturbation (dx/x = 0.05)?
+ 0.100E-01 $ Amount by which decision variables are perturbed, dx/x
+   n       $ Do you want to have dx/x modified by GENOPT?
+   n       $ Do you want to reset total iterations to zero (Type H)?
+      2    $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+mainsetup  (use the mich1.OPT file just listed as input)
+optimize
+optimize
+optimize
+(These three executions of the GENOPT processor, OPTIMIZE, produce
+the following output near the end of the mich1.OPP file:
+ ==============================================================
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         6.5166E+00         FEASIBLE            2
+     2         6.4980E+00     ALMOST FEASIBLE         1
+     3         6.5485E+00     MILDLY UNFEASIB         2
+     4         6.5169E+00     ALMOST FEASIBLE         1
+     5         6.5517E+00     ALMOST FEASIBLE         2
+     6         6.6042E+00     MILDLY UNFEASIB         2
+     7         6.5878E+00     ALMOST FEASIBLE         2
+     8         6.6216E+00     MILDLY UNFEASIB         2
+     9         6.6261E+00     ALMOST FEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    10         6.6261E+00     ALMOST FEASIBLE         2
+    11         6.5764E+00         FEASIBLE            2
+    12         6.5510E+00         FEASIBLE            2
+    13         6.5290E+00         FEASIBLE            2
+    14         6.5169E+00     ALMOST FEASIBLE         2
+    15         6.5227E+00     ALMOST FEASIBLE         1
+    16         6.5645E+00     ALMOST FEASIBLE         2
+    17         6.5981E+00     MILDLY UNFEASIB         2
+    18         6.5876E+00     ALMOST FEASIBLE         2
+ ------------------------------------------------------OPTIMIZE
+    19         6.5876E+00     ALMOST FEASIBLE         2
+    20         6.5449E+00     ALMOST FEASIBLE         2
+    21         6.5348E+00         FEASIBLE            2
+    22         6.5186E+00     ALMOST FEASIBLE         2
+    23         6.5281E+00     ALMOST FEASIBLE         2
+    24         6.5805E+00     MILDLY UNFEASIB         2
+    25         6.5642E+00     ALMOST FEASIBLE         2
+    26         6.5978E+00     MILDLY UNFEASIB         2
+    27         6.5873E+00     ALMOST FEASIBLE         2
+ ================================================================
+
+The best FEASIBLE design remains the same as before (See the
+objective at Iteration No. 1 listed above.) Therefore,
+we assume that the optimized design represented in the file, 
+mich1.CHG, listed under Item No. 6 above, is really the best
+"global" optimum design obtained with the use of linear theory.
+
+Next, we obtain all sorts of plots corresponding to that best
+"global" optimum design, including plots from various executions
+of STAGS. (The use of STAGS is described above.)
+
+************************** NOTE! ****************************
+Results analogous to those referred to in the previous paragraph
+were all derived from a slightly different optimized design, one
+that evolved earlier with the use of the following input datum
+in the mich1.OPT file:
+
+   y         $ Do you want the default perturbation (dx/x = 0.05)?
+
+The slightly better "global" optimum design evolves, and evolves
+in a more reliable manner, if the single record above is replaced
+by the following two records:
+
+   n         $ Do you want the default perturbation (dx/x = 0.05)?
+ 0.100E-01 $ Amount by which decision variables are perturbed, dx/x
+
+It appears that for the "michelin" configuration it is best to
+use a much smaller design perturbation (0.01) rather than the
+default value (0.05) for the computation of behavioral gradients,
+especially local and general buckling gradients.
+
+Because of laziness, I do not want to regenerate all the results
+obtained earlier for a slightly different optimized FEASIBLE
+design. Therefore, I now start with the design archived in the
+following, somewhat different, earlier mich1.CHG file:
+   N         $ Do you want a tutorial session and tutorial output?
+   Y         $ Do you want to change any values in Parameter Set No. 1?
+      1      $ Number of parameter to change (1, 2, 3, . .)
+ 0.44600E-01 $ New value of the parameter
+   y         $ Want to change any other parameters in this set?
+      2      $ Number of parameter to change (1, 2, 3, . .)
+ 4.673       $ New value of the parameter
+   y         $ Want to change any other parameters in this set?
+      3      $ Number of parameter to change (1, 2, 3, . .)
+ 33.6200     $ New value of the parameter
+   y         $ Want to change any other parameters in this set?
+      6      $ Number of parameter to change (1, 2, 3, . .)
+ 32.0900     $ New value of the parameter
+   n         $ Want to change any other parameters in this set?
+   N         $ Do you want to change values of any "fixed" parameters?
+   N         $ Do you want to change any loads?
+   N         $ Do you want to change values of allowables?
+   N         $ Do you want to change any factors of safety?
+
+This earlier archived optimized FEASIBLE design produces the
+following data in a mich1.OPP file:
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.460E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.362E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.209E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+
+ MARGINS CORRESPONDING TO CURRENT DESIGN (F.S.= FACTOR OF SAFETY)
+ MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1   -3.311E-03  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=2.
+  2    4.829E-02  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=1.4
+  3    8.981E-02  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=1.5
+
+ ******************** DESIGN OBJECTIVE *******************
+    CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.577E+00  weight of the corrugated panel: WEIGHT
+ ******************** DESIGN OBJECTIVE *******************
+
+
+The slightly better "global" design produced later, as described above
+in Items 1 - 9, is characterized by the following (which is the same
+data as that presented in Item 4 but listed in a somewhat different
+format):
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.418E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.411E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.212E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1   -8.429E-03  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=2.
+  2    1.796E-02  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=1.4
+  3    8.467E-02  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=1.5
+
+ ******************** DESIGN OBJECTIVE *******************
+    CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.517E+00  weight of the corrugated panel: WEIGHT
+ *****************************************************
+
+Input files from the linear "mich1" study:
+Mar  4 07:08 mich1.strategy1.fsloc2.0.mlowgs0.mlowl0.linear.beg
+Mar  4 07:04 mich1.strategy1.linear.dec
+Mar  4 12:52 mich1.linear.852.chg
+Mar  4 15:22 mich1.linear.severaloptimizes.1562.chg
+Mar  6 07:17 mich1.652.linear.opt
+Mar  5 04:55 mich1.strategy1.linear.852.opt
+Feb 26 02:47 mich1.itype3.cpl
+Mar  5 11:12 mich1.margins.cpl
+Feb 26 02:37 mich1.optimizing.cpl
+Mar  5 04:55 mich1.opt1
+Feb 26 02:33 mich1.opt3
+
+
+Results from the linear "mich1" study:
+
+List output (mich1.*.opm files) from the linear "mich1" study:
+Mar  4 12:53 mich1.linear.852.opm
+Mar  3 14:50 mich1.linear.severaloptimizes.1562.opm
+Feb 26 02:47 mich1.itype3.cpl
+Mar  5 11:12 mich1.margins.cpl
+Feb 26 02:37 mich1.optimizing.cpl
+
+
+Postscript "plots" contain BIGBOSOR4 predictions for the
+design optimized with the use of linear theory. These "plots" 
+are represented by the following files:
+Mar  4 02:30 mich1.itype3.margins.yplate2.linear.ps
+Mar  3 23:56 mich1.mmm0.5.optimizedprofile.weight6.577lb.linear.ps
+Mar  3 23:59 mich1.mmm0.5.plotofseff.alongmeridian.linear.ps
+Mar  3 23:53 mich1.mmm0.5.prebuckdeform.maxseff51100.outerfiber.linear.ps
+Mar  3 23:51 mich1.mmm0.5.prebuckdeform.maxseff61173.innerfiber.linear.ps
+Mar  4 00:07 mich1.mmm1.locbuck.eig1.9934.n125.linear.ps
+Mar  4 00:16 mich1.mmm27.genbuck.eig1.4499.n2.linear.ps
+Mar  4 02:03 mich1.mmm9.genbuck.eig1.4676.n2.linear.ps
+Mar  4 12:31 mich1.superopt1.852.linear.ps
+Mar  4 12:32 mich1.superopt2.852.linear.ps
+Mar  4 12:33 mich1.superopt3.852.linear.ps
+Mar  4 12:34 mich1.superopt4.852.linear.ps
+Mar  4 12:35 mich1.superopt5.852.linear.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of linear theory. These "plots"
+are represented by the following files:
+Mar  3 15:16 mich1.stags.mmm1.locbuck.eig1.9941.linear.pdf
+Mar  4 01:11 mich1.stags.mmm1.seff51033.innerfiber.linear.pdf
+Mar  4 01:07 mich1.stags.mmm1.seff61030.outerfiber.linear.pdf
+Mar  3 15:29 mich1.stags.mmm27.genbuck.eig1.4269.linear.pdf
+Mar  3 14:58 mich1.stags.mmm9.genbuck.eig1.4942.linear.symattop.pdf
+Mar  3 15:08 mich1.stags.mmm9.genbuck.eig1.5049.linear.ssattop.pdf
+Mar  1 06:23 mich1.stags.mmm9.rigidbodytranslation.linear.pdf
+
+
+
+10. The effects of including nonlinear geometric behavior:
+
+There are two phases of this presentation:
+
+a. Predictions for the same design as that developed with the
+use of linear theory, but with the use of nonlinear theory.
+
+b. Re-optimization including nonlinear geometric effects.
+
+
+11. We execute the GENOPT processor CLEANSPEC again, then
+start over from BEGIN, but with different data in BEGIN
+(different mich1.BEG file) and DECIDE (different mich1.DEC
+file).
+
+begin    (mich1.strategy13.fsloc1.6.mlowgs2.mlowl125.beg)
+The new "BEGIN" input file, mich1.BEG, follows:
+   n       $ Do you want a tutorial session and tutorial output?
+  9.346    $ total width of the corrugated panel: WIDTH
+ 13.0000   $ axial length of the corrugated panel: LENGTH
+  9.0000   $ fraction of LENGTH for local buckling model: FACLEN
+      1    $ number of major segments in WIDTH/2: NSEG
+ 0.100E+08 $ elastic modulus of the material: EMOD
+ 0.300     $ Poisson ratio of the panel material: NU
+ 0.100     $ weight density of the panel material: DENSTY
+      2    $ low end of M-range: symmetric GENERAL buckling: MLOWGS
+     10    $ high end of M-range: symmetric GENERAL buckling: MHIGHGS
+      2    $ low end of M-range: antisymmetric GENERAL buckling: MLOWGA
+     10    $ high end of M-range: antisymmetric GENERAL buckling: MHIGHGA
+    125    $ low end of the M-range: LOCAL buckling: MLOWL
+    200    $ high end of the M-range: LOCAL buckling: MHIGHL
+    480    $ finite element used in STAGS model: IELMNT
+      1    $ Number INSUBSE of rows in the array  NSUBSEG: INSUBSE
+      0    $ number of sub-segments in major segment: NSUBSEG(  1)
+      1    $ 1 = convex surface up; 2 = convex down: UPDOWN(  1)
+      0    $ Number JUPDWNS of columns in the array, UPDWNS: JUPDWNS
+      1    $ 1=convex up (hill); 2=convex down (valley): UPDNBIG
+      1    $ Number ITHICK  of rows in the array  THICK: ITHICK
+ 0.10000   $ wall thickness of the major segment: THICK(  1)
+ 4.673     $ projected width (x-width) of major segment: SUBWID(  1)
+ 60.0000   $ half-angle (deg.) of major corrugation: PHISEG(  1)
+ 70.0000   $ half-angle (deg.) of sub-corrugation: PHISUB(  1)
+      2    $ Number IYPLATE of rows in the array  YPLATE: IYPLATE
+ 35.0000   $ vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(  1)
+ 35.0000   $ vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(  2)
+ 0.01000   $ half-angle (deg.) of overall arching: PHIBIG
+      1    $ Number NCASES  of load cases (environments): NCASES
+   -20.0   $ total axial load (e.g. lb) over WIDTH: TOTLOD(  1)
+ 1.00000   $ allowable for local buckling: LOCBUKA(  1)
+ 1.60000   $ factor of safety for local buckling: LOCBUKF(  1)
+ 1.00000   $ allowable for sym. general buckling: BUKSYMA(  1)
+ 1.40000   $ f.s. for symmetric general buckling: BUKSYMF(  1)
+ 1.00000   $ allowable for antisym. general buckling: BUKASYA(  1)
+ 1.40000   $ f.s. for antisym. general buckling: BUKASYF(  1)
+      1    $ Number JCYLBUK of columns in the array, CYLBUK: JCYLBUK
+ 1.00000   $ allowable for classical buckling: CYLBUKA(  1,  1)
+ 1.00000   $ factor of safety for classical buckling: CYLBUKF(  1,  1)
+ 100000.0  $ allowable effective stress: STRESSA(  1)
+ 1.500000  $ factor of safety for stress: STRESSF(  1)
+
+Note the following different records in the new mich1.BEG file:
+
+a. LENGTH (a strategy index in the "michelin" application)=13.0.
+           LENGTH=13.0 means that the BIGBOSOR4 index for type
+           of analysis is -1 for both LOCAL and GENERAL buckling.)
+
+b. The low ends of the M-ranges have been changed from 0 to 2
+   for GENERAL buckling and from 0 to 125 for LOCAL buckling.
+   The new "low ends of M-range" come from results for the
+   critical numbers of circumferential waves in the buckling
+   modes of the shell as optimized with the use of linear theory.
+
+c. The factor of safety for LOCAL buckling has been reduced from
+   2.0 to 1.6. This reduction is due to the fact that we will
+   now account for nonlinear geometric effects.
+
+
+change    (Archived file=mich1.linear.severaloptimizes.1562.chg)
+(The input file, mich1.CHG, is as follows:)
+   N       $ Do you want a tutorial session and tutorial output?
+   Y       $ Do you want to change any values in Parameter Set No. 1?
+      1    $ Number of parameter to change (1, 2, 3, . .)
+ 0.446E-01 $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      2    $ Number of parameter to change (1, 2, 3, . .)
+ 4.673     $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      3    $ Number of parameter to change (1, 2, 3, . .)
+ 33.6200   $ New value of the parameter
+   y       $ Want to change any other parameters in this set?
+      6    $ Number of parameter to change (1, 2, 3, . .)
+ 32.0800   $ New value of the parameter
+   n       $ Want to change any other parameters in this set?
+   N       $ Do you want to change values of any "fixed" parameters?
+   N       $ Do you want to change any loads?
+   N       $ Do you want to change values of allowables?
+   N       $ Do you want to change any factors of safety?
+
+
+decide    (archived version of mich1.DEC = mich1.strategy13.dec)
+(The new mich1.DEC file follows:)
+   n       $ Do you want a tutorial session and tutorial output?
+      1    $ Choose a decision variable (1,2,3,...)
+ 0.446E-01 $ Lower bound of variable no.(  1)
+ 0.06000   $ Upper bound of variable no.(  1)
+   n       $ Do you want especially to restrict variable no.(  1)
+   y       $ Any more decision variables (Y or N) ?
+      3    $ Choose a decision variable (1,2,3,...)
+     30    $ Lower bound of variable no.(  3)
+     40    $ Upper bound of variable no.(  3)
+   n       $ Do you want especially to restrict variable no.(  3)
+   y       $ Any more decision variables (Y or N) ?
+      6    $ Choose a decision variable (1,2,3,...)
+     31.2  $ Lower bound of variable no.(  5)
+     32.08 $ Upper bound of variable no.(  5)
+   n       $ Do you want especially to restrict variable no.(  5)
+   n       $ Any more decision variables (Y or N) ?
+   n       $ Any linked variables (Y or N) ?
+   n       $ Any inequality relations among variables? (type H)
+   y       $ Any escape variables (Y or N) ?
+   y       $ Want to have escape variables chosen by default?
+
+Notice the following changes from the earlier version of mich1.DEC:
+
+a. The minimum thicknese is that determined from optimization with
+the use of linear theory.
+
+b. The upper bound of thickness [variable no. (1)] has been greatly
+reduced and is now not far above the lower bound. This is done in
+order to prevent huge changes in the design during optimization
+cycles, changes that might lead to failure of convergence of the
+Newton method that is used to solve the nonlinear equations.
+
+c. The lower and upper bounds of Variable no. 5 [YPLATE(2)] are
+very, very close. This is done because the local and general
+buckling behavioral constraints are extremely sensitive to changes
+in YPLATE(2), as is demonstrated in Fig. xx. The bounds were
+determined by a series of runs in the "design sensitivity" mode
+(ITYPE=3 in the mich1.OPT file) in order to ascertain at what values
+of YPLATE(2) failure of convergence of the NEWTON method occurred.
+
+
+mainsetup (first do nonlinear analysis of the "fixed" design:
+           ITYPE=2 . The purpose is to get a better value in
+           the file, mich1.BEG, either for MLOWL [local buckling]
+           or for MLOWGS [general buckling])
+(The input file, mich1.OPT, is as follows:)
+   n       $ Do you want a tutorial session and tutorial output?
+      0    $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+      2    $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+      2    $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+     20    $ How many design iterations in this run (3 to 25)?
+   n       $ Take "shortcuts" for perturbed designs (Y or N)?
+      2    $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+      4    $ Choose 1 or 2 or 3 or 4 or 5 for move limits, IMOVE
+   n       $ Do you want default (RATIO=10) for initial move limit jump?
+ 100000    $ Provide a value for the "move limit jump" ratio, RATIO
+   n       $ Do you want the default perturbation (dx/x = 0.05)?
+ 0.100E-01 $ Amount by which decision variables are perturbed, dx/x
+   n       $ Do you want to have dx/x modified by GENOPT?
+   n       $ Do you want to reset total iterations to zero (Type H)?
+      2    $ Choose IAUTOF= 1 or 2 or 3 or 4 or 5 or 6 to change X(i)
+
+optimize (perform, with the use of nonlinear theory, the "fixed"
+          analysis of the design previously optimized with the use
+          of linear theory.)
+(Inspect the resulting mich1.OPM file. Especially look for the
+following output in the mich1.OPM file:
+
+ LOCAL BUCKLING LOAD FACTORS AND MODES (BEHX1)
+        1.4929E+00(  85)
+ Critical buckling load factor, LOCBUK=  1.4929E+00
+ Critical number of circumferential waves, NWVCRT=   85
+
+and
+
+ GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX2)
+        1.0018E+00(   2)
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical number of circumferential waves, NWVCRT=    2
+
+We see that the critical number of circumferential waves
+for LOCAL BUCKLING has changed from NWVCRT = 125 for linear theory
+to NWVCRT = 85 for nonlinear theory. The critical number of
+circumferential waves for GENERAL BUCKLING remains the
+same as before: NWVCRT = 2 .
+
+We must start over from BEGIN, edit the mich1.BEG file
+by replacing
+    125    $ low end of the M-range: LOCAL buckling: MLOWL
+with
+     85    $ low end of the M-range: LOCAL buckling: MLOWL
+We therefore do the following:
+cleanspec
+(edit the mich1.BEG file as just described)
+begin
+change
+decide
+mainsetup
+optimize (perform again, with the use of nonlinear theory, the "fixed"
+          analysis of the design previously optimized with the use
+          of linear theory.)
+(Inspect the resulting mich1.OPM file. Especially look for the
+following output in the mich1.OPM file:
+
+ LOCAL BUCKLING LOAD FACTORS AND MODES (BEHX1)
+        1.4731E+00(  90)
+ Critical buckling load factor, LOCBUK=  1.4731E+00
+ Critical number of circumferential waves, NWVCRT=   90
+
+and
+
+ GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX2)
+        1.0018E+00(   2)
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical number of circumferential waves, NWVCRT=    2
+
+We see that the critical number of circumferential waves
+for LOCAL BUCKLING has changed from NWVCRT = 85 for nonlinear theory
+to NWVCRT = 90 for nonlinear theory. The critical number of
+circumferential waves for GENERAL BUCKLING remains the
+same as before: NWVCRT = 2 .
+
+We must again start over from BEGIN, edit the mich1.BEG file
+by replacing
+     85    $ low end of the M-range: LOCAL buckling: MLOWL
+with
+     90    $ low end of the M-range: LOCAL buckling: MLOWL
+We therefore do the following:
+cleanspec
+(edit the mich1.BEG file as just described)
+begin
+change
+decide
+mainsetup
+optimize (perform yet again, with the use of nonlinear theory, the "fixed"
+          analysis of the design previously optimized with the use
+          of linear theory.)
+(Inspect the resulting mich1.OPM file. Especially look for the
+following output in the mich1.OPM file:
+
+ LOCAL BUCKLING LOAD FACTORS AND MODES (BEHX1)
+        1.4735E+00(  90)
+ Critical buckling load factor, LOCBUK=  1.4735E+00
+ Critical number of circumferential waves, NWVCRT=   90
+
+and
+
+ GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX2)
+        1.0018E+00(   2)
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical buckling load factor, BUKSYM=  1.0018E+00
+ Critical number of circumferential waves, NWVCRT=    2
+
+We see that nothing has changed with regard to the
+critical buckling wavenumbers. Therefore, we may proceed
+with re-optimization, this time with the use of nonlinear
+theory rather than linear theory.
+
+Edit the mich1.OPT file. The new mich1.OPT file follows:
+   n       $ Do you want a tutorial session and tutorial output?
+      0    $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+      0    $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+      1    $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+     25    $ How many design iterations in this run (3 to 25)?
+   n       $ Take "shortcuts" for perturbed designs (Y or N)?
+      2    $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+      6    $ Choose 1 or 2 or 3 or 4 or 5 or 6 for move limits, IMOVE
+   n       $ Do you want default (RATIO=10) for initial move limit jump?
+ 100000    $ Provide a value for the "move limit jump" ratio, RATIO
+   n       $ Do you want the default perturbation (dx/x = 0.05)?
+ 0.100E-01 $ Amount by which decision variables are perturbed, dx/x
+   n       $ Do you want to have dx/x modified by GENOPT?
+   n       $ Do you want to reset total iterations to zero (Type H)?
+      2    $ Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+
+mainsetup (establish the latest strategy for doing the
+           optimization with the use of nonlinear theory.
+           Notice that we use IMOVE = 6, which enforces
+           very small "move" limits so that as the design
+           evolves it changes very slowly from the previous
+           optimum design. We do this because the buckling
+           behavioral constraints are very, very sensitive
+           especially to the value of YPLATE(2).)
+
+superopt (use 15 OPTIMIZES/AUTOCHANGE)
+
+(SUPEROPT runs without bombing, but is intentially "killed"
+when the total number of design iterations has reached about
+250.
+
+Next, get plots of objective and margins versus design iteration:
+chooseplot (choose what to plot versus design iterations)
+(The input data for CHOOSEPLOT is as follows:)
+ N    $ Do you want a tutorial session and tutorial output?
+ N    $ Any design variables to be plotted v. iterations (Y or N)?
+ Y    $ Any design margins to be plotted v. iterations (Y or N)?
+    1 $ Choose a margin to be plotted v. iterations (1,2,3,..)
+ y    $ Any more margins to be plotted (Y or N) ?
+    2 $ Choose a margin to be plotted v. iterations (1,2,3,..)
+ y    $ Any more margins to be plotted (Y or N) ?
+    5 $ Choose a margin to be plotted v. iterations (1,2,3,..)
+ n    $ Any more margins to be plotted (Y or N) ?
+    1 $ Give maximum value (positive) to be included in plot frame.
+
+diplot    (diplot generates 2 postscript files:
+           mich1.5.ps = objective and mich1.3.ps = margins)
+
+The mich1.5.ps file is archived as follows:
+mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.1562.ps
+The mich1.3.ps file is archived as follows:
+mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.margins.1562.ps
+
+The best "FEASIBLE" design determined after 250 iterations
+is listed near the end of the mich1.OPP file, and is associated
+with the following output in mich1.OPP:
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.578E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.847E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.205E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    3.263E-04  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=1.6
+  2   -9.935E-04  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=1.4
+  3    7.143E+09  (BUKASY(1 )/BUKASYA(1 )) / BUKASYF(1 )-1; F.S.=1.4
+  4    1.000E+10  (CYLBUK(1 ,1 )/CYLBUKA(1 ,1 )) / CYLBUKF(1 ,1 )-1; F.S.=1.
+  5    3.688E-01  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=1.5
+
+ ******************** DESIGN OBJECTIVE *******************
+  CORRESPONDING VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.968E+00  weight of the corrugated panel: WEIGHT
+ *****************************************************
+
+
+(Next, archive the optimum design listed above by using CHANGE:)
+change  (use the values listed above as input in mich1.CHG)
+(edit mich1.OPT by changing NPRINT to 2 and ITYPE to 2)
+mainsetup
+optimize (analysis of "fixed" design, just to verify that
+          you used the correct values in mich1.CHG.)
+
+
+(Next, do the SUPEROPT thing again using a different
+[more liberal] option for IMOVE: Change IMOVE from 6 to 4
+We again have to start over from the beginning, as follows:)
+cleanspec
+begin
+change
+decide
+mainsetup (the mich1.OPT file has be edited: IMOVE changed
+           from 6 to 4, NPRINT changed to 0 and ITYPE to 1)
+superopt  (intentionally "kill" this run after about 250 cycles)
+
+chooseplot (choose what to plot versus design iterations)
+(This time, the input data for CHOOSEPLOT is as follows:)
+
+ N  $ Do you want a tutorial session and tutorial output?
+ N  $ Any design variables to be plotted v. iterations (Y or N)?
+ N  $ Any design margins to be plotted v. iterations (Y or N)?
+ Y  $ Do you want to get more plots before your next "SUPEROPT"?
+
+diplot    (diplot generates a postscript file: mich1.5.ps)
+
+(The mich1.5.ps file is archived as follows:
+ mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.1542.ps
+ The optimized design is essentially the same as in the
+ first nonlinear, intentially "killed" execution of SUPEROPT.)
+
+(Next, do the SUPEROPT thing yet again using a different
+[yet more liberal] option for IMOVE: Change IMOVE from 4 to 5
+We again have to start over from the beginning, as follows:)
+cleanspec
+begin
+change
+decide
+mainsetup (the mich1.OPT file has be edited: IMOVE changed
+           from 4 to 5 and the number of iterations set at 5
+           instead of 15)
+superopt  (intentionally "kill" this run after about 250 cycles)
+
+The mich1.5.ps file is archived as follows:
+mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.652.ps
+The optimized design is essentially the same as in the
+first nonlinear, intentially "killed" execution of SUPEROPT.
+
+In the above text the strings, "1562", "1542" and "652" denote
+various strategies used for the SUPEROPT executions:
+"1562" means 15 OPTIMIZEs/AUTOCHANGE; IMOVE = 6; IAUTOF = 2
+"1542" means 15 OPTIMIZEs/AUTOCHANGE; IMOVE = 4; IAUTOF = 2
+"652"  means  6 OPTIMIZEs/AUTOCHANGE; IMOVE = 5; IAUTOF = 2
+
+The strategy index, IMOVE, is described in the file
+/home/progs/genopt/execute/URPROPMT.DAT as follows:
+
+ 730.0
+ Next, choose a control for move limits to be used during
+ optimization cycles. By "move limits" we are referring to
+ the size of the boxes that appear in Fig. 2 of the paper,
+ "GENOPT - a program that writes user-friendly optimization code",
+ Int. J. Solids and Structures, Vol. 26, pp 1173- 1210, 1990.
+ You are given five choices: IMOVE = 1 or 2 or 3 or 4 or 5:
+
+ IMOVE = 1 means SMOVE = 0.10
+ IMOVE = 2 means SMOVE = 0.50
+ IMOVE = 3 means SMOVE = 0.01
+ IMOVE = 4 means SMOVE = 0.02
+ IMOVE = 5 means SMOVE = 0.05
+ IMOVE = 6 means SMOVE = 0.005
+
+ Small SMOVE (initial move limit) keeps the boxes small and
+ leads to the requirement for many "OPTIMIZE" commands to
+ obtain an optimum design; the "conservative" approach may
+ be boring, but it may be the most reliable.  "Liberal" move
+ limits allow bigger boxes, generally leading to the need for
+ fewer "OPTIMIZEs".  However, the decision variables may
+ jump around a lot and have difficulty converging to those
+ corresponding to an optimum design.
+
+
+The strategy index, IAUTF, is described in the file
+/home/progs/genopt/execute/URPROPMT.DAT as follows:
+
+749.1 Choose IAUTOF=1 or 2 or 3 or 4 or 5 or 6 or 7 to change X(i)
+749.2
+ X(i) is the vector of decision variables. In AUTOCHANGE the
+ decision variables, X(i), i = 1, 2, ... NDEC, are changed
+ in one of the six following ways, that is, the index
+ you must provide now (named "IAUTOF") can be one of the
+ following: 1 or 2 or 3 or 4 or 5 or 6:
+
+ If IAUTOF = 1 the formula used to change the vector X(i)
+ is as follows:
+    X(I) = Y(I)*(1. + DVARS(I))
+ in which Y(I) is the original vector of decision variables,
+ DVARS(I) is given by DVARS(I) = 2.0*DVAR(I) - 0.5, and
+ DVAR(I) is a vector of random numbers between 0. and 1.0.
+ This is the only formula that existed before August, 2009,
+ when no index, IAUTOF, existed.
+
+ If IAUTOF = 2 the formula used to change the vector X(i)
+ in AUTOCHANGE is the same as for IAUTOF = 1 except that
+ DVARS(I) =1.5*DVAR(I)-0.5 instead of DVARS(I) =2.0*DVAR(I)-0.5.
+
+
+At the end of the 3rd execution of SUPEROPT the best "FEASIBLE"
+design and corresponding margins and objective are as follows:
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.524E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.952E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.208E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1   -5.332E-03  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=1.6
+  2   -2.469E-03  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=1.4
+  3    7.143E+09  (BUKASY(1 )/BUKASYA(1 )) / BUKASYF(1 )-1; F.S.=1.4
+  4    1.000E+10  (CYLBUK(1 ,1 )/CYLBUKA(1 ,1 )) / CYLBUKF(1 ,1 )-1; F.S.=1.
+  5    3.559E-01  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=1.5
+
+ ******************** DESIGN OBJECTIVE *******************
+  CORRESPONDING VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.911E+00  weight of the corrugated panel: WEIGHT
+ *****************************************************
+
+The optimum designs from all three of the partial executions
+of SUPEROPT are slightly different, but the difference is in
+the "noise" level. An optimum design found previously, and
+subsequently used to obtain prebuckling deformations,
+effective stress and local and general buckling modes from
+BIGBOSOR4 and from STAGS, is very like that just listed:
+different only at the "noise" level. This previously
+determined optimum design is archived by the GENOPT
+processor, CHANGE, as follows:
+      N         $ Do you want a tutorial session and tutorial output?
+      Y         $ Do you want to change any values in Parameter Set No. 1?
+         1      $ Number of parameter to change (1, 2, 3, . .)
+  0.4535000E-01 $ New value of the parameter
+      y         $ Want to change any other parameters in this set?
+         2      $ Number of parameter to change (1, 2, 3, . .)
+    4.673       $ New value of the parameter
+      y         $ Want to change any other parameters in this set?
+         3      $ Number of parameter to change (1, 2, 3, . .)
+   38.69000     $ New value of the parameter
+      y         $ Want to change any other parameters in this set?
+         6      $ Number of parameter to change (1, 2, 3, . .)
+   32.05000     $ New value of the parameter
+      n         $ Want to change any other parameters in this set?
+      N         $ Do you want to change values of any "fixed" parameters?
+      N         $ Do you want to change any loads?
+      N         $ Do you want to change values of allowables?
+      N         $ Do you want to change any factors of safety?
+
+which, in a more readable format, corresponds to the following:
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.535E-02  wall thickness of the major segment: THICK(1 )
+  2    4.673E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    3.869E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.500E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.205E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.000E-02  half-angle (deg.) of overall arching: PHIBIG
+
+---------------------------------------------------------------------
+The following is an explanation of why the lower and upper bounds of
+the decision variables, established by the GENOPT processor, DECIDE, 
+are so tight when nonlinear theory is used for optimization. The plot:
+mich1.itype3.margins.yplate2.nonlinear.reoptimizedwithistrat13.ps
+demonstrates the extreme sensitivity of the optimized design with
+respect to the decision variable, YPLATE(2), which is the radius of
+the "mich1" shell at the junction between Shell Segments 1 and 2.
+(See mich1.mmm0.5.optimizedprofile.weight6.911lb.nonlinear.ps).
+The tight lower and upper bounds on YPLATE(2) should be approximately
+equidistant from the optimized value of YPLATE(2) determined
+from optimization with the use of linear theory. (See the plot:
+mich1.itype3.margins.yplate2.linear.ps). Without these tight lower
+and upper bounds on YPLATE(2), executions of SUPEROPT would bomb
+because of failure of the Newton iterations to converge. The
+mich1.OPM file would end with the following line:
+
+"IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort."
+
+A file, mich1.OUT, would remain. Near the end of this mich1.OUT
+file the following lines would appear:
+-----------------------------------------------------------------
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   0. START FACTORING AND SOLVING
+ Factoring done for iteration   0; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  0
+ ITERATION NO.  0 MAXIMUM DISPLACEMENT=  1.0849E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   1. START FACTORING AND SOLVING
+ Factoring done for iteration   1; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  1
+ ITERATION NO.  1 MAXIMUM DISPLACEMENT=  1.4062E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   2. START FACTORING AND SOLVING
+ Factoring done for iteration   2; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  2
+ ITERATION NO.  2 MAXIMUM DISPLACEMENT=  1.0854E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   3. START FACTORING AND SOLVING
+ Factoring done for iteration   3; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  3
+ ITERATION NO.  3 MAXIMUM DISPLACEMENT=  1.0892E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   4. START FACTORING AND SOLVING
+ Factoring done for iteration   4; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  4
+ ITERATION NO.  4 MAXIMUM DISPLACEMENT=  9.7533E+00
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   5. START FACTORING AND SOLVING
+ Factoring done for iteration   5; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  5
+ ITERATION NO.  5 MAXIMUM DISPLACEMENT=  9.8647E+00
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   6. START FACTORING AND SOLVING
+ Factoring done for iteration   6; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  6
+ ITERATION NO.  6 MAXIMUM DISPLACEMENT=  9.9458E+00
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   7. START FACTORING AND SOLVING
+ Factoring done for iteration   7; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  7
+ ITERATION NO.  7 MAXIMUM DISPLACEMENT=  1.0041E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   8. START FACTORING AND SOLVING
+ Factoring done for iteration   8; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  8
+ ITERATION NO.  8 MAXIMUM DISPLACEMENT=  1.1264E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.   9. START FACTORING AND SOLVING
+ Factoring done for iteration   9; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO.  9
+ ITERATION NO.  9 MAXIMUM DISPLACEMENT=  1.1339E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  10. START FACTORING AND SOLVING
+ Factoring done for iteration  10; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 10
+ ITERATION NO. 10 MAXIMUM DISPLACEMENT=  1.4823E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  11. START FACTORING AND SOLVING
+ Factoring done for iteration  11; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 11
+ ITERATION NO. 11 MAXIMUM DISPLACEMENT=  1.5409E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  12. START FACTORING AND SOLVING
+ Factoring done for iteration  12; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 12
+ ITERATION NO. 12 MAXIMUM DISPLACEMENT=  1.6446E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  13. START FACTORING AND SOLVING
+ Factoring done for iteration  13; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 13
+ ITERATION NO. 13 MAXIMUM DISPLACEMENT=  1.6557E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  14. START FACTORING AND SOLVING
+ Factoring done for iteration  14; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 14
+ ITERATION NO. 14 MAXIMUM DISPLACEMENT=  3.5183E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  15. START FACTORING AND SOLVING
+ Factoring done for iteration  15; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 15
+ ITERATION NO. 15 MAXIMUM DISPLACEMENT=  5.1311E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  16. START FACTORING AND SOLVING
+ Factoring done for iteration  16; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 16
+ ITERATION NO. 16 MAXIMUM DISPLACEMENT=  4.0586E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  17. START FACTORING AND SOLVING
+ Factoring done for iteration  17; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 17
+ ITERATION NO. 17 MAXIMUM DISPLACEMENT=  4.1366E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  18. START FACTORING AND SOLVING
+ Factoring done for iteration  18; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 18
+ ITERATION NO. 18 MAXIMUM DISPLACEMENT=  3.5869E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  19. START FACTORING AND SOLVING
+ Factoring done for iteration  19; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 19
+ ITERATION NO. 19 MAXIMUM DISPLACEMENT=  3.6339E+01
+ PRESTRESS STIFFNESS MATRIX CALCULATED FOR ITERATION NO.  20. START FACTORING AND SOLVING
+ Factoring done for iteration  20; Load step, ISTEP=   1
+ FACTORING AND SOLVING COMPLETED FOR PRESTRESS ITERATION NO. 20
+ ITERATION NO. 20 MAXIMUM DISPLACEMENT=  3.2496E+01
+SHELL COLLAPSES AXISYMMETRICALLY AT P=0.6307 
+
+ NO CONVERGENCE IN PREBUCKLING ANALYSIS AFTER 10 NEWTON ITERATIONS. LOADS FOLLOW
+---------------------------------------------------------------------------''
+
+This failure of convergence of the NEWTON method usually occurs
+during the execution of SUPEROPT, during the execution of the GENOPT
+processor called "OPTIMIZE" that immediately follows an execution
+of the GENOPT processor called "AUTOCHANGE". (AUTOCHANGE derives a new
+"starting" design consistent with lower and upper bounds of decision
+variables.) If there are wide lower and upper bounds, the new
+"starting" design created by AUTOCHANGE may well be too weak to
+support the applied external pressure, and therefore may collapse
+axisymmetrically during the pre-buckling phase of the computations.
+The non-optimum, new "starting" design that "COLLAPSES AXISYMMETRICALLY"
+in this particular case is as follows:
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO BEST FEASIBLE DESIGN
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.4842E-02  wall thickness of the major segment: THICK(1 )
+  2    4.6730E+00  projected width (x-width) of major segment: SUBWID(1 )
+  3    5.0000E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  4    7.0000E+01  half-angle (deg.) of sub-corrugation: PHISUB(1 )
+  5    3.5000E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+  6    3.9487E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+  7    1.0000E-02  half-angle (deg.) of overall arching: PHIBIG
+
+As can be seen, neither PHISEG(1) nor YPLATE(2) are close to their
+optimized values obtained with the use of linear theory:
+
+  3    34.110E+01  half-angle (deg.) of major corrugation: PHISEG(1 )
+  6    32.120E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+
+(The two values just listed appear in the file, mich1.linear.852.opm.)
+
+The plot, mich1.loaddisplacement.yplate38_40.ps, shows nonlinear
+pressure-displacement curves for PHISEG(1) = 50 degrees and for
+several closely spaced values of YPLATE(2) surrounding and including
+the value, YPLATE(2) = 39.487 inches. It is clear that the nonlinear
+axisymmetric prebuckling behavior changes dramatically with small
+changes in YPLATE(2). Without tight lower and upper bounds on
+YPLATE(2) bracketing the optimized value of YPLATE(2) determined
+with the use of linear theory, the nonlinear computations in
+BIGBOSOR4 would frequently fail during executions of SUPEROPT.
+The failure probably would occur most often in the pre-buckling
+phase of the BIGBOSOR4 computations.
+
+the plot, mich1.nonoptimumshapes.phiseg50.yplate2.38_40.ps,
+shows two of the non-optimum shapes corresponding to the
+extremes of behavoir displayed in the plot,
+mich1.loaddisplacement.yplate38_40.ps. The plot,
+mich1.mmm0.5.nonoptimum.yplate38.nonlinear.enduvs.014513.p.05.ps
+shows, with greatly exaggerated amplitude the axisymmetric
+pre-buckling deformation. Remember, there is no axial load
+applied at the bottome of the shell structure.
+
+------------------------------------------------------------------
+
+How to get predictions from nonlinear theory for local bucklng:
+
+This is a "tricky" bit. The BIGBOSOR4 model for local buckling
+obtained with the use of nonlinear theory has MMM = 0.5,
+that is, a "half-model" is employed. A "half-model" is
+a model that includes all shell segments from the bottom
+of the shell to the first symmetry plane at WIDTH/2 (axial
+station close to 50 inches for the specific case "mich1").
+This is done in order to avoid two very closely spaced
+local buckling eigenvalues. With use of the half-model
+there is no mich1.inp2 file, which ordinarily contains
+STAGS input data for a model with MMM = 1, that is a STAGS
+model that covers an axial length equal to WIDTH = 100 inches.
+However, we want to obtain a STAGS nonlinear prediction
+of local buckling from a model with MMM = 1. In order
+to do this we go back to the beginning (to BEGIN) as
+follows:
+cleanspec
+begin
+change  (NOTE: change re-establishes the archived
+         optimized model obtained from nonlinear
+         theory, not the archived optimized model
+         from linear theory.)
+decide
+mainsetup   (NPRINT = 2; ITYPE = 2 for "fixed" design)
+optimize    (yields the prediction from linear theory
+             for the optimized model obtained from
+             nonlinear theory)
+Now we have the input file, mich1.inp2, which is the
+STAGS model with MMM = 1 used for local buckling.
+We run STAGS in the nonlinear mode (STAGS analysis
+type INDIC = 3 as follows:
+cd /home/stags/stagsops (working directory for STAGS)
+source /home/stags/prc/initialize   (initialize STAGS)
+cp /home/progs/genoptcase/mich1.inp2 mich1.inp
+cp nonlinear.bin mich1.bin 
+(The nonlinear mich1.bin file is as follows:)
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 5.000E-02, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.500E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   0, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 3000,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  1, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+
+/home/stags/prc/stags -b mich1   (run STAGS with INDIC=3)
+(Inspect the mich1.out2 file. Check to see that no roots
+ have been skipped by searching for the string, "roots".
+ Look for the nonlinear buckling load factor, "pcr",
+ by searching for the string, "CONV". Next, get a plot
+ of the local buckling load by execution of STAPL
+ followed by an execution of acroread. This is done as
+ follows:
+cp nonlinearbuck.pin mich1.pin   (get input file for STAPL
+                                  edit the mich1.pin file
+                                  as may be necessary.)
+stapl mich1         (generate the mich1.pdf file)
+(The input file, mich1.pin, for STAPL is as follows:
+nonlinear buckling of perfect shell from STAGS
+  1  0  1  0  $PL-2  NPLOT,IPREP,IPRS,KDEV
+     1     0     4     8     1  $PL-3  KPLOT,NUNIT,ITEM,STEP,MODE
+    0.0   3  $PL-5  DSCALE,NROTS
+  1   -35.84   $PL-6  IROT,ROT
+  2   -13.14   $PL-6  IROT,ROT
+  3    35.63   $PL-6  IROT,ROT
+
+acroread mich1.pdf  (view the buckling mode on screen)
+cp mich1.pdf /home/progs/genoptcase/mich1.stags.locbuck.pdf
+
+----------------------------------------------------------------
+
+Input files from the nonlinear "mich1" study:
+Mar  4 05:19 mich1.strategy13.fsloc1.6.mlowgs2.mlowl125.nonlinear.beg
+Mar  4 05:50 mich1.strategy13.fsloc1.6.mlowgs2.mlowl90.nonlinear.beg
+Mar  4 05:20 mich1.strategy13.nonlinear.dec
+Mar  5 04:54 mich1.strategy13.nonlinear.opt
+Mar  5 10:52 mich1.nonlinear.partialsuperopt.chg
+Mar  5 14:57 mich1.nonoptimum.nonlinear.chg
+Mar  4 05:42 mich1.strategy13.earlier.nonlinear.chg
+Feb 26 02:47 mich1.itype3.cpl
+Mar  5 11:12 mich1.margins.cpl
+Feb 26 02:37 mich1.optimizing.cpl
+Mar  5 04:55 mich1.opt1
+Feb 26 02:33 mich1.opt3
+
+
+Results from the use of nonlinear theory (geometric nonlinearity):
+
+List output (mich1.*.opm files) from the nonlinear "mich1" study:
+Mar  5 10:52 mich1.nonlinear.partialsuperopt.opm
+Mar  4 05:00 mich1.nonlinear.severaloptimizes.842.opm
+Mar  4 05:42 mich1.strategy13.earlier.nonlinear.opm
+
+Postscript "plots" contain BIGBOSOR4 predictions obtained 
+with the use of nonlinear theory. These "plots" are
+represented by the following files:
+Mar  4 02:56 mich1.itype3.margins.yplate2.nonlinear.ps
+Mar  6 02:34 mich1.itype3.margins.yplate2.nonlinear.reoptimizedwithistrat13.ps
+Mar  6 02:01 mich1.loaddisplacement.yplate38_40.nonlinear.ps
+Mar  4 01:41 mich1.mmm0.5.locbuck.eig1.4834.n100.nonlinear.ps
+Mar  6 04:32 mich1.mmm0.5.nonoptimum.yplate38.nonlinear.enduvs.014513.p.05.ps
+Mar  6 02:53 mich1.mmm0.5.optimizedprofile.weight6.911lb.nonlinear.ps
+Mar  4 01:33 mich1.mmm0.5.plotofseff.alongmeridian.nonlinear.ps
+Mar  4 01:25 mich1.mmm0.5.prebuckdeform.maxeff38450.outerfiber.nonlinear.ps
+Mar  4 01:24 mich1.mmm0.5.prebuckdeform.maxeff45423.innerfiber.nonlinear.ps
+Mar  6 05:40 mich1.mmm0.5.prebuckdef.maxeff41220.outerfiber.nonlinear.istrat13.ps
+Mar  6 05:42 mich1.mmm0.5.prebuckdef.maxeff49120.innerfiber.nonlinear.istrat13.ps
+Feb 28 07:36 mich1.mmm1.locbuck.firsteig1.4795.n105.nonlinear.ps
+Feb 28 07:41 mich1.mmm1.locbuck.secondeig1.4839.n105.nonlinear.ps
+Mar  4 01:58 mich1.mmm27.genbuck.eig1.0019.n2.nonlinear.ps
+Mar  4 01:46 mich1.mmm9.genbuck.eig0.98430.n2.nonlinear.ps
+Mar  4 04:59 mich1.nonlinear.severaloptimizes.842.ps
+Mar  6 02:15 mich1.nonoptimumshapes.phiseg50.yplate2.38_40.nonlinear.ps
+Mar  5 14:44 mich1.prebucklingdeform.YPLATE2.39.487.p.35.nonlinear.ps
+Mar  5 07:37 mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.margins.1562.ps
+Mar  5 11:12 mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.1542.ps
+Mar  5 07:33 mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.1562.ps
+Mar  5 12:09 mich1.strategy13.fsloc1.6.mlowg2.mlowl90.partialsuperopt.objective.652.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of nonlinear theory. These "plots"
+are represented by the following files:
+Mar  3 15:53 mich1.stags.mmm1.locbuck.nonlinear.p1.4.pcr1.5257.pdf
+Mar  4 12:20 mich1.stags.mmm1.locbuk.nonlinear.p1.55.pcr1.6043.designedwithistrat13.pdf
+Mar  4 00:55 mich1.stags.mmm1.seff37950.innerfiber.nonlinear.pdf
+Mar  6 06:04 mich1.stags.mmm1.seff40690.innerfiber.nonlinear.istrat13.pdf
+Mar  4 00:57 mich1.stags.mmm1.seff44750.outerfiber.nonlinear.pdf
+Mar  6 06:06 mich1.stags.mmm1.seff48410.outerfiber.nonlinear.istrat13.pdf
+Mar  4 00:27 mich1.stags.mmm27.genbuck.eig0.89219.nonlinear.p0.9.ssattop.pdf
+Mar  4 08:43 mich1.stags.mmm27.genbuck.eig1.2914.nonlinear.p1.2.designedwithistrat13.pdf
+Mar  4 06:45 mich1.stags.mmm27.genbuck.eig1.4240.nonlinear.p1.0.designedwithistrat13.pdf
+Mar  3 18:23 mich1.stags.mmm9.genbuck.nonlinear.p1.1.pcr1.1880.pdf
+
+--------------------------------------------------------------------
+
+
+The specific case called "mich1b":
+
+Input files from the linear "mich1b" study:
+Mar  6 16:56 mich1b.linear.beg
+Mar  6 15:17 mich1b.linear.chg
+Mar  6 16:56 mich1b.linear.dec
+Mar  6 19:12 mich1b.opt1
+Mar  7 04:42 mich1b.opt3
+
+
+Results from the use of linear theory:
+
+List output (mich1b.*.opm files) from the linear "mich1b" study:
+Mar  6 15:17 mich1b.linear.opm
+
+
+Postscript "plots" contain BIGBOSOR4 predictions obtained
+with the use of linear theory. These "plots" are
+represented by the following files:
+Mar  6 16:53 mich1b.superopt1.3062.linear.ps
+Mar  6 15:07 mich1b.superopt1.652.linear.ps
+Mar  6 15:09 mich1b.superopt2.652.linear.ps
+Mar  6 15:10 mich1b.superopt3.652.linear.ps
+Mar  6 15:11 mich1b.superopt4.652.linear.ps
+Mar  6 15:12 mich1b.superopt5.652.linear.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of linear theory. These "plots"
+are represented by the following files:
+No linear STAGS runs were made of this case.
+--------------------------------------------------------------
+
+
+Input files from the nonlinear "mich1b" study:
+Mar  7 05:11 mich1b.nonlinear.beg
+Mar  7 05:18 mich1b.nonlinear.chg
+Mar  7 05:10 mich1b.nonlinear.dec
+Mar  7 05:31 mich1b.nonlinear.opt
+Mar  7 05:39 mich1b.mmm27.nonlinear.reoptimized.chg
+Mar  6 19:12 mich1b.opt1
+Mar  7 04:42 mich1b.opt3
+
+
+Results from the use of nonlinear theory (geometric nonlinearity):
+
+List output (mich1b.*.opm files) from the nonlinear "mich1b" study:
+Mar  7 05:36 mich1b.mmm27.nonlinear.reoptimized.opm
+Mar  7 05:20 mich1b.nonlinear.opm
+Mar  7 05:29 mich1b.mmm27.nonlinear.samedesignaswithmmm9.opm
+Mar  6 17:05 mich1b.nonlinear.samedesignaslinear.opm
+
+
+Postscript "plots" contain BIGBOSOR4 predictions obtained
+with the use of nonlinear theory. These "plots" are
+represented by the following files:
+Mar  7 04:38 mich1b.itype3.nonlinear.yplate2.mmm9forgenbuck.ps
+Mar  7 02:40 mich1b.mmm0.5.nonlinear.locbuck.eig1.6113.n30.ps
+Mar  7 02:26 mich1b.mmm0.5.optimizedprofile.nonlinear.weignt6.07lb.ps
+Mar  7 02:31 mich1b.mmm0.5.plotofseff.nonlinear.ps
+Mar  7 02:20 mich1b.mmm0.5.prebuckdeform.nonlinear.seff33710.outerfiber.ps
+Mar  7 02:18 mich1b.mmm0.5.prebuckdeform.nonlinear.seff40890.innerfiber.ps
+Mar  7 02:48 mich1b.mmm27.nonlinear.genbuck.eig1.3128.n2.ps
+Mar  7 03:17 mich1b.mmm27.nonlinear.genbuck.eig1.3978.n2.onemoreoptimize.ps
+Mar  7 05:10 mich1b.nonlinear.10optimizes.objective.1562.ps
+Mar  7 03:04 mich1b.nonlinear.mmm27.oneoptimize.1562.margins.ps
+Mar  7 03:04 mich1b.nonlinear.mmm27.oneoptimize.1562.objective.ps
+Mar  6 18:56 mich1p.superopt1.1542.nonlinear.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of nonlinear theory. These "plots"
+are represented by the following files:
+Mar  7 01:07 mich1b.stags.mmm1.eig1.6155.nonlinear.locbuck.pdf
+Mar  7 01:57 mich1b.stags.mmm1.seff34769.outerfiber.nonlinear.pdf
+Mar  7 01:50 mich1b.stags.mmm1.seff39892.innerfiber.nonlinear.pdf
+Mar  7 02:55 mich1b.stags.mmm27.eig1.2375.nonlinear.genbuck.pdf
+Mar  7 03:58 mich1b.stags.mmm27.eig1.3664.nonlinear.genbuck.onemoreoptimize.pdf
+
+--------------------------------------------------------------------------------
+
+The specific case called "mich8u":
+
+Input files from the linear "mich8u" study:
+Mar  8 08:59 mich8u.linear.652.chg
+Mar  8 07:04 mich8u.linear.beg
+Mar  8 07:04 mich8u.linear.dec
+Mar  8 07:05 mich8u.linear.opt
+
+
+Results from the use of linear theory:
+
+List output (mich8u.*.opm files) from the linear "mich8u" study:
+Mar  8 08:58 mich8u.linear.652.opm
+
+
+Postscript "plots" contain BIGBOSOR4 predictions obtained
+with the use of linear theory. These "plots" are
+represented by the following files:
+Mar  8 16:39 mich8u.linear.optimizedprofile.weight61.72lb.ps
+Mar  8 16:49 mich8u.linear.plotofseff.ps
+Mar  8 16:46 mich8u.linear.prebuckdeform.maxseff29200.outerfiber.ps
+Mar  8 16:43 mich8u.linear.prebuckdeform.maxseff36834.innerfiber.ps
+Mar  8 08:51 mich8u.linear.superopt1.652.ps
+Mar  8 08:52 mich8u.linear.superopt2.652.ps
+Mar  8 08:53 mich8u.linear.superopt3.652.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of linear theory. These "plots"
+are represented by the following files:
+No linear STAGS runs were made of this case.
+--------------------------------------------------------------
+
+Results from the use of nonlinear theory (geometric nonlinearity):
+
+Input files from the nonlinear "mich8u" study:
+Mar  9 01:48 mich8u.margins.cpl
+Mar  8 17:27 mich8u.nonlinear.istrat13.beg
+Mar  8 14:56 mich8u.nonlinear.istrat13.dec
+Mar  8 14:56 mich8u.nonlinear.istrat13.opt
+Mar  8 09:32 mich8u.nonlinear.istrat5.652.chg
+Mar  8 09:05 mich8u.nonlinear.istrat5.beg
+Mar  8 09:06 mich8u.nonlinear.istrat5.dec
+Mar  8 09:20 mich8u.nonlinear.istrat5.opt
+Mar  8 11:00 mich8u.nonlinear.istrat7.1542.chg
+Mar  8 10:53 mich8u.nonlinear.istrat7.beg
+Mar  8 10:53 mich8u.nonlinear.istrat7.dec
+Mar  9 00:53 mich8u.nonlinear.istrat7.itype3.opt
+Mar  8 10:53 mich8u.nonlinear.istrat7.opt
+
+
+List output (mich1b.*.opm files) from the nonlinear "mich1b" study:
+Mar  8 17:27 mich8u.nonlinear.istrat13.opm
+Mar  8 09:33 mich8u.nonlinear.istrat5.652.opm
+Mar  8 10:57 mich8u.nonlinear.istrat7.1542.opm
+
+
+Postscript "plots" contain BIGBOSOR4 predictions obtained
+with the use of nonlinear theory. These "plots" are
+represented by the following files:
+Mar  8 17:37 mich8u.nonlinear.istrat13.genbuck.eig1.4048.n2.ps
+Mar  8 17:33 mich8u.nonlinear.istrat13.locbuck.eig1.4809.n50.ps
+Mar  8 09:19 mich8u.nonlinear.istrat5.652.ps
+Mar  8 10:43 mich8u.nonlinear.istrat7.1542.ps
+Mar  9 01:30 mich8u.nonlinear.istrat7.itype3.phiseg1.ps
+Mar  8 17:10 mich8u.nonlinear.optimizedprofile.weight61.72.ps
+Mar  8 17:18 mich8u.nonlinear.plotofseff.ps
+Mar  8 17:15 mich8u.nonlinear.prebuckdeform.maxseff27120.outerfiber.ps
+Mar  8 17:13 mich8u.nonlinear.prebuckdeform.maxseff33165.innerfiber.ps
+
+
+*.pdf "plots" contain STAGS predictions for the design
+optimized with the use of nonlinear theory. These "plots"
+are represented by the following files:
+Mar  8 14:44 mich8u.stags.genbuck.mmm3.eig1.2352.nonlinear.pdf
+Mar  8 16:26 mich8u.stags.locbuck.mmm1.eig1.5713.nonlinear.pdf
+Mar  9 00:19 mich8u.stags.nonlinear.mmm1.seff26670.outerfiber.pdf
+Mar  9 00:16 mich8u.stags.nonlinear.mmm1.seff32490.innerfiber.pdf
+
+
+Some information about the nonlinear analysis of the specific case mich8u:
+
+ PHISEG(1) = variable no. 17; data in mich8u.nonlinear.istrat5.dec:
+        17      $ Choose a decision variable (1,2,3,...)
+        20      $ Lower bound of variable no.( 17)
+        50      $ Upper bound of variable no.( 17)
+
+The mich8u.CHG file used for the following computations is
+that corresponding to the best FEASIBLE design determined
+with the use of nonlinear strategy: ISTRAT = 5
+
+istrat5
+nonlinear.istrat5 on SUPEROPT iteration no. 129 immediately after AUTOCHANGE.
+The diagnostic given at the end of the mich8u.OPM file is as follows:
+ IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+
+ The best optimum design is stored in mich8u.CHG = mich8u.nonlinear.652.chg
+ The best FEASIBLE design after 128 iterations weights 57.657 lb and will
+be used as the starting design in the following 3 ISTRAT7 runs.
+The plot of the objective vs design iterations is stored in the file:
+mich8u.nonlinear.istrat5.652.ps
+
+
+istrat7
+With the same mich8u.DEC, mich8u.CHG, and mich8u.OPT files the SUPEROPT run keeps
+going but fails to accumulate designs in the STORE processor. There is no
+diagnostic message, either at the end of the mich8u.OPM file or at
+the end of the mich8u.OUT file. The design appears to be stuck
+in a very UNFEASIBLE state, that is, the general buckling load
+factor is trapped around -0.9. There are no error diagnostics, but
+something is clearly very wrong. ISTRAT = 7 yields a very, very different
+design margin (about -0.9) for general buckling than the ISTRAT = 5
+strategy (0.002586) for the identical design.
+
+With the same mich8u.DEC file, mich8u.CHG file and a mich8u.OPT file
+with "1562" strategy the SUPEROPT run bombs at iteration no. 134
+immediately after AUTOCHANGE. The diagnostic given at the end
+of the mich8u.OPM file is as follows:
+ IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+
+With the same mich8u.DEC file, mich8u.CHG file and a mich8u.OPT file 
+with "1542" strategy the SUPEROPT run bombs at iteration no. 288 .
+The best FEASIBLE design weighs 61.72 lb, and will be used as the
+starting design in the next ISTRAT=7 run. At Iteration No. 288
+when the SUPEROPT run bombs there exists at the end of the
+mich8u.OUT file the following diagnostic:
+
+ In EBAND2: ISKIPR = 13
+ The load has been reduced too many times because of
+ skipped roots. Run will now abort.
+
+The plot of the objective vs design iterations is stored in the file:
+mich8u.nonlinear.istrat7.1542.ps
+
+
+Another ISTRAT7 run, using the same mich8u.BEG and mich8u.DEC and
+mich8u.OPT files as before. The mich8u.CHG file was changed to
+the following: mich8u.CHG = mich8u.nonlinear.istrat7.1542.chg
+The SUPEROPT run bombed on Iteration No. 16, just after
+an execution of AUTOCHANGE. The diagnostic that appears at the
+bottom of the mich8u.OPM file is as follows:
+ IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+
+
+istrat13
+This is the most rigorous nonlinear strategy, in which the
+BIGBOSOR4 analysis type indicator, INDIC = -2 for both local
+buckling and general buckling. Because of very closely spaced
+eigenvalues for local buckling, the optimization cannot even
+get started. During processing for 0 iterations, SUPEROPT
+bombs with the following diagnostic at the bottom of the
+mich8u.OUT file:
+
+ In EBAND2: ISKIPR = 13
+ The load has been reduced too many times because of
+ skipped roots. Run will now abort.
+
+However, the analysis of the "fixed" design, that
+corresponding to the archived configuration stored
+in the file: mich8u.nonlinear.istrat7.1542.chg
+runs to successful completion. The relevant files
+are stored in the following:
+mich8u.nonlinear.istrat13.beg
+mich8u.nonlinear.istrat13.dec
+mich8u.nonlinear.istrat13.opt
+and the best FEASIBLE, design, same as that from
+the istrat7 optimization has the following design
+margins and weight:
+MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1   -7.440E-02  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=  1.60
+  2    3.402E-03  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=  1.40
+  3    1.010E+00  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=  1.50
+
+ **************** DESIGN OBJECTIVE *******************
+    CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.172E+01  weight of the corrugated panel: WEIGHT
+ *****************************************************
+
+
+There is another diagnostic but this one did not appear
+in any of mich8u output files. It would appear at the
+end of the mich8u.OUT file. This is the diagnostic:
+
+ **************** NOTE OF ABORT *****************
+ In EBAND2. ITHIS.GT.20 Therefore abort the run.
+ Probably aborting because roots have been skipped
+ too many times in the search for the lowest
+ eigenvalue. There probably exist really close
+ eigenvalues near the lowest eigenvalue.
+ WRDCOL= TOO MANY LOAD REDUCTIONS. Abort in EBAND2
+
+
+In an "itype3" run (ITYPE = 3, design sensitivity
+of the optimized design) mich8u got into an infinite
+loop if PHISEG(1) exceeded 35 degrees at the upper
+end of its range. The reason for the glitch is unknown.
+
+-----------------------------------------------------
+
+mich8
+
+Executions of computer runs in which optimization
+is performed are much longer than with the previous
+specific cases, mich1, mich1b and mich8u because
+there are many more decision variables. Now the
+decision variables are as follows:
+THICK(1)
+SUBWID(1), SUBWID(2),..., SUBWID(8)
+PHISEG(1), PHISEG(2),..., PHISEG(8)
+YPLATE(1), YPLATE(2),..., YPLATE(9)
+
+The starting design is the same as the final
+design for mich8u. Optimization is attempted
+with ISTRAT = 7 (INDIC=1 for local buckling,
+INDIC = -2 for general buckling). The factor
+of safety for local buckling is 1.6.
+The starting design is archived in the file:
+mich8.nonlinear.istrat7.beg
+The initial mich8.DEC file is archived in:
+mich8.nonlinear.istrat7.dec
+
+istrat7
+The SUPEROPT run bombs at Iteration No. 46 after
+only three executions of OPTIMIZE with 15 iterations
+each (1542 strategy). The best FEASIBLE design
+weighs 57.776 lb. The diagnostic at the end of the
+mich8.OUT file is:
+
+ In EBAND2: ISKIPR = 13
+ The load has been reduced too many times because of
+ skipped roots. Run will now abort.
+
+which indicates very closely spaced eigenvalues.
+A plot of objective versus design iterations is
+given in the file: 
+mich8.nonlinear.istrat7.1542.objective.15iterations.ps
+The optimized design is archived in the file:
+mich8.nonlinear.istrat7.1542.chg
+and the optimized design gives the results in the file:
+mich8.nonlinear.istrat7.1542.opm
+
+istrat5
+The SUPEROPT run bombs at Iteration No. 226. As before,
+the 1542 strategy was used with 15 iterations. The best
+FEASIBLE design weighs 51.51 lb. The diagnostic at the
+bottom of the mich8.OPM file is as follows:
+IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+A plot of objective versus design iterations is
+archived in the file: 
+mich8.nonlinear.istrat5.1542.objective.15iterations.ps
+The optimized design is archived in the file:
+mich8.nonlinear.istrat5.1542.chg
+and the optimized design gives the results in the file:
+mich8.nonlinear.istrat5.1542.opm
+
+istrat7 again
+Starting from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat7 instead
+of istrat5 is -0.8something, a converged optimum design is
+not found. The 1542 strategy with 15 iterations was used.
+After 115 design iterations the SUPEROPT run bombs
+with the following diagnostic:
+IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+printed at the end of the mich8.OPM file. Iterations hovered
+around a weight of about 120 lb with almost all of them
+labeled "NOT FEASIBLE". This is far above the weight of 57.776 lb
+obtained as the best FEASIBLE design under the previous
+optimization with istrat7. The plot of objective versus
+design iterations was never archived.
+
+istrat1
+The factor of safety for local buckling is increased from
+1.6 to 2.0 because we are ignoring the effect of geometric
+nonlinearity.
+Starting again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPERDUPEROPT is executed with use
+of the 652 strategy with 5 iterations. Three successive executions
+of SUPEROPT are specified. The input files are
+mich8.linear.istrat1.beg
+mich8.linear.istrat1.dec
+mich8.linear.istrat1.opt.
+Corresponding to the three successive executions of SUPEROPT
+in the long SUPERDUPEROPT run, the three plots of objective
+(WEIGHT) versus design iteration are:
+mich8.linear.istrat1.652.objective.superopt1.5iterations.ps
+mich8.linear.istrat1.652.objective.superopt2.5iterations.ps
+mich8.linear.istrat1.652.objective.superopt3.5iterations.ps
+Because linear theory is used (istrat=1) SUPEROPT never bombs.
+The final best FEASIBLE design weighs 83.89 lb, far too high.
+It is a local minimum weight, not even close to a "global"
+minimum weight. The 652 strategy with 5 iterations is too crude:
+allows too large a move limit (IMOVE=5), does not use enough
+design iterations per execution of OPTIMIZE (5) and does not use
+enougth OPTIMIZEs/AUTOCHANGE (6).
+
+istrat1 again
+Starting again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPEROPT is executed with use
+of the 1542 strategy with 15 iterations. A plot of objective
+versus design iteration is represented by the file:
+mich8.linear.istrat1.1542.objective.superopt1.15iterations.ps
+The optimized design from linear theory is represented by the
+two files:
+mich8.linear.istrat1.1542.chg
+mich8.linear.istrat1.1542.opm
+The best FEASIBLE optimum design weighs 57.12 lb.
+
+There are two questions raised by the plot of objective versus
+design iteration (mich8.linear.istrat1.1542.objective.superopt1.ps):
+
+1. Why at Iteration No. 15 is there a disproportionate jump from
+an objective of 57.04 to 62.75, a jump of 10 per cent?
+
+2. Why over the successive 200 or so iterations is there a gradual
+upward climb of the objective?
+
+For an answer to the first question it is useful to list results
+from the first execution of OPTIMIZE in the SUPEROPT run:
+ ==============================================================
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         5.1511E+01      NOT FEASIBLE           3
+     2         5.4430E+01      NOT FEASIBLE           4
+     3         5.3560E+01      NOT FEASIBLE           3
+     4         5.5668E+01     MOSTLY UNFEASIB         4
+     5         5.3974E+01      NOT FEASIBLE           3
+     6         5.5805E+01      NOT FEASIBLE           4
+     7         5.5585E+01      NOT FEASIBLE           4
+     8         5.6612E+01     MORE UNFEASIBLE         4
+     9         5.6204E+01     MOSTLY UNFEASIB         4
+    10         5.6623E+01     MORE UNFEASIBLE         4
+    11         5.6640E+01     MOSTLY UNFEASIB         4
+    12         5.6726E+01     MORE UNFEASIBLE         4
+    13         5.6890E+01     ALMOST FEASIBLE         4
+    14         5.7040E+01     MORE UNFEASIBLE         4
+    15         6.2753E+01         FEASIBLE            3
+ =============================================================================
+The values of objective versus design iteration listed above
+are plotted in the file:
+mich8.linear.istrat1.1542.objective.optimize1.15iterations.ps
+It is clear from the above list and from the corresponding
+plot that the jump between the second-to-last
+and the last iteration is out of proportion with the trend in the
+previous iterations. The disproportional jump is caused by
+entry into an "escape" strategy introduced into GENOPT. The
+"escape" strategy is used in two situations:
+1. when the current design is very bad, that is, one or more of
+the design margins is less than -0.95.
+2. when the current design is worse than "ALMOST FEASIBLE"
+yet, in spite of that, the following diagnostic appears: 
+"ADS DID NOT CHANGE THE DESIGN"
+In other words, the design is stuck in an unacceptable region
+of design space.
+Whenever the "escape" strategy is invoked in GENOPT all
+variables identified by the End User in DECIDE as "escape variables"
+are automatically increased by 10 per cent. "Escape variables"
+are variables that, when increased, move the design toward the
+feasible region of design space. In problems that involve buckling
+or vibration frequencies or stress in shells the only suitable
+"escape variables" are thicknesses. In DECIDE the following
+prompts occur near the end of the interactive input session:
+   y      $ Any escape variables (Y or N) ?
+   y      $ Want to have escape variables chosen by default?
+The default option automatically identifies thicknesses as
+"escape variables" provided that the GENOPT User has used the
+string, "thickness" or "Thickness" or "THICKNESS" as part of
+the definition of a decision variable that is a thickness.
+
+An answer to the second question raised above:
+2. Why over the successive 200 or so iterations is there a gradual
+upward climb of the objective?
+is not known for certain. It appears that disproportionally
+large changes in decision variables are required to raise
+the design margins only a very small amount. Details should
+be explored at a later time.
+
+istrat1 yet again
+Starting yet again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPEROPT is executed with use
+of the 542 strategy with 15 iterations/optimize. A plot of
+objective versus design iteration is represented by the file:
+mich8.linear.istrat1.542.objective.superopt1.15iterations.ps
+From the plot of objective versus design iteration it seems
+clear that the use of only 5 OPTIMIZEs/AUTOCHANGE is not enough.
+The best FEASIBLE design weighs 61.17 lb.
+
+istrat1 and yet again
+Starting and yet again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPEROPT is executed with use
+of the 552 strategy with 15 iterations/optimize. A plot of
+objective versus design iteration is represented by the file:
+mich8.linear.istrat1.552.objective.superopt1.15iterations.ps
+The plot starts at Iteration No. 17 instead of Iteration No. 0,
+because the value of the objective has been set to zero for
+the first 16 iterations, and zero values are not plotted.
+This happens if all the designs during the initial executions
+of OPTIMIZE are NOT FEASIBLE.
+The best FEASIBLE design weighs 60.0 lb.
+
+istrat1 and yet once more 
+Starting and yet again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPEROPT is executed with use
+of the 552 strategy with 5 iterations/OPTIMIZE. A plot of
+objective versus design iteration is represented by the file:
+mich8.linear.istrat1.552.objective.superopt1.5iterations.ps
+The plot starts at Iteration No. 67 instead of Iteration No. 0,
+because the value of the objective has been set to zero for
+the first 66 iterations, and zero values are not plotted.
+This happens if all the designs during the initial executions
+of OPTIMIZE are NOT FEASIBLE.
+Not enough iterations/OPTIMIZE are permitted and the initial
+move limit, IMOVE = 5, is too liberal. Therefore,
+the best FEASIBLE design 
+weighs 80.85 lb and the best ALMOST FEASIBLE design weighs
+68.74 lb, significantly higher than previously determined
+optimized best FEASIBLE designs that weigh between 57.71 lb and
+61.17 lb.
+
+istrat1 and yet another once more
+Starting and yet again from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factor with istrat1 instead
+of istrat5 is -0.8something, SUPEROPT is executed with use
+of the 852 strategy with 8 iterations/OPTIMIZE. A plot of
+objective versus design iteration is represented by the file:
+mich8.linear.istrat1.852.objective.superopt1.8iterations.ps
+The best FEASIBLE design weights 67.77 lb and the best
+ALMOST FEASIBLE design weighs 65.98 lb, significantly higher
+than previousl determined optimized best FEASIBLE designs that
+weight between 57.71 and 61.17 lb.
+
+istrat1 with the factor of safety for local buckling = 1.6 
+Starting from the archived configuration represented by
+the file, mich8.linear.istrat1.1542.chg , we decreased the
+factor of safety for local buckling from 2.0 to 1.6 and
+obtain the following after an execution of SUPEROPT:
+mich8.linear.istrat1.1542.objective.superopt1.15iterations.fs1.6.ps
+The final optimized weight is 52.61 lb. The best FEASIBLE
+optimum design is archived in the file
+mich8.linear.istrat1.1542.fs1.6.chg
+with results in the file
+mich8.linear.istrat1.1542.fs1.6.opm
+
+istrat1 with the factor of safety for local buckling = 1.6
+from the archived configuration represented by
+mich8.old.chg
+The archived files are:
+mich8.old.chg
+mich8.old.opm
+The weight listed in the mich8.old.opm file is 51.44 lb.
+
+istrat1 with the factor of safety for local buckling = 1.6
+Starting from the archived configuration represented by
+the file, mich8.old.chg . We use the strategy 3062 with
+15 iterations. The plot of objective versus design iteration
+is archived in the file:
+mich8.linear.istrat1.3062.objective.superopt1.15iterations.fs1.6.fromoldchg.ps
+The final optimized weight is 49.41 lb. The best FEASIBLE
+optimum design is archived in the file
+mich8.linear.istrat1.3062.fs1.6.startingfromoldchg.chg
+with results in the file
+mich8.linear.istrat1.3062.fs1.6.startingfromoldchg.opm
+
+istrat13 applied to the same design archived in the file:
+mich8.linear.istrat1.3062.fs1.6.fromoldchg.chg
+An OPTIMIZE run with the "fixed" optimized design
+bombs in the section on local buckling with
+the diagnostic:
+ In EBAND2: ISKIPR = 13
+ The load has been reduced too many times because of
+ skipped roots. Run will now abort.
+However, local buckling roots (eigenvalues) were detected
+between load factors 1.50 and 1.55.
+
+istrat7 applied to the same design archived in the file:
+mich8.linear.istrat1.3062.fs1.6.fromoldchg.chg
+The mich8.OPM file contains the following:
+ LOCAL BUCKLING LOAD FACTORS AND MODES (BEHX1)
+        2.9376E+00(  10)
+        1.8128E+00(  15)
+        1.6365E+00(  20)
+        1.6281E+00(  25)
+        1.6011E+00(  30)
+        1.5987E+00(  35) <--1st minimum vs circ.waves
+        1.6061E+00(  40)
+        1.6189E+00(  45)
+        1.6354E+00(  50)
+        1.6546E+00(  55)
+        1.6755E+00(  60)
+        1.6907E+00(  65)
+        1.6964E+00(  70)
+        1.7016E+00(  75)
+        1.7032E+00(  80)
+        1.6772E+00(  85)
+        1.6401E+00(  90)
+        1.6027E+00(  95)
+        1.5697E+00( 100)
+        1.5427E+00( 105)
+        1.5222E+00( 110)
+        1.5082E+00( 115)
+        1.5008E+00( 120)
+        1.4995E+00( 125) <--2nd minimum vs circ.waves
+        1.5042E+00( 130)
+        1.5146E+00( 135)
+        1.5304E+00( 140)
+        1.5513E+00( 145)
+        1.5770E+00( 150)
+ 
+ Critical buckling load factor, LOCBUK=  1.4995E+00
+ Critical number of circumferential waves, NWVCRT=  125
+    1        1.499538      local buckling load factor: LOCBUK(1 )
+
+ GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX2)
+        1.0060E+00(   2)
+ Critical buckling load factor, BUKSYM=  1.0060E+00
+ Critical buckling load factor, BUKSYM=  1.0060E+00
+ Critical number of circumferential waves, NWVCRT=    2
+    2        1.006011      symmetric general buckling: BUKSYM(1 )
+ 
+
+
+Constraint gradients corresponding to the optimized design:
+mich8.linear.istrat1.3062.fs1.6.fromoldchg.opm
+obtained from the mich8.OPM file generated by
+execution of OPTIMIZE for the "fixed" optimized
+design with NPRINT = 2 and ITYPE = 1 in the
+mich8.OPT file:
+
+ CONSTRAINTS AND GRADIENTS OF THEM FROM MAIN (UNSCALED)...
+ =========================================================================================================================
+ NO.    CON-                    G R A D I E N T S   O F   C O N S T R A I N T S
+       STRAINT                  D E C I S I O N   V A R I A B L E   N U M B E R
+                    1          2          3          4          5          6          7          8          9         10
+                THICK(1)   SUBWID(1)  SUBWID(2)  SUBWID(3)  SUBWID(4)  SUBWID(5)  SUBWID(6)  SUBWID(7)  SUBWID(8)  PHISEG(1)
+                PHISEG(2)  PHISEG(3)  PHISEG(4)  PHISEG(5)  PHISEG(6)  PHISEG(7)  PHISEG(8)  YPLATE(1)  YPLATE(2)  YPLATE(3)
+                YPLATE(4)  YPLATE(5)  YPLATE(6)  YPLATE(7)  YPLATE(8)  YPLATE(9)
+--------------------------------------------------------------------------------------------------------------------------
+  1   1.06E+00   0.00E+00  -3.27E-01  -7.98E-01  -6.66E-01  -8.07E-01  -6.02E-01  -7.82E-01  -6.52E-01  -3.60E-01   0.00E+00
+                 0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00
+                 0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00
+  2   1.00E+00   0.00E+00   3.27E-01   7.98E-01   6.66E-01   8.07E-01   6.02E-01   7.82E-01   6.52E-01   3.60E-01   0.00E+00
+                 0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00
+                 0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00   0.00E+00
+  3   9.92E-01   2.35E+00  -2.52E-03  -3.26E-03  -2.72E-03  -4.83E-04  -1.36E-01  -1.11E+00  -2.65E-03  -1.85E-04   1.30E-03
+                -1.70E-03  -3.28E-03  -1.32E-03   2.20E-01  -1.01E+00  -3.93E-03  -2.86E-03  -6.57E+00  -3.98E-03  -2.15E+00
+                -4.89E-04   5.03E-01  -3.87E+00  -2.05E+00  -6.76E+00   1.17E-03
+  4   1.00E+00   1.16E+00  -6.07E-01   1.92E+00   2.65E-01   1.09E-01   3.58E-01   2.20E-01   5.03E-03  -7.13E-01   2.23E-01
+                 4.82E+00   8.05E-01   3.12E-01   1.20E-01   9.84E-01   6.33E-01   2.84E-01   2.49E+01  -1.83E+01  -1.17E+01
+                -3.09E+00   7.21E-01  -1.23E+00  -8.14E+00   6.60E+00  -1.55E+01
+  5   1.24E+00   1.67E+00   1.19E-04   2.74E-04  -1.59E-03   1.72E-03   8.93E-02  -3.81E-01   0.00E+00  -3.58E-05   2.15E-04
+                -1.55E-04   5.96E-05  -1.65E-03   3.11E-01  -2.73E+00  -3.58E-05   4.77E-05  -1.30E+01  -1.39E-03  -6.08E-04
+                 4.96E-02   2.80E+00   2.17E+00   5.04E+00  -5.60E-04  -5.60E-04
+
+ Absolute value of maximum constraint gradient for iteration no 1 = GRADMX( 1)=  2.4925E+01
+ Absolute values of maximum constraint gradients for each active constraint:
+  8.0700E-01  8.0700E-01  6.7599E+00  2.4925E+01  1.2972E+01
+=======================================================================================================================
+
+Values of YPLATE(i), i = 1, 2, ..., 9, at the optimum:
+=========================================================================
+ 33    3.553E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(1 )
+ 34    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(2 )
+ 35    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(3 )
+ 36    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(4 )
+ 37    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(5 )
+ 38    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(6 )
+ 39    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(7 )
+ 40    3.400E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(8 )
+ 41    3.110E+01  vertical y above (x,y,z) origin if PHIBIG=0: YPLATE(9 )
+=========================================================================
+
+Design sensitivity with respect to YPLATE(i), i=1, 2, ..., 9:
+=========================================================================
+Mar 12 05:19 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate1.ps
+Mar 12 05:25 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate2.ps
+Mar 12 05:28 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate3.ps
+Mar 12 05:31 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate4.ps
+Mar 12 05:34 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate5.ps
+Mar 12 05:36 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate6.ps
+Mar 12 05:39 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate7.ps
+Mar 12 05:41 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate8.ps
+Mar 12 05:45 mich8.linear.istrat1.3062.fs1.6.fromoldchg.itype3.yplate9.ps
+========================================================================
+
+The optimized design is very sensitive with respect especially to
+YPLATE(1), YPLATE(2) and YPLATE(9).
+
+STAGS: general buckling, linear theory
+The optimized configuration analyzed by STAGS
+is that archived in the files:
+mich8.linear.istrat1.3062.fs1.6.startingfromoldchg.chg
+mich8.linear.istrat1.3062.fs1.6.startingfromoldchg.opm
+The critical buckling mode and load factor from the linear
+bifurcation buckling STAGS run (STAGS analysis type indicator,
+INDIC = 1) are displayed in the file:
+mich8.stags.linear.genbuck.weight49.41.eig0.95464.pdf
+The critical general buckling load factor from STAGS, 0.95464,
+is significantly lower than that predicted from the
+BIGBOSOR4 linear theory:
+  2    1.406E+00    symmetric general buckling: BUKSYM(1 )
+
+********************************************************
+******************** March 12, 2014 *** ****************
+A major change in problem formulation is required:
+
+It was found by running STAGS on an optimized design
+that weighed 49.41 lb that the general linear buckling load
+from STAGS was 0.95464 whereas BIGBOSOR4 predicted
+about 1.4. It was found that the difference was caused
+by different boundary conditions being used in the STAGS
+versus BIGBOSOR4 models for general buckling:
+STAGS had antisymmetry at the end ("top") of the shell,
+whereas BIGBOSOR4 had symmetry at this axial station.
+A BIGBOSOR4 case was set up for the same design in
+which antisymmetry was used at the "top" of the shell.
+Then both BIGBOSOR4 and STAGS obtained the lower
+general buckling load factor, about 0.96.
+
+Whereas in previous computations BUKASY (antisymmetric
+buckling) was not been computed in the generic
+"michelin" BIGBOSOR4 model because it was
+mistakenly thought that the antisymmetric and symmetric
+models would yield essentially the same general
+buckling load factors for such a long shell (MMM=3)
+in which the buckling mode has multiple axial half-
+waves. Since the present optimized
+shell demonstrates convincingly that that assumption
+does not always hold, it was necessary to modify
+behavior.michelin and bosdec.michelin to permit
+both symmetric (BUKSYM and *.inp3) and antisymmetric
+(BUKASY and *.inp4) BIGBOSOR4 and STAGS models.
+This has now been done, but, since there is an
+additional active behavoral constraint (BUKASY)
+that has not been computed until now, it is
+necessary to go back and re-optimize many
+configurations previously optimized in the
+absence of the BUKASY behavioral constraint.
+***************************************************
+***************************************************
+
+With behavior.michelin and bosdec.michelin updated,
+and starting from the previously archived design:
+mich8.linear.istrat1.3062.fs1.6.startingfromoldchg.chg
+we obtain, from a single execution of OPTIMIZE with
+use of the 1542 strategy/15 iterations, the following
+evolution of the objective (WEIGHT):
+ ==============================================================
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         4.9406E+01      NOT FEASIBLE           4
+     2         4.9938E+01     ALMOST FEASIBLE         3
+     3         4.9113E+01     MOSTLY UNFEASIB         4
+     4         4.9644E+01     ALMOST FEASIBLE         4
+     5         4.9180E+01     MILDLY UNFEASIB         4
+     6         4.9267E+01     MILDLY UNFEASIB         3
+     7         4.9575E+01     ALMOST FEASIBLE         4
+     8         4.9793E+01     ALMOST FEASIBLE         3
+     9         4.9984E+01         FEASIBLE            3
+    10         4.9720E+01     ALMOST FEASIBLE         4
+    11         4.9659E+01     ALMOST FEASIBLE         4
+    12         4.9707E+01     ALMOST FEASIBLE         3
+    13         4.9838E+01         FEASIBLE            4
+    14         4.9773E+01         FEASIBLE            4
+    15         4.9735E+01         FEASIBLE            4
+ ==============================================================
+
+The design at Iteration No. 15 happens to be the best
+in this particular case. Corresponding to that best FEASIBLE
+design, we have archived the following two files:
+mich8.linear.istrat1.1542.fs1.6.new.chg
+mich8.linear.istrat1.1542.fs1.6.new.opm
+The new design margins and objective (from mich8.OPM) are:
+
+ MARGINS CORRESPONDING TO CURRENT DESIGN (F.S.= FACTOR OF SAFETY)
+ MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1    5.490E-02  6.05-0.10*V(9)-0.10*V(10)-0.10*V(11)-0.10*V(12)-0.10*V(13)-0.10*V(14)..etc. -1.
+  2    1.000E-04  -3.99+0.10*V(9)+0.10*V(10)+0.10*V(11)+0.10*V(12)+0.10*V(13)+0.10*V(14)..etc. -1.
+  3   -4.199E-03  (LOCBUK(1 )/LOCBUKA(1 )) / LOCBUKF(1 )-1; F.S.=  1.60
+  4    3.423E-02  (BUKSYM(1 )/BUKSYMA(1 )) / BUKSYMF(1 )-1; F.S.=  1.40
+  5    5.466E-03  (BUKASY(1 )/BUKASYA(1 )) / BUKASYF(1 )-1; F.S.=  1.40
+  6    1.935E-01  (STRESSA(1 )/STRESS(1 )) / STRESSF(1 )-1; F.S.=  1.50
+
+ ******************** DESIGN OBJECTIVE *******************
+    CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.974E+01  weight of the corrugated panel: WEIGHT
+ *********************************************************
+
+Note that the design margins corresponding to both symmetric
+general buckling (BUKSYM) and antisymmetric general buckling
+(BUKASY) are now critical. STAGS yields the following
+symmetric and antisymmetric general buckling modes from both
+both linear and nonlinear theory:
+mich8.stags.linear.genbuck.weight49.74.eig1.47260.sym.pdf
+mich8.stags.nonlinear.genbuck.weight49.74.sym.bombedcomplexeigs
+mich8.stags.linear.genbuck.weight49.74.eig1.42356.antisym.pdf
+mich8.stags.nonlinear.genbuck.weight49.74.eig0.78951.antisym.pdf
+
+Linear and nonlinear local buckling from STAGS:
+mich8.stags.linear.locbuck.weight49.74.eig1.69304.pdf
+mich8.stags.nonlinear.locbuck.weight49.74.eig1.5083.pdf
+
+The design sensitivity study described above was rerun.
+The results are stored in the following updated files:
+Mar 16 20:32 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate1.ps
+Mar 17 05:46 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate1.widerange.ps
+Mar 12 20:30 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate2.ps
+Mar 17 05:58 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate2.widerange.ps
+Mar 12 20:29 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate3.ps
+Mar 12 20:34 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate4.ps
+Mar 12 20:37 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate5.ps
+Mar 12 20:40 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate6.ps
+Mar 12 20:42 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate7.ps
+Mar 12 20:45 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate8.ps
+Mar 12 20:48 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate9.ps
+Mar 17 05:51 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate9.widerange.ps
+
+Additional design sensitivity runs were made. Results are stored
+in the following "plot" files:
+Mar 17 05:46 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate1.widerange.ps
+Mar 17 06:55 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate2.fillgap.ps
+Mar 17 05:58 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate2.widerange.ps
+Mar 17 07:00 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate9.fillgap.ps
+Mar 17 05:51 mich8.linear.istrat1.weight49.74.fs1.6.itype3.yplate9.widerange.ps
+
+Design Sensitivity "Surface":
+A design sensitivity "surface" was obtained. The anti-symmetric
+general buckling margin is plotted for various values of
+YPLATE(1) and YPLATE(9), two decision variables which exhibit
+the most extreme design sensitivity. The relevant files
+are as follows:
+mich8.y1y9surface.input
+mich8.y1y9surface.ps
+The plot contains 16 traces corresponding to closely spaced
+values of YPLATE(1) from 34.03 inches to 35.53 inches, with
+the YPLATE(1) interval equal to 0.1 inch. Each trace covers
+the range 29.5 < YPLATE(9) > 33.5 inches.
+
+Plotting the critical buckling modes for local, general symmetric
+buckling and general antisymmetric buckling for the optimized
+design and for a design that is slightly different from the
+optimized design (YPLATE(1) changed from its optimized value,
+35.53 inches, to a slightly lower (non-optimum) value, 34.5
+inches). The extreme sensitivity of local and general buckling
+to a small change in the design is demonstrated. The
+relevant files are as follows:
+Mar 17 07:44 mich8.linear.yplate1.34.5.antisymgenbuck.eig0.36140.n2.ps
+Mar 17 07:50 mich8.linear.yplate1.34.5.locbuck.eig0.57580.n15.ps
+Mar 17 07:39 mich8.linear.yplate1.34.5.symgenbuck.eig0.30785.n2.ps
+Mar 17 07:23 mich8.linear.yplate1.35.53.weight49.74.antisymgenbuck.eig1.4076.n2.ps
+Mar 17 07:30 mich8.linear.yplate1.35.53.weight49.74.locbuck.eig1.5933.n65.ps
+Mar 17 07:20 mich8.linear.yplate1.35.53.weight49.74.symgenbuck.eig1.4479.n2.ps
+Mar 17 13:36 mich8.linear.yplate1.34.50.weight49.74.discretizedmeridian.ps
+Mar 17 13:27 mich8.linear.yplate1.35.53.weight49.74.discretizedmeridian.ps
+Mar 17 13:13 mich8.yplate1.35.53.yplate1.34.50.input
+Mar 17 13:15 mich8.yplate1.35.53.yplate1.34.50.ps
+
+
+STAGS Predictions for the same optimized (and non-optimum) design::
+Mar 17 08:48 mich8.stags.linear.genbuck.weight49.74.eig0.37386.antisym.yplate1.34.5.pdf
+Mar 12 14:00 mich8.stags.linear.genbuck.weight49.74.eig1.42356.antisym.pdf
+Mar 12 16:13 mich8.stags.linear.genbuck.weight49.74.eig1.4726.sym.pdf
+
+An attempt was made to run the symmetric general buckling case with
+the non-optimum value of YPLATE(1), but STAGS bombed with the
+diagnostic:
+          $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+          $ THIS EXECUTION OF STAGS WILL BE TERMINATED: $
+          $ FATAL  SINGULARITIES  WERE  DETECTED  WHILE $
+          $ DECOMPOSING THE SYSTEM MATRIX. AAARRRGH ... $
+          $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+doubtless caused by the possibility of rigid-body modes in
+the case of the mich8.inp3 file (symmetric general buckling).
+
+Very long shell:
+mich8.linear.yplate1.35.53.weight49.74.symgenbuck.eig1.367.n2.4xlength.ps
+mich8.linear.yplate1.35.53.weight49.74.antisymbuck.eig1.372.n2.4xlength.ps
+mich8.stags.linear.genbuck.weight49.74.eig1.43076.antisym.4xlength.pdf
+The STAGS "long" model has 1.56 million degrees of freedom.
+-------------------------------------------------
+
+Re-working the nonlinear mich8 cases
+now accounting for antisymmetric buckling as a new
+behavioral constraint...
+
+istrat7
+The starting design is again the final mich8u
+design, that is, the mich8u design archived in
+the file:
+mich8.nonlinear.istrat7.beg
+
+The SUPEROPT run bombs at Iteration No. 46 after
+only three executions of OPTIMIZE with 15 iterations
+each (1542 strategy). The best FEASIBLE design
+weighs 56.818 lb, as written in the mich8.OPP
+file corresponding to Iteration No. 45:
+    45         5.6818E+01         FEASIBLE            4
+
+The diagnostic at the end of the
+mich8.OUT file is:
+
+ **************** NOTE OF ABORT *****************
+ In EBAND2. ITHIS.GT.20 Therefore abort the run.
+ Probably aborting because roots have been skipped
+ too many times in the search for the lowest
+ eigenvalue. There probably exist really close
+ eigenvalues near the lowest eigenvalue.
+ WRDCOL= TOO MANY LOAD REDUCTIONS. Abort in EBAND2
+
+which indicates very closely spaced eigenvalues.
+A plot of objective versus design iterations is
+given in the file:
+mich8.nonlinear.istrat7.1542.objective.15iterations.new.ps
+The optimized design is archived in the file:
+mich8.nonlinear.istrat7.1542.new.chg
+and the optimized design gives the results in the file:
+mich8.nonlinear.istrat7.1542.new.opm
+
+istrat5
+The SUPEROPT run bombs at Iteration No. 223. As before,
+the 1542 strategy was used with 15 iterations. The best
+FEASIBLE design weighs 55.32 lb. The diagnostic at the
+bottom of the mich8.OPM file is as follows:
+IMODX= 0 SHELL COLLAPSES AXISYMMETRICALLY. Run abort.
+A plot of objective versus design iterations is
+archived in the file:
+mich8.nonlinear.istrat5.1542.objective.15iterations.new.ps
+The optimized design is archived in the file:
+mich8.nonlinear.istrat5.1542.new.chg
+and the optimized design gives the results in the file:
+mich8.nonlinear.istrat5.1542.new.opm
+
+istrat1
+The factor of safety for local buckling is increased
+from 1.6 to 2.0.
+Starting from mich8.nonlinear.istrat5.1542.chg, corresponding
+to which the general buckling load factors with istrat1 instead
+of istrat5 are both about -0.4, SUPEROPT is executed with use
+of the 1542 strategy with 15 iterations. A plot of objective
+versus design iteration is represented by the file:
+mich8.linear.istrat1.1542.objective.superopt1.15iterations.new.ps
+The optimized design from linear theory is represented by the
+two files:
+mich8.linear.istrat1.1542.new.chg
+mich8.linear.istrat1.1542.new.opm
+The best FEASIBLE optimum design weighs 60.12 lb.
+
+
+istrat7 optimized design analyzed by STAGS:
+Starting from the archived design:
+mich8.nonlinear.istrat7.1542.new.chg
+(WEIGHT=56.82 lb) and with the use of
+mich8.nonlinear.istrat7.beg
+the optimized "fixed" design
+mich8.nonlinear.istrat7.1542.new.opm
+was processed, and STAGS models were
+run corresponding to mich8.inp, mich8.inp3
+and mich8.inp4. The predictions from STAGS
+are stored in the following files:
+
+General buckling (anti-symmetric buckling):
+mich8.stags.nonlinear.genbuck.weight56.82eig1.41555.inp4.pdf
+
+General buckling (symmetric buckling (did not work
+because rigid body modes are not prevented):
+mich8.stags.linear.genbuck.weight56.82.eig0.04.rigidbodytranslation.inp3.pdf
+mich8.stags.linear.genbuck.weight56.82.eig0.38.rigidbodyrolling.inp3.pdf
+
+Local Buckling with MMM = 0.5 (mich8.inp works only because
+in this particular optimized configuration there happen
+to be no "smoothing" segments, that is, the STAGS model
+is generated in SUBROUTINE BOSDEC. In SUBROUTINE BOSDEC
+STAGS models (*.inp) are generated with "smoothing"
+segments not accounted for. "Smoothing" segments are
+generally present in optimized configurations.
+It is only by chance that the mich8.inp STAGS input file
+is appropriate for this particular optimized configuration
+in which "smoothing" segments happen not to be needed).
+mich8.stags.nonlinear.locbuck.weight56.82.eig1.5195.inp.pdf
+
+Local Buckling with MMM = 1.0 (mich8.inp2 always works because
+"smoothing" segments are accounted for, that is, the STAGS
+model is generated from SUBROUTINE BOSDEC2. SUBROUTINE
+BOSDEC2 always includes "smoothing" segments, which
+are generally present in optimized configurations.):
+mich8.stags.nonlinear.locbuck.weight56.82.eig1.4905.inp2.pdf
+This case is run by means of a "trick": With the use of
+nonlinear theory (BIGBOSOR4 analysis type indicator, INDIC,
+is less than 3) there exists no mich8.inp2 file because
+only SUBROUTINE BOSDEC is used to generate the STAGS
+model and SUBROUTINE BOSDEC only generates the STAGS
+input file, mich8.inp (MMM=0.5), in which "smoothing"
+segments are never present. Therefore, the linear
+BIGBOSOR4 model (INDIC = 4) is processed. In the linear
+model mich8.inp2 does exist, and it is this mich8.inp2
+file that is used for processing with STAGS in a
+nonlinear mode (STAGS analysis type indicator, INDIC=3).
+
+FIGURES AND TABLES:
+Mar 18 06:02 fig10.ps  mich8 design sensitivity y9 and y1
+Mar 18 06:05 fig11.pdf mich8 design sensitive genbuck y1=34.5
+Mar 18 06:08 fig12.pdf mich8 nonlinear genbuck linear design
+Mar 18 06:34 fig13.ps  mich8u genbuck istrat13 length=300
+Mar 18 06:35 fig14.ps  mich8u locbuck istrat13 length=50
+Mar 18 06:37 fig15.pdf mich8u genbuck istrat13 length=300
+Mar 18 06:39 fig16.pdf mich8u locbuck istrat13 length=100
+Mar 18 08:32 fig17.ps mich8 & mich8u optimized profiles
+Mar 18 13:38 fig18.ps mich1 locbuck istrat13 mmm=0.5
+Mar 18 13:43 fig19.ps mich1 genbuck istrat13 mmm9 length=100
+Mar 18 06:12 fig1a.pdf mich8 locbuck istrat1 length=100
+Mar 18 05:34 fig1b.pdf mich8 locbuck istrat7 length=100
+Mar 18 05:30 fig2.pdf  mich8 genbuck istrat1 length=300
+Mar 18 14:03 fig20.ps  mich1 genbuck istrat13 length=300 mmm27
+Mar 18 16:48 fig21.pdf mich1 locbuck istrat13 mmm1
+Mar 18 15:09 fig22.pdf mich1 genbuck istrat13 mmm9 length=100
+Mar 18 15:53 fig23.pdf mich1 genbuck istrat13 mmm27 length=300
+Mar 18 17:08 fig24.ps  mich1b locbuck istrat13 mmm0.5
+Mar 18 17:12 fig25.ps  mich1b genbuck istrat13 mmm27 length=300
+Mar 18 21:36 fig26.pdf mich1b locbuck istrat13 mmm1
+Mar 18 19:45 fig27.pdf mich1b genbuck istrat13 mmm27 length=300
+Mar 18 05:32 fig3.pdf  mich8 genbuck istrat1 length=4x300
+Mar 18 05:40 fig4.ps   mich8 locbuck istrat1 length=100 wgt=49.74
+Mar 18 05:46 fig5.ps   mich8 genbuck istrat1 length=300 wgt=49.74
+Mar 18 05:47 fig6.ps   mich8 genbuck istrat1 length=4x300 wgt=49.74
+Mar 18 06:22 fig7.ps   mich8 discretized profile with smoothing segs
+Mar 18 06:00 fig8a.ps  mich8 design sensitivity wrt yplate1
+Mar 18 08:39 fig8b.ps  mich8 profiles yplate1=35.53 & yplate1=34.5
+Mar 18 06:01 fig9.ps   mich8 design sensitivity wrt yplate9
+Mar 18 05:51 table1.opm mich8 istrat1 wgt=49.74
+Mar 18 05:53 table2.opm mich8 istrat7 wgt=56.82
+Mar 18 07:11 table3.opm mich8u istrat13 wgt=61.72
+Mar 18 13:24 table4.opm mich1 istrat13 wgt=69.11
+Mar 18 17:00 table5.opm mich1b istrat13 wgt=61.14
+

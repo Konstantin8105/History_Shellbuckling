@@ -1,0 +1,3119 @@
+C=DECK      BEGIN
+C
+C  PURPOSE IS TO SET UP DATA FOR A STARTING DESIGN.
+C
+      PROGRAM BEGIN
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+C BEG JAN 1996
+C BEG DEC 1998
+C BEG DEC 2004
+      COMMON/EIGSLZ/SLPRAT(300),EHILOW(300)
+      COMMON/OBJBSX/OBJMIN
+      COMMON/IOBJAX/IOBJAL
+C END DEC 2004
+C BEG JUN 2004
+      COMMON/ISKIPY/ISKIPX(910)
+C END JUN 2004
+C END DEC 1998
+C END JAN 1996
+      CHARACTER*4 ANSOUT,QUAL
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4
+C END UNIX
+      LOGICAL ANSL1     
+C BEG UNIX
+      integer lastch
+      logical exists
+#if cnvx
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPB'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE4=CASE(:I-1)//'.NAM'
+      ELSE
+         CASE2=CASE//'.OPB'
+         CASE3=CASE//'.CBL'
+         CASE4=CASE//'.NAM'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE4= 4
+      IFILE7= 7
+      IFILE8 = 8
+      IFILE9 = 9
+C BEG JULY 1989
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=4,FILE='PANDA2:TUTORBEG.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=9,FILE=CASE4,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='PROMPT.DAT',STATUS='OLD')
+      OPEN(UNIT=4,FILE='TUTORBEG.DAT',STATUS='OLD')
+      inquire(FILE=CASE(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IOUTFL, FILE=CASE(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(IOUTFL)
+#endif
+      else
+        OPEN(UNIT=IOUTFL, FILE=CASE(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=IFILE7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=IFILE7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile9, FILE=case4(1:lastch(case4)), STATUS='OLD')
+#if rs6k
+        rewind(ifile9)
+#endif
+      else
+        OPEN(UNIT=ifile9, FILE=case4(1:lastch(case4)), STATUS='NEW')
+      endif
+C END UNIX
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPB FILE ******************'
+      WRITE(IFILE8,5) 
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+    5 FORMAT(//' ****************   BEGIN   ******************'//
+     1' Purpose of BEGIN is to permit you to provide a starting design'/
+     1' in an interactive mode. You give starting dimensions, material'/
+     1' properties, allowables. The interactive session is stored on a'/
+     1' file called ',A,'.BEG, in which ',A,' is a name that you have'/
+     1' chosen for the case.(',A,' must remain the same as you use all'/
+     1' the PANDA2 processors.)  In future runs of the same or a'/
+     1' slightly modified case, you will find it convenient to use the'/
+     1' file ',A,'.BEG as input.  Rather than answer all the questions'/
+     1' interactively, you can use ',A,'.BEG or an edited version of'/
+     1' ',A,'.BEG as input to BEGIN.  BEGIN also generates an output'/
+     1' file called ',A,'.OPB. ',A,'.OPB lists a summary of the case,'/
+     1' and if you choose the tutorial option, the questions, helps,'/
+     1' and your answers for each input datum.'//
+     1' *************************************************'/)
+C END JULY 1989
+C
+C  STORE THE NAME OF THE CASE...
+C
+      WRITE(IFILE9,7) CASE
+    7 FORMAT(1X,A)
+C BEG NOV 1994
+C     WRITE(IFILE9,'(A)') ' Y'
+C END NOV 1994
+C
+      QUAL = '.BEG'
+C BEG JULY 1989
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C END JULY 1989
+C
+      IF (IPROMP.GT.1) THEN
+         REWIND IFILE4
+         CALL DATUM(IFILE4,10,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+      CALL PANEL(IPROMP)
+C
+C BEG JAN 1996
+C BEG DEC 1998
+C BEG JUN 2004
+      CALL MOVER(0,0,ISKIPX,1,910)
+C END JUN 2004
+C BEG DEC 2004
+      CALL MOVER(0.,0,EHILOW,1,300)
+      CALL MOVER(0.,0,SLPRAT,1,300)
+      OBJMIN = 10.E+20
+      IOBJAL = 0
+C END DEC 2004
+C END DEC 1998
+C END JAN 1996
+      CALL STORCM(IFILE7)
+C BEG 26 JAN 1989
+      CLOSE(UNIT=IOUT)
+C BEG JULY 1989
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+      CLOSE(UNIT=7)
+C END JULY 1989
+      CLOSE(UNIT=9)
+C END 26 JAN 1989
+C
+      WRITE(6,20) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,20) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                 CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+   20 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.BEG = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of BEGIN.'//
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1 1X,A,'.OPB = Output from BEGIN. Please list this file and'/
+     1'          inspect it and the ',A,'.BEG file carefully before'/
+     1'          proceeding.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+C BEG OCT 1998
+     1' Next, give a command  CHANGE or CHOOSETEMP  or   SETUP   .')
+C END OCT 1998
+C
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPB FILE ******************'
+      CLOSE(UNIT=8)
+C END JULY 1989
+C
+C BEG UNIX
+c Close and delete unit 10 since it is not longer SCRATCH.
+      close(unit=10, status='DELETE')
+C END UNIX
+      END
+C
+C
+C
+C=DECK      PANEL
+      SUBROUTINE PANEL(IPROMP)
+C
+C  YOU PROVIDE INTERACTIVELY GEOMETRY AND MATERIAL PROPERTIES FOR THE
+C  PANEL
+C
+C BEG APR 2007
+      COMMON/IBPRSX/IBPRES
+C END APR 2007
+C BEG MAR 2007
+C BEG APR 2009
+      COMMON/COLBND/FLGCLD,FN1WEB,RCOLD
+C END APR 2009
+C BEG MAR 2009
+      COMMON/PHIHTX/PHIHAT,PHITRS
+C END MAR 2009
+C END MAR 2007
+C BEG NOV 2005
+C BEG FEB 2009
+      COMMON/GRADMZ/GRADMX(30),CONMXJ(30)
+      COMMON/ISCAPZ/ISCAPX(30),ICNMAX(30)
+C END FEB 2009
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+C END NOV 2005
+C BEG OCT 1998
+      COMMON/INTRGX/INTRNG
+C END OCT 1998
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C BEG JUN 2004
+      COMMON/GEOM0S/B0SUB(2),B20SUB(2),H0SUB(2),W0SUB(2),W20SUB(2)
+      COMMON/GEOM2S/BSUBX(2),B2SUBX(2),HSUBX(2),WSUBX(2),W2SUBX(2)
+      COMMON/GEOM3S/ISTFSB(2),NLAYSB(4,2),NSEGSB(2),INTXSB(2)
+      COMMON/GEOM4S/IMTSUB(4,2)
+C END JUN 2004
+C BEG FEB 2005
+      COMMON/CSORIG/CS0(6,6)
+C END FEB 2005
+      COMMON/GEOM4/IWIND(4,2)
+      COMMON/GEOM5/RAD2,CURV2
+C BEG 26 JAN 1989
+C BEG AUG 1995
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+C BEG NOV 1995
+C BEG FEB 1996
+C BEG APR 1996
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IONEST,IMISCL(4)
+C END APR 1996
+C END FEB 1996
+C END NOV 1995
+C END AUG 1995
+C BEG JUN 1996 (ELASTIC FOUNDATION, SANDWICH)
+      COMMON/PSANDW/FACSKN,FACBAS,FACWEB,FACFLG
+      COMMON/XFOUND/EFOUND,HXSIDE,WFOUND(4,2),HEXSID(4,2)
+C BEG OCT 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG NOV 1996
+      COMMON/XFOUN1/WOVERL(20),FPULL(20),SIGMAA(20),PULTAB(12,20),
+     1              FSGTRV(20),SIGCOR(20)
+C END NOV 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+      COMMON/XFOUN2/ECCORE(4,2),GCXP(4,2),GCYP(4,2)
+      COMMON/XFOUN3/THEX(20),HXSIDX(20),ECORE(20),WGLUE(20),FKGLUE(20)
+      COMMON/XFOUN4/ECOREX(20),RHOC(20),GC(20)
+      COMMON/XFOUN5/KCORE(4,2),ISANDM(20),MMATL(4,2)
+      COMMON/XFOUN7/WGTTAB(12,20),CRHTAB(12,20),SHLTAB(12,20)
+      COMMON/XFOUN8/SHWTAB(12,20),THKTAB(12,20),FNKTAB(12,20)
+C BEG NOV 1996
+      COMMON/XFOUN9/KOUNTP(20),KOUNTT(20),IUSEHC(20)
+C END NOV 1996
+      COMMON/MATER8/BNDOVR(5,10)
+      COMMON/MATER9/ICAND(20)
+      CHARACTER*1 CM
+      CHARACTER*2 CM2,CM3
+      CHARACTER*3 STRRNG
+      CHARACTER*4 HEXFOM
+      CHARACTER*80 WRDTST
+      DIMENSION FOUNDX(20),ICOREX(20),TSAVE(90)
+C END OCT 1996
+      COMMON/XSANDW/ISANDW(4,2),ICORE(4,2)
+      DIMENSION TL(90),E1L(90),E2L(90)
+      CHARACTER*2 CN
+C END JUN 1996
+      COMMON/TMATL1/MAXMAT,IPMATL(10)
+      COMMON/TMATL2/PARMAT(20,10),TEMPJ(10,20,10),FTEMPJ(10,20,10)
+      COMMON/TMATL3/WRDMAT(20,10)
+      DIMENSION IDUMMY(20)
+C END 26 JAN 1989
+      COMMON/LAYER/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATRAN/G13(20),G23(20)
+      COMMON/MATRN2/GTX(2,5),GTY(2,5),GTS(2),TEFF(2)
+      COMMON/MATER2/STRAIN(20,20),STRESS(20,20)
+      COMMON/MATER3/STSMAX(10),STNMAX(5,10)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+      COMMON/MATER4/TAPE(20),TMINUM(20),FAILSC(100)
+      COMMON/MATER5/DEGRAD(10,5,10)
+      COMMON/MATER6/SIGLUE(20)
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/IPAR,IVAR,IALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/WORDS2/WORDL(50),WORDE(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+      COMMON/PARAM2/CPWR(50,5),CLINK0(50)
+C END JULY 1989
+      COMMON/ROTALW/CHIALW,PHIMAX
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      CHARACTER*80 PHRASE
+C BEG JAN 1991
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE,WRDVTP
+C END JAN 1991
+C BEG 26 JAN 1989
+      CHARACTER*80 WRDMAT,WRDGLU
+C END 26 JAN 1989
+      COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+C BEG MARCH 1990
+      COMMON/GNNSTB/EIGGEN,EIGLOC,FNLOC,FBOUND,LENMOD
+C END MARCH 1990
+C BEG JUNE 1990
+      COMMON/WORDSX/VARLEG(50),MARLEG(99),OBJLEG
+      COMMON/GENPRE/FBPRE,PRELEN,FMISC(28)
+C BEG AUG 1992
+C BEG APR 2009
+      CHARACTER*4 ANSOUT,CHARAC,ANSWER,CHAR2,ANSWR2
+C END APR 2009
+      COMMON/ISOGR/ISOGRD,ISOANG
+      CHARACTER*1 KLOOP, upcase
+C END AUG 1992
+C BEG MAY 2004
+      CHARACTER*12 MARLEG,OBJLEG
+      CHARACTER*16 VARLEG
+C END MAY 2004
+      CHARACTER*2 CK
+C BEG JAN 2004
+C substiffener declaration: TSUB(i,k,l) = TSUB(ISUBST,ISEG,ILOOP), etc.
+C ISUBST = substiffener set (either 1 or 2 for upper limit on ISUBST; upper limit
+C          = 1 if the substiffener "layer" is an isogrid; 2 if axial/hoop substif.
+C TSUB = thickness, HSUB = height, THSUB = angle, BSUB = spacing of substiffeners.
+C MATSUB = material type, KLAYER = KLAYER(ISEG,ILOOP) = no. of substif "layers".
+C NSURF  = NSURF(ISUBST,ISEG,ILOOP) =
+C          0 substif attached to top of layer 1; 1 = attchd to bottom of layer n.
+C NB2    =   NB2(ISUBST,ISEG,ILOOP) =
+C          0 substif not extended into B2 region; 1 = yes, extended into B2 region.
+C ISOSUB = ISOSUB(ISUBST,ISEG,ILOOP) =
+C          0 if substiffeners are not isogrid; 1 if substiffeners are isogrid.
+C ISOTYP = ISOTYP(ISUBST,ISEG,ILOOP) =
+C          1 if one substiffener set runs circumferentially (90 degrees)
+C          2 if one substiffener set runs axially           ( 0 degrees)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/SUBSTX/TSUB(2,4,2),HSUB(2,4,2),THSUB(2,4,2),
+     1              BSUB(2,4,2)
+      COMMON/ISBSTF/KLAYER(4,2),NSURF(2,4,2),NB2(2,4,2),
+     1              ISOSUB(2,4,2),ISOTYP(2,4,2),MATSUB(2,4,2)
+      CHARACTER*1 CK1,CK2,CK3,CK4
+C END JAN 2004
+C BEG JUN 2004
+      CHARACTER*6 SUBSTI
+      COMMON/IQSAVX/IQSAVE(6)
+C END JUN 2004
+      CHARACTER*3 WORD
+C BEG DEC 2004
+      CHARACTER*3 WORDSV
+C END DEC 2004
+      CHARACTER*72 ARGSTR
+C END JUNE 1990
+C BEG JUNE 1992
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN,ITER1,NTIT(5,2)
+C END JUNE 1992
+      DIMENSION ISUB(100),LBEGIN(10,5),CRACK(99,5,2)
+      REAL LENMOD
+      LOGICAL ANSL1     
+C
+C BEG 26 JAN 1989
+      ITRTOT = 0
+C END 26 JAN 1989
+C BEG AUG 1995
+      ITRALL = 0
+C END AUG 1995
+      LTMAX = 0
+      IVAR = 0
+      IPAR = 0
+      IALLOW= 0
+      ICONST= 0
+      FNX = 0.
+      FNY = 0.
+      FNXY= 0.
+C BEG JULY 1989
+      IVMAX = 50
+      IPMAX = 99
+      IAMAX = 50
+      ICOCUR(1) = 1
+      ICOCUR(2) = 1
+C END JULY 1989
+C BEG AUG 1992
+      ISOGRD = 0
+      ISOANG = 0
+C END AUG 1992
+C BEG JUNE 1992
+      CALL MOVER(0,0,NTIT,1,10)
+C END JUNE 1992
+C BEG OCT 1996
+      CALL MOVER(0,0,ICAND,1,20)
+      CALL MOVER(1.,0,BNDOVR,1,50)
+C END OCT 1996
+C BEG JAN 2004
+      CALL MOVER(0.,0,TSUB,1,64)
+      CALL MOVER(0,0,KLAYER,1,88)
+C END JAN 2004
+C BEG JUN 2004
+      CALL MOVER(0,0,IQSAVE,1,6)
+      CALL MOVER(0,0,ISTFSB,1,14)
+      CALL MOVER(0,0,IMTSUB,1,8)
+      CALL MOVER(0.,0,B0SUB,1,10)
+      CALL MOVER(0.,0,BSUBX,1,10)
+      ISTFSB(1) = 3
+      ISTFSB(2) = 3
+      NLAYSB(3,1) = 1
+      NLAYSB(3,2) = 1
+      INTXSB(1) = 0
+      INTXSB(2) = 0
+      NSEGSB(1) = 3
+      NSEGSB(2) = 3
+      B0SUB(1) = 10.
+      B0SUB(2) = 10.
+      B20SUB(1) = 0.1*B0SUB(1)
+      B20SUB(2) = 0.0 
+      H0SUB(1) = 1.
+      H0SUB(2) = 1.
+      W0SUB(1) = 0.
+      W0SUB(2) = 0.
+      W20SUB(1) = 0.
+      W20SUB(2) = 0.
+      BSUBX(1) = 10.
+      BSUBX(2) = 10.
+      B2SUBX(1) = 0.1*BSUBX(1)
+      B2SUBX(2) = 0.0 
+      HSUBX(1) = 1.
+      HSUBX(2) = 1.
+      WSUBX(1) = 0.
+      WSUBX(2) = 0.
+      W2SUBX(1) = 0.
+      W2SUBX(2) = 0.
+C END JUN 2004
+      CALL MOVER(0,0,ISUB,1,100)
+      CALL MOVER(1.,0,DEGRAD,1,500)
+      CALL MOVER(0.,0,RESULT,1,30)
+      CALL MOVER(0.,0,RESFIX,1,30)
+      CALL MOVER(1.,0,CRACK,1,990)
+      CALL MOVER(0.,0,GTX,1,24)
+      CALL MOVER(0.,0,CX,1,396)
+C BEG FEB 2005
+      CALL MOVER(0.,0,CS0,1,36)
+C END FEB 2005
+C BEG NOV 2005
+C BEG FEB 2009
+      CALL MOVER(0.,0,GRADMX,1,30)
+      CALL MOVER(0.,0,CONMXJ,1,30)
+C END FEB 2009
+      IAUTOC = 0
+      ITIGHT = 0
+      IITIGH(1) = 0
+      IITIGH(2) = 0
+      IITIGH(3) = 0
+      ITRMIN(1) = 100000
+      ITRMIN(2) = 100000
+      ITRMIN(3) = 100000
+C END NOV 2005
+C BEG FEB 2009
+      CALL MOVER(0,0,ISCAPX,1,30)
+      CALL MOVER(0,0,ICNMAX,1,30)
+C END FEB 2009
+C
+      CALL DATUM(IFILE,94,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,95,1,2,INT,AXIAL,CHARAC,IOUT,0,IPROMP)
+      CALL GETVAR(0,AXIAL,0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,97,1,2,INT,CIRC, CHARAC,IOUT,0,IPROMP)
+      CALL GETVAR(0,CIRC,0,0,0,IPAR,PAR,WORDP,IADDP)
+C
+C  ILOOP = 1  FOR STRINGERS OR ISOGRID
+C  ILOOP = 2  FOR RINGS
+C
+C BEG JAN 2004
+      MATMXS = 0
+C END JAN 2004
+      DO 100 ILOOP = 1,2
+C BEG MAY 1997
+      IZSTIF(ILOOP) = 0
+C END MAY 1997
+      REWIND IFILE
+      IF (ILOOP.EQ.1)CALL DATUM(IFILE,100,0,0,INT,REALL,CHARAC,IOUT,0,
+     1                          IPROMP)
+      IF (ILOOP.EQ.1) THEN
+      CALL DATUM(IFILE,110,1,2,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ELSE
+C BEG JULY 1989
+         IF (ISTIF(1).NE.5) THEN
+            CALL DATUM(IFILE,111,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,112,1,2,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         ELSE
+            PHRASE=
+     1      'Identify type of stiffener along L2  (N, T, J, R, A)'
+            IBLANK = 51
+            CHARAC = 'N   '
+         ENDIF
+      ENDIF
+C END JULY 1989
+C BEG AUG 1992
+      WORD = 'STR'
+      IF (ILOOP.EQ.2) WORD = 'RNG'
+      IF (ILOOP.EQ.1.AND.upcase(CHARAC(:1)).EQ.'N') WORD = 'SKN'
+      IF (upcase(CHARAC(:1)).EQ.'G') THEN
+          ISOGRD = 1
+          WORD = 'ISO'
+      ENDIF
+C BEG DEC 2004
+      WORDSV = WORD
+C END DEC 2004
+      DATDUM = 0.
+      CALL GETVAR(0,DATDUM,ILOOP,0,0,IPAR,PAR,WORDP,IADDP)
+C END AUG 1992
+C
+C  SET UP INDEX FOR STIFFENER TYPE:
+C  
+C      ISTIF(ILOOP) = 0 MEANS NO STIFFENERS
+C      ISTIF(ILOOP) = 1 MEANS T-SHAPED STIFFENERS
+C      ISTIF(ILOOP) = 2 MEANS J-SHAPED STIFFENERS
+C      ISTIF(ILOOP) = 3 MEANS RECTANGULAR STIFFENERS
+C      ISTIF(ILOOP) = 4 MEANS HAT-SHAPED (TRAPEZOIDAL) STIFFENERS
+C      ISTIF(ILOOP) = 5 MEANS TRUSS-CORE SANDWICH CONSTRUCTION
+C
+      ISTIF(ILOOP) = 0
+      NSEG(ILOOP)  = 1
+      INTEXT(ILOOP) = 0
+      IF (ILOOP.EQ.1) THEN
+        B(ILOOP) = CIRC
+      ELSE
+        B(ILOOP) = AXIAL
+      ENDIF
+      B2(ILOOP) = 0.
+      H(ILOOP)  = 0.
+      W(ILOOP)  = 0.
+      W2(ILOOP) = 0.
+      TOTDIM    = B(ILOOP)
+      IFAY(ILOOP) = 0
+C BEG NOV 1995
+      IFAYT(ILOOP) = 0
+C END NOV 1995
+C BEG AUG 1992
+C   THREE STATEMENTS MOVED UP
+C END AUG 1992
+C END JUNE 1990
+C
+      IF (upcase(CHARAC(:1)).EQ.'N') GO TO 10
+      IF (upcase(CHARAC(:1)).EQ.'T') THEN
+        ISTIF(ILOOP) = 1
+        NSEG(ILOOP)  = 4
+        CALL DATUM(IFILE,120,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+      IF (upcase(CHARAC(:1)).EQ.'J') THEN
+        ISTIF(ILOOP) = 2
+        NSEG(ILOOP)  = 4
+        CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+C BEG MAY 1997
+      IF (upcase(CHARAC(:1)).EQ.'Z') THEN
+        ISTIF(ILOOP) = 2
+        NSEG(ILOOP)  = 4
+        IZSTIF(ILOOP)= 1
+        CALL DATUM(IFILE,117,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+C END MAY 1997
+      IF (upcase(CHARAC(:1)).EQ.'R') THEN
+        ISTIF(ILOOP) = 3
+        NSEG(ILOOP)  = 3
+        CALL DATUM(IFILE,125,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+      IF (upcase(CHARAC(:1)).EQ.'A') THEN
+        ISTIF(ILOOP) = 4
+        NSEG(ILOOP)  = 4
+        CALL DATUM(IFILE,127,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C
+C BEG JULY 1989
+      IF (upcase(CHARAC(:1)).EQ.'C') THEN
+        ISTIF(ILOOP) = 5
+        NSEG(ILOOP)  = 3
+        CALL DATUM(IFILE,130,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1995
+        WRITE(6,1001)
+ 1001   FORMAT(//' ********** OR *********** OR ***********'/)
+        CALL DATUM(IFILE,131,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+        WRITE(6,1002)
+ 1002   FORMAT(/
+     1  ' ****** DEPENDING ON WHETHER b2 IS ZERO OR NOT ******'/)
+C END NOV 1995
+      ENDIF
+C
+C BEG AUG 1992
+      IF (upcase(CHARAC(:1)).EQ.'G') THEN
+          REWIND IFILE
+          CALL DATUM(IFILE,102,0,0,INT,REALL,CHAR2,IOUT,0,IPROMP)
+          CALL DATUM(IFILE,103,1,2,INT,REALL,CHAR2,IOUT,0,IPROMP)
+          IF (upcase(CHAR2(:1)).EQ.'T') THEN
+            ISTIF(ILOOP) = 1
+            NSEG(ILOOP)  = 4
+            CALL DATUM(IFILE,120,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+          ENDIF
+          IF (upcase(CHAR2(:1)).EQ.'J') THEN
+            ISTIF(ILOOP) = 2
+            NSEG(ILOOP)  = 4
+            CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+          ENDIF
+C BEG MAY 1997
+          IF (upcase(CHARAC(:1)).EQ.'Z') THEN
+            ISTIF(ILOOP) = 2
+            NSEG(ILOOP)  = 4
+            IZSTIF(ILOOP)= 1
+            CALL DATUM(IFILE,117,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+          ENDIF
+C
+C END MAY 1997
+          IF (upcase(CHAR2(:1)).EQ.'R') THEN
+            ISTIF(ILOOP) = 3
+            NSEG(ILOOP)  = 3
+            CALL DATUM(IFILE,125,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+          ENDIF
+          REWIND IFILE
+          CALL DATUM(IFILE,104,1,2,ISOANG,REALL,CHARAC,IOUT,0,IPROMP)
+          FISOA = ISOANG
+          CALL GETVAR(0,FISOA,ILOOP,0,0,IPAR,PAR,WORDP,IADDP)
+      ENDIF
+C END AUG 1992
+C
+      IF (ISTIF(ILOOP).NE.5)
+     1  CALL DATUM(IFILE,140,1,1,INT, B(ILOOP),CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(ILOOP).EQ.5)
+     1  CALL DATUM(IFILE,141,1,1,INT, B(ILOOP),CHARAC,IOUT,0,IPROMP)
+C BEG MAR 1996
+      CALL GETVAR(0,B(ILOOP),ILOOP,0,0,IVAR,VAR,WORDV,IADDV)
+C END MAR 1996
+      IF (ILOOP.EQ.1) BFACT = CIRC/B(ILOOP)
+      IF (ILOOP.EQ.2) BFACT = AXIAL/B(ILOOP)
+C BEG FEB 1996
+C BEG APR 1996
+      IF (ILOOP.EQ.1) THEN
+         IBEAM = 0
+         IONEST= 0
+      ENDIF
+C END APR 1996
+      IF (ILOOP.EQ.1.AND.BFACT.LT.2.) THEN
+         WRITE(6,4) CIRC,B(ILOOP)
+    4    FORMAT(/' ****** WARNING ***** WARNING ***** WARNING ******'/
+     1 ' ORDINARILY, THERE MUST BE AT LEAST TWO MODULES IN THE PANEL'/
+     1 ' WIDTH.'/
+     1 ' YOUR PANEL WIDTH (LENGTH IN THE L2 DIRECTION) CIRC =',1P,E12.4/
+     1 ' WIDTH OF YOUR PANEL MODULE,                   B2   =',1P,E12.4/
+C BEG APR 1996
+     1 ' THIS GEOMETRY IS PERMITTED ONLY IF YOU ARE ANALYZING A PANEL'/
+     1 ' WITH ONLY ONE STRINGER (WHICH YOU SHOULD NOT DO) OR A BEAM,'/
+     1 ' NOT A PANEL. IN PANDA2 NOMENCLATURE, A BEAM IS A PANEL WITH'/
+     1 ' ONLY A SINGLE MODULE IN THE "PANEL" WIDTH (L2) DIRECTION,'/
+     1 ' EXCEPT IN THE EXTRAORDINARY CIRCUMSTANCE DESCRIBED BELOW.'/
+     1 ' IF YOU DO NOT INTEND TO DESIGN OR ANALYZE A PANEL WITH ONLY'/
+     1 ' ONE STRINGER (WHICH YOU SHOULD NOT DO) OR A BEAM, THEN'/
+     1 ' EITHER MAKE YOUR PANEL WIDER OR YOUR MODULE NARROWER. DO NOT'/
+     1 ' WORRY ABOUT COMPUTER TIME: IT DOES NOT DEPEND ON THE WIDTH'/
+     1 ' OF THE PANEL OR ON HOW MANY SKIN-STRINGER MODULES ARE'/
+     1 ' CONTAINED IN THE TOTAL PANEL WIDTH.'/
+     1 ' ***********************************************************'/)
+C END APR 1996
+C
+         REWIND IFILE
+         CALL DATUM(IFILE,113,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+            IBEAM = 1
+            CIRC = B(1)
+         ELSE
+C BEG APR 1996
+            REWIND IFILE
+            CALL DATUM(IFILE,108,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,109,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSWER,INFILE)) THEN
+               CIRC = B(1)
+               IONEST = 1
+            ELSE
+               WRITE(6,41)
+   41          FORMAT('/ ******** BAD INPUT ********'/
+     1    ' "BEGIN" IS ABORTING. PLEASE INCREASE THE WIDTH OF YOUR'/
+     1    ' PANEL OR DECREASE THE STRINGER SPACING SO THAT THERE ARE'/
+     1    ' AT LEAST TWO MODULES IN THE PANEL WIDTH. DO NOT WORRY'/
+     1    ' ABOUT COMPUTER TIME; IT DOES NOT DEPEND ON THE NUMBER OF'/
+     1    ' MODULES IN THE PANEL WIDTH.'/
+     1    ' *************** RUN NOW ABORTS ************************')
+C
+               CALL ERREX
+            ENDIF
+         ENDIF
+C END FEB 1996
+C END APR 1996
+      ENDIF
+C END JULY 1989
+C
+C     NMODS = TOTDIM/B(ILOOP) + 0.05
+C     FMODS = NMODS
+C     B(ILOOP) = TOTDIM/FMODS
+C BEG MAR 1996 "GETVAR" is commented out here; moved up.
+C     CALL GETVAR(0,B(ILOOP),ILOOP,0,0,IVAR,VAR,WORDV,IADDV)
+C END MAR 1996
+C BEG JUNE 1990
+      VARLEG(IVAR) = '      B('//WORD//')'
+C END JUNE 1990
+C
+C BEG APR 1993
+      IF (ISTIF(ILOOP).EQ.4) THEN
+         WRITE(6,4002)
+ 4002    FORMAT(/' Following kinds of hat stiffeners exist in PANDA2:')
+         REWIND IFILE
+         CALL DATUM(IFILE,126,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,127,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,128,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         WRITE(6,4003)
+ 4003    FORMAT(' The top sketch shows a case where b2=w2. A cor-'/
+     1 ' rugated sheet bonded to a flat sheet is an example of this.'/
+     1 ' The middle sketch shows a case in which b2>w2 where the base'/
+     1 ' is of the type shown in Fig. 31, p 534 (long 1987 paper).'/
+     1 ' In the bottom sketch b2>w2 and the skin under the hats (w2)'/
+     1 ' is the same as the skin midway between hats (flat sheet with'/
+     1 ' individual hats with faying flanges bonded to it).'/
+     1 ' CAUTION: You must be careful in your response to the next'/
+     1 ' prompts to generate the model you really want to analyze.'/)
+      ENDIF
+C END APR 1993
+    5 CONTINUE
+C BEG JULY 1989
+      B2(ILOOP) = 0.
+C BEG AUG 1992
+      IF (ILOOP.EQ.1.AND.ISOGRD.EQ.1) THEN
+         B2(1) = B(1)/3.
+         IBLANK = 26
+         PHRASE = 'width of stringer base, b2'
+         CALL GETVAR(0,B2(ILOOP),ILOOP,2,0,IVAR,VAR,WORDV,IADDV)
+         VARLEG(IVAR) = '     B2('//WORD//')'
+      ENDIF
+C BEG NOV 1995
+C     IF (ISTIF(ILOOP).NE.5.AND.(ISOGRD.EQ.0.OR.ILOOP.EQ.2)) THEN
+      IF (ISOGRD.EQ.0.OR.ILOOP.EQ.2) THEN
+C END AUG 1992
+         IF (ILOOP.EQ.1) THEN
+           IF (ISTIF(1).NE.5)
+     1      CALL DATUM(IFILE,143,1,2,INT,B2(ILOOP),CHARAC,IOUT,0,IPROMP)
+           IF (ISTIF(1).EQ.5) THEN
+            CALL DATUM(IFILE,142,1,2,INT,B2(ILOOP),CHARAC,IOUT,0,IPROMP)
+C BEG JAN 1996
+            IF (B2(1).GT.0.45*B(1)) THEN
+                WRITE(6,*)' b2 must be less than 0.45*b.'
+C END JAN 1996
+                BACKSPACE(IOUT)
+                REWIND IFILE
+                GO TO 5
+            ENDIF
+           ENDIF
+           IF (ISTIF(1).NE.5.AND.B2(ILOOP).LE.0.) THEN
+C END NOV 1995
+             WRITE(6,*)' b2  MUST BE GREATER THAN 0.'
+             WRITE(6,*)' If the wall near the stiffener is the same as'
+             WRITE(6,*)' the wall midway between stiffeners, set b2'
+            WRITE(6,*)' equal to about 1/3 of b. Later, in DECIDE, link'
+             WRITE(6,*)' b2 to b if b is a decision variable in order'
+             WRITE(6,*)' to maintain the b2 = b/3 relationship as the'
+             WRITE(6,*)' dimensions change during optimization cycles.'
+             BACKSPACE(IOUT)
+             REWIND IFILE
+             GO TO 5
+           ENDIF
+C BEG MAR 1992
+            IF (ISTIF(1).EQ.4.AND.B2(1).GT.0.9*B(1)) THEN
+              WRITE(6,*)' b2 must be less than 0.9*b to avoid'
+              WRITE(6,*)' numerical difficulties with Segment 1.'
+              WRITE(6,*)' You may want to set b2 = w2 in this case.'
+              BACKSPACE(IOUT)
+              REWIND IFILE
+              GO TO 5
+            ENDIF
+            IF (ISTIF(1).GT.0.AND.ISTIF(1).LE.3) THEN
+              IF (B2(1).GT.0.5*B(1)) THEN
+                WRITE(6,*)' b2 must be less than 0.5*b.'
+                BACKSPACE(IOUT)
+                REWIND IFILE
+                GO TO 5
+              ENDIF
+            ENDIF
+C END MAR 1992
+         ELSE
+           CALL DATUM(IFILE,144,1,2,INT,B2(ILOOP),CHARAC,IOUT,0,IPROMP)
+         ENDIF
+C
+         CALL GETVAR(0,B2(ILOOP),ILOOP,2,0,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+         VARLEG(IVAR) = '     B2('//WORD//')'
+C END JUNE 1990
+      ENDIF
+C
+    6 CONTINUE
+      IF (ISTIF(ILOOP).NE.5)
+     1  CALL DATUM(IFILE,145,1,2,INT, H(ILOOP),CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(ILOOP).EQ.5)
+     1  CALL DATUM(IFILE,147,1,1,INT, H(ILOOP),CHARAC,IOUT,0,IPROMP)
+C END JULY 1989
+      IF (H(ILOOP).LE.0.) THEN
+         WRITE(6,*)' Stiffener height must be greater than zero.'
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 6
+      ENDIF
+C
+      IWEB = 3
+      IF (ISTIF(ILOOP).EQ.5) IWEB = 2
+      IWEBP = IWEB + 1
+      IWEBM = IWEB - 1
+      CALL GETVAR(0,H(ILOOP),ILOOP,IWEB,0,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+      VARLEG(IVAR) = '      H('//WORD//')'
+C END JUNE 1990
+C BEG NOV 1995
+      IF (ISTIF(ILOOP).EQ.5.AND.B2(ILOOP).GT.0.0) THEN
+         CALL DATUM(IFILE,148,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) IFAYT(ILOOP) = 1
+         WRITE(6,2901)
+C BEG MAR 2009
+ 2901    FORMAT(/' ***** WARNING ***** WARNING ***** WARNING *****'/
+     1 ' The Koiter local postbuckling analysis has not been as well'/
+     1 ' checked out corresponding to the "Y" answer as it has for'/
+     1 ' the "N" answer.'/
+     1 ' **** END WARNING ***** END WARNING ***** END WARNING ****'/)
+C END MAR 2009
+      ENDIF
+C END NOV 1995
+C BEG MAR 2009
+      PHITRS = 1.0 
+C     IF (ISTIF(ILOOP).EQ.5) THEN
+C        CALL DATUM(IFILE,159,1,2,INT,PHITRS,CHARAC,IOUT,0,IPROMP)
+C        REWIND IFILE
+C     ENDIF
+C END MAR 2009
+      IF (ISTIF(ILOOP).NE.3.AND.ISTIF(ILOOP).NE.5) THEN
+    7 CONTINUE
+        CALL DATUM(IFILE,150,1,1,INT, W(ILOOP),CHARAC,IOUT,0,IPROMP)
+        IF (W(ILOOP).LE.0.) THEN
+           WRITE(6,*)' Stiffener flange width must be greater than 0.'
+           BACKSPACE(IOUT)
+           REWIND IFILE
+           GO TO 7
+        ENDIF
+        CALL GETVAR(0,W(ILOOP),ILOOP,4,0,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+        VARLEG(IVAR) = '      W('//WORD//')'
+C END JUNE 1990
+      ENDIF
+C BEG MAR 2007
+      IF (ILOOP.EQ.1) PHIHAT = 0.3
+C END MAR 2007
+      IF (ISTIF(ILOOP).EQ.4) THEN
+    8    CONTINUE
+         CALL DATUM(IFILE,152,1,1,INT,W2(ILOOP),CHARAC,IOUT,0,IPROMP)
+         IF (W2(ILOOP).LE.0.) THEN
+            WRITE(6,*)' Hat base width, w2, must be greater than zero.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 8
+         ENDIF
+         CALL GETVAR(0,W2(ILOOP),ILOOP,2,0,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+         VARLEG(IVAR) = '     W2('//WORD//')'
+C END JUNE 1990
+C
+         IFAY(ILOOP) = 0
+         IF (B2(ILOOP).GT.W2(ILOOP)) THEN
+            CALL DATUM(IFILE,153,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) IFAY(ILOOP) = 1
+         ENDIF
+C BEG MAR 2007
+         CALL DATUM(IFILE,157,1,2,INT,PHIHAT,CHARAC,IOUT,0,IPROMP)
+         IF (PHIHAT.LT.0.01) PHIHAT = 0.3
+         REWIND IFILE
+C        IF (ILOOP.EQ.1)
+C    1   CALL GETVAR(0,PHIHAT,ILOOP,0,0,IPAR,PAR,WORDP,IADDP)
+C END MAR 2007
+      ENDIF
+C
+C BEG JULY 1989
+      IF (ISTIF(ILOOP).NE.0.AND.ISTIF(ILOOP).NE.5) THEN
+C BEG AUG 1992
+         IF (ILOOP.EQ.1.AND.ISOGRD.EQ.0)
+     1      CALL DATUM(IFILE,154,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ILOOP.EQ.1.AND.ISOGRD.EQ.1)
+     1      CALL DATUM(IFILE,155,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END AUG 1992
+         IF (ILOOP.EQ.2)
+     1      CALL DATUM(IFILE,156,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) ICOCUR(ILOOP) = 0
+C BEG FEB 1999
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ILOOP.EQ.2.AND.ICOCUR(1).EQ.0.AND.ICOCUR(2).EQ.1) THEN
+            WRITE(6,'(/,A,/,A,/,A,/,A,/,A,/)')
+     1    ' The stringers are not cocured with the panel skin.',
+     1    ' Therefore, the rings cannot be cocured either. Even',
+     1    ' though you have just indicated that the rings are cocured',
+     1    ' with the panel skin, PANDA2 is disallowing it. Therefore,',
+     1    ' in this case the rings will NOT be cocured with the skin.'
+            ICOCUR(2) = 0
+         ENDIF
+C END FEB 1999
+         FCOCUR = ICOCUR(ILOOP)
+         CALL GETVAR(0,FCOCUR,ILOOP,0,0,IPAR,PAR,WORDP,IADDP)
+      ENDIF
+C END JULY 1989
+      IF (ILOOP.EQ.1) THEN
+         CALL DATUM(IFILE,158,1,2,INT,SIGLUE(1),CHARAC,IOUT,0,IPROMP)
+         CALL GETVAR(0,SIGLUE(1),ILOOP,0,0,IALLOW,ALLOW,WORDA,IADDA)
+         WRDGLU = WORDA(IALLOW)
+      ENDIF
+   10 CONTINUE
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+C BEG JULY 1989
+      IF (ILOOP.EQ.2) THEN
+C BEG SEP 2004
+         NLAYER(1,2) = NLAYER(1,1)
+C END SEP 2004
+         ISTART = 2
+         IF (B2(ILOOP).EQ.0.) ISTART = 3
+      ENDIF
+C END JULY 1989
+      IF (ISTART.GT.IEND) GO TO 100
+      DO 60 I = ISTART,IEND
+C BEG DEC 2004
+         IF (ILOOP.EQ.1.AND.I.EQ.1) WORD = 'SKN'
+         IF (I.EQ.2.AND.ISOGRD.EQ.1.AND.ILOOP.EQ.1) THEN
+            WORD = WORDSV
+            GO TO 60
+         ENDIF
+C END DEC 2004
+      IF (I.NE.1) REWIND IFILE
+C BEG JULY 1989
+      IF (ILOOP.EQ.2.OR.I.GT.ISTART)
+C BEG FEB 1995
+C BEG MAY 1997
+     1  CALL MODULE(IFILE,IOUT,ISTIF(ILOOP),IPROMP,IFAY(ILOOP),ILOOP,
+     1              IZSTIF(ILOOP))
+C END MAY 1997
+C END FEB 1995
+C END JULY 1989
+      IF (I.EQ.1) CALL DATUM(IFILE,160,0,0,INT,REALL,CHARAC,IOUT,0,
+     1                       IPROMP)
+C BEG JULY 1989
+C BEG MAY 1997
+      IF (I.EQ.2.AND.ISTIF(ILOOP).NE.5.AND.IZSTIF(ILOOP).EQ.0)
+     1  CALL DATUM(IFILE,161,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (I.EQ.2.AND.ISTIF(ILOOP).NE.5.AND.IZSTIF(ILOOP).EQ.1) THEN
+        CALL DATUM(IFILE,169,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+        REWIND IFILE
+      ENDIF
+C END MAY 1997
+C END JULY 1989
+      IF (I.EQ.3) CALL DATUM(IFILE,162,0,0,INT,REALL,CHARAC,IOUT,0,
+     1                       IPROMP)
+      IF (I.EQ.4) CALL DATUM(IFILE,163,0,0,INT,REALL,CHARAC,IOUT,0,
+     1                       IPROMP)
+C
+      IGROUP = 0
+      IBEG   = 1
+      CALL DATUM(IFILE,164,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 16
+   14 CONTINUE
+      REWIND IFILE
+      IGROUP = IGROUP + 1
+      CALL DEFALT(ISTIF(ILOOP),IFILE,I,ILOOP,LTMAX,IWIND(I,ILOOP),
+     1               LTYPE(IBEG,I,ILOOP),T,ANGLE,IVAR,VAR,WORDV,IADDV,
+     1               IPAR,PAR,WORDP,IADDP,MATL,IOUT,IGROUP,LBEGIN,IBEG,
+     1               IPROMP,VARLEG,WORD)
+C BEG AUG 1992
+      IF (ISOGRD.EQ.1.AND.ILOOP.EQ.1.AND.I.EQ.1) THEN
+         DO 15 NLAY = 1,12
+            ILAY = IBEG + NLAY - 1
+            LTYPE(ILAY,2,1) = LTYPE(ILAY,1,1)
+   15    CONTINUE
+      ENDIF
+C END AUG 1992
+C
+C BEG JULY 1989
+      IVMORE = IVMAX - IVAR
+        WRITE(6,*)' '
+        WRITE(6,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+        WRITE(6,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+        WRITE(6,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+        WRITE(6,*)' '
+C END JULY 1989
+      IBEG = IBEG + 12
+C
+   16 CONTINUE
+C BEG AUG 1992
+      IF (ILOOP.EQ.1.AND.I.EQ.1) THEN
+         REWIND IFILE
+C BEG FEB 1995
+C BEG MAY 1997
+         CALL MODULE(IFILE,IOUT,ISTIF(ILOOP),IPROMP,IFAY(ILOOP),ILOOP,
+     1               IZSTIF(ILOOP))
+C END MAY 1997
+C END FEB 1995
+      ENDIF
+C END AUG 1992
+      IF (IBEG.GT.1) THEN
+C BEG JAN 2004
+         CALL DATUM(IFILE,186,1,2,INT,REALL,ANSOUT,IOUT,I,IPROMP)
+C END JAN 2004
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            NLAYER(I,ILOOP) = IBEG - 1
+C BEG AUG 1992
+            IF (ISOGRD.EQ.1.AND.ILOOP.EQ.1.AND.I.EQ.1) THEN
+                NLAYER(2,1) = NLAYER(1,1)
+                IWIND(2,1)  = IWIND(1,1)
+            ENDIF
+C END AUG 1992
+            GO TO 50
+         ELSE
+            REWIND IFILE
+            CALL DATUM(IFILE,165,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSWER,INFILE)) GO TO 14
+C BEG JAN 2004
+C BEG JUN 2004
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ISOGRD.EQ.0.AND.I.EQ.1) THEN
+               CALL DATUM(IFILE,187,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+               IF (ANSL1('Y',ANSWER,INFILE)) GO TO 17 
+            ENDIF
+C END JUN 2004
+C END JAN 2004
+         ENDIF
+C BEG JAN 2004
+         GO TO 19
+   17    CONTINUE
+         NLAYER(I,ILOOP) = IBEG - 1
+C Next, read in data pertaining to sub-stiffener "layer".
+         REWIND IFILE
+         KLAYER(I,ILOOP) = KLAYER(I,ILOOP) + 1
+         IF (I.EQ.2.AND.NB2(1,1,1).EQ.1) GO TO 187
+  173    CONTINUE
+         ISOSUB(1,I,ILOOP) = 0
+         ISOSUB(2,1,ILOOP) = 0
+         CALL DATUM(IFILE,188,1,2,INT,REAL,ANSWER,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSWER,INFILE)) ISOSUB(1,I,ILOOP) = 1 
+C        IF (JSET.EQ.2) THEN
+C           IF (ISOSUB(1,I,ILOOP).EQ.0.AND.
+C    1          ISOSUB(2,I,ILOOP).EQ.1) THEN
+C              WRITE(6,*)' First subset is not isogrid. Therefore,'
+C              WRITE(6,*)' second subset cannot be isogrid.'
+C              BACKSPACE(IOUT)
+C              REWIND IFILE
+C              GO TO 173
+C           ENDIF
+C           IF (ISOSUB(1,I,ILOOP).EQ.1.AND.
+C    1          ISOSUB(2,I,ILOOP).EQ.0) THEN
+C              WRITE(6,*)' First subset is isogrid. Therefore,'
+C              WRITE(6,*)' second subset must also be isogrid.'
+C              BACKSPACE(IOUT)
+C              REWIND IFILE
+C              GO TO 173
+C           ENDIF
+C        ENDIF
+         CALL DATUM(IFILE,189,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         ISUBST = 0
+   18    CONTINUE
+         REWIND IFILE
+         ISUBST = ISUBST + 1
+         WRITE(CK1,'(I1)') ISUBST
+C        WRITE(CK2,'(I1)') JSET
+         WRITE(CK3,'(I1)') I
+         WRITE(CK4,'(I1)') ILOOP
+         CALL DATUM(IFILE,190,1,2,NSURF(ISUBST,I,ILOOP),
+     1                             REALL,CHARAC,IOUT,ISUBST,IPROMP)
+         CALL DATUM(IFILE,191,1,2,NB2(ISUBST,I,ILOOP),
+     1                             REALL,CHARAC,IOUT,ISUBST,IPROMP)
+         IF (ISUBST.EQ.2.AND.NB2(1,I,ILOOP).EQ.1) NB2(2,I,ILOOP) = 1
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         CALL DATUM(IFILE,192,1,2,INT,TSUB(ISUBST,I,ILOOP),
+     1                                   CHARAC,IOUT,ISUBST,IPROMP)
+         CALL GETVAR(ISUBST,TSUB(ISUBST,I,ILOOP),ILOOP,I,ISUBST,
+     1                                         IVAR,VAR,WORDV,IADDV)
+         VARLEG(IVAR) =
+     1 '  TSUB('//CK1//','//CK3//','//CK4//')'
+C
+         CALL DATUM(IFILE,193,1,2,INT,HSUB(ISUBST,I,ILOOP),
+     1                                   CHARAC,IOUT,ISUBST,IPROMP)
+         CALL GETVAR(ISUBST,HSUB(ISUBST,I,ILOOP),ILOOP,I,ISUBST,
+     1                                         IVAR,VAR,WORDV,IADDV)
+         VARLEG(IVAR) =
+     1 '  HSUB('//CK1//','//CK3//','//CK4//')'
+C
+  183    CONTINUE
+         CALL DATUM(IFILE,194,1,2,INT,THSUB(ISUBST,I,ILOOP),
+     1                                   CHARAC,IOUT,ISUBST,IPROMP)
+C  check for correctness of angle of substiffeners...
+         DIF1 = ABS(THSUB(ISUBST,I,ILOOP))
+         IF (DIF1.LT.0.01) THEN
+            THSUB(ISUBST,I,ILOOP) = 0.
+            IF (ISOSUB(1,I,ILOOP).NE.0) ISOTYP(1,I,ILOOP) = 2
+            GO TO 185
+         ENDIF
+         DIF2 = ABS(ABS(THSUB(ISUBST,I,ILOOP)) - 90.)/90.
+         IF (DIF2.LT.0.01) THEN
+            THSUB(ISUBST,I,ILOOP) = 90.
+            IF (ISOSUB(1,I,ILOOP).NE.0) ISOTYP(1,I,ILOOP) = 1
+            GO TO 185
+         ENDIF
+         WRITE(6,*)' Substiffener angle must be either 0 or 90'
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 183
+  185    CONTINUE
+C        CALL GETVAR(ISUBST,THSUB(ISUBST,I,ILOOP),ILOOP,I,ISUBST,
+C    1                                         IVAR,VAR,WORDV,IADDV)
+C        VARLEG(IVAR) =
+C    1 ' THSUB('//CK1//','//CK3//','//CK4//')('//WORD//')'
+C
+         CALL DATUM(IFILE,195,1,2,INT,BSUB(ISUBST,I,ILOOP),
+     1                                   CHARAC,IOUT,ISUBST,IPROMP)
+         CALL GETVAR(ISUBST,BSUB(ISUBST,I,ILOOP),ILOOP,I,ISUBST,
+     1                                         IVAR,VAR,WORDV,IADDV)
+         VARLEG(IVAR) =
+     1 '  BSUB('//CK1//','//CK3//','//CK4//')'
+C
+C BEG JUN 2004
+         IF (ISOSUB(1,I,ILOOP).EQ.0) THEN
+          SUBSTI = 'substr'
+          IF (ABS(THSUB(ISUBST,I,ILOOP)).GT.45.0) SUBSTI = 'subrng'
+         ELSE
+          SUBSTI = 'subiso'
+         ENDIF
+         VARLEG(IVAR)   = ' BSUB,'//SUBSTI
+         VARLEG(IVAR-1) = ' HSUB,'//SUBSTI
+         VARLEG(IVAR-2) = ' TSUB,'//SUBSTI
+C
+         CALL DATUM(IFILE,196,1,2,MATSUB(ISUBST,I,ILOOP),REALL,
+     1                                   CHARAC,IOUT,ISUBST,IPROMP)
+         MATMXS = MAX(MATMXS,MATSUB(ISUBST,I,ILOOP))
+C
+         IF (I.EQ.1.AND.ILOOP.EQ.1.AND.ISOSUB(1,1,1).EQ.0) THEN
+            IF (THSUB(ISUBST,I,ILOOP).LT.45.0) THEN
+               B0SUB(1) = BSUB(ISUBST,I,ILOOP)
+              B20SUB(1) = 0.1*B0SUB(1)
+               H0SUB(1) = HSUB(ISUBST,I,ILOOP)
+               BSUBX(1) = B0SUB(1)
+              B2SUBX(1) = B20SUB(1)
+               HSUBX(1) = H0SUB(1)
+              INTXSB(1) = NSURF(ISUBST,I,ILOOP)
+              NLAYSB(1,1) = NLAYER(1,1)
+              NLAYSB(2,1) = NLAYSB(1,1)
+              NLAYSB(3,1) = 1
+              IMTSUB(I,1) = MATSUB(ISUBST,I,ILOOP)
+            ENDIF
+C
+            IF (THSUB(ISUBST,I,ILOOP).GE.45.0) THEN
+               B0SUB(2) = BSUB(ISUBST,I,ILOOP)
+              B20SUB(2) = 0.0 
+               H0SUB(2) = HSUB(ISUBST,I,ILOOP)
+               BSUBX(2) = B0SUB(2)
+              B2SUBX(2) = B20SUB(2)
+               HSUBX(2) = H0SUB(2)
+              INTXSB(2) = NSURF(ISUBST,I,ILOOP)
+              NLAYSB(1,2) = NLAYER(1,2)
+              NLAYSB(2,2) = NLAYSB(1,2)
+              NLAYSB(3,2) = 1
+              IMTSUB(I,2) = MATSUB(ISUBST,I,ILOOP)
+            ENDIF
+         ENDIF
+C END JUN 2004
+C
+         IF (I.LE.IWEB.AND.NB2(1,1,1).EQ.1) THEN
+C  substiffeners are continued into stiffener base of width B2...
+            TSUB(ISUBST,2,ILOOP) = TSUB(ISUBST,1,1)
+            HSUB(ISUBST,2,ILOOP) = HSUB(ISUBST,1,1)
+            BSUB(ISUBST,2,ILOOP) = BSUB(ISUBST,1,1)
+            THSUB(ISUBST,2,ILOOP) = THSUB(ISUBST,1,1)
+            IF (ILOOP.EQ.2)
+     1      THSUB(ISUBST,2,ILOOP) = ABS(ABS(THSUB(ISUBST,1,1))-90.)
+            MATSUB(ISUBST,2,ILOOP) = MATSUB(ISUBST,1,1)
+            NSURF(ISUBST,2,ILOOP) = NSURF(ISUBST,1,1)
+            ISOTYP(ISUBST,2,ILOOP) = ISOTYP(ISUBST,1,1)
+            ISOSUB(ISUBST,2,ILOOP) = ISOSUB(ISUBST,1,1)
+            NB2(ISUBST,2,ILOOP) = NB2(1,1,1)
+            NB2(2,1,ILOOP) = NB2(1,1,1)
+            KLAYER(2,ILOOP) = KLAYER(1,1)
+         ENDIF
+C
+         IF (ISOSUB(1,I,ILOOP).EQ.0) THEN
+            CALL DATUM(IFILE,197,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSWER,INFILE)) GO TO 18
+         ENDIF
+C
+  187    CONTINUE
+C        CALL DATUM(IFILE,198,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+C        IF (ANSL1('Y',ANSWER,INFILE)) GO TO 17
+C
+         IVMORE = IVMAX - IVAR
+         WRITE(6,*)' '
+         WRITE(6,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+         WRITE(6,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+         WRITE(6,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+         WRITE(6,*)' '
+C
+         GO TO 50
+   19    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JAN 2004
+      ENDIF
+C
+      CALL DATUM(IFILE,166,1,2,NLAY,REALL,CHARAC,IOUT,I,IPROMP)
+      IF (ILOOP.EQ.2.AND.I.EQ.2)
+     1CALL DATUM(IFILE,167,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,168,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IWIND(I,ILOOP) = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) IWIND(I,ILOOP) = 1
+C BEG AUG 1992
+      IF (ISOGRD.EQ.1.AND.ILOOP.EQ.1.AND.I.EQ.1) IWIND(2,1)=IWIND(1,1)
+C END AUG 1992
+C
+      DO 30 J = 1,NLAY
+C
+      L = J + IBEG - 1
+      REWIND IFILE
+   20 CONTINUE
+      CALL DATUM(IFILE,170,1,2,LTYPE(L,I,ILOOP),REALL,CHARAC,IOUT,L,
+     1           IPROMP)
+C BEG AUG 1992
+      IF (ISOGRD.EQ.1.AND.ILOOP.EQ.1.AND.I.EQ.1) 
+     1    LTYPE(L,2,1) = LTYPE(L,1,1)
+C END AUG 1992
+      CALL DATUM(IFILE,172,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         IF (LTYPE(L,I,ILOOP).GT.LTMAX) THEN
+            WRITE(6,*)' LAYER INDEX MUST EQUAL INDEX OF A PREVIOUS'
+            WRITE(6,*)' LAYER. PLEASE TRY AGAIN.'
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 20
+         ENDIF
+         GO TO 30
+      ENDIF
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         IF (LTYPE(L,I,ILOOP).LE.LTMAX) THEN
+            WRITE(6,*)' LAYER INDEX MUST BE HIGHER THAN ANY PREVIOUSLY'
+            WRITE(6,*)' ASSIGNED LAYER INDEX. PLEASE TRY AGAIN.'
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 20
+         ENDIF
+         IF (LTYPE(L,I,ILOOP).GT.(LTMAX+1)) THEN
+            WRITE(6,22) LTMAX+1
+   22       FORMAT(/' LAYER INDEX IS TOO HIGH. PLEASE MAKE IT ONE MORE'/
+     1              ' THAN PREVIOUS HIGHEST VALUE, THAT IS, SET'/
+     1              ' LAYER INDEX =',I3/)
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 20
+         ENDIF
+      ENDIF
+C
+C  NEW LAYER TYPE.  READ IN THICKNESS, WINDING ANGLE, MATERIAL TYPE...
+C
+      K = LTYPE(L,I,ILOOP)
+      LTMAX = K
+      CALL DATUM(IFILE,176,0,0,INT,REALL,CHARAC,IOUT,K,IPROMP)
+      CALL DATUM(IFILE,180,1,1,INT,T(K),CHARAC,IOUT,K,IPROMP)
+      CALL GETVAR(K,T(K),ILOOP,I,L,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+      IF(K.GE.10) THEN
+         WRITE(CK,'(I2)') K
+      ELSE
+         WRITE(CK,'(I1)') K
+      ENDIF
+      VARLEG(IVAR) = '  T('//CK//')('//WORD//')'
+C END JUNE 1990
+C BEG JAN 2004
+      CALL DATUM(IFILE,183,1,2,INT,ANGLE(K),CHARAC,IOUT,K,IPROMP)
+C END JAN 2004
+      IF (IWIND(I,ILOOP).EQ.1) THEN
+         CALL GETVAR(K,ANGLE(K),ILOOP,I,L,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+         VARLEG(IVAR) = 'ANG('//CK//')('//WORD//')'
+C END JUNE 1990
+      ELSE
+         CALL GETVAR(K,ANGLE(K),ILOOP,I,L,IPAR,PAR,WORDP,IADDP)
+      ENDIF
+C BEG JULY 1989
+      IVMORE = IVMAX - IVAR
+      IF (IVMORE.LT.IVAR) THEN
+        WRITE(6,*)' '
+        WRITE(6,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+        WRITE(6,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+        WRITE(6,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+        WRITE(6,*)' '
+      ENDIF
+      IF (IVMORE.LT.0) THEN
+       WRITE(6,*)' YOU HAVE TOO MANY VARIABLES. REDEFINE THE PROBLEM.'
+       CALL ERREX
+      ENDIF
+C END JULY 1989
+C
+C BEG JAN 2004
+   28 CALL DATUM(IFILE,184,1,2,MATL(K),REALL,CHARAC,IOUT,K,IPROMP)
+C END JAN 2004
+         IF (MATL(K).LE.0) THEN
+          WRITE(6,*)' POINTER FOR MATERIAL TYPE MUST BE 1 OR GREATER'
+          REWIND IFILE
+          BACKSPACE(IOUT)
+          GO TO 28
+         ENDIF
+C
+   30 CONTINUE
+C
+      IBEG = IBEG + NLAY
+      GO TO 16
+C
+   50 CONTINUE
+C BEG JULY 1989
+      IF (ILOOP.EQ.1.AND.ISTIF(1).NE.5.AND.I.EQ.2) THEN
+C END JULY 1989
+         N21 = NLAYER(2,1)
+         N11 = NLAYER(1,1)
+         DO 57 J = 1,N21
+         DO 55 JJ = 1,N11
+C BEG MAY 1997
+         IF (LTYPE(J,2,1).EQ.LTYPE(JJ,1,1)) GO TO 59
+C END MAY 1997
+   55    CONTINUE
+   57    CONTINUE
+C BEG MAY 1997
+         IF (IZSTIF(1).EQ.1) GO TO 59
+C END MAY 1997
+         WRITE(6,58)
+C BEG DEC 1996
+   58    FORMAT(//' ****** NOTE ******'/
+     1' AT LEAST ONE OF THE LAYERS IN SEGMENT 2 (STRINGER BASE)'/
+     1' SHOULD ORDINARILY BE OF THE SAME TYPE AS ONE OF THE LAYERS'/
+     1' IN SEGMENT 1. IF THE STRINGER BASE IS A THICKENED REGION,'/
+     1' YOU SHOULD ORDINARILY MODEL IT AS BEING COMPOSED OF ALL'/
+     1' THE LAYERS IN SEGMENT 1 PLUS ADDITIONAL LAYER(S). THERE IS'/
+     1' AN EXCEPTION TO THIS RULE: IF YOU WANT TO TAKE ADVANTAGE OF'/
+     1' "BENDING OVERSHOOT" (see ...panda2/doc/panda2.news ITEM 299)'/
+     1' IN SEGMENT NO. 1, WHICH YOU CAN ONLY DO IF SEG. 1 HAS ONE'/
+     1' LAYER, THEN IT IS OK TO USE ALL DIFFERENT LAYER TYPES IN THE'/
+     1' STRINGER BASE. HOWEVER, REMEMBER IN "DECIDE" TO LINK THE'/
+     1' THICKNESS OF THE "NEW" LAYER TYPE IN THE STRINGER BASE TO THE'/
+     1' THICKNESS IN SEGMENT 1 IF THAT "NEW" LAYER TYPE IS ACTUALLY'/
+     1' EXPECTED ALWAYS TO HAVE THE SAME THICKNESS AS SEGMENT 1. ALSO,'/
+     1' THE "NEW" LAYER TYPE MUST HAVE A MATERIAL TYPE THAT IS'/
+     1' DIFFERENT FROM THAT OF THE "BENDING OVERSHOOT" MATERIAL IN'/
+     1' SEGMENT 1, EVEN IF IN FACT THE MATERIAL IS THE SAME.'/
+     1' ***** END OF NOTE ******')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG MAY 1997
+         IF (NLAYER(1,1).GT.1) CALL EXIT
+         REWIND IFILE
+C BEG JAN 2004
+         CALL DATUM(IFILE,199,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END JAN 2004
+         IF (ANSL1('N',ANSOUT,INFILE)) CALL EXIT
+C END DEC 1996
+      ENDIF
+C BEG MAY 1997
+   59 CONTINUE
+C END MAY 1997
+C BEG OCT 1996
+      IF (NLAYER(I,ILOOP).EQ.1) THEN
+         MCAND = MATL(K)
+         ICAND(MCAND) = 1
+      ENDIF
+C END OCT 1996
+C BEG DEC 2004
+      WORD = WORDSV
+C END DEC 2004
+C
+   60 CONTINUE
+C
+      INTEXT(ILOOP) = 0
+      IF (ISTIF(ILOOP).NE.0.AND.ISTIF(ILOOP).NE.5) THEN
+C BEG AUG 1992
+         IF (ILOOP.EQ.1.AND.ISOGRD.EQ.0)
+     1     CALL DATUM(IFILE,200,1,2,INTEXT(ILOOP),REALL,CHARAC,
+     1                IOUT,0,IPROMP)
+         IF (ILOOP.EQ.1.AND.ISOGRD.EQ.1)
+     1     CALL DATUM(IFILE,202,1,2,INTEXT(ILOOP),REALL,CHARAC,
+     1                IOUT,0,IPROMP)
+C END AUG 1992
+C BEG OCT 1998
+         IF (ILOOP.EQ.2) THEN
+            INTRNG = 0
+            CALL DATUM(IFILE,205,1,2,INTEXT(ILOOP),
+     1                              REALL,CHARAC,IOUT,0,IPROMP)
+            INTRNG = INTEXT(ILOOP)
+         ENDIF
+C END OCT 1998
+         RINT = INTEXT(ILOOP)
+         CALL GETVAR(0,RINT,ILOOP,0,0,IPAR,PAR,WORDP,IADDP)
+      ENDIF
+C
+  100 CONTINUE
+C
+C BEG JULY 1989
+      IVMORE = IVMAX - IVAR
+        WRITE(6,*)' '
+        WRITE(6,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+        WRITE(6,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+        WRITE(6,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+        WRITE(6,*)' '
+C END JULY 1989
+C
+C BEG APR 2009
+      RCOLD  = 10.E+17
+      FN1WEB = 0.0
+      FLGCLD = 0.0
+C END APR 2009
+      R = 10000.*SQRT(AXIAL**2 + CIRC**2)
+      RAD2 = 10000.*SQRT(AXIAL**2 + CIRC**2)
+      CURV2 = 0.
+C BEG JUNE 1990
+      IFLAT = 1
+C END JUNE 1990
+      CALL DATUM(IFILE,215,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+C BEG JUNE 1990
+         IFLAT = 0
+C END JUNE 1990
+C
+C BEG JULY 1989
+         IF (ISTIF(1).EQ.0) THEN
+             WRITE(6,105)
+             WRITE(6,106)
+  105        FORMAT(/
+     1     ' Please note that with this type of geometry (cylindrical'/
+     1     ' panel with no axial stiffeners) it is best to do an'/
+     1     ' IQUICK = 1 analysis. (IQUICK is defined in MAINSETUP.)'/
+     1     ' If you want to get plots of the cross-section of the'/
+     1     ' buckled cylindrical panel, see PANDA2.NEWS Item 25.'/
+     1     ' If you want to do an IQUICK=0 type of analysis, put in'/
+     1     ' "fake" stocky stringers with very low axial stiffness'/
+     1     ' (C11 = C11(panel skin)/100000).  Space the "fake"'/
+     1     ' stringers at intervals of R/3 to R/5. DO NOT INCLUDE'/
+     1     ' TRANSVERSE SHEAR DEFORMATION EFFECTS!!! The very weak'/
+     1     ' stringers cause havoc!'/)
+  106      FORMAT(
+     1     ' Although under certain circumstances PANDA2 will reveal'/
+     1     ' some imperfection sensitivity of unstiffened cylindrical'/
+     1     ' shells (See PANDA2.NEWS Item 26), the degree of this'/
+     1     ' imperfection sensitivity is not in agreement with that'/
+     1     ' established in the literature for homogeneous, isotropic'/
+     1     ' cylindrical shells in axial compression.  When designing'/
+     1     ' unstiffened cylindrical shells it is best to use'/
+     1     ' IQUICK = 1 and a factor of safety for general instability'/
+     1     ' that is large enough to ensure a safe design for the load'/
+     1     ' combinations that you will later provide.'/)
+C
+         ENDIF
+C  END JULY 1989
+C
+       CALL DATUM(IFILE,220,1,2,INT,R,CHARAC,IOUT,0,IPROMP)
+       IF (INTEXT(1).EQ.1)  R = - ABS(R)
+       IF (INTEXT(1).EQ.0)  R =   ABS(R)
+      ENDIF
+C
+      IF (INTEXT(2).EQ.INTEXT(1)) THEN
+         INTEXT(2) = 0
+      ELSE
+         INTEXT(2) = 1
+      ENDIF
+C
+      INTEXT(1) = 0
+      CALL DATUM(IFILE,222,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+       CALL DATUM(IFILE,223,1,2,INT,RAD2,CHARAC,IOUT,0,IPROMP)
+       CURV2 = 1./RAD2
+      ENDIF
+      IBLANK = 45
+      PHRASE = 'Radius of curvature in the plane of screen, R'
+      CALL GETVAR(0,R,0,0,0,IPAR,PAR,WORDP,IADDP)
+      IBLANK = 49
+      PHRASE ='Radius of curvature normal to plane of screen, R2'
+      CALL GETVAR(0,RAD2,0,0,0,IPAR,PAR,WORDP,IADDP)
+C
+      CALL MOVER(B,1,B0,1,10)
+C
+      MAXMAT = 1
+      DO 110 I = 1,90
+      MAXMAT = MAX(MAXMAT,MATL(I))
+  110 CONTINUE
+C BEG JAN 2004
+      IF (MATMXS.GT.MAXMAT) MAXMAT = MATMXS
+C END JAN 2004
+C
+      CALL DATUM(IFILE,225,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C
+      CALL MOVER(0.,0,TAPE,1,140)
+C
+C BEG 26 JAN 1989
+      CALL MOVER(1000000.,0,TEMPJ,1,2000)
+      DO 199 I = 1,10
+      DO 199 J = 1,20
+  199 TEMPJ(1,J,I) = -1000000.
+      CALL MOVER(1.,0,FTEMPJ,1,2000)
+      CALL MOVER(0,0,IDUMMY,1,20)
+C END 26 JAN 1989
+C
+C BEG JULY 2007
+C     WRITE(6,'(A,I5)') ' MAXMAT=',MAXMAT
+C END JULY 2007
+      DO 200 I = 1,MAXMAT
+C
+      IPMATL(I) = 0
+      REWIND IFILE
+      CALL DATUM(IFILE,227,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      WRITE(6,115) I
+      IF (IPROMP.GT.1) WRITE(IPROMP,115) I
+  115 FORMAT(//' MATERIAL PROPERTIES FOR MATERIAL TYPE',I3)
+      CALL DATUM(IFILE,230,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      ISOMAT(I) = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+C  ISOTROPIC MATERIAL...
+        ISOMAT(I) = 1
+        CALL DATUM(IFILE,232,1,1,INT,E1(I),CHARAC,IOUT,I,IPROMP)
+C BEG 26 JAN 1989
+        CALL GETVAR(I,E1(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1              IDUMMY)
+C END 26 JAN 1989
+        IBLANK = 34
+        PHRASE = 'modulus in the fiber direction, E1'
+        CALL GETVAR(I,E1(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        E2(I) = E1(I)
+        PHRASE = 'modulus transverse to fibers,   E2'
+        CALL GETVAR(I,E2(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        CALL DATUM(IFILE,234,1,1,INT,FNU(I),CHARAC,IOUT,I,IPROMP)
+C BEG 26 JAN 1989
+        CALL GETVAR(I,FNU(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1              IDUMMY)
+C END 26 JAN 1989
+        G(I) = E1(I)/(2.*(1.+FNU(I)))
+        PHRASE = 'in-plane shear modulus,          G'
+        CALL GETVAR(I,G(I), 0,0,0,IPAR,PAR,WORDP,IADDP)
+        PHRASE = 'Poissons ratio                  NU'
+        CALL GETVAR(I,FNU(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+  116   CONTINUE
+        CALL DATUM(IFILE,235,1,2,INT,G13(I),CHARAC,IOUT,I,IPROMP)
+        IF (G13(I).LE.(0.1*G(I))) THEN
+           WRITE(6,*)' PLEASE USE LARGER VALUE FOR G13. '
+           WRITE(6,*)' THE SMALL VALUE YOU HAVE PROVIDED WILL CAUSE'
+           WRITE(6,*)' TROUBLE IF YOU CHOOSE TO INCLUDE TRANSVERSE'
+           WRITE(6,*)' SHEAR DEFORMATIONS IN YOUR BUCKLING ANALYSES.'
+           BACKSPACE(IOUT)
+           REWIND IFILE
+           GO TO 116
+        ENDIF
+C
+C BEG 26 JAN 1989
+        CALL GETVAR(I,G13(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1              IDUMMY)
+C END 26 JAN 1989
+        CALL GETVAR(I,G13(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        G23(I) = G13(I)
+        PHRASE = 'transverse out-of-plane shear  G23'
+        CALL GETVAR(I,G23(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        CALL DATUM(IFILE,236,1,1,INT,ALPHA1(I),CHARAC,IOUT,I,IPROMP)
+C BEG 26 JAN 1989
+        CALL GETVAR(I,ALPHA1(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1              IDUMMY)
+C END 26 JAN 1989
+        CALL GETVAR(I,ALPHA1(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        ALPHA2(I) = ALPHA1(I)
+        PHRASE = 'transverse thermal expansion,   A2'
+        CALL GETVAR(I,ALPHA2(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        CALL DATUM(IFILE,237,1,2,INT,CURETP(I),CHARAC,IOUT,I,IPROMP)
+        CALL GETVAR(I,CURETP(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+        STSMAX(I) = E1(I)
+        DO 117 J = 1,5
+  117   STNMAX(J,I) = E1(I)
+        STRAIN(1,I) = 0.
+        STRAIN(2,I) = 1.
+        STRESS(1,I) = 0.
+        STRESS(2,I) = E1(I)
+C
+C BEG APR 2009
+C       CALL DATUM(IFILE,238,1,1,INT,REALL,CHARAC,IOUT,0,IPROMP)
+        CALL DATUM(IFILE,238,1,2,INT,REALL,CHARAC,IOUT,0,IPROMP)
+        IF (INTRNG.EQ.0.OR.IFLAT.EQ.1) GO TO 190
+C END APR 2009
+        IF (ANSL1('Y',CHARAC,INFILE)) THEN
+C BEG APR 2009
+           RCOLD = ABS(R)
+C END APR 2009
+C  STRESS-STRAIN CURVE...
+           CALL DATUM(IFILE,239,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+           J = 0
+  130      CONTINUE
+           REWIND IFILE
+           J = J + 1
+C BEG APR 2009 (the fourth argument of DATUM was changed from 1 to 2)
+          CALL DATUM(IFILE,240,1,2,INT,STRAIN(J,I),CHARAC,IOUT,J,IPROMP)
+          CALL DATUM(IFILE,241,1,2,INT,STRESS(J,I),CHARAC,IOUT,J,IPROMP)
+C END APR 2009
+          CALL DATUM(IFILE,242,1,1,INT,REALL,ANSWER,IOUT,0,IPROMP)
+          IF (ANSL1('Y',ANSWER,INFILE)) GO TO 130
+C BEG APR 2009
+C   Add one more point to the stress-strain curve for large strain
+C   so that during a run the strain range covered by the stress-strain
+C   curve will not be exceeded...
+          J = J + 1
+          J1 = J - 1
+          STRAIN(J,I) = 1000.*STRAIN(J1,I)
+          STRESS(J,I) = 1.1*STRESS(J1,I)
+C
+          IF (I.EQ.1) THEN
+           FLGCLD = 0.0
+           CALL DATUM(IFILE,270,1,2,INT,REALL,ANSWR2,IOUT,I,IPROMP)
+           IF (ANSL1('Y',ANSWR2,INFILE)) FLGCLD = 1.0 
+           CALL DATUM(IFILE,271,1,2,INT,FN1WEB,CHAR2,IOUT,I,IPROMP)
+           REWIND IFILE
+          ENDIF
+C         GO TO 195
+          GO TO 190
+C END APR 2009
+        ENDIF
+        GO TO 190
+      ENDIF
+C   End of (ANSL1('Y',ANSOUT,INFILE)) condition.
+C
+C BEG OCT 1996
+      CALL DATUM(IFILE,243,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,244,1,1,INT,E1(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,E1(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,E1(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,245,1,1,INT,E2(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,E2(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,E2(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,246,1,1,INT, G(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I, G(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I, G(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      KKOUNT = 0
+  150 CONTINUE
+      CALL DATUM(IFILE,247,1,1,INT,FNU(I),CHARAC,IOUT,I,IPROMP)
+      FNUTST = 1000000.
+      IF (E2(I).NE.0.) FNUTST = FNU(I)*E1(I)/E2(I)
+      DIF    = 1. - FNUTST*FNU(I)
+      IF (DIF.LE.0.) THEN
+         WRITE(6,155)
+  155    FORMAT(/' BAD VALUE FOR POISSONS RATIO. NOTE THAT THERE ARE'/
+     1 ' TWO POISSONS RATIOS, NU12 AND NU21. THE ONE THAT YOU ARE'/
+     1 ' ASKED TO PROVIDE, NU12, IS GIVEN BY:'/
+     1 '               NU12  = NU21*E2/E1'/
+     1 ' THEREFORE, IF E1 IS LARGER THAN E2 (WHICH IS USUALLY THE'/
+     1 ' CASE), YOU MUST PROVIDE AS INPUT HERE THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS.'/)
+C
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 150
+      ENDIF
+C
+      IF (FNUTST.GT.1.0.AND.KKOUNT.EQ.0.AND.E2(I).NE.0.) THEN
+         WRITE(6,156)
+  156    FORMAT(/' POISSONS RATIO MAY BE TOO BIG.  NOTE THAT THERE ARE'/
+     1 ' TWO POISSONS RATIOS, NU12 AND NU21. THE ONE THAT YOU ARE'/
+     1 ' ASKED TO PROVIDE, NU12, IS GIVEN BY:'/
+     1 '               NU12  = NU21*E2/E1'/
+     1 ' THEREFORE, IF E1 IS LARGER THAN E2 (WHICH IS USUALLY THE'/
+     1 ' CASE), YOU MUST PROVIDE AS INPUT HERE THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS.'/)
+         WRITE(6,157)
+  157    FORMAT(/' PANDA2 WILL ASK YOU AGAIN FOR THE POISSONS RATIO.'/
+     1 ' PLEASE MAKE SURE THAT YOU SUPPLY THE SMALLER OF THE TWO'/
+     1 ' POISSONS RATIOS FOR THIS ORTHOTROPIC MATERIAL.'/)
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         KKOUNT = KKOUNT + 1
+         GO TO 150
+      ENDIF
+C
+      CALL GETVAR(I,FNU(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,FNU(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+  160 CONTINUE
+      CALL DATUM(IFILE,248,1,2,INT,G13(I),CHARAC,IOUT,I,IPROMP)
+        IF (G13(I).LE.(0.001*E1(I))) THEN
+           WRITE(6,*)' PLEASE USE LARGER VALUE FOR G13. '
+           WRITE(6,*)' THE SMALL VALUE YOU HAVE PROVIDED WILL CAUSE'
+           WRITE(6,*)' TROUBLE IF YOU CHOOSE TO INCLUDE TRANSVERSE'
+           WRITE(6,*)' SHEAR DEFORMATIONS IN YOUR BUCKLING ANALYSES.'
+           BACKSPACE(IOUT)
+           REWIND IFILE
+           GO TO 160
+        ENDIF
+C
+      CALL GETVAR(I,G13(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,G13(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+  165 CONTINUE
+      CALL DATUM(IFILE,249,1,2,INT,G23(I),CHARAC,IOUT,I,IPROMP)
+        IF (G23(I).LE.(0.001*E1(I))) THEN
+           WRITE(6,*)' PLEASE USE LARGER VALUE FOR G23. '
+           WRITE(6,*)' THE SMALL VALUE YOU HAVE PROVIDED WILL CAUSE'
+           WRITE(6,*)' TROUBLE IF YOU CHOOSE TO INCLUDE TRANSVERSE'
+           WRITE(6,*)' SHEAR DEFORMATIONS IN YOUR BUCKLING ANALYSES.'
+           BACKSPACE(IOUT)
+           REWIND IFILE
+           GO TO 165
+        ENDIF
+C
+      CALL GETVAR(I,G23(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,G23(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,250,1,1,INT,ALPHA1(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,ALPHA1(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,ALPHA1(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,251,1,1,INT,ALPHA2(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,ALPHA2(I),0,0,0,IPMATL(I),PARMAT(1,I),WRDMAT(1,I),
+     1            IDUMMY)
+      CALL GETVAR(I,ALPHA2(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,252,1,2,INT,CURETP(I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,CURETP(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+C
+  190 CONTINUE
+C
+      STSMAX(I) = E1(I)
+      ISOEFF(I) = 0
+      CALL DATUM(IFILE,253,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+        ISOEFF(I) = 1
+        CALL DATUM(IFILE,254,1,1,INT,STSMAX(I),CHARAC,IOUT,I,IPROMP)
+        CALL GETVAR(I,STSMAX(I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+        EMAX = 1.
+        IF (E1(I).GT.0.) EMAX = STSMAX(I)
+        STNMAX(1,I) = EMAX
+        STNMAX(2,I) = EMAX
+        STNMAX(3,I) = EMAX
+        STNMAX(4,I) = EMAX
+        STNMAX(5,I) = EMAX/SQRT(3.)
+        GO TO 195
+      ENDIF
+      CALL DATUM(IFILE,255,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,256,1,1,INT,STNMAX(1,I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,STNMAX(1,I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+      CALL DATUM(IFILE,257,1,1,INT,STNMAX(2,I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,STNMAX(2,I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+      CALL DATUM(IFILE,258,1,1,INT,STNMAX(3,I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,STNMAX(3,I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+      CALL DATUM(IFILE,259,1,1,INT,STNMAX(4,I),CHARAC,IOUT,I,IPROMP)
+      CALL GETVAR(I,STNMAX(4,I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+      CALL DATUM(IFILE,260,1,1,INT,STNMAX(5,I),CHARAC,IOUT,I,IPROMP)
+C END OCT 1996
+      CALL GETVAR(I,STNMAX(5,I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+  195 CONTINUE
+      IBLANK = 41
+      IF (ISOMAT(I).EQ.1.AND.ISOEFF(I).EQ.1) THEN
+        PHRASE = 'Maximum effective stress in material type'
+        CALL GETVAR(I,STSMAX(I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+      ELSE
+        PHRASE = 'maximum tensile stress along fibers, matl'
+        CALL GETVAR(I,STNMAX(1,I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+        PHRASE = 'max compressive stress along fibers, matl'
+        CALL GETVAR(I,STNMAX(2,I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+        PHRASE = 'max tensile stress normal to fibers, matl'  
+        CALL GETVAR(I,STNMAX(3,I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+        PHRASE = 'max compress stress normal to fibers,matl'  
+        CALL GETVAR(I,STNMAX(4,I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+        PHRASE = 'maximum  shear  stress  in  material type'   
+        CALL GETVAR(I,STNMAX(5,I),0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+      ENDIF
+C BEG JULY 1989
+      IAMORE = IAMAX - IALLOW
+      WRITE(6,*)' '
+      WRITE(6,'(I4,A)') IALLOW,' allowables have now been identified.'
+      WRITE(6,'(I4,A)') IAMAX, ' allowables are permitted.'
+      WRITE(6,'(I4,A)') IAMORE,' additional allowables are permitted.'
+      WRITE(6,*)' '
+      IF (IAMORE.LT.0) THEN
+       WRITE(6,*)' YOU HAVE TOO MANY ALLOWABLES. REDEFINE THE PROBLEM.'
+       CALL ERREX
+      ENDIF
+C END JULY 1989
+C BEG OCT 1996 (BENDING OVERSHOOT FACTORS)
+      IF (ICAND(I).NE.0) THEN
+         CALL DATUM(IFILE,262,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,263,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            ICAND(I) = 0
+            GO TO 1956
+         ENDIF
+         IF (ISOMAT(I).EQ.1.AND.ISOEFF(I).EQ.1) THEN
+            CALL DATUM(IFILE,269,1,2,INT,BNDOVR(1,I),CHARAC,
+     1                 IOUT,I,IPROMP)
+            GO TO 1956
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         CALL DATUM(IFILE,264,1,2,INT,BNDOVR(1,I),CHARAC,IOUT,I,IPROMP)
+         CALL DATUM(IFILE,265,1,2,INT,BNDOVR(2,I),CHARAC,IOUT,I,IPROMP)
+         CALL DATUM(IFILE,266,1,2,INT,BNDOVR(3,I),CHARAC,IOUT,I,IPROMP)
+         CALL DATUM(IFILE,267,1,2,INT,BNDOVR(4,I),CHARAC,IOUT,I,IPROMP)
+         CALL DATUM(IFILE,268,1,2,INT,BNDOVR(5,I),CHARAC,IOUT,I,IPROMP)
+      ENDIF
+C END OCT 1996
+ 1956 CONTINUE
+C BEG MAR 2003
+      IF (ICAND(I).NE.0) THEN
+         IF (ISTIF(1).NE.0.OR.ISTIF(2).NE.0) THEN
+	    ICAND(I) = 0
+	    BNDOVR(1,I) = 0.
+	    BNDOVR(2,I) = 0.
+	    BNDOVR(3,I) = 0.
+	    BNDOVR(4,I) = 0.
+	    BNDOVR(5,I) = 0.
+	 ENDIF
+      ENDIF
+ 1958 CONTINUE
+C END MAR 2003
+      CALL DATUM(IFILE,272,1,1,INT,DENS(I),CHARAC,IOUT,I,IPROMP)
+      IF (DENS(I).LE.0.) THEN
+         WRITE(6,*)' DENSITY MUST BE GREATER THAN ZERO.'
+         BACKSPACE(IOUT)
+         REWIND(IFILE)
+         GO TO 1958
+      ENDIF
+C
+C BEG 26 JAN 1989
+      CALL GETVAR(I,DENS(I),0,0,0,IPMATL(I),PARMAT(1,I),
+     1            WRDMAT(1,I),IDUMMY)
+C END 26 JAN 1989
+      CALL GETVAR(I,DENS(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+      CALL DATUM(IFILE,274,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+      ICOMP = 0
+      IF (ANSL1('Y',ANSWER,INFILE)) ICOMP = 1
+      IBLANK = 41
+      PHRASE = 'Thickness of a single lamina of matl type'
+      IF (ICOMP.EQ.1) THEN
+         CALL DATUM(IFILE,276,1,2,INT,TAPE(I),CHARAC,IOUT,I,IPROMP)
+      ENDIF
+      CALL GETVAR(I,TAPE(I),0,0,0,IPAR,PAR,WORDP,IADDP)
+C BEG JULY 1989
+      IPMORE = IPMAX - IPAR
+      WRITE(6,*)' '
+      WRITE(6,'(I4,A)') IPAR,
+     1        ' fixed parameters have now been identified.'
+      WRITE(6,'(I4,A)') IPMAX, ' fixed parameters are permitted.'
+      WRITE(6,'(I4,A)') IPMORE,
+     1        ' additional fixed parameters are allowed.'
+      WRITE(6,*)' '
+C END JULY 1989
+      IF (ICOMP.EQ.1) THEN
+         CALL DATUM(IFILE,277,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSWER,INFILE)) GO TO 200
+         CALL DATUM(IFILE,278,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         NLAY = 1
+  196    CONTINUE
+         IF (NLAY.GT.1) REWIND IFILE
+         NLAY = NLAY + 1
+  197    CONTINUE
+         CALL DATUM(IFILE,279,1,2,INT,DECRS,CHARAC,IOUT,NLAY,IPROMP)
+         DEGRAD(NLAY,1,I) = 1.0 - DECRS/100.
+         IF (DECRS.GT.100.) THEN
+            WRITE(6,*)' PERCENTAGE DEGRADATION MUST BE LESS THAN 100.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 197
+         ENDIF
+         CALL DATUM(IFILE,280,1,2,INT,DECRS,CHARAC,IOUT,NLAY,IPROMP)
+         DEGRAD(NLAY,2,I) = 1.0 - DECRS/100.
+         CALL DATUM(IFILE,281,1,2,INT,DECRS,CHARAC,IOUT,NLAY,IPROMP)
+         DEGRAD(NLAY,3,I) = 1.0 - DECRS/100.
+         CALL DATUM(IFILE,282,1,2,INT,DECRS,CHARAC,IOUT,NLAY,IPROMP)
+         DEGRAD(NLAY,4,I) = 1.0 - DECRS/100.
+         CALL DATUM(IFILE,283,1,2,INT,DECRS,CHARAC,IOUT,NLAY,IPROMP)
+         DEGRAD(NLAY,5,I) = 1.0 - DECRS/100.
+         IF (NLAY.GE.10) GO TO 200
+         CALL DATUM(IFILE,284,1,2,INT,REALL,ANSWER,IOUT,I,IPROMP)
+         IF (ANSL1('Y',ANSWER,INFILE)) GO TO 196
+         NLAY1 = NLAY + 1
+         DO 198 K = NLAY1,10
+         DO 198 J = 1,5
+             DEGRAD(K,J,I) = DEGRAD(NLAY,J,I)
+  198    CONTINUE
+C
+      ENDIF
+C  End of (ICOMP.EQ.1) condition.
+C
+  200 CONTINUE
+C BEG JULY 2007
+C     WRITE(6,'(A)')' WE ARE AT 200 CONTINUE'
+C END JULY 2007
+C
+C BEG JUN 1996
+C BEG OCT 1996
+      MESSAG = 0
+C BEG NOV 1996
+      CALL MOVER(0.,0,WOVERL,1,20)
+      CALL MOVER(0.,0,FPULL,1,20)
+      CALL MOVER(0.,0,SIGMAA,1,20)
+      CALL MOVER(0.,0,FSGTRV,1,20)
+      CALL MOVER(0 ,0,IUSEHC,1,20)
+C END NOV 1996
+      CALL MOVER(0.,0,ECCORE,1,8)
+      CALL MOVER(0.,0,GCXP,1,8)
+      CALL MOVER(0.,0,GCYP,1,8)
+      CALL MOVER(0,0,KCORE,1,8)
+      CALL MOVER(0,0,MMATL,1,8)
+      CALL MOVER(0.,0,ECORE,1,20)
+      CALL MOVER(0.,0,ECOREX,1,20)
+      CALL MOVER(0.,0,RHOC,1,20)
+      CALL MOVER(0.,0,GC,1,20)
+      CALL MOVER(0.,0,THEX,1,20)
+      CALL MOVER(0.,0,WGLUE,1,20)
+      CALL MOVER(0.,0,FKGLUE,1,20)
+C END OCT 1996
+      CALL MOVER(0.,0,WFOUND,1,8)
+      CALL MOVER(0.,0,HEXSID,1,8)
+      CALL MOVER(0,0,ISANDW,1,8)
+      CALL MOVER(0,0,ICORE,1,8)
+      CALL MOVER(0.,0,FACSKN,1,4)
+      CALL MOVER(0,0,ISANDM,1,20)
+      CALL MOVER(0,0,ICOREX,1,20)
+      CALL MOVER(0.,0,FOUNDX,1,20)
+      CALL MOVER(0.,0,HXSIDX,1,20)
+      CALL MOVER(T,1,TSAVE,1,90)
+C
+      DO 600 ILOOP = 1,2
+C BEG JULY 2007
+C     WRITE(6,'(A,I5)')' **** ILOOP=',ILOOP
+C END JULY 2007
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+      IF (ILOOP.EQ.2) THEN
+C BEG SEP 2004
+         ISANDW(1,2) = ISANDW(1,1)
+         WFOUND(1,2) = WFOUND(1,1)
+C END SEP 2004
+         ISTART = 2
+         IF (B2(2).EQ.0.) ISTART = 3
+      ENDIF
+      IF (ISTART.GT.IEND) GO TO 600
+      DO 500 I = ISTART,IEND
+      NLAY = NLAYER(I,ILOOP)
+C BEG JULY 2007
+C     WRITE(6,'(A,3I5)')' **** ILOOP,I,NLAY=',ILOOP,I,NLAY
+C END JULY 2007
+      TWALL   = 0.
+      EMAX = 0.
+      DO 300 J = 1,NLAY
+      K = LTYPE(J,I,ILOOP)
+      TL(J) =  TSAVE(K)
+      TWALL = TWALL + TL(J)
+      M = MATL(K)
+      E1L(J) = E1(M)
+      E2L(J) = E2(M)
+      ENORM = SQRT(E1L(J)**2 + E2L(J)**2)
+      EMAX = MAX(EMAX,ENORM)
+  300 CONTINUE
+      DO 400 J = 1,NLAY
+      ENORM = SQRT(E1L(J)**2 + E2L(J)**2)
+      K = LTYPE(J,I,ILOOP)
+      M = MATL(K)
+C BEG JULY 2007
+C     WRITE(6,'(A,8I3)')
+C    1' NLAY,J,K,M,I,ILOOP,ISANDM(M),ISANDW(I,ILOOP)=',
+C    1  NLAY,J,K,M,I,ILOOP,ISANDM(M),ISANDW(I,ILOOP)
+C     WRITE(6,'(A,1P,4E12.4)')' ENORM,EMAX,TL(J),TWALL=',
+C    1                          ENORM,EMAX,TL(J),TWALL
+C END JULY 2007
+      IF ((ENORM/EMAX.LT.0.001.AND.TL(J).GT.0.5*TWALL)
+     1                                         .OR.ISANDM(M).EQ.1) THEN
+         IF (ISANDW(I,ILOOP).EQ.0) THEN
+          IF (ISANDM(M).EQ.0) THEN
+            REWIND IFILE
+            IF (ISTIF(ILOOP).EQ.1)
+     1       CALL DATUM(IFILE,120,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG MAY 1997
+            IF (ISTIF(ILOOP).EQ.2.AND.IZSTIF(ILOOP).EQ.0)
+     1       CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.2.AND.IZSTIF(ILOOP).EQ.1)
+     1       CALL DATUM(IFILE,117,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END MAY 1997
+            IF (ISTIF(ILOOP).EQ.3)
+     1       CALL DATUM(IFILE,125,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.4.AND.B2(ILOOP).LE.W2(ILOOP))
+     1       CALL DATUM(IFILE,126,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.4.AND.B2(ILOOP).GT.W2(ILOOP))
+     1       CALL DATUM(IFILE,127,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.4.AND.IFAY(ILOOP).EQ.1)
+     1       CALL DATUM(IFILE,128,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.5.AND.B2(ILOOP).LE.0.)
+     1       CALL DATUM(IFILE,130,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISTIF(ILOOP).EQ.5.AND.B2(ILOOP).GT.0.)
+     1       CALL DATUM(IFILE,131,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ILOOP.EQ.1) WRITE(6,310)
+            IF (ILOOP.EQ.2) WRITE(6,320) 
+  310       FORMAT(/' ******** Skin-stringer module...')
+  320       FORMAT(/' ******** Skin-ring module...')
+            WRITE(6,330) I,J,TL(J),M,ENORM
+  330       FORMAT(
+     1    ' Seg.',I2,', Layer',I2,', thick=',1PE10.2,
+     1    ', Matl',I2,', EMOD=SQRT(E1**2+E2**2)=',1PE10.2/
+     1    ' Being thick and soft, this layer is a candidate to be'/
+     1    ' treated as a sandwich core or as an elastic foundation.')
+C BEG OCT 1996
+            IF (MESSAG.EQ.0)
+     1        CALL DATUM(IFILE,285,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            MESSAG = 1
+C END OCT 1996
+C BEG JULY 2007
+            WRITE(6,'(/,A,I3,A,/)')
+     1    ' Next, provide more input relating to Material No. *** ',M,
+     1    '   ***'
+C           IF (J.NE.1.AND.J.NE.NLAY)
+C    1       CALL DATUM(IFILE,286,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C           IF (J.EQ.1.OR.J.EQ.NLAY)
+C    1       CALL DATUM(IFILE,287,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (J.NE.1.AND.J.NE.NLAY)
+     1       CALL DATUM(IFILE,286,1,2,INT,REALL,ANSOUT,IOUT,M,IPROMP)
+            IF (J.EQ.1.OR.J.EQ.NLAY)
+     1       CALL DATUM(IFILE,287,1,2,INT,REALL,ANSOUT,IOUT,M,IPROMP)
+C END JULY 2007
+            IF (ANSL1('N',ANSOUT,INFILE)) GO TO 400
+          ENDIF
+C      End of (ISANDM(M).EQ.0) condition.
+C
+            IF (J.EQ.1.OR.J.EQ.NLAY) THEN
+               IF (ILOOP.EQ.1) THEN
+                IF (I.EQ.1) FACSKN = 1.0
+                IF (ISTIF(1).NE.5) THEN
+                   IF (I.EQ.2) FACBAS = 1.0
+                   IF (I.EQ.3) FACWEB = 1.0
+                   IF (I.EQ.4) FACFLG = 1.0
+                ELSE
+                   IF (I.EQ.2) FACWEB = 1.0
+                   IF (I.EQ.3) FACBAS = 1.0
+                ENDIF
+               ENDIF
+               IF (ISANDM(M).EQ.0) THEN
+                T(K) = 0.
+                CALL CONVR2(K,CN)
+                DO 335 II = 1,IVAR
+                 ILET = INDEX(WORDV(II),
+     1                 'thickness for layer index no.('//CN//')')
+                 IF (ILET.NE.0) VAR(II) = 0.
+  335           CONTINUE
+               ENDIF
+            ENDIF
+C       End of (J.EQ.1.OR.J.EQ.NLAY) condition.
+C
+            ISANDW(I,ILOOP) = J
+C BEG OCT 1996
+            IF (ISANDM(M).EQ.0.AND.(J.EQ.1.OR.J.EQ.NLAY)) THEN
+               CALL DATUM(IFILE,288,1,2,INT,FOUNDX(M),CHARAC,
+     1                   IOUT,0,IPROMP)
+            ENDIF
+C END OCT 1996
+            IF (J.NE.1.AND.J.NE.NLAY) THEN
+               IF (ISANDM(M).EQ.0) THEN
+C BEG OCT 1996
+                  WGTTAB(1,M) = 0.
+                  WGTTAB(2,M) = 1000000.
+                  CRHTAB(1,M) = 10.E+16
+                  CRHTAB(2,M) = 10.E+16
+                  SHLTAB(1,M) = 10.E+16
+                  SHLTAB(2,M) = 10.E+16
+                  SHWTAB(1,M) = 10.E+16
+                  SHWTAB(2,M) = 10.E+16
+C BEG NOV 1996
+                  PULTAB(1,M) = 1.
+                  PULTAB(2,M) = 1.
+C END NOV 1996
+                  THKTAB(1,M) = 0.
+                  THKTAB(2,M) = 1000000.
+                  FNKTAB(1,M) = 1.
+                  FNKTAB(2,M) = 1.
+                  KOUNTP(M) = 2
+                  KOUNTT(M) = 2
+C END OCT 1996
+                  CALL DATUM(IFILE,289,1,2,INT,REALL,
+     1                                        ANSOUT,IOUT,0,IPROMP)
+C BEG OCT 1996  (introduce quantities needed for Vinson-type analysis)
+                  IFOAM = 0
+                  IF (ANSL1('N',ANSOUT,INFILE)) IFOAM = 1
+                  IF (IFOAM.EQ.1) THEN
+                     CALL DATUM(IFILE,293,1,2,INT,ECORE(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,295,1,2,INT,GCX,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,296,1,2,INT,GCY,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,298,1,2,INT,RHOC(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,300,1,2,INT,FKGLUE(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     IF (FKGLUE(M).LE.0.0) FKGLUE(M) = 10.E+16
+                     CALL DATUM(IFILE,301,1,2,INT,WGLUE(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1996
+                     CALL DATUM(IFILE,302,1,2,INT,WOVERL(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+C BEG JAN 1997
+C23456789012345678901234567890123456789012345678901234567890123456789012
+                     CALL GETVAR(M,WOVERL(M),0,0,0,IPAR,PAR,WORDP,IADDP)
+C END JAN 1997
+                     CALL DATUM(IFILE,304,1,2,INT,SIGMAA(M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+C END NOV 1996
+                     CALL DATUM(IFILE,885,0,0,INT,REALL,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,886,1,2,INT,REALL,
+     1                                    ANSOUT,IOUT,0,IPROMP)
+                     IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                        CALL DATUM(IFILE,887,1,2,MATBEF,REALL,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                        IF (MATBEF.EQ.0.OR.MATBEF.GT.M) GO TO 1242
+                        CALL MOVER(WGTTAB(1,MATBEF),1,WGTTAB(1,M),1,12)
+                        CALL MOVER(CRHTAB(1,MATBEF),1,CRHTAB(1,M),1,12)
+                        CALL MOVER(SHLTAB(1,MATBEF),1,SHLTAB(1,M),1,12)
+                        CALL MOVER(SHWTAB(1,MATBEF),1,SHWTAB(1,M),1,12)
+C BEG NOV 1996
+                        CALL MOVER(PULTAB(1,MATBEF),1,PULTAB(1,M),1,12)
+C END NOV 1996
+                        CALL MOVER(THKTAB(1,MATBEF),1,THKTAB(1,M),1,12)
+                        CALL MOVER(FNKTAB(1,MATBEF),1,FNKTAB(1,M),1,12)
+                        KOUNTP(M) = KOUNTP(MATBEF)
+                        KOUNTT(M) = KOUNTT(MATBEF)
+                        GO TO 1242
+                     ENDIF
+                     CALL DATUM(IFILE,891,1,2,INT,REALL,
+     1                                    ANSOUT,IOUT,0,IPROMP)
+                     WRITE(6,'(/,A,I3)')
+     1             ' Next, provide tables for sandwich core: Matl No.',M
+                     CONPCF = 1.
+                     IF (ANSL1('Y',ANSOUT,INFILE))
+     1                CALL DATUM(IFILE,892,1,2,INT,CONPCF,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     KOUNT = 1
+ 1233                CONTINUE
+                     KOUNT = KOUNT + 1
+                     IF (CONPCF.NE.1.0) THEN
+                        CALL DATUM(IFILE,893,1,2,INT,WGTINP,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                        WGTTAB(KOUNT,M) = WGTINP*CONPCF
+                     ELSE
+                        CALL DATUM(IFILE,894,1,2,INT,WGTTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     ENDIF
+                     CALL DATUM(IFILE,895,1,2,INT,CRHTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,896,1,2,INT,SHLTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,897,1,2,INT,SHWTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1996
+                     CALL DATUM(IFILE,899,1,2,INT,REALL,
+     1                                    ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+                     IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                        WRITE(6,'(A,I3,A,/,A)')
+     1               ' You have provided ',KOUNT-1,' tabular positions',
+     1               ' You are allowed to provide a maximum of 10 .'
+                        IF (KOUNT.EQ.11) THEN
+                           WRITE(6,'(A,/,A,/,A)')
+     1                   ' You have just provided the last permitted',
+     1                   ' tabular entries in this section. You must',
+     1                   ' go on to the next section.'
+                           GO TO 1234
+                        ENDIF
+                        REWIND IFILE
+                        GO TO 1233
+                     ENDIF
+ 1234                CONTINUE
+                     KOUNT1 = KOUNT
+C              Sort the tabular entries:
+                     DO 1236 III = 2,KOUNT1
+                        DO 1235 JJJ = III,KOUNT1
+                           IF (WGTTAB(JJJ,M).LT.WGTTAB(III,M)) THEN
+                              TEMP = WGTTAB(III,M)
+                              WGTTAB(III,M) = WGTTAB(JJJ,M)
+                              WGTTAB(JJJ,M) = TEMP
+                              TEMP = CRHTAB(III,M)
+                              CRHTAB(III,M) = CRHTAB(JJJ,M)
+                              CRHTAB(JJJ,M) = TEMP
+                              TEMP = SHLTAB(III,M)
+                              SHLTAB(III,M) = SHLTAB(JJJ,M)
+                              SHLTAB(JJJ,M) = TEMP
+                              TEMP = SHWTAB(III,M)
+                              SHWTAB(III,M) = SHWTAB(JJJ,M)
+                              SHWTAB(JJJ,M) = TEMP
+C BEG NOV 1996
+                              TEMP = PULTAB(III,M)
+                              PULTAB(III,M) = PULTAB(JJJ,M)
+                              PULTAB(JJJ,M) = TEMP
+C END NOV 1996
+                           ENDIF
+ 1235                   CONTINUE
+ 1236                CONTINUE
+                     WGTTAB(1,M) = 0.00001*WGTTAB(2,M)
+                     CRHTAB(1,M) = 0.00001*CRHTAB(2,M)
+                     SHLTAB(1,M) = 0.00001*SHLTAB(2,M)
+                     SHWTAB(1,M) = 0.00001*SHWTAB(2,M)
+C BEG NOV 1996
+                     PULTAB(1,M) = PULTAB(2,M)
+C END NOV 1996
+                     KOUNTP(M) = KOUNT1 + 1
+                     WGTTAB(KOUNT1+1,M) = 100000.*WGTTAB(KOUNT1,M)
+                     CRHTAB(KOUNT1+1,M) = 100000.*CRHTAB(KOUNT1,M)
+                     SHLTAB(KOUNT1+1,M) = 100000.*SHLTAB(KOUNT1,M)
+                     SHWTAB(KOUNT1+1,M) = 100000.*SHWTAB(KOUNT1,M)
+C BEG NOV 1996
+                     PULTAB(KOUNT1+1,M) = PULTAB(KOUNT1,M)
+C
+                     CALL DATUM(IFILE,900,0,0,INT,REALL,
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     KOUNT = 1
+ 1237                CONTINUE
+                     KOUNT = KOUNT + 1
+                     CALL DATUM(IFILE,901,1,2,INT,THKTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,902,1,2,INT,FNKTAB(KOUNT,M),
+     1                                    CHARAC,IOUT,0,IPROMP)
+                     CALL DATUM(IFILE,903,1,2,INT,REALL,
+     1                                    ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+                     IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                        WRITE(6,'(A,I3,A,/,A)')
+     1               ' You have provided ',KOUNT-1,' tabular positions',
+     1               ' You are allowed to provide a maximum of 10 .'
+                        IF (KOUNT.EQ.11) THEN
+                           WRITE(6,'(A,/,A,/,A)')
+     1                   ' You have just provided the last permitted',
+     1                   ' tabular entries in this section. You must',
+     1                   ' go on to the next section.'
+                           GO TO 1239
+                        ENDIF
+                        REWIND IFILE
+                        GO TO 1237
+                     ENDIF
+ 1239                CONTINUE
+                     REWIND IFILE
+                     KOUNT2 = KOUNT
+C              Sort the tabular entries:
+                     DO 1241 III = 2,KOUNT2
+                        DO 1240 JJJ = III,KOUNT2
+                           IF (THKTAB(JJJ,M).LT.THKTAB(III,M)) THEN
+                              TEMP = THKTAB(III,M)
+                              THKTAB(III,M) = THKTAB(JJJ,M)
+                              THKTAB(JJJ,M) = TEMP
+                              TEMP = FNKTAB(III,M)
+                              FNKTAB(III,M) = FNKTAB(JJJ,M)
+                              FNKTAB(JJJ,M) = TEMP
+                           ENDIF
+ 1240                   CONTINUE
+ 1241                CONTINUE
+                     THKTAB(1,M) = 0.00001*THKTAB(2,M)
+                     FNKTAB(1,M) = 1.4*FNKTAB(2,M)
+                     KOUNTT(M) = KOUNT2 + 1
+                     THKTAB(KOUNT2+1,M) = 100000.*THKTAB(KOUNT2,M)
+                     FNKTAB(KOUNT2+1,M) = 0.00001*FNKTAB(KOUNT2,M)
+ 1242                CONTINUE
+C BEG NOV 1996
+                     CALL DATUM(IFILE,904,1,2,INT,FSGTRV(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                     REWIND IFILE
+C END NOV 1996
+C
+                     G13(M) = GCX
+                     G23(M) = GCY
+                     DENS(M) = (RHOC(M)*T(K) + WGLUE(M))/T(K)
+                     FOUNDX(M) = 1./(1./FKGLUE(M) + 0.5*T(K)/ECORE(M))
+                     GO TO 380
+                  ENDIF
+C             End of (IFOAM.EQ.1) condition.
+C
+                  CALL DATUM(IFILE,290,1,2,INT,HXSIDX(M),CHARAC,
+     1                       IOUT,0,IPROMP)
+                  CALL GETVAR(M,HXSIDX(M),ILOOP,I,0,IVAR,VAR,WORDV,
+     1                        IADDV)
+                  IF (M.GE.10) THEN
+                     WRITE(CK,'(I2)') M
+                  ELSE
+                     WRITE(CK,'(I1)') M
+                  ENDIF
+                  IF (ILOOP.EQ.1) WORD = 'STR'
+                  IF (ILOOP.EQ.1.AND.I.EQ.1.AND.ISTIF(1).EQ.0)
+     1                            WORD = 'SKN'
+                  IF (ILOOP.EQ.2) WORD = 'RNG'
+                  VARLEG(IVAR) = '  s('//CK//')('//WORD//')'
+C              The terms with (8./3.)*TOD, etc are from Eqs.(18,19) of
+C              Vinson's 1986 AIAA paper (pp 1690-1696, AIAA J. 1986)
+                  CALL DATUM(IFILE,291,1,2,INT,THEX(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL GETVAR(M,THEX(M),ILOOP,I,0,IVAR,VAR,WORDV,IADDV)
+                  IF (M.GE.10) THEN
+                     WRITE(CK,'(I2)') M
+                  ELSE
+                     WRITE(CK,'(I1)') M
+                  ENDIF
+                  VARLEG(IVAR) = ' tc('//CK//')('//WORD//')'
+                  TOD = THEX(M)/(1.732*HXSIDX(M))
+                  CALL DATUM(IFILE,292,1,2,INT,ECOREX(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  ECORE(M) = (8./3.)*TOD*ECOREX(M)
+                  CALL DATUM(IFILE,294,1,2,INT,GC(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,297,1,2,INT,RHOC(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,299,1,2,INT,FKGLUE(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  IF (FKGLUE(M).LE.0.0) FKGLUE(M) = 10.E+16
+                  CALL DATUM(IFILE,301,1,2,INT,WGLUE(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1996
+                  CALL DATUM(IFILE,302,1,2,INT,WOVERL(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+C BEG JAN 1997
+                  CALL GETVAR(M,WOVERL(M),0,0,0,IPAR,PAR,WORDP,IADDP)
+C END JAN 1997
+                  CALL DATUM(IFILE,303,1,2,INT,FPULL(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,305,1,2,INT,SIGCOR(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,306,1,2,INT,REALL,
+     1                                 ANSOUT,IOUT,0,IPROMP)
+                  IUSEHC(M) = 0
+                  IF (ANSL1('Y',ANSOUT,INFILE)) IUSEHC(M) = 1
+C BEG JAN 1997
+                  FUSEHC = IUSEHC(M)
+                  CALL GETVAR(M,FUSEHC,0,0,0,IPAR,PAR,WORDP,IADDP)
+C END JAN 1997
+C END NOV 1996
+                  CALL DATUM(IFILE,885,0,0,INT,REALL,
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,886,1,2,INT,REALL,
+     1                                 ANSOUT,IOUT,0,IPROMP)
+                  IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                     CALL DATUM(IFILE,887,1,2,MATBEF,REALL,
+     1                                 CHARAC,IOUT,0,IPROMP)
+                     IF (MATBEF.EQ.0.OR.MATBEF.GT.M) GO TO 1342
+                     CALL MOVER(WGTTAB(1,MATBEF),1,WGTTAB(1,M),1,12)
+                     CALL MOVER(CRHTAB(1,MATBEF),1,CRHTAB(1,M),1,12)
+                     CALL MOVER(SHLTAB(1,MATBEF),1,SHLTAB(1,M),1,12)
+                     CALL MOVER(SHWTAB(1,MATBEF),1,SHWTAB(1,M),1,12)
+C BEG NOV 1996
+                     CALL MOVER(PULTAB(1,MATBEF),1,PULTAB(1,M),1,12)
+C END NOV 1996
+                     CALL MOVER(THKTAB(1,MATBEF),1,THKTAB(1,M),1,12)
+                     CALL MOVER(FNKTAB(1,MATBEF),1,FNKTAB(1,M),1,12)
+                     KOUNTP(M) = KOUNTP(MATBEF)
+                     KOUNTT(M) = KOUNTT(MATBEF)
+                     GO TO 1342
+                  ENDIF
+                  CALL DATUM(IFILE,891,1,2,INT,REALL,
+     1                                 ANSOUT,IOUT,0,IPROMP)
+                  WRITE(6,'(/,A,I3)')
+     1          ' Next, provide tables for sandwich core: Matl No.',M
+                  CONPCF = 1.
+                  IF (ANSL1('Y',ANSOUT,INFILE))
+     1             CALL DATUM(IFILE,892,1,2,INT,CONPCF,
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  KOUNT = 1
+ 1333             CONTINUE
+                  KOUNT = KOUNT + 1
+                  IF (CONPCF.NE.1.0) THEN
+                     CALL DATUM(IFILE,893,1,2,INT,WGTINP,
+     1                                 CHARAC,IOUT,0,IPROMP)
+                     WGTTAB(KOUNT,M) = WGTINP*CONPCF
+                  ELSE
+                     CALL DATUM(IFILE,894,1,2,INT,WGTTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  ENDIF
+                  CALL DATUM(IFILE,895,1,2,INT,CRHTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,896,1,2,INT,SHLTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,897,1,2,INT,SHWTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1996
+                  CALL DATUM(IFILE,898,1,2,INT,PULTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,899,1,2,INT,REALL,
+     1                                 ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+                  IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                     WRITE(6,'(A,I3,A,/,A)')
+     1             ' You have provided ',KOUNT-1,' tabular positions',
+     1             ' You are allowed to provide a maximum of 10 .'
+                     IF (KOUNT.EQ.11) THEN
+                        WRITE(6,'(A,/,A,/,A)')
+     1                ' You have just provided the last permitted',
+     1                ' tabular entries in this section. You must',
+     1                ' go on to the next section.'
+                        GO TO 1334
+                     ENDIF
+                     REWIND IFILE
+                     GO TO 1333
+                  ENDIF
+ 1334             CONTINUE
+                  KOUNT1 = KOUNT
+C              Sort the tabular entries:
+                  DO 1336 III = 2,KOUNT1
+                     DO 1335 JJJ = III,KOUNT1
+                        IF (WGTTAB(JJJ,M).LT.WGTTAB(III,M)) THEN
+                           TEMP = WGTTAB(III,M)
+                           WGTTAB(III,M) = WGTTAB(JJJ,M)
+                           WGTTAB(JJJ,M) = TEMP
+                           TEMP = CRHTAB(III,M)
+                           CRHTAB(III,M) = CRHTAB(JJJ,M)
+                           CRHTAB(JJJ,M) = TEMP
+                           TEMP = SHLTAB(III,M)
+                           SHLTAB(III,M) = SHLTAB(JJJ,M)
+                           SHLTAB(JJJ,M) = TEMP
+                           TEMP = SHWTAB(III,M)
+                           SHWTAB(III,M) = SHWTAB(JJJ,M)
+                           SHWTAB(JJJ,M) = TEMP
+C BEG NOV 1996
+                           TEMP = PULTAB(III,M)
+                           PULTAB(III,M) = PULTAB(JJJ,M)
+                           PULTAB(JJJ,M) = TEMP
+C END NOV 1996
+                        ENDIF
+ 1335                CONTINUE
+ 1336             CONTINUE
+                  WGTTAB(1,M) = 0.00001*WGTTAB(2,M)
+                  CRHTAB(1,M) = 0.00001*CRHTAB(2,M)
+                  SHLTAB(1,M) = 0.00001*SHLTAB(2,M)
+                  SHWTAB(1,M) = 0.00001*SHWTAB(2,M)
+C BEG NOV 1996
+                  PULTAB(1,M) = PULTAB(2,M)
+C END NOV 1996
+                  KOUNTP(M) = KOUNT1 + 1
+                  WGTTAB(KOUNT1+1,M) = 100000.*WGTTAB(KOUNT1,M)
+                  CRHTAB(KOUNT1+1,M) = 100000.*CRHTAB(KOUNT1,M)
+                  SHLTAB(KOUNT1+1,M) = 100000.*SHLTAB(KOUNT1,M)
+                  SHWTAB(KOUNT1+1,M) = 100000.*SHWTAB(KOUNT1,M)
+C BEG NOV 1996
+                  PULTAB(KOUNT1+1,M) = PULTAB(KOUNT1,M)
+C
+                  CALL DATUM(IFILE,900,0,0,INT,REALL,
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  KOUNT = 1
+ 1337             CONTINUE
+                  KOUNT = KOUNT + 1
+                  CALL DATUM(IFILE,901,1,2,INT,THKTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,902,1,2,INT,FNKTAB(KOUNT,M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  CALL DATUM(IFILE,903,1,2,INT,REALL,
+     1                                 ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+                  IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+                     WRITE(6,'(A,I3,A,/,A)')
+     1             ' You have provided ',KOUNT-1,' tabular positions',
+     1             ' You are allowed to provide a maximum of 10 .'
+                     IF (KOUNT.EQ.11) THEN
+                        WRITE(6,'(A,/,A,/,A)')
+     1                ' You have just provided the last permitted',
+     1                ' tabular entries in this section. You must',
+     1                ' go on to the next section.'
+                        GO TO 1339
+                     ENDIF
+                     REWIND IFILE
+                     GO TO 1337
+                  ENDIF
+ 1339             CONTINUE
+                  REWIND IFILE
+                  KOUNT2 = KOUNT
+C              Sort the tabular entries:
+                  DO 1341 III = 2,KOUNT2
+                     DO 1340 JJJ = III,KOUNT2
+                        IF (THKTAB(JJJ,M).LT.THKTAB(III,M)) THEN
+                           TEMP = THKTAB(III,M)
+                           THKTAB(III,M) = THKTAB(JJJ,M)
+                           THKTAB(JJJ,M) = TEMP
+                           TEMP = FNKTAB(III,M)
+                           FNKTAB(III,M) = FNKTAB(JJJ,M)
+                           FNKTAB(JJJ,M) = TEMP
+                        ENDIF
+ 1340                CONTINUE
+ 1341             CONTINUE
+                  THKTAB(1,M) = 0.00001*THKTAB(2,M)
+                  FNKTAB(1,M) = 1.4*FNKTAB(2,M)
+                  KOUNTT(M) = KOUNT2 + 1
+                  THKTAB(KOUNT2+1,M) = 100000.*THKTAB(KOUNT2,M)
+                  FNKTAB(KOUNT2+1,M) = 0.00001*FNKTAB(KOUNT2,M)
+ 1342             CONTINUE
+C BEG NOV 1996
+                  CALL DATUM(IFILE,904,1,2,INT,FSGTRV(M),
+     1                                 CHARAC,IOUT,0,IPROMP)
+                  REWIND IFILE
+C END NOV 1996
+C
+C             MIL-HDBK-23 version of transverse shear stiffnesses:
+                  G13(M) = (4./3.) *TOD*GC(M)
+                  G23(M) = (8./15.)*TOD*GC(M)
+C             Kaechele version of transverse shear stiffnesses (Vinson 1986):
+C                 G13(M) = (5./3.) *TOD*GC(M)
+C                 G23(M) =   (1.0) *TOD*GC(M)
+C             Kaechele yields closer to Hexcel Corp's tabulated values, but
+C             MIL-HDBK-25 is more conservative.
+C
+C             Values of hc, d, tc, and tf
+C             (optimum values for pure axial compression of s.s. plate)
+C             according to Vinson 1986 AIAA J, Eqs(34-37),p.1694-5,Vol.24,
+C             for equal isotropic face sheets with Poisson ratio = 0.3:
+C                 PI = 3.141593
+C                 FK1 = 1.0
+C                 FK2 = 8./3.
+C                 FK3 = 4./3.
+C                 FK4 = 8./15.
+C                 RATIO = FK3/FK4
+C                 EFACE = E1(1)
+C                 FNUXY = 0.3
+C                 FNXAPP = 5000.
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C                 HCORE = B(ILOOP)*(SQRT(SQRT(2./PI))**3)*
+C    1          (SQRT(SQRT(SQRT(
+C    1           (FK2/(3.*FK3))*((FK1*RATIO)**3)*(ECOREX(M)/GC(M))))))*
+C    1          (SQRT(SQRT((1.-FNUXY**2)*(1./EFACE)*(FNXAPP/B(ILOOP)))))
+C                 DCELL = B(ILOOP)*(SQRT(SQRT(2./PI**3)))*
+C    1          (SQRT(SQRT(SQRT(
+C    1           ((3.*FK3*FK1*RATIO/FK2)*(GC(M)/ECOREX(M)))**3))))*
+C    1          (SQRT(SQRT((1.-FNUXY**2)*(1./EFACE)*(FNXAPP/B(ILOOP)))))
+C                 TCELL = B(ILOOP)*SQRT((3./(2.*FK2*FK3))*
+C    1                    (1./(GC(M)*ECOREX(M))))*(FNXAPP/B(ILOOP))
+C                 TFACE = B(ILOOP)*SQRT(((1.-FNUXY**2)/(2.*PI))*
+C    1                    (1./EFACE)*(FNXAPP/B(ILOOP)))*
+C    1          (SQRT(SQRT((3.*FK3*FK1*RATIO/FK2)*(GC(M)/ECOREX(M)))))
+C                 WRITE(8,'(A,I3,/,1P,6E12.4)')
+C    1     ' Vinsons optimum: M,EFACE,FNXAPP,HCORE,DCELL,TCELL,TFACE=',
+C    1                        M,EFACE,FNXAPP,HCORE,DCELL,TCELL,TFACE
+C
+                  DENS(M)= ((8./3.)*TOD*RHOC(M)*T(K) + WGLUE(M))/T(K)
+                  FGLFCT = 2./(1.732*HXSIDX(M))
+                  FOUNDX(M) = 
+     1                 1./(1./(FKGLUE(M)*FGLFCT) + 0.5*T(K)/ECORE(M))
+                  ICOREX(M) = M
+               ENDIF
+C          End of (ISANDM(M).EQ.0) condition.
+C
+C   Two statements,
+C             ICORE(I,ILOOP) = ICOREX(M) and HEXSID(I,ILOOP) = HXSIDX(M)
+C   moved down after 380 continue.
+C END OCT 1996
+            ENDIF
+C        End of (J.NE.1.AND.J.NE.NLAY) condition.
+C
+  380       CONTINUE
+C BEG OCT 1996
+            IF (ISANDW(I,ILOOP).NE.0.AND.(J.EQ.1.OR.J.EQ.NLAY)) THEN
+               MMATL(I,ILOOP) = M
+               WFOUND(I,ILOOP) = FOUNDX(M)
+            ENDIF
+            IF (ISANDW(I,ILOOP).NE.0.AND.J.NE.1.AND.J.NE.NLAY) THEN
+               MMATL(I,ILOOP) = M
+               KCORE(I,ILOOP) = K
+               WFOUND(I,ILOOP) = FOUNDX(M)
+               ICORE(I,ILOOP) = ICOREX(M)
+               HEXSID(I,ILOOP) = HXSIDX(M)
+               ECCORE(I,ILOOP) = ECORE(M)
+               GCXP(I,ILOOP) = G13(M)
+               GCYP(I,ILOOP) = G23(M)
+            ENDIF
+C END OCT 1996
+            ISANDM(M) = 1
+            GO TO 500
+         ENDIF
+C     End of (ISANDW(I,ILOOP).EQ.0) condition.
+C
+      ENDIF
+C  End of ((ENORM/EMAX.LT.0.001.AND.TL(J).GT.0.5*TWALL)
+C                                     .OR.ISANDM(M).EQ.1) condition 
+  400 CONTINUE
+  500 CONTINUE
+  600 CONTINUE
+C END JUN 1996
+C BEG OCT 1996
+C  Must correct PAR( ) because G13, G23, DENS might have been changed
+C  if ISANDM(M) GREATER THAN ZERO ....
+      ISAND = 0
+      DO 700 M = 1,MAXMAT
+         IF (ISANDM(M).EQ.0) GO TO 700
+         ISAND = 1
+         IF (M.LT.10) THEN
+            CALL CONVR1(M,CM)
+            CM2 = CM//' '
+            CM3 = ' '//CM
+         ENDIF
+         IF (M.GE.10) THEN
+            CALL CONVR2(M,CM2)
+            CM3 = CM2
+         ENDIF
+C        WRITE(8,'(A,A,A)') 'CM2,CM3=',CM2,CM3
+         DO 650 LPAR = 1,IPAR
+            WRDTST = 'transverse shear modulus,      G13('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G13(M)
+C           WRITE(8,*)' IPAR,LPAR,ILET=',IPAR,LPAR,ILET
+            WRDTST = 'transverse shear modulus,      G13('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G13(M)
+C           WRITE(8,*)' IPAR,LPAR,ILET=',IPAR,LPAR,ILET
+C           WRITE(8,'(A,A)') 'WORDP(LPAR)=',WORDP(LPAR)(1:50)
+            WRDTST = 'transverse out-of-plane shear  G23('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G23(M)
+            WRDTST = 'transverse out-of-plane shear  G23('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G23(M)
+            WRDTST =
+     1       'weight density (greater than 0!) of material type('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:52))
+            IF (ILET.NE.0) PAR(LPAR) = DENS(M)
+            WRDTST =
+     1       'weight density (greater than 0!) of material type('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:52))
+            IF (ILET.NE.0) PAR(LPAR) = DENS(M)
+  650    CONTINUE
+  700 CONTINUE
+C
+      IF (ISAND.EQ.1) THEN
+       WRITE(IFILE8,710)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  710  FORMAT(/'  PROPERTIES OF ELASTIC FOUNDATIONS AND SANDWICH CORES'/
+     1 ' STR  Segment,  Sandw  Length of  E F F E C T I V E   '
+     1 'E L A S T I C   P R O P E R T I E S'/
+     1 ' or  Layer no., core:  one side of   Founda-    Modulus '
+     1 '   Transverse   Transverse'/
+     1 ' RNG  and Ma-    HEX.  honeycomb      tion     normal to'
+     1 '   shear, G13   shear, G23'/
+     1 '     terial no.   or   core cell     modulus   facesheet'
+     1 ' (axial-normal)(hoop-normal)'/
+     1 '     Iseg L  M   FOAM               (force/    (force/  '
+     1 '  (force/        (force/'/
+     1 '                                    length**3  length**2)'
+     1 '   length**2)    length**2)'/
+     1 '                                   Foundation   C O R E   '
+     1 'OF   S A N D W I C H   W A L L')
+       DO 900 ILOOP = 1,2
+        IF (ILOOP.EQ.1) STRRNG = 'STR'
+        IF (ILOOP.EQ.2) STRRNG = 'RNG'
+        ISTART = 1
+        IEND   = NSEG(ILOOP)
+        IF (ILOOP.EQ.2) THEN
+           ISTART = 2
+           IF (B2(2).EQ.0.) ISTART = 3
+        ENDIF
+        IF (ISTART.GT.IEND) GO TO 900
+        DO 800 I = ISTART,IEND
+         HEXFOM = 'NONE'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICORE(I,ILOOP).EQ.0.AND.ISANDW(I,ILOOP).NE.0) HEXFOM='FOAM'
+         IF (ICORE(I,ILOOP).NE.0) HEXFOM = 'HEX '
+         WRITE(IFILE8,750) STRRNG,I,ISANDW(I,ILOOP),MMATL(I,ILOOP),
+     1          HEXFOM,HEXSID(I,ILOOP),WFOUND(I,ILOOP),ECCORE(I,ILOOP),
+     1          GCXP(I,ILOOP),GCYP(I,ILOOP)
+  750    FORMAT(1X,A,I4,2I3,3X,A,1P,3E12.4,1P,2E13.4)
+  800   CONTINUE
+  900  CONTINUE
+      ENDIF
+C END OCT 1996
+C
+C BEG 26 JAN 1989
+      IF (ISTIF(1).NE.0) THEN
+         IPMATL(1) = IPMATL(1) + 1
+         NPMAT     = IPMATL(1)
+         PARMAT(NPMAT,1) = SIGLUE(1)
+         WRDMAT(NPMAT,1) = WRDGLU
+      ENDIF
+C END 26 JAN 1989
+C
+C  ENTER ALLOWABLES FOR RELATIVE STIFFENER ROTATION AND LOCAL/GENERAL
+C  BUCKLING RATIO...
+C
+      PHIMAX = 1.0
+C     CALL DATUM(IFILE,700,1,2,INT,PHIMAX,CHARAC,IOUT,0,IPROMP)
+C     PHRASE = 'maximum value of local/general buckling  '
+C     CALL GETVAR(0,PHIMAX,0,0,0,IALLOW,ALLOW,WORDA,IADDA)
+C     CALL DATUM(IFILE,705,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+      CHIALW = 1000.
+      REWIND IFILE
+C
+C  BOUNDARY CONDITIONS (355=DISCUSSION, 360=PREBUCKLING, 370=BUCKLING)
+      CALL DATUM(IFILE,355,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG AUG 1992
+C BEG NOV 2003
+C     IF (IFLAT.EQ.1.OR.ISTIF(2).NE.0)
+      IF (IFLAT.EQ.1)
+C END NOV 2003
+     1 CALL DATUM(IFILE,360,1,2,IBPRE, REALL,CHARAC,IOUT,0,IPROMP)
+C BEG APR 2007
+      IBPRES = IBPRE
+C END APR 2007
+C BEG JAN 1999
+      IF (IFLAT.EQ.1.AND.ISTIF(2).NE.0.AND.IBPRE.EQ.1) THEN
+         WRITE(6,'(/,A,/,A,/,A,/,A,/,A)')
+     1' ******** NOTE ************* NOTE ************ NOTE *********',
+     1' Jan. 1999 rule: If the panel is flat and has rings, then it',
+     1' must be simply supported on all four edges. Therefore, IBPRE',
+     1' is being changed from IBPRE=1 (clamped) to IBPRE=0 (s.s.)',
+     1' ******* END NOTE ******** END NOTE ******** END NOTE ********'
+         IBPRE = 0
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JAN 1999
+C BEG NOV 2003
+C     IF (IFLAT.EQ.0.AND.ISTIF(2).EQ.0)
+      IF (IFLAT.EQ.0)
+C END NOV 2003
+     1 CALL DATUM(IFILE,362,1,2,IBPRE, REALL,CHARAC,IOUT,0,IPROMP)
+C END AUG 1992
+C BEG APR 1993
+      IF (IBPRE.NE.0.AND.IBPRE.NE.1.AND.IBPRE.NE.2) THEN
+         WRITE(6,*)' BAD VALUE FOR PREBUCKLING B.C. INDEX, IBPRE'
+         WRITE(6,*)' ABORTING INTERACTIVE SESSION IN "BEGIN"'
+         CALL ERREX
+      ENDIF
+C BEG NOV 2003
+      IF (IFLAT.EQ.0.AND.IBPRE.EQ.1) IBPRE = 0
+C END NOV 2003
+C BEG JAN 2007
+      IF (IFLAT.EQ.0.AND.ISTIF(2).EQ.0) IBPRE = 2
+C END JAN 2007
+C END APR 1993
+      FBPRE = IBPRE
+      CALL GETVAR(0,FBPRE,0,0,0,IPAR,PAR,WORDP,IADDP)
+      PRELEN = 1.0
+C BEG APR 1993
+      IF (IBPRE.EQ.1.OR.IBPRE.EQ.2) PRELEN = 1./SQRT(3.85)
+C END APR 1993
+      CALL DATUM(IFILE,370,1,2,IBOUND,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG APR 1993
+      IF (IBOUND.NE.0.AND.IBOUND.NE.1) THEN
+         WRITE(6,*)' BAD VALUE FOR BUCKLING B.C. INDEX, IBOUND'
+         WRITE(6,*)' ABORTING INTERACTIVE SESSION IN "BEGIN"'
+         CALL ERREX
+      ENDIF
+C END APR 1993
+      FBOUND = IBOUND
+      CALL GETVAR(0,FBOUND,0,0,0,IPAR,PAR,WORDP,IADDP)
+C BEG JULY 1989
+      IPMORE = IPMAX - IPAR
+      WRITE(6,*)' '
+      WRITE(6,'(I4,A)') IPAR,
+     1        ' fixed parameters have now been identified.'
+      WRITE(6,'(I4,A)') IPMAX, ' fixed parameters are permitted.'
+      WRITE(6,'(I4,A)') IPMORE,
+     1        ' additional fixed parameters are allowed.'
+      WRITE(6,*)' '
+      IF (IPMORE.LT.0) THEN
+         WRITE(6,*)' TOO MANY FIXED PARAMETERS. REDEFINE THE PROBLEM.'
+         CALL ERREX
+      ENDIF
+C END JULY 1989
+      LENMOD = 1.0
+      IF (IBOUND.EQ.1) LENMOD = 1./SQRT(3.85)
+C     CALL DATUM(IFILE,380,1,2,INT,EIGMOD,CHARAC,IOUT,0,IPROMP)
+C     CALL GETVAR(0,EIGMOD,0,0,0,IPAR,PAR,WORDP,IADDP)
+C
+C     CALL OUTVAR(IVAR,VAR,WORDV,IADDV,'PARAMETERS FROM WHICH DECISION V
+C    1ARIABLES CAN BE CHOSEN IN DECIDE ',IFILE4,80,1,ISUB)
+C BEG JUNE 1990
+      DO 220 I = 1,IVAR
+C BEG JAN 1991
+         WRDVTP = WORDV(I)
+C BEG MAY 2004
+C        WORDV(I) = VARLEG(I)//':'//WRDVTP
+         WORDV(I) = VARLEG(I)(1:12)//':'//WRDVTP
+C END MAY 2004
+C END JAN 1991
+  220 CONTINUE
+C END JUNE 1990
+C BEG 26 JAN 1989
+      ARGSTR = 'PARAMETERS FROM WHICH DECISION VA'//
+     $         'RIABLES CAN BE CHOSEN IN DECIDE '
+      CALL OUTVAR(IVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB)
+C END 26 JAN 1989
+C BEG JULY 1989
+      IVMORE = IVMAX - IVAR
+        WRITE(IFILE8,*)' '
+        WRITE(IFILE8,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+        WRITE(IFILE8,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+        WRITE(IFILE8,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+        WRITE(IFILE8,*)' '
+C END JULY 1989
+C
+C BEG 26 JAN 1989
+      ARGSTR = 'PARAMETERS WHICH ARE ALWAYS FIXED'//
+     $         '.  NONE CAN BE DECISION VARIAB. '
+      CALL OUTVAR(IPAR,PAR,WORDP,IADDP,ARGSTR,IFILE8,80,1,ISUB)
+C END 26 JAN 1989
+C
+C BEG JULY 1989
+      IPMORE = IPMAX - IPAR
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(I4,A)') IPAR,
+     1        ' fixed parameters have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IPMAX, ' fixed parameters are permitted.'
+      WRITE(IFILE8,'(I4,A)') IPMORE,
+     1        ' additional fixed parameters are allowed.'
+      WRITE(IFILE8,*)' '
+C END JULY 1989
+C BEG 26 JAN 1989
+      ARGSTR = 'PARAMETERS WHICH ARE CLASSIFIED A'//
+     $         'S ALLOWABLES (e.g. max. stress) '
+      CALL OUTVAR(IALLOW,ALLOW,WORDA,IADDA,ARGSTR,IFILE8,80,1,ISUB)
+C END 26 JAN 1989
+C BEG JULY 1989
+      IAMORE = IAMAX - IALLOW
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(I4,A)') IALLOW,
+     1        ' allowables have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IAMAX, ' allowables are permitted.'
+      WRITE(IFILE8,'(I4,A)') IAMORE,
+     1        ' additional allowables are permitted.'
+      WRITE(IFILE8,*)' '
+C END JULY 1989
+C
+      CALL OUTWAL(IFILE8,ISTIF,NLAYER,NSEG,LTYPE,T,ANGLE,MATL,INTEXT,
+     1            CRACK,B2,W2)
+C
+C BEG FEB 2009
+C     WRITE(IFILE8,'(/,A,2I8)')
+C    1' KLAYER, ISOSUB=', KLAYER(1,1), ISOSUB(1,1,1)
+      IF (KLAYER(1,1).EQ.0.OR.ISOSUB(1,1,1).NE.0) THEN
+        CALL MOVER(ISTIF,1,ISTFSB,1,14)
+        CALL MOVER(B0,1,B0SUB,1,10)
+        CALL MOVER(B,1,BSUBX,1,10)
+      ENDIF
+C END FEB 2009
+      RETURN
+      END
+C
+C
+C
+C=DECK      DEFALT
+      SUBROUTINE DEFALT(ISTIF,IFILE,I,ILOOP,LTMAX,IWIND,LTYPE,T,ANGLE,
+     1                  IVAR,VAR,WORDV,IADDV,IPAR,PAR,WORDP,IADDP,MATL,
+C BEG JUNE 1990
+     1                  IOUT,IGROUP,LBEGIN,IBEG,IPROMP,VARLEG,WORD)
+C END JUNE 1990
+C
+C  PURPOSE IS TO PROVIDE WALL LAYER TYPES, THICKNESSES, WINDING ANGLES
+C  FOR A DEFAULT WALL. THE DEFAULT WALL CONSISTS OF 12 LAYERS WITH
+C  EQUAL THICKNESSES AND OF THE SAME MATERIAL WITH WINDING ANGLES
+C
+C     [90,0,+45,-45,0,90]S
+C
+C  WHY DO THIS?  BECAUSE DURING OPTIMIZATION WE CAN LET THE LAYERS
+C  THAT AREN'T VERY EFFECTIVE DISAPPEAR. THIS IS SORT OF A WAY TO
+C  OPTIMIZE WITH RESPECT TO WINDING ANGLES WITHOUT LETTING THE
+C  WINDING ANGLES BE DECISION VARIABLES.
+C
+      DIMENSION LTYPE(*),T(*),ANGLE(*),VAR(*),WORDV(*),IADDV(*)
+      DIMENSION PAR(*),WORDP(*),IADDP(*),MATL(*)
+C BEG JUNE 1990
+      DIMENSION VARLEG(*)
+C BEG MAY 2004
+C     CHARACTER*12 VARLEG
+      CHARACTER*16 VARLEG
+C END MAY 2004
+      CHARACTER*3  WORD
+      CHARACTER*2  CK
+C END JUNE 1990
+      DIMENSION LBEGIN(10,5)
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/INDAT/INFILE
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      CHARACTER*80 PHRASE,WORDP,WORDV
+      CHARACTER*3 STRRNG
+      CHARACTER*12 STTYP
+      CHARACTER*4 ANSOUT
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      LOGICAL ANSL1
+C
+      NLAYER = 12
+      N2 = NLAYER/2
+      IWIND  = 0
+      CALL DATUM(IFILE,173,1,2,INT,THICK,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         LBEGIN(IGROUP,I) = LTMAX
+         ISEG = I
+         IGRP = IGROUP
+         CALL DATUM(IFILE,181,1,2,INT,THICK,CHARAC,IOUT,0,IPROMP)
+C BEG JAN 2004
+   98    CALL DATUM(IFILE,185,1,2,MAT,REALL,CHARAC,IOUT,0,IPROMP)
+C END JAN 2004
+         IF (MAT.LE.0) THEN
+          WRITE(6,*)' POINTER FOR MATERIAL TYPE MUST BE 1 OR GREATER'
+          REWIND IFILE
+          BACKSPACE(IOUT)
+          GO TO 98
+         ENDIF
+      ELSE
+         CALL DATUM(IFILE,174,1,2,ISEG,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,175,1,2,IGRP,REALL,CHARAC,IOUT,0,IPROMP)
+         LBEGIN(IGROUP,I) = LBEGIN(IGRP,ISEG)
+      ENDIF
+C
+      DO 100  J = 1,NLAYER
+      IF (J.LE.N2) LTYPE(J) = LBEGIN(IGRP,ISEG) + J
+      IF (J.GT.N2) LTYPE(J) = LBEGIN(IGRP,ISEG) + N2 - (J - N2 - 1)
+      IF (LTYPE(J).LE.LTMAX) GO TO 100
+C
+      L = J + IBEG - 1
+      K = LTYPE(J)
+      LTMAX = K
+      T(K) = THICK
+      MATL(K) = MAT
+      IF (ILOOP.EQ.1.OR.I.NE.2) THEN
+        GO TO (10,20,30,40,50,60), J
+   10   ANGLE(K) = 90
+        GO TO 70
+C BEG DEC 1990
+   20   ANGLE(K) =  0
+        GO TO 70
+   30   ANGLE(K) =  45
+C END DEC 1990
+        GO TO 70
+   40   ANGLE(K) = -45
+        GO TO 70
+   50   ANGLE(K) =  0
+        GO TO 70
+   60   ANGLE(K) = 90
+   70   CONTINUE
+C
+      ELSE
+C
+        GO TO (72,74,76,78,80,82), J
+C BEG DEC 1990
+   72   ANGLE(K) =   0
+        GO TO 90
+   74   ANGLE(K) =  90
+        GO TO 90
+   76   ANGLE(K) = -45
+        GO TO 90
+   78   ANGLE(K) =  45
+        GO TO 90
+   80   ANGLE(K) =  90
+        GO TO 90
+   82   ANGLE(K) =   0
+C END DEC 1990
+   90   CONTINUE
+C
+      ENDIF
+C
+      IBLANK = 29
+      PHRASE = 'thickness for layer index no.'
+      CALL GETVAR(K,T(K),ILOOP,I,L,IVAR,VAR,WORDV,IADDV)
+C BEG JUNE 1990
+      IF(K.GE.10) THEN
+         WRITE(CK,'(I2)') K
+      ELSE
+         WRITE(CK,'(I1)') K
+      ENDIF
+      VARLEG(IVAR) = '  T('//CK//')('//WORD//')'
+C END JUNE 1990
+      IBLANK = 40
+      PHRASE = 'winding angle (deg.) for layer index no.'
+      CALL GETVAR(K,ANGLE(K),ILOOP,I,L,IPAR,PAR,WORDP,IADDP)
+C
+  100 CONTINUE
+C
+  110 FORMAT(/' DATA FOR DEFAULT GROUP NO.',I2,', SEGMENT NO.',I2/
+     1' STR/ TYPE  SEG.  LAYER  LAYER  THICKNESS   WINDING     MATERAL'/
+     1' RNG        NO.    NO.   TYPE                ANGLE       TYPE')
+C
+      STTYP = 'NONE'
+      IF (ISTIF.EQ.1) STTYP = '  T '
+      IF (ISTIF.EQ.2) STTYP = '  J '
+      IF (ISTIF.EQ.3) STTYP = '  R '
+      IF (ISTIF.EQ.4) STTYP = ' HAT'
+C
+      STRRNG = '   '
+C BEG AUG 1992
+      IF (ILOOP.EQ.1) THEN
+         IF (ISOGRD.EQ.0) STRRNG = 'STR'
+         IF (ISOGRD.EQ.1) STRRNG = 'ISO'
+      ENDIF
+C END AUG 1992
+      IF (ILOOP.EQ.2) STRRNG = 'RNG'
+C
+      WRITE(6,110) IGROUP, I
+      IF (IPROMP.GT.1) WRITE(IPROMP,110) IGROUP,I
+C
+      NLAY = 12
+C
+      DO 130 J = 1,NLAY
+C
+      L = J + IBEG - 1
+      K = LTYPE(J)
+      WRITE(6,120) STRRNG,STTYP,I,L,K,T(K),ANGLE(K),MATL(K)
+      IF (IPROMP.GT.1)
+     1 WRITE(IPROMP,120) STRRNG,STTYP,I,L,K,T(K),ANGLE(K),MATL(K)
+  120 FORMAT(1X,A3,2X,A4,I4,I7,I7,1P,E13.4,1P,E12.4,I6)
+C
+  130 CONTINUE
+C
+      WRITE(6,140) LTMAX+1
+      IF (IPROMP.GT.1) WRITE(IPROMP,140) LTMAX+1
+  140 FORMAT(/' PLEASE USE LAYER INDEX TYPE',I3,
+     1'  FOR NEXT NEW LAYER TYPE.'/)
+      RETURN
+      END

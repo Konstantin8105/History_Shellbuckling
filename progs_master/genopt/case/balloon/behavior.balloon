@@ -1,0 +1,2764 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: balloon
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called ADS, and was
+C written by G. Vanderplaats [3]. It is based on the method
+C of feasible directions [4].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although all of the example cases (See the cases
+C        in the directories under genopt/case)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "balloon".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "balloon" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [7 - 16]. That
+C        is, the command set is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.)
+ 
+C           SUPEROPT  (Program tries to find the GLOBAL optimum
+C                      design as described in Ref.[11] listed
+C                      below (Many OPTIMIZEs in one run.)
+ 
+C           CHANGE    (User changes certain parameters)
+ 
+C           CHOOSEPLOT (User selects which quantities to plot
+C                       vs. design iterations.)
+ 
+C           DIPLOT    (User generates plots)
+ 
+C           CLEANSPEC (User cleans out unwanted files.)
+ 
+C     A typical runstream is:
+C       GENOPTLOG   (activate command set)
+C       BEGIN       (provide starting design, loads, etc.)
+C       DECIDE      (choose decision variables and bounds)
+C       MAINSETUP   (choose print option and analysis type)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHANGE      (change some variables for new starting pt)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHOOSEPLOT  (choose which variables to plot)
+C       DIPLOT      (plot variables v. iterations)
+C       CHOOSEPLOT  (choose additional variables to plot)
+C       DIPLOT      (plot more variables v design iterations)
+C       CLEANSPEC   (delete extraneous files for specific case)
+ 
+C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"
+C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN
+C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO
+C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,
+C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,
+C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and
+C              Structures, Vol. 25, No. 4, pp 469-605 (1987).
+ 
+C Due to introduction of a "global" optimizer, SUPEROPT,
+C described in Ref.[11], you can now use the runstream
+ 
+C      BEGIN       (provide starting design, loads, etc.)
+C      DECIDE      (choose decision variables and bounds)
+C      MAINSETUP   (choose print option and analysis type)
+C      SUPEROPT    (launch batch run for "global" optimization)
+C      CHOOSEPLOT  (choose which variables to plot)
+C      DIPLOT      (plot variables v. iterations)
+ 
+C "Global" is in quotes because SUPEROPT does its best to find
+C a true global optimum design. The user is strongly urged to
+C execute SUPEROPT/CHOOSEPLOT several times in succession in
+C order to determine an optimum that is essentially just as
+C good as the theoretical true global optimum. Each execution
+C of the series,
+C      SUPEROPT
+C      CHOOSEPLOT
+ 
+C does the following:
+ 
+C 1. SUPEROPT executes many sets of the two processors,
+C    OPTIMIZE and AUTOCHANGE (AUTOCHANGE gets a new random
+C    "starting" design), in which each set does the following:
+ 
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      AUTOCHANGE        (get new starting design randomly)
+ 
+C    SUPEROPT keeps repeating the above sequence until the
+C    total number of design iterations reaches about 270.
+C    The number of OPTIMIZEs per AUTOCHANGE is user-provided.
+ 
+C 2. CHOOSEPLOT allows the user to plot stuff and resets the
+C    total number of design iterations from SUPEROPT to zero.
+C    After each execution of SUPEROPT the user MUST execute
+C    CHOOSEPLOT: before the next execution of SUPEROPT the
+C    total number of design iterations MUST be reset to zero.
+ 
+C                     REFERENCES
+ 
+C [1] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", International
+C Journal of Solids and Structures, Vol. 26, No. 9/10,
+C pp. 1173-1210, 1990. The same paper is contained in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology.
+ 
+C [2] Bushnell, D., "Automated optimum design of shells of
+C revolution with application to ring-stiffened cylindrical
+C shells with wavy walls", AIAA paper 2000-1663, 41st
+C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see
+C Lockheed Martin report, same title, LMMS P525674, November
+C 1999
+ 
+C [2b] Bushnell, D., "Minimum weight design of imperfect
+C isogrid-stiffened ellipsoidal shells under uniform external
+C pressure", AIAA paper 2009-2702, 50th AIAA Structures
+C Meeting, Palm Springs, CA, May 4-7, 2009
+ 
+C [2c] Bushnell, D. and Thornburgh, R. P., "Use of GENOPT and
+C BIGBOSOR4 to optimize weld lands in axially compressed
+C stiffened cylindrical shells and evaluation of the optimized
+C designs by STAGS", AIAA Paper 2010-2927, AIAA 51st Structures
+C Meeting, Orlando, Florida, April 2010
+ 
+C [2d] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C optimum designs of an axially compressed cylindrical shell
+C with a composite truss-core sandwich wall", AIAA Paper 2011-
+C xxxx, 52nd AIAA Structures Meeting, Denver, CO, April, 2011
+ 
+C [2e] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C an optimum design of a deep submergence tank", unpublished
+C report to the DOER company, Alameda, CA, June 30, 2009
+ 
+C [2f] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C optimum designs of a double-walled inflatable cylindrical
+C vacuum chamber", unpublished report for Michael Mayo,
+C November, 2010
+
+C [2g] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C optimum designs of a double-walled inflatable spherical
+C vacuum chamber", unpublished report for Michael Mayo,
+C December, 2010
+
+C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+ 
+C [4] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+ 
+C [5] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [6] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [7] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [8] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C [9] Bushnell, D., "SPHERE - Program for minimum weight
+C design of isogrid-stiffened spherical shells under uniform
+C external pressure", Lockheed Report F372046, January, 1990
+ 
+C [10] Bushnell, D.,"Optimum design of imperf.isogrid-stiffened
+C ellipsoidal shells...", written and placed in the file
+C ..genopt/case/torisph/sdm50.report.pdf
+ 
+C [11] Bushnell, D., "Recent enhancements to PANDA2", AIAA
+C paper 96-1337-CP, Proc. 37th AIAA SDM Meeting, April 1996
+C pp. 126-182, in particular, pp. 127-130
+ 
+C [12] Bushnell, D., the file ..genopt/doc/getting.started
+ 
+C [13] Bushnell, D., the case ..genopt/case/torisph, Ref.[2b]
+ 
+C [14] Bushnell, D., the case ..genopt/case/cylinder
+ 
+C [15] Bushnell, D., the case ..genopt/case/wavycyl, Ref.[2]
+ 
+C [16] Bushnell, D., the case ..genopt/case/plate
+ 
+C [17] Bushnell, D., the case ..genopt/case/weldland, Ref.[2c]
+ 
+C [18] Bushnell, D., the case ..genopt/case/trusscomp,Ref.[2d]
+ 
+C [19] Bushnell, D., the case ..genopt/case/submarine,Ref.[2e]
+ 
+C [20] Bushnell, D., the case ..genopt/case/sphere
+ 
+C [21] Bushnell, D., the case ..genopt/case/balloon
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+ 
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     SUPEROPT     (Program tries to find the GLOBAL optimum
+C                   design as described in Ref.[11] listed
+C                   above (Many OPTIMIZEs in one run.)
+ 
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPT.STORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (in the directory, genopt/case)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = balloon)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "balloon"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (balloon.PRO)
+C==============================================================
+C    n   (   0,   0)    2      10   LENGTH   = length of the cylindrical shell
+C    n   (   0,   0)    2      15   RADIUS   = inner radius of the cylindrical b
+C    n   (   0,   0)    2      20   NMODUL   = number of modules over 90 degrees
+C    n   (   0,   0)    2      30   ISHAPE   = balloon shape index
+C    n   (   0,   0)    2      40   IWEBS    = radial (1) or truss-like (2) webs
+C    n   (   0,   0)    2      50   IEMOD1   = material number in EMOD1(IEMOD1)
+C    y   (  10,   0)    2      55   EMOD1    = elastic modulus, meridional direc
+C    y   (  10,   0)    2      60   EMOD2    = elastic modulus, circumferential
+C    y   (  10,   0)    2      65   G12      = in-plane shear modulus
+C    y   (  10,   0)    2      70   G13      = out-of-plane (s,z) shear modulus
+C    y   (  10,   0)    2      75   G23      = out-of-plane (y,z) shear modulus
+C    y   (  10,   0)    2      80   NU       = Poisson ratio
+C    y   (  10,   0)    2      85   ALPHA1   = meridional coef. thermal expansio
+C    y   (  10,   0)    2      90   ALPHA2   = circumf.coef.thermal expansion
+C    y   (  10,   0)    2      95   TEMPER   = delta-T from fabrication temperat
+C    y   (  10,   0)    2     100   DENSTY   = weight density of material
+C    n   (   0,   0)    1     110   HEIGHT   = height from inner to outer membra
+C    n   (   0,   0)    1     115   RINNER   = radius of curvature of inner memb
+C    n   (   0,   0)    1     120   ROUTER   = radius of curvature of outer memb
+C    n   (   0,   0)    1     125   TINNER   = thickness of the inner curved mem
+C    n   (   0,   0)    1     130   TOUTER   = thickness of the outer curved mem
+C    n   (   0,   0)    1     135   TFINNR   = thickness of inner truss-core seg
+C    n   (   0,   0)    1     140   TFOUTR   = thickness of the outer truss segm
+C    n   (   0,   0)    1     145   TFWEBS   = thickness of each truss-core web
+C    n   (   0,   0)    2     155   NCASES   = Number of load cases (number of e
+C    y   (  20,   0)    3     160   PINNER   = pressure inside the inner membran
+C    y   (  20,   0)    3     165   PMIDDL   = pressure between inner and outer
+C    y   (  20,   0)    3     170   POUTER   = pressure outside the outer membra
+C    y   (  20,   0)    4     180   BUCKB4   = buckling load factor from BIGBOSO
+C    y   (  20,   0)    5     185   BUCKB4A  = allowable for buckling load facto
+C    y   (  20,   0)    6     190   BUCKB4F  = buckling from BIGBOSOR4 factor of
+C    y   (  20,   0)    4     200   TENLOS   = load factor for tension loss
+C    y   (  20,   0)    5     205   TENLOSA  = tension loss allowable (Use 1.0)
+C    y   (  20,   0)    6     210   TENLOSF  = tension loss factor of safety
+C    n   (   0,   0)    2     215   JSTRM1   = stress component number in STRM1(
+C    y   (  20,   5)    4     220   STRM1    = stress component in material 1
+C    y   (  20,   5)    5     225   STRM1A   = allowable stress in material 1
+C    y   (  20,   5)    6     230   STRM1F   = factor of safety for stress in ma
+C    y   (  20,   5)    4     235   STRM2    = stress component in material 2
+C    y   (  20,   5)    5     240   STRM2A   = allowable for stress in material
+C    y   (  20,   5)    6     245   STRM2F   = factor of safety for stress in ma
+C    y   (  20,   5)    4     250   STRM3    = stress component in material 3
+C    y   (  20,   5)    5     255   STRM3A   = allowable for stress in material
+C    y   (  20,   5)    6     260   STRM3F   = factor of safety for stress in ma
+C    n   (   0,   0)    7     270   WEIGHT   = weight/length of the balloon
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN buckling load factor from BIGBOSOR4
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCKB4(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = buckling load factor from BIGBOSOR4
+C
+C   OUTPUT:
+C
+C     BUCKB4(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C BEG NOV 2010
+      COMMON/EIGMNX/EIGMIN
+      COMMON/IABRTX/IABORT
+      COMMON/ITRYX/ITRY,NSTEPS,KSEGS
+      COMMON/TOTMAX/TOTMAS
+      DIMENSION INODM1(10),INODM2(10),ISEGM1(10),ISEGM2(10)
+      DIMENSION INODE1(10),INODE2(10),ISEGE1(10),ISEGE2(10)
+      DIMENSION FN1MAX(10),FN2MAX(10),DIFF(10)
+      DIMENSION EIG1MN(10),EIG2MN(10)
+C END NOV 2010
+      DOUBLE PRECISION FTOTX
+      COMMON/FPREBX/FMAXST(200),FTOTX(20000)
+      COMMON/IFPREB/IFTOTS
+      COMMON/SEGS/NSEGB4,M2B4,I5B4(295),I2B4,I2GB4
+      COMMON/IFRHX/IFBB4,RHFIX(198),
+     1             KKKK,MNUMB,ISWTCH,KNTB4,IFTOT,INDSIG,IFIXB4
+      COMMON/FLNFLO/FLINNR,FLOUTR
+      COMMON/WRDCLX/WRDCOL
+      CHARACTER*45 WRDCOL
+      COMMON/ITERS/ITER
+      COMMON/ITERS2/ITRSTP(200)
+C BEG NOV 2010
+      COMMON/CODWRX/CODWRD
+      CHARACTER*20 CODWRD
+      COMMON/MEMSTR/STRS1F(1,6),STRS2F(1,6),STRS1V(1,6),STRS2V(1,6)
+      DIMENSION THK(6)
+C END NOV 2010
+      COMMON/ERROR/ERR
+C BEG NOV 2010
+      COMMON/N1N2FX/N1FIX(100,295),N2FIX(100,295)
+      COMMON/N1N2VR/N1VAR(100,295),N2VAR(100,295)
+      DIMENSION EIGEN1(100,295), EIGEN2(100,295)
+C END NOV 2010
+C BEG JAN 2011
+      DIMENSION N1AVEF(10),N2AVEF(10),N1AVEV(10),N2AVEV(10)
+      REAL N1AVEF,N2AVEF,N1AVEV,N2AVEV
+C END JAN 2011
+      REAL N1FIX,N2FIX,N1VAR,N2VAR
+      COMMON/N2DIFX/N2DIFF(6)
+      REAL N2DIFF
+      COMMON/FINNER/C44FIN,DELTAT,DELT,NODSEG,MSEGS
+      COMMON/NUMSEG/NSEGS
+      COMMON/INSTAB/INDIC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/BUCKN/N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/EIGALL/EIG0,EIG1,EIG2,EIG3,EIG4
+      COMMON/WAVALL/NWAV0,NWAV1,NWAV2,NWAV3,NWAV4
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+C BEG NOV 2010
+      CHARACTER*35 CASA,CASA2,CASA3
+C
+C BEG DEC 2010
+      IF (IMODX.EQ.0) THEN
+         WRITE(IFILE,'(/,A,/,A,I2,/,A,I2,/,A,1P,E12.4)')
+     1 ' ************** TYPE OF BALLOON AND WEBS ***************',
+     1 ' ISHAPE =',ISHAPE,
+     1 ' IWEBS  =',IWEBS,
+     1 ' Inner radius, RADIUS =',RADIUS
+         IF (ISHAPE.EQ.1) WRITE(IFILE,'(A)')
+     1 ' The balloon is cylindrical.'
+         IF (ISHAPE.EQ.2) WRITE(IFILE,'(A)')
+     1 ' The balloon is spherical.'
+         WRITE(IFILE,'(A,I3)') ' Number of modules,NMODUL=',NMODUL
+         IF (IWEBS.EQ.1) WRITE(IFILE,'(A)')
+     1 ' The balloon has radial webs (Fig. 1).'
+         IF (IWEBS.EQ.2) WRITE(IFILE,'(A)')
+     1 ' The balloon has truss-like (slanted) webs (Fig. 2).'
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' Pressures: PINNER,PMIDDL,POUTER=',
+     1              PINNER(ILOADX),PMIDDL(ILOADX),POUTER(ILOADX)
+         WRITE(IFILE,'(A,1P,2E12.4)')
+     1 ' Factors of safety: BUCKB4F,TENLOSF=',
+     1                      BUCKB4F(ILOADX),TENLOSF(ILOADX)
+         WRITE(IFILE,'(A)')
+     1 ' *******************************************************'
+      ENDIF
+C END DEC 2010
+      IF (IWEBS.EQ.1) KSEGS = 5
+      IF (IWEBS.EQ.2) KSEGS = 6
+C END NOV 2010
+C
+      PI = 3.1415927
+C
+C BEG DEC 2010
+C BEG JAN 2011
+      IF (IWEBS.EQ.2) NMODMX = 45
+      IF (IWEBS.EQ.1) NMODMX = 55
+C     IF (NMODUL.GT.48) THEN
+      IF (NMODUL.GT.NMODMX) THEN
+C END JAN 2011
+         I=INDEX(CASE,' ')
+         NLET = I - 1
+         IF (I.EQ.0) NLET = 28
+C BEG JAN 2011
+         WRITE(IFILE,'(/,A,/,A,I3,/,A,A,A,/,A)')
+     1' ************* RUN ABORT ******************',
+     1' Too many modules. NMODUL must be less than or equal to',
+     1  NMODMX,
+     1' Reduce NMODUL in the file, ',CASE(1:NLET),'.BEG.',
+     1' ******************************************'
+        CALL ERREX 
+      ENDIF
+C END DEC 2010
+C
+      IF (IMODX.EQ.0) ERR = 0.
+      IF (IMODX.EQ.1) ERR = 0.01
+C
+      RAVE = RADIUS/PI
+      RBIGG = RAVE
+C BEG NOV 2010
+      IF (ISHAPE.EQ.2.AND.KSEGS.EQ.5) RBIGG = 0.0
+C     IF (ISHAPE.EQ.2.AND.KSEGS.EQ.6) RBIGG = 0.0
+      IF (ISHAPE.EQ.2.AND.KSEGS.EQ.6) RBIGG = 0.025*RAVE
+C END NOV 2010
+C
+C   Obtain nonlinear equilibrium for Load Set B by itself.
+C   Use 10 load steps to assure convergence.
+C
+      INDIC = 0
+C BEG NOV 2010
+      WRDCOL = '                                             '
+      CODWRD = 'BALLOON             '
+C END NOV 2010
+      IFTOTS = 0
+      ITRY = 1
+C BEG NOV 2010
+      ITRYS = ITRY
+C END NOV 2010
+      NSTEPS = 11
+      CALL MOVER(0.,0,FTOTX,1,40000)
+      CALL BOSDEC(0,24,ILOADX,INDIC)
+C
+      IF (0.5*FLINNR.GT.RINNER) THEN
+         WRITE(IFILE,'(/,A)') ' ************* ABORT **********'
+         WRITE(IFILE,'(A)') ' 0.5 x FLINNR is greater than RINNER'
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLINNR =',0.5*FLINNR,'; RINNER =',RINNER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A)') ' Put a higher lower bound on RINNER.'
+         WRITE(IFILE,'(A)') ' The run is now aborting.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL ERREX
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      IF (0.5*FLOUTR.GT.ROUTER) THEN
+         WRITE(IFILE,'(/,A)') ' ************* ABORT **********'
+         WRITE(IFILE,'(A)') ' 0.5 x FLOUTR is greater than ROUTER'
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLOUTR =',0.5*FLOUTR,'; ROUTER =',ROUTER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A)') ' Put a higher lower bound on ROUTER.'
+         WRITE(IFILE,'(A)') ' The run is now aborting.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL ERREX
+      ENDIF
+C
+C BEG NOV 2010
+C  creation of BIGBOSOR4 input file, CASE.LOADB, moved down.
+C
+      CALL B4READ
+      CALL B4MAIN
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+      ILETW = INDEX(WRDCOL,'SHELL COLLAPSES AXISYMMETRICALLY')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(/,A)') ' ************* ABORT **********'
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+         WRITE(IFILE,'(A)') ' SHELL COLLAPSES AXISYMMETRICALLY'
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLINNR =',0.5*FLINNR,'; RINNER =',RINNER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLOUTR =',0.5*FLOUTR,'; ROUTER =',ROUTER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A)') ' Put a higher lower bound on RINNER or'
+         WRITE(IFILE,'(A)') ' put a higher lower bound on ROUTER.'
+         WRITE(IFILE,'(A)') ' The run is now aborting.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL ERREX
+      ENDIF
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+      ILETW = INDEX(WRDCOL,'INITIAL LOADS TOO HIGH FOR THIS STRUCT')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+         WRITE(IFILE,'(/,A)')
+     1               ' ****** CHANGE FROM 10 TO 1 LOAD STEPS ******'
+         WRITE(IFILE,'(A)') ' INITIAL LOADS TOO HIGH FOR THIS STRUCT'
+         WRITE(IFILE,'(A,I2)') ' Changing from 10 to 1 steps: IMODX=',
+     1    IMODX
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRDCOL = '                                             '
+         INDIC = 0
+         IFTOTS = 0
+         ITRY = 2
+C BEG NOV 2010
+         ITRYS = ITRY
+C END NOV 2010
+         NSTEPS = 1
+         CALL MOVER(0.,0,FTOTX,1,40000)
+         CALL BOSDEC(0,24,ILOADX,INDIC)
+         CALL B4READ
+         CALL B4MAIN
+         ITRY = 1
+      ENDIF
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+      ILETW = INDEX(WRDCOL,'SHELL COLLAPSES AXISYMMETRICALLY')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+         WRITE(IFILE,'(/,A)') ' ************* ABORT **********'
+         WRITE(IFILE,'(A)') ' SHELL COLLAPSES AXISYMMETRICALLY'
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLINNR =',0.5*FLINNR,'; RINNER =',RINNER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLOUTR =',0.5*FLOUTR,'; ROUTER =',ROUTER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A)') ' Put a higher lower bound on RINNER or'
+         WRITE(IFILE,'(A)') ' put a higher lower bound on ROUTER.'
+         WRITE(IFILE,'(A)') ' The run is now aborting.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL ERREX
+      ENDIF
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+      ILETW = INDEX(WRDCOL,'INITIAL LOADS TOO HIGH FOR THIS STRUCT')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+         WRITE(IFILE,'(/,A)')
+     1               ' ****** CHANGE FROM 1 TO 50 LOAD STEPS ******'
+         WRITE(IFILE,'(A)') ' INITIAL LOADS TOO HIGH FOR THIS STRUCT'
+         WRITE(IFILE,'(A,I2)') ' Changing from 1 to 50 steps: IMODX=',
+     1    IMODX
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRDCOL = '                                             '
+         INDIC = 0
+         IFTOTS = 0
+         ITRY = 3
+C BEG NOV 2010
+         ITRYS = ITRY
+C END NOV 2010
+         NSTEPS = 51
+         CALL MOVER(0.,0,FTOTX,1,40000)
+         CALL BOSDEC(0,24,ILOADX,INDIC)
+         CALL B4READ
+         CALL B4MAIN
+         ITRY = 1
+      ENDIF
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+      ILETW = INDEX(WRDCOL,'SHELL COLLAPSES AXISYMMETRICALLY')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+         WRITE(IFILE,'(/,A)') ' ************* ABORT **********'
+         WRITE(IFILE,'(A)') ' SHELL COLLAPSES AXISYMMETRICALLY'
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLINNR =',0.5*FLINNR,'; RINNER =',RINNER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A,1P,E12.4,A,1P,E12.4,A,I2)')
+     1 ' 0.5 x FLOUTR =',0.5*FLOUTR,'; ROUTER =',ROUTER,'; IMODX=',IMODX
+         WRITE(IFILE,'(A)') ' Put a higher lower bound on RINNER or'
+         WRITE(IFILE,'(A)') ' put a higher lower bound on ROUTER.'
+         WRITE(IFILE,'(A)') ' The run is now aborting.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         CALL ERREX
+      ENDIF
+C
+C     IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)
+C    1 WRITE(IFILE,'(/,A,A)') ' WRDCOL=',WRDCOL
+C BEG NOV 2010
+      IF (IMODX.EQ.0) IABORT = 0
+      IF (IABORT.EQ.1) THEN
+C BEG DEC 2010
+          CALL MOVER(0.,0,STRS1V,1,6)
+          CALL MOVER(0.,0,STRS2V,1,6)
+          EIGMIN = 10.E16
+C END DEC 2010
+          WEIGHT = 10.E20
+          TOTMAS = 10.E20
+          GO TO 1000
+      ENDIF
+C END NOV 2010
+      ILETW = INDEX(WRDCOL,'INITIAL LOADS TOO HIGH FOR THIS STRUCT')
+      IF (ILETW.NE.0) THEN
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+C BEG NOV 2010
+         EIGMIN = 10.E+16
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* ABORT **********'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* WARNING **********'
+C END NOV 2010
+         WRITE(IFILE,'(A)') ' INITIAL LOADS TOO HIGH FOR THIS STRUCT'
+         WRITE(IFILE,'(A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' This is an unrecoverable error because we have already',
+     1 ' tried and failed to obtain nonlinear pre-buckling convergence',
+     1 ' by changing from a nonlinear solution with 10 load steps to',
+     1 ' a nonlinear solution with 1 load step and then changing from',
+     1 ' 1 load step to 50 load steps:three tries. That strategy just',
+     1 ' failed. You may well have performed enough design iterations',
+     1 ' to have a good optimum design now. Look near the end of the',
+     1 ' *.OPP file at the "FEASIBLE" and "ALMOST FEASIBLE" designs.'
+         WRITE(IFILE,'(A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' If you are not satisfied that you have performed enough',
+     1 ' design iterations, then use the GENOPT processor to reset',
+     1 ' the values of the decision variables to those of the already',
+     1 ' accepted "FEASIBLE" or "ALMOST FEASIBLE" design and then',
+     1 ' launch SUPEROPT again. This has worked for Bushnell.',
+     1 ' You may also which to tighten the lower and upper bounds',
+     1 ' of one or more of the decision variables, especially the',
+     1 ' lower bounds of HEIGHT and ROUTER, and possibly one or more',
+     1 ' of the thicknesses of segments that are becoming very thin.'
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(A,I2)') ' The run is now aborting: IMODX=',IMODX
+C BEG NOV 2010
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(A,I2)') ' IABORT is now set to 1: IMODX=',IMODX
+         IF (ITYPEX.NE.2) WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1 ' WEIGHT and TOTMAS and EIGMIN are being set equal to large',
+     1 ' numbers. If you want a plot of the objective edit the *.PL5',
+     1 ' file by removing all entries with very large numbers, then',
+     1 ' execute DIPLOT.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         IABORT = 1
+C BEG DEC 2010
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+C END DEC 2010
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+C BEG DEC 2010
+         GO TO 1000
+C END DEC 2010
+C END NOV 2010
+      ENDIF
+C
+C BEG NOV 2010
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.LOADB file for input for BIGBOSOR4...
+C      CASE.LOADB is an input file for BIGBOSOR4 for axisym.load set B 
+C      pre-buckling state of the balloon under Load set B by itself.
+         I=INDEX(CASE,' ')
+         IF (I.NE.0) THEN
+            CASA3=CASE(:I-1)//'.LOADB'
+         ELSE
+            CASA3=CASE//'.LOADB'
+         ENDIF
+         OPEN(UNIT=62,FILE=CASA3,STATUS='UNKNOWN')
+         ITRY = ITRYS
+         CALL BOSDEC(0,62,ILOADX,INDIC)
+         ITRY = 1
+         CLOSE(UNIT=62)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' pre-buckling state of the balloon, Load Set B',
+     1   CASA3
+      ENDIF
+C
+C BEG DEC 2010
+      IF (ISHAPE.EQ.2) WRITE(IFILE,'(/,A,A,1P,E12.4)')
+     1' Total weight of the spherical balloon from BIGBOSOR4,',
+     1' 2 x  TOTMAS=', 2.0*TOTMAS
+C END DEC 2010
+C END NOV 2010
+C
+      IF (IMODX.EQ.0) THEN
+         WRITE(IFILE,'(/,A,/,A,/,A,1P,E12.4,A,1P,E12.4,A,1P,E12.4,/,A)')
+     1 ' Newton iterations required to solve the nonlinear',
+     1 ' axisymmetric pre-buckling equilibrium state for the',
+     1 ' "fixed" loads, PINNER=',PINNER(ILOADX),
+     1 ', PMIDDL=',PMIDDL(ILOADX),', DELTAT=',DELTAT,
+     1 ' LOAD STEP   Newton iterations  Maximum displacement'
+C BEG NOV 2010
+         DO 1 I = 1,NSTEPS
+          WRITE(IFILE,'(I6,I15,1P,E25.6)') I,ITRSTP(I),FMAXST(I)
+    1    CONTINUE
+C END NOV 2010
+      ENDIF
+C
+C BEG DEC 2010
+      IABRTS = IABORT
+      IF (IABRTS.EQ.0.AND.
+     1           (FMAXST(1).EQ.0.0.OR.FMAXST(2).EQ.0.0)) THEN
+C
+         EIGMIN = 10.E+16
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* ABORT **********'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* WARNING **********'
+C
+         IF (ITYPEX.NE.2) WRITE(IFILE,'(A,A,I2)')
+     1 ' IMODX=0 means current design, IMODX=1 means perturbed',
+     1 ' design: IMODX=',IMODX
+         WRITE(IFILE,'(A,A,/,1P,5E14.6)')
+     1 ' Decision variable candidates,',
+     1 ' HEIGHT,RINNER,ROUTER,TINNER,TOUTER=',
+     1   HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+         WRITE(IFILE,'(A,1P,3E12.4)')
+     1 ' TFINNR,TFOUTR,TFWEBS=',TFINNR,TFOUTR,TFWEBS
+C
+         WRITE(IFILE,'(/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Failed to find the pre-buckling "fixed" load B solution.',
+     1 ' The maximum displacement in sub-step no. 1 or 2 is zero.',
+     1 ' This is probably caused by a nearly singular matrix.',
+     1 ' Raise the values of HEIGHT and the thicknesses, and',
+     1 ' also raise the lower bounds of these quantities, and',
+     1 ' try the run again.'
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(A,I2)') ' The run is now aborting: IMODX=',IMODX
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(A,I2)') ' IABORT is now set to 1: IMODX=',IMODX
+         IF (ITYPEX.NE.2) WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1 ' WEIGHT and TOTMAS and EIGMIN are being set equal to large',
+     1 ' numbers. If you want a plot of the objective edit the *.PL5',
+     1 ' file by removing all entries with very large numbers, then',
+     1 ' execute DIPLOT.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         IABORT = 1
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+C BEG DEC 2010
+         GO TO 1000
+C END DEC 2010
+      ENDIF
+C END DEC 2010
+      IF (ITYPEX.EQ.1)
+     1 WRITE(IFILE,'(A,A,/,A,/,A,I2)') ' WRDCOL=',WRDCOL,
+     1' IMODX=0 for current design,',
+     1' IMODX=1 for perturbed design: IMODX=',IMODX
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     WRITE(IFILE,'(/,A,2I10)')' IFTOT, M2B4 =', IFTOT,M2B4
+C BEG DEC 2010
+C  Next, solve the bifurcation buckling equations
+C  with use of the INDIC = 1 strategy in BIGBOSOR4.
+C  The vector, FTOTX, contains the solution of the
+C  pre-buckling equilibrium equations for the balloon
+C  loaded by PINNER, PMIDDL, and DELTAT, that is, the
+C  loads in Load Set B, the "fixed" (non-eigenvalue)
+C  loads. This is the starting vector for the Newton
+C  iterations for the solution of the nonlinear
+C  pre-buckling equilibrium equations for the balloon
+C  loaded by PINNER, PMIDDL, DELTAT, and POUTER, that is,
+C  the TOTAL loads on the balloon. The eigenvalue
+C  problem is:
+C
+C     [A] + eigenvalue x [B] = 0
+C
+C  in which [A] is the stiffness matrix of the balloon
+C  as loaded by Load Set B only, and [B] is the load-
+C  geometric matrix of the balloon as loaded by the
+C  difference: (TOTAL load) - (Load Set B).
+C
+C  The input file, *.ALL, for BIGBOSOR4 is generated
+C  by the statement below:
+C
+C     CALL BOSDEC(1,24,ILOADX,INDIC)
+C
+C  and the bifurcation buckling eigenvalue problem is
+C  solved via the stementa below:
+C
+C     CALL B4READ
+C     CALL B4MAIN
+C
+C  Bifurcation buckling mode shapes are produced via
+C  the following statement below:
+C
+C     IF (ITYPEX.EQ.2) CALL B4POST
+C
+C  SUBROUTINE B4POST generates the file, *.PLT2, in
+C  which "*" denotes the end-user-selected specific
+C  name for the case (e.g. "try4"). Plots of the
+C  bifurcation buckling mode shapes are obtained
+C  as follows:
+C
+C  cd /home/progs/work6       (go to a working directory
+C                              for execution of BIGBOSOR4
+C                              processors)
+C
+C  cp ../genoptcase/try4.PLT2 .  (get the *.PLT2 file)
+C
+C  bigbosor4log               (activate BIGBOSOR4 commands)
+C
+C  bosorplot                  (generate plots)
+C
+C END DEC 2010
+      IFTOTS = IFTOT
+      M22B4 = 2*M2B4
+      CALL GASP(FTOTX,M22B4,3,IFTOT)
+C     WRITE(IFILE,'(/,A,/,(1P,10E10.2))')
+C    1' Nonlinear solution for Load Set B by itself, FTOTX=',
+C    1 (FTOTX(I),I=1,M2B4)
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+      INDIC = 1
+C BEG NOV 2010
+      IF (IMODX.EQ.0) IABORT = 0
+      IF (ISHAPE.EQ.1) THEN
+        N0B = 1
+        NMAXB = 1
+        INCRB = 1
+      ELSE
+        N0B = 0
+        NMAXB = 0
+        INCRB = 1
+C BEG DEC 2010
+C  Perhaps comment out the following block because of the possible
+C  existence of spurious modes with very low spurious eigenvalues:
+        IF (ITYPEX.EQ.2) THEN
+          NMAXB = 10*NMODUL
+          INCRB = NMAXB/10
+          IF (INCRB.LT.1) INCRB = 1
+        ENDIF
+C END DEC 2010
+      ENDIF
+      IF (IABORT.EQ.1) THEN
+C BEG DEC 2010
+          CALL MOVER(0.,0,STRS1V,1,6)
+          CALL MOVER(0.,0,STRS2V,1,6)
+          EIGMIN = 10.E16
+C END DEC 2010
+          WEIGHT = 10.E20
+          TOTMAS = 10.E20
+          GO TO 1000
+      ENDIF
+C END NOV 2010
+      WRDCOL = '                                             '
+      CALL BOSDEC(1,24,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX1 file for input for BIGBOSOR4...
+C      CASE.BEHX1 is an input file for BIGBOSOR4 for behavior no. 1:
+C      buckling load from BIGBSOSOR4
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX1'
+         ELSE
+            CASA=CASE//'.BEHX1'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(1,61,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' general buckling load',
+     1   CASA
+C BEG DEC 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ISHAPE.EQ.2)
+     1   WRITE(IFILE,'(A,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Ordinarily, the file called ',CASA,
+     1 ' which contains valid input data for BIGBOSOR4,',
+     1 ' would be used for an execution of BIGBOSOR4 independently',
+     1 ' of the GENOPT environment. However, that BIGBOSOR4 execution',
+     1 ' will probably fail in this case because of failure of the',
+     1 ' Newton iterations for solution of the nonlinear pre-buckling',
+     1 ' equilibrium equations corresponding to the application of the',
+     1 ' "fixed" loads (non-eigenvalue loads: Load Set B), PINNER and',
+     1 ' PMIDDL and DELTAT (if any DELTAT exists). BIGBOSOR4 does not',
+     1 ' presently have the capability to divide Load Set B into sub-',
+     1 ' steps.'
+C END DEC 2010
+      ENDIF
+C
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+         INCRBX = INCRB 
+      ELSE
+         NOBX = NWAV1
+         NMINBX = NWAV1
+         NMAXBX = NWAV1
+         INCRBX = INCRB 
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+C BEG NOV 2010
+      IF (ITYPEX.EQ.2) CALL B4POST
+C END NOV 2010
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+C BEG NOV 2010
+         EIG1 = EIGCRT
+C END NOV 2010
+         NWAV1= NWVCRT
+      ENDIF
+C BEG DEC 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (EIGCRT.LE.0.0) THEN
+        WRITE(IFILE,'(/,A,/,A,/,A,1P,E12.4,/,A)')
+     1' ***************** NOTE NOTE NOTE ***************************',
+     1' BIGBOSOR4 eigenvalue, EIGCRT, is less than or equal to zero:',
+     1' Eigenvalue (buckling load factor), EIGCRT =',EIGCRT,
+     1' A change of strategy or lower bound(s) is required.'
+        WRITE(IFILE,
+     1  '(/,A,/,A,/,A,I3,/,A,1P,E12.4,/,A,/,A,/,A,I3,/,A,1P,E12.4,/)')
+     1' Newton iterations required to solve the nonlinear',
+     1' axisymmetric pre-buckling equilibrium state for the',
+     1' "fixed" loads (PINNER, PMIDDL, DELTAT):       ITER=',ITRSTP(1),
+     1' Maximum displacement,                         FMAX=',FMAXST(1),
+     1' Newton iterations required to solve the nonlinear',
+     1' axisymmetric pre-buckling equilibrium state for the',
+     1' total loads (PINNER, PMIDDL, DELTAT, POUTER): ITER=',ITRSTP(2),
+     1' Maximum displacement,                         FMAX=',FMAXST(2)
+        IF (FMAXST(2).EQ.0.0) THEN
+           WRITE(IFILE,'(/,A,/,A,/,A,I3,/,A,/,A)')
+     1   ' ************** RUN ABORT ************************',
+     1   ' Pre-buckling convergence under the total loads failed.',
+     1   ' Number of iterations under total loads, ITER=',ITRSTP(2),
+     1   ' Try increasing HEIGHT and increase lower bound of HEIGHT',
+     1   ' ************** RUN ABORT ************************'
+           IF (ITYPEX.EQ.2) CALL ERREX
+        ENDIF
+C
+         WRITE(IFILE,'(/,A,I2,A,/,A,I6,A,1P,E12.4,/,A)')
+     1 ' IMODX =',IMODX,'; IMODX=0 for current, IMODX=1 for perturbed',
+     1 ' Eigenvalue, EIGCRT, from BIGBOSOR4 for N=',NWVCRT,' =',EIGCRT,
+     1 ' Use the "initial-loss-of-tension" load factor for EIGCRT.'
+         IABORT = 1
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+         GO TO 1000
+      ENDIF
+C END DEC 2010
+C
+      ILETW = INDEX(WRDCOL,'SHELL COLLAPSES AXISYMMETRICALLY')
+      IF (ILETW.NE.0) THEN
+C BEG NOV 2010
+         EIGMIN = 10.E+16
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* ABORT **********'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* WARNING **********'
+         WRITE(IFILE,'(A)') ' THIS IS THE INDIC=1 BUCKLING ANALYSIS'
+         WRITE(IFILE,'(A)') ' SHELL COLLAPSES AXISYMMETRICALLY'
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(A,I2)') ' Run is now aborting: IMODX=',IMODX
+         WRITE(IFILE,'(A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Look near the end of the *.OPP file for the "FEASIBLE" or for',
+     1 ' the "ALMOST FEASIBLE" design. Choose whichever of those you',
+     1 ' prefer, and use CHANGE to save that design. Then, if you want',
+     1 ' to continue with SUPEROPT, execute SUPEROPT again. Bushnell',
+     1 ' has found that this execution of SUPEROPT may run for many',
+     1 ' iterations before bombing again, or it may run to completion',
+     1 ' (a total of about 470 design iterations).'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(A,I2)') ' IABORT is now set to 1: IMODX=',IMODX
+         IF (ITYPEX.NE.2) WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1 ' WEIGHT and TOTMAS and EIGMIN are being set equal to large',
+     1 ' numbers. If you want a plot of the objective edit the *.PL5',
+     1 ' file by removing all entries with very large numbers, then',
+     1 ' execute DIPLOT.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         IABORT = 1
+C BEG DEC 2010
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+C END DEC 2010
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+C BEG DEC 2010
+         GO TO 1000
+C END DEC 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END NOV 2010
+      ENDIF
+C
+      ILETW = INDEX(WRDCOL,'INITIAL LOADS TOO HIGH FOR THIS STRUCT')
+      IF (ILETW.NE.0) THEN
+C BEG NOV 2010
+         EIGMIN = 10.E+16
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* ABORT **********'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(/,A)') ' ********* WARNING **********'
+         WRITE(IFILE,'(A)') ' THIS IS THE INDIC=1 BUCKLING ANALYSIS'
+         WRITE(IFILE,'(A)') ' INITIAL LOADS TOO HIGH FOR THIS STRUCT'
+         IF (ITYPEX.EQ.2)
+     1   WRITE(IFILE,'(A,I2)') ' Run is now aborting: IMODX=',IMODX
+         WRITE(IFILE,'(A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Look near the end of the *.OPP file for the "FEASIBLE" or for',
+     1 ' the "ALMOST FEASIBLE" design. Choose whichever of those you',
+     1 ' prefer, and use CHANGE to save that design. Then, if you want',
+     1 ' to continue with SUPEROPT, execute SUPEROPT again. Bushnell',
+     1 ' has found that this execution of SUPEROPT may run for many',
+     1 ' iterations before bombing again, or it may run to completion',
+     1 ' (a total of about 470 design iterations).'
+         IF (ITYPEX.NE.2)
+     1   WRITE(IFILE,'(A,I2)') ' IABORT is now set to 1: IMODX=',IMODX
+         IF (ITYPEX.NE.2) WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1 ' WEIGHT and TOTMAS and EIGMIN are being set equal to large',
+     1 ' numbers. If you want a plot of the objective edit the *.PL5',
+     1 ' file by removing all entries with very large numbers, then',
+     1 ' execute DIPLOT.'
+         WRITE(IFILE,'(A)') ' ********************************'
+         IABORT = 1
+C BEG DEC 2010
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+C END DEC 2010
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+C BEG DEC 2010
+         GO TO 1000
+C END DEC 2010
+C END NOV 2010
+      ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C BEG DEC 2010 (comment out the following and move it down.
+C1000 CONTINUE
+C END DEC 2010
+C
+C   Compute the membrane stresses
+      THK(1) = TFOUTR
+      THK(2) = TOUTER
+      THK(3) = TFINNR
+      THK(4) = TINNER
+      THK(5) = TFWEBS
+C BEG NOV 2010
+      THK(6) = TFWEBS
+C END NOV 2010
+C
+C BEG NOV 2010
+      EIGMIN = 10.E+16
+      IF (ISHAPE.EQ.1) THEN
+         DO 2 J = 1,KSEGS
+          EIGEN1(1,J) = N1FIX(1,J)/(N1FIX(1,J) - N1VAR(1,J))
+          EIGEN2(1,J) = N2FIX(1,J)/(N2FIX(1,J) - N2VAR(1,J))
+          EIGMIN = MIN(EIGMIN,ABS(EIGEN1(1,J)))
+          STRS1F(1,J) = N1FIX(1,J)/THK(J)
+          STRS2F(1,J) = N2FIX(1,J)/THK(J)
+          STRS1V(1,J) = N1VAR(1,J)/THK(J)
+          STRS2V(1,J) = N2VAR(1,J)/THK(J)
+    2    CONTINUE
+         IF (KSEGS.EQ.5) THEN
+           WRITE(IFILE,'(/,A,/,1P,5E12.4)')
+     1   ' LOSS OF    MERIDIONAL   TENSION: (EIGEN1(1,ISEG),ISEG=1,5)=',
+     1     (EIGEN1(1,ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,5E12.4)')
+     1   ' LOSS OF CIRCUMFERENTIAL TENSION: (EIGEN2(1,ISEG),ISEG=1,5)=',
+     1     (EIGEN2(1,ISEG),ISEG=1,KSEGS)
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (KSEGS.EQ.6) THEN
+           WRITE(IFILE,'(/,A,/,1P,6E12.4)')
+     1   ' LOSS OF    MERIDIONAL   TENSION: (EIGEN1(1,ISEG),ISEG=1,6)=',
+     1     (EIGEN1(1,ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,6E12.4)')
+     1   ' LOSS OF CIRCUMFERENTIAL TENSION: (EIGEN2(1,ISEG),ISEG=1,6)=',
+     1     (EIGEN2(1,ISEG),ISEG=1,KSEGS)
+         ENDIF
+      ELSE
+C following is for spherical vacuum chamber...
+C  first, find the maximum values of N1FIX and N2FIX:
+C
+         DO 5 ISEG = 1,KSEGS
+          FN1MAX(ISEG) = 0.
+          FN2MAX(ISEG) = 0.
+          EIG1MN(ISEG) = 1.E+17 
+          EIG2MN(ISEG) = 1.E+17 
+C
+          DO 4 IMODUL = 1,NMODUL
+C BEG JAN 2011
+C Introduce test for skipping modules near the pole
+           IF (IMODUL.LT.NMODUL/10) GO TO 4
+C END JAN 2011
+           ISEGT = (IMODUL -1)*KSEGS +ISEG
+           INODBG = 5
+           INODED = NODSEG - 2
+           IF (KSEGS.EQ.6.AND.IMODUL.EQ.1.AND.ISEG.LE.5)
+     1        INODBG = NODSEG/2 +1
+           DO 3 INOD = INODBG,INODED
+C BEG JAN 2011
+C  Take average at two neighboring nodal points to smooth out n1,n2 
+            INOD1 = INOD + 1
+            FN1AVF = 0.5*(N1FIX(INOD,ISEGT) +N1FIX(INOD1,ISEGT))
+            FN2AVF = 0.5*(N2FIX(INOD,ISEGT) +N2FIX(INOD1,ISEGT))
+            FN1AVV = 0.5*(N1VAR(INOD,ISEGT) +N1VAR(INOD1,ISEGT))
+            FN2AVV = 0.5*(N2VAR(INOD,ISEGT) +N2VAR(INOD1,ISEGT))
+            FN1MAX(ISEG) = MAX(FN1MAX(ISEG),FN1AVF)
+            FN2MAX(ISEG) = MAX(FN2MAX(ISEG),FN2AVF)
+C
+            EIGEN1(INOD,ISEGT) = FN1AVF/(FN1AVF - FN1AVV)
+            IF (FN2AVF.GT.0.2*FN1AVF) THEN
+              EIGEN2(INOD,ISEGT) = FN2AVF/(FN2AVF - FN2AVV)
+C END JAN 2011
+            ELSE
+              EIGEN2(INOD,ISEGT) = 10.E+16
+            ENDIF
+            IF (EIGEN1(INOD,ISEGT).GE.0.0)
+     1      EIG1MN(ISEG) = MIN(EIG1MN(ISEG),EIGEN1(INOD,ISEGT))
+            IF (EIGEN2(INOD,ISEGT).GE.0.0)
+     1      EIG2MN(ISEG) = MIN(EIG2MN(ISEG),EIGEN2(INOD,ISEGT))
+            EIGMIN = MIN(EIGMIN,ABS(EIG1MN(ISEG)))
+            EIGMIN = MIN(EIGMIN,ABS(EIG2MN(ISEG)))
+C
+    3      CONTINUE
+    4     CONTINUE
+    5    CONTINUE
+C
+         IF (KSEGS.EQ.5) THEN
+           WRITE(IFILE,'(/,A,/,1P,5E12.4)')
+     1   ' (FN1MAX(ISEG),ISEG=1,5)=',(FN1MAX(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(A,/,1P,5E12.4)')
+     1   ' (FN2MAX(ISEG),ISEG=1,5)=',(FN2MAX(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,5E12.4)')
+     1   ' LOSS OF    MERIDIONAL   TENSION: (EIG1MN(1,ISEG),ISEG=1,5)=',
+     1     (EIG1MN(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,5E12.4)')
+     1   ' LOSS OF CIRCUMFERENTIAL TENSION: (EIG2MN(1,ISEG),ISEG=1,5)=',
+     1     (EIG2MN(ISEG),ISEG=1,KSEGS)
+         ENDIF
+C
+         IF (KSEGS.EQ.6) THEN
+           WRITE(IFILE,'(/,A,/,1P,6E12.4)')
+     1   ' (FN1MAX(ISEG),ISEG=1,6)=',(FN1MAX(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(A,/,1P,6E12.4)')
+     1   ' (FN2MAX(ISEG),ISEG=1,6)=',(FN2MAX(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,6E12.4)')
+     1   ' LOSS OF    MERIDIONAL   TENSION: (EIG1MN(1,ISEG),ISEG=1,6)=',
+     1     (EIG1MN(ISEG),ISEG=1,KSEGS)
+           WRITE(IFILE,'(/,A,/,1P,6E12.4)')
+     1   ' LOSS OF CIRCUMFERENTIAL TENSION: (EIG2MN(1,ISEG),ISEG=1,6)=',
+     1     (EIG2MN(ISEG),ISEG=1,KSEGS)
+         ENDIF
+C
+C  next, find which shell segments and nodal points have the max. values:
+         DO 8 ISEG = 1,KSEGS
+          DO 7 IMODUL = 1,NMODUL
+C BEG JAN 2011
+C Introduce test for skipping modules near the pole
+           IF (IMODUL.LT.NMODUL/10) GO TO 7
+C END JAN 2011
+           INODBG = 5
+           INODED = NODSEG - 2
+           IF (KSEGS.EQ.6.AND.IMODUL.EQ.1.AND.ISEG.LE.5)
+     1        INODBG = NODSEG/2 +1
+           ISEGT = (IMODUL -1)*KSEGS +ISEG
+           DO 6 INOD = INODBG,INODED
+C BEG JAN 2011
+C  Take average at two neighboring nodal points to smooth out n1,n2
+            INOD1 = INOD + 1
+            FN1AVF = 0.5*(N1FIX(INOD,ISEGT) +N1FIX(INOD1,ISEGT))
+            FN1AVV = 0.5*(N1VAR(INOD,ISEGT) +N1VAR(INOD1,ISEGT))
+            DIFF(ISEG) = ABS((FN1MAX(ISEG)-FN1AVF)/FN1MAX(ISEG))
+C END JAN 2011
+            IF (DIFF(ISEG).LE.0.0001) THEN
+C BEG JAN 2011
+             N1AVEF(ISEG) = FN1AVF
+             N1AVEV(ISEG) = FN1AVV
+C END JAN 2011
+             INODM1(ISEG) = INOD
+             ISEGM1(ISEG) = ISEGT
+             GO TO 8
+            ENDIF
+    6      CONTINUE
+    7     CONTINUE
+    8    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         DO 11 ISEG = 1,KSEGS
+          DO 10 IMODUL = 1,NMODUL
+C BEG JAN 2011
+C Introduce test for skipping modules near the pole
+           IF (IMODUL.LT.NMODUL/10) GO TO 10 
+C END JAN 2011
+           INODBG = 5
+           INODED = NODSEG - 2
+           IF (KSEGS.EQ.6.AND.IMODUL.EQ.1.AND.ISEG.LE.5)
+     1        INODBG = NODSEG/2 +1
+           ISEGT = (IMODUL -1)*KSEGS +ISEG
+C BEG JAN 2011
+           DO 9 INOD = INODBG,INODED
+C  Take average at two neighboring nodal points to smooth out n1,n2
+            INOD1 = INOD + 1
+            FN2AVF = 0.5*(N2FIX(INOD,ISEGT) +N2FIX(INOD1,ISEGT))
+            FN2AVV = 0.5*(N2VAR(INOD,ISEGT) +N2VAR(INOD1,ISEGT))
+            DIFF(ISEG) = ABS((FN2MAX(ISEG)-FN2AVF)/FN2MAX(ISEG))
+C END JAN 2011
+            IF (DIFF(ISEG).LE.0.0001) THEN
+C BEG JAN 2011
+             N2AVEF(ISEG) = FN2AVF
+             N2AVEV(ISEG) = FN2AVV
+C END JAN 2011
+             INODM2(ISEG) = INOD
+             ISEGM2(ISEG) = ISEGT
+             GO TO 11
+            ENDIF
+    9      CONTINUE
+   10     CONTINUE
+   11    CONTINUE
+C
+         DO 12 J = 1,KSEGS
+C BEG JAN 2011
+C         IARG1 = INODM1(J)
+C         JARG1 = ISEGM1(J)
+C         IARG2 = INODM2(J)
+C         JARG2 = ISEGM2(J)
+          STRS1F(1,J) = N1AVEF(J)/THK(J)
+          STRS2F(1,J) = N2AVEF(J)/THK(J)
+          STRS1V(1,J) = N1AVEV(J)/THK(J)
+          STRS2V(1,J) = N2AVEV(J)/THK(J)
+C END JAN 2011
+   12    CONTINUE
+C
+C  next, find which shell segments and nodal points have the min. values:
+         DO 15 ISEG = 1,KSEGS
+          DO 14 IMODUL = 1,NMODUL
+C BEG JAN 2011
+C Introduce test for skipping modules near the pole
+           IF (IMODUL.LT.NMODUL/10) GO TO 14
+C END JAN 2011
+           INODBG = 5
+           INODED = NODSEG - 2
+           IF (KSEGS.EQ.6.AND.IMODUL.EQ.1.AND.ISEG.LE.5)
+     1        INODBG = NODSEG/2 +1
+           ISEGT = (IMODUL -1)*KSEGS +ISEG
+           DO 13 INOD = INODBG,INODED
+            DIFF(ISEG) =
+     1        ABS((EIG1MN(ISEG)-EIGEN1(INOD,ISEGT))/EIG1MN(ISEG))
+            IF (DIFF(ISEG).LE.0.0001) THEN
+             INODE1(ISEG) = INOD
+             ISEGE1(ISEG) = ISEGT
+             GO TO 15 
+            ENDIF
+   13      CONTINUE
+   14     CONTINUE
+   15    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         DO 18 ISEG = 1,KSEGS
+          DO 17 IMODUL = 1,NMODUL
+C BEG JAN 2011
+C Introduce test for skipping modules near the pole
+           IF (IMODUL.LT.NMODUL/10) GO TO 17 
+C END JAN 2011
+           INODBG = 5
+           INODED = NODSEG - 2
+           IF (KSEGS.EQ.6.AND.IMODUL.EQ.1.AND.ISEG.LE.5)
+     1        INODBG = NODSEG/2 +1
+           ISEGT = (IMODUL -1)*KSEGS +ISEG
+           DO 16 INOD = INODBG,INODED
+            DIFF(ISEG) =
+     1        ABS((EIG2MN(ISEG)-EIGEN2(INOD,ISEGT))/EIG2MN(ISEG))
+            IF (DIFF(ISEG).LE.0.0001) THEN
+             INODE2(ISEG) = INOD
+             ISEGE2(ISEG) = ISEGT
+             GO TO 18
+            ENDIF
+   16      CONTINUE
+   17     CONTINUE
+   18    CONTINUE
+C
+C     End of ISHAPE=2 alternative.
+      ENDIF
+C     End of IF (ISHAPE....) condition
+C
+      IF (ISHAPE.EQ.1) WRITE(IFILE,'(/,A,/,A,1P,E12.4)')
+     1' Buckling load factor corresponding to the initial loss of',
+     1' meridional tension, EIGMIN=',EIGMIN
+C
+      IF (ISHAPE.EQ.2) WRITE(IFILE,'(/,A,/,A,1P,E12.4)')
+     1' Buckling load factor corresponding to the initial loss of',
+     1' either meridional or circumferential tension, EIGMIN=',EIGMIN
+C END NOV 2010
+C
+      IF (IMODX.EQ.0) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG NOV 2010
+        IF (ISHAPE.EQ.1) THEN
+C END NOV 2010
+        WRITE(IFILE,'(/,A,/,A,/,A,/,A,/,A,1P,E12.4,A,/,A,/,A,1P,E12.4)')
+     1' Changes in temperature required to create 2 total axial loads:',
+     1'  ',
+     1'  1. Change in temperature required to create the axial thermal',
+     1'     strain that generates the axial tension due to closing the',
+     1'     two ends of the pressurized volume (PMIDDL=',
+     1  PMIDDL(ILOADX),')',
+     1'     between the inner and outer walls of the balloon in',
+     1'     Load Step No. 1:                                DELTAT=',
+     1  DELTAT
+        WRITE(IFILE,'(/,A,/,A,/,A,1P,1E12.4,A,1P,E12.4,/,/)')
+     1'  2. Change in temperature required to simulate the Poisson',
+     1'     axial expansion caused by the application of the outer',
+     1'     pressure, POUTER =',
+     1  POUTER(ILOADX),' in Load Step No. 2:  DELT=',
+     1  DELT
+C BEG NOV 2010
+        ENDIF
+        IF (IABORT.EQ.0) THEN
+           WRITE(IFILE,'(/,A)')
+     1   ' BUCKLING LOAD FACTORS AND MODES FROM BIGBOSOR4 (BEHX1)'
+           DO 20 I = 1,IWAVEB
+            WRITE(IFILE,'(A,1P,E12.4,A,I6,A)')
+     1     '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   20      CONTINUE
+        ELSE
+           WRITE(IFILE,'(/,A,A)')
+     1   ' BUCKLING LOAD FACTORS AND MODES FROM THE INITIAL LOSS OF',
+     1   ' MERIDIONAL TENSION'
+           EIGCRT = EIGMIN
+           IF (ISHAPE.EQ.1) NWVCRT = 1
+           IF (ISHAPE.EQ.2) NWVCRT = 0
+           WRITE(IFILE,'(A,1P,E12.4,A,I3)')
+     1     ' Loss-of-meridional-tension "eigenvalue", EIGMIN=',
+     1       EIGMIN,', wave number=',NWVCRT
+        ENDIF
+        WRITE(IFILE,'(A,1P,E12.4)')
+     1' Critical buckling load factor, BUCKB4=',EIGCRT
+        IF (ISHAPE.EQ.1) WRITE(IFILE,'(A,I5)')
+     1' Critical number of axial half-waves, NWVCRT=',NWVCRT
+        IF (ISHAPE.EQ.2) WRITE(IFILE,'(A,I5)')
+     1' Critical number of circumferential full-waves, NWVCRT=',NWVCRT
+C
+        IF (ISHAPE.EQ.1) THEN
+         DO 30 J = 1,6
+         DO 25 I = 1,1
+          N2DIFF(J) = N2VAR(I,J) - N2FIX(I,J)
+   25    CONTINUE
+   30    CONTINUE
+         WRITE(IFILE,'(/,A,/,A,/,A,/,A,1P,6E12.4,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Differences in the resultants along the axis of the prismatic',
+     1 ' balloon for each segment, J, of the first module:',
+     1' [N2VAR(J) for the total load] - [N2FIX(J) for the fixed load]=',
+     1 ' N2DIFF(J),J=1,6)=',(N2DIFF(J),J=1,6),
+     1' N2VAR(J) (total load) are the resultants from Load Step No. 2.',
+     1' N2FIX(J) (fixed load) are the resultants from Load Step No. 1.',
+     1 ' NOTE: The stresses used as behavioral constraints are',
+     1 '       computed from N2VAR(J)/thickness(J). These stresses are',
+     1 '       lower than those computed from N2FIX(J)/thickness(J).'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        ENDIF
+C END NOV 2010
+C
+        IF (NPRINX.GE.2) THEN
+C BEG NOV 2010
+         IF (ISHAPE.EQ.1) THEN
+            WRITE(IFILE,'(/,A,/,A,A,/,A,A)')
+     1    ' PREBUCKLING STRESS RESULTANTS IN THE FIRST MODULE',
+     1    '           "fixed" from Load Step No. 1',
+     1    ' total from Load Step No. 2',
+     1    ' Seg.J  Node I  N1FIX(I,J)   N2FIX(I,J)',
+     1    '   N1VAR(I,J)   N2VAR(I,J)'
+            DO 50 J = 1,KSEGS
+            DO 40 I = 1,1
+              WRITE(IFILE,'(I5,I7,1P,4E13.4)')
+     1        J,I,N1FIX(I,J),N2FIX(I,J),N1VAR(I,J),N2VAR(I,J)
+   40       CONTINUE
+   50       CONTINUE
+         ELSE
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MAXIMUM PREBUCKLING MERIDIONAL STRESS RESULTANTS ',
+     1    '                 "fixed"       "total"',
+     1    '               Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I  N1FIX(I,J)    N1VAR(I,J)'
+C
+            DO 60 J = 1,KSEGS
+              IARG1 = INODM1(J)
+              JARG1 = ISEGM1(J)
+C BEG JAN 2011
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IARG11 = IARG1 + 1
+              FN1AVF = 0.5*(N1FIX(IARG1,JARG1) +N1FIX(IARG11,JARG1))
+              FN1AVV = 0.5*(N1VAR(IARG1,JARG1) +N1VAR(IARG11,JARG1))
+              WRITE(IFILE,'(I5,I7,1P,2E14.5)')
+     1        JARG1,IARG1,FN1AVF,FN1AVV
+C END JAN 2011
+   60       CONTINUE
+C
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MAXIMUM PREBUCKLING CIRCUMFERENTIAL STRESS RESULTANTS ',
+     1    '                 "fixed"       "total"',
+     1    '               Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I  N2FIX(I,J)    N2VAR(I,J)'
+C
+            DO 70 J = 1,KSEGS
+              IARG2 = INODM2(J)
+              JARG2 = ISEGM2(J)
+C BEG JAN 2011
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IARG21 = IARG2 + 1
+              FN2AVF = 0.5*(N2FIX(IARG2,JARG2) +N2FIX(IARG21,JARG2))
+              FN2AVV = 0.5*(N2VAR(IARG2,JARG2) +N2VAR(IARG21,JARG2))
+              WRITE(IFILE,'(I5,I7,1P,2E14.5)')
+     1        JARG2,IARG2,FN2AVF,FN2AVV
+C END JAN 2011
+   70       CONTINUE
+C
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MINIMUM EIGENVALUE FOR LOSS OF MERIDIONAL TENSION ',
+     1    '                               "fixed"       "total"',
+     1    '                              Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I  EIGEN1(I,J)    N1FIX(I,J)    N1VAR(I,J)'
+C
+            DO 75 J = 1,KSEGS
+              IARG1 = INODE1(J)
+              JARG1 = ISEGE1(J)
+C BEG JAN 2011
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IARG11 = IARG1 + 1
+              FN1AVF = 0.5*(N1FIX(IARG1,JARG1) +N1FIX(IARG11,JARG1))
+              FN1AVV = 0.5*(N1VAR(IARG1,JARG1) +N1VAR(IARG11,JARG1))
+              WRITE(IFILE,'(I5,I7,1P,3E14.5)')
+     1        JARG1,IARG1,EIGEN1(IARG1,JARG1),FN1AVF,FN1AVV
+C END JAN 2011
+   75       CONTINUE
+C
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MINIMUM EIGENVALUE FOR LOSS OF CIRCUMFERENTIAL TENSION ',
+     1    '                               "fixed"       "total"',
+     1    '                              Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I  EIGEN2(I,J)    N2FIX(I,J)    N2VAR(I,J)'
+C
+            DO 77 J = 1,KSEGS
+              IARG2 = INODE2(J)
+              JARG2 = ISEGE2(J)
+C BEG JAN 2011
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IARG21 = IARG2 + 1
+              FN2AVF = 0.5*(N2FIX(IARG2,JARG2) +N2FIX(IARG21,JARG2))
+              FN2AVV = 0.5*(N2VAR(IARG2,JARG2) +N2VAR(IARG21,JARG2))
+              WRITE(IFILE,'(I5,I7,1P,3E14.5)')
+     1        JARG2,IARG2,EIGEN2(IARG2,JARG2),FN2AVF,FN2AVV
+C END JAN 2011
+   77       CONTINUE
+C
+         ENDIF
+C        End of "IF (ISHAPE..." condition
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ISHAPE.EQ.1) THEN
+           WRITE(IFILE,'(/,A,A,/,A,A,/,A,A,/,A,A)')
+     1   ' PREBUCKLING MEMBRANE STRESSES IN THE FIRST MODULE COMPUTED',
+     1   ' FROM',
+     1   ' N1FIX/thickness, N2FIX/thickness, N1VAR/thickness,',
+     1   ' N2VAR/thickness:',
+     1   '           "fixed" from Load Step No. 1',
+     1   ' total from Load Step No. 2',
+     1   ' Seg.J  Node I STRS1F(I,J)  STRS2F(I,J)',
+     1   '  STRS1V(I,J)  STRS2V(I,J)'
+           DO 90 J = 1,KSEGS
+           DO 80 I = 1,1
+             WRITE(IFILE,'(I5,I7,1P,4E13.4)')
+     1       J,I,STRS1F(I,J),STRS2F(I,J),STRS1V(I,J),STRS2V(I,J)
+   80      CONTINUE
+   90      CONTINUE
+         ELSE
+           WRITE(IFILE,'(/,A,/,A,A)')
+     1   ' PREBUCKLING MEMBRANE STRESSES COMPUTED FROM',
+     1   ' N1FIX/thickness, N2FIX/thickness, N1VAR/thickness,',
+     1   ' N2VAR/thickness:'
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MAXIMUM PREBUCKLING MERIDIONAL MEMBRANE STRESSES ',
+     1    '                 "fixed"       "total"',
+     1    '               Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I STRS1F(I,J)   STRS1V(I,J)'
+C
+            DO 100 J = 1,KSEGS
+              IARG1 = INODM1(J)
+              JARG1 = ISEGM1(J)
+              WRITE(IFILE,'(I5,I7,1P,2E14.5)')
+     1        JARG1,IARG1,STRS1F(1,J),STRS1V(1,J)
+  100       CONTINUE
+C
+            WRITE(IFILE,'(/,A,/,A,/,A,/,A)')
+     1    ' MAXIMUM PREBUCKLING CIRCUMFERENTIAL MEMBRANE STRESSES ',
+     1    '                 "fixed"       "total"',
+     1    '               Load Step 1   Load Step 2',
+     1    ' Seg.J  Node I STRS2F(I,J)   STRS2V(I,J)'
+C
+            DO 110 J = 1,KSEGS
+              IARG2 = INODM2(J)
+              JARG2 = ISEGM2(J)
+              WRITE(IFILE,'(I5,I7,1P,2E14.5)')
+     1        JARG2,IARG2,STRS2F(1,J),STRS2V(1,J)
+  110       CONTINUE
+         ENDIF
+C        End "IF (ISHAPE...)" condition
+C END NOV 2010
+C
+         WRITE(IFILE,'(/,A)')
+     1 ' Behavior number, General buckling load factor:'
+        ENDIF
+C       End of (NPRINX.GE.2) condition.
+C
+        WRITE(IFILE,
+     1  '(/,A,/,A,/,A,I3,/,A,1P,E12.4,/,A,/,A,/,A,I3,/,A,1P,E12.4,/)')
+     1' Newton iterations required to solve the nonlinear',
+     1' axisymmetric pre-buckling equilibrium state for the',
+     1' "fixed" loads (PINNER, PMIDDL, DELTAT):       ITER=',ITRSTP(1),
+     1' Maximum displacement,                         FMAX=',FMAXST(1),
+     1' Newton iterations required to solve the nonlinear',
+     1' axisymmetric pre-buckling equilibrium state for the',
+     1' total loads (PINNER, PMIDDL, DELTAT, POUTER): ITER=',ITRSTP(2),
+     1' Maximum displacement,                         FMAX=',FMAXST(2)
+C
+      ENDIF
+C     End of (IMODX.EQ.0) condition.
+C
+C BEG DEC 2010
+C     IF (EIGCRT.LE.0.0) THEN
+      IF (IABORT.EQ.0.AND.EIGCRT.LE.0.0) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFILE,'(/,A,/,A,1P,E12.4,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' ******************** RUN ABORT **********************',
+     1 ' EIGCRT is less than or equal to zero. EIGCRT=',EIGCRT,
+     1 ' Possible divergence or failure of convergence of nonlinear',
+     1 ' pre-buckling solution either at Load Step No. 1 (fixed',
+     1 ' loads: PINNER, PMIDDL, DELTAT) or at Load Step No. 2',
+     1 ' (total loads: PINNER, PMIDDL, DELTAT, POUTER)',
+     1 ' Probably you should increase either RINNER or ROUTER or',
+     1 ' both RINNER and ROUTER.',
+     1 ' ******************** RUN ABORT ***********************'
+         IABORT = 1
+         CALL MOVER(0.,0,STRS1V,1,6)
+         CALL MOVER(0.,0,STRS2V,1,6)
+         EIGMIN = 10.E16
+         WEIGHT = 10.E20
+         TOTMAS = 10.E20
+         IF (ITYPEX.EQ.2) CALL ERREX
+         GO TO 1000
+C END DEC 2010
+      ENDIF
+C BEG DEC 2010
+      IF (ITYPEX.EQ.2.AND.IABORT.EQ.0) THEN
+        EIGCRT = EIGCOM(1)
+      ENDIF
+C
+ 1000 CONTINUE
+C
+C END DEC 2010
+C BEG NOV 2010
+      IF (IABORT.EQ.1) THEN
+        EIGCRT = EIGMIN
+      ENDIF
+C END NOV 2010
+C
+      BUCKB4(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN load factor for tension loss
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     TENLOS(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = load factor for tension loss
+C
+C   OUTPUT:
+C
+C     TENLOS(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/EIGMNX/EIGMIN
+C
+      TENLOS(ILOADX) = EIGMIN
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,JCOL,PHRASE)
+C
+C   PURPOSE: OBTAIN stress component in material 1
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRM1(ILOADX,JCOL)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C   THE jth COLUMN  (JCOL)
+C   INDEX IS DEFINED AS FOLLOWS:
+C     stress component number
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     JCOL   = jth column of STRM1
+C     JCOL   = stress component number
+C     PHRASE = stress component in material 1
+C
+C   OUTPUT:
+C
+C     STRM1(ILOADX,JCOL)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C BEG DEC 2010
+      COMMON/IABRTX/IABORT
+C END DEC 2010
+C BEG NOV 2010
+      COMMON/MEMSTR/STRS1F(1,6),STRS2F(1,6),STRS1V(1,6),STRS2V(1,6)
+C END NOV 2010
+      COMMON/FINNER/C44FIN,DELTAT,DELT,NODSEG,MSEGS
+      COMMON/ERROR/ERR
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/LAMSTR/STRRAT(99)
+      COMMON/WRDSTR/STRWRD(99)
+      CHARACTER*80 STRWRD
+      DIMENSION ILET1(15,6),ILET2(15,3)
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+      COMMON/STRCMP/STRC1(20,5),STRC2(20,5),STRC3(20,5)
+C
+C BEG DEC 2010 (activate the following statement)
+      IF (JCOL.GT.1) GO TO 500
+C END DEC 2010
+C
+C  NOTE IMPORTANT CHANGE:
+C
+C  October 7, 2010: Use the MEMBRANE stresses computed in
+C  SUBROUTINE BEHX1 because the
+C  meridional curvature change, KAPPA1, from BIGBOSOR4 is
+C  sometimes much too large in the immediate neighborhoods
+C  of the ends of the shell segments, generating maximum
+C  stress components that are much too high in this particular
+C  case that involves a balloon-like (membrane) structure,
+C  This is especially true for the outer and inner curved
+C  membranes, that is, segments 2 (outer) and 4 (inner)
+C  of each module of the multi-module model. For example,
+C  here is some BIGBOSOR4 output for Segment 4 (inner
+C  curved membrane) for Load Step No. 1 (applied loads
+C  are PINNER, PMIDDL, and DELTAT):
+C
+C      AXISYMMETRIC PRESTRESS DISTRIBUTION FOR SEGMENT 4
+C POINT   EPSILON 1  EPSILON 2   KAPPA 1      KAPPA 2
+C          MERID.     CIRCUMF.    MERID.      CIRCUMF.
+C          STRAIN     STRAIN     CHANGES IN CURVATURE
+C   1    1.070E-01   7.019E-15   5.784E-01   1.795E-08
+C   2    1.062E-01  -1.695E-09  -1.015E+01  -4.307E-10
+C   3    1.059E-01   1.154E-08   2.981E+00  -8.949E-09
+C   4    1.074E-01   1.021E-08  -1.251E+00  -2.625E-09
+C   5    1.077E-01   1.483E-08   6.715E-01  -5.319E-09
+C   6    1.085E-01   1.647E-08  -2.629E-01  -3.690E-09
+C   7    1.090E-01   1.910E-08   1.910E-01  -4.184E-09
+C   8    1.096E-01   2.095E-08  -3.076E-02  -3.533E-09
+C   9    1.100E-01   2.283E-08   7.706E-02  -3.398E-09
+C  10    1.104E-01   2.441E-08   2.394E-02  -2.950E-09
+C
+C  Note that the meridional change in curvature, KAPPA 1,
+C  is very large at nodal points 2, 3, 4, especially at
+C  nodal point 2. This very local edge effect gives rise to
+C  artificially high local bending meridional strain, which
+C  probably does not exist in a balloon (membrane
+C  pressure-stabilized "shell" structure). The extreme
+C  fiber meridional strain from BIGBOSOR4 is given by:
+C  EPS1 = EPSILON1 + THICK*KAPPA1/2.
+C  in which EPSILON1 is the reference (middle) surface
+C  meridional strain and THICK is the thickness of the
+C  shell segment.
+C
+C  Because of this spurious and extremely high meridional
+C  bending strain predicted by BIGBOSOR4 (which has difficulty
+C  predicting accurate bending stresses in membrane-like structures
+C  but which works well for shell structures with "finite"
+C  bending stiffness), the previous FORTRAN statement:
+C     IF (JCOL.GT.1) GO TO 500
+C  has been commented out and replaced by the following
+C  statement, "GO TO 500". Because of this important change
+C  the file, *.BEHX2, is no longer created and you can
+C  therefore no longer obtain plots of the pre-buckled states
+C  at Load Steps 1 and 2 unless you remove the "C" in column
+C  1 of the statement, "IF (JCOL.GT.1) GO TO 500", and insert
+C  a "C" in column 1 of the following statement, "GO TO 500".
+C  and then re-compile via the GENOPT command, "genprograms".
+C
+C BEG DEC 2010 (make the following statement dependent on ITYPEX)
+      IF (IABORT.NE.0.OR.ITYPEX.NE.2) GO TO 500
+C END DEC 2010
+C
+      IF (IMODX.EQ.0) ERR = 0.
+      IF (IMODX.EQ.1) ERR = 0.01
+C
+      INDIC = 0
+      RAVE = RADIUS/PI
+      RBIGG = RAVE
+C BEG NOV 2010
+      IF (ISHAPE.EQ.2.AND.KSEGS.EQ.5) RBIGG = 0.0
+C     IF (ISHAPE.EQ.2.AND.KSEGS.EQ.6) RBIGG = 0.0
+C BEG DEC 2010
+      IF (ISHAPE.EQ.2.AND.KSEGS.EQ.6) RBIGG = 0.025*RAVE
+C END DEC 2010
+C END NOV 2010
+C
+      CALL BOSDEC(2,24,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX2 file for input for BIGBOSOR4...
+C      CASE.BEHX2 is an input file for BIGBOSOR4 for behavior no. 2:
+C      STRM1(ILOADX,JCOL), JCOL=1,5: stress components in material 1
+C
+C      NOTE: Also computed in SUBROUTINE BEHX2 are the following:
+C      STRM2(ILOADX,JCOL), JCOL=1,5: stress components in material 2
+C      STRM3(ILOADX,JCOL), JCOL=1,5: stress components in material 3
+C
+C      STRM2(ILOADX,JCOL) is available in SUBROUTINE BEHX3 because
+C                         it is in a labelled common block.
+C      STRM3(ILOADX,JCOL) is available in SUBROUTINE BEHX4 because
+C                         it is in a labelled common block.
+C
+C BEG DEC 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ISHAPE.EQ.2)
+     1   WRITE(IFILE,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' *************************************************************',
+     1 ' ****** MIN.STRESS CONSTRAINTS INCLUDING BENDING STRESS ******',
+     1 ' Bending stresses are printed here only for your information.',
+     1 ' Bending stresses are NOT included in the computation of the',
+     1 ' stress constraints or the stress margins, which are obtained',
+     1 ' from the maximum stress resultants divided by the "shell"',
+     1 ' segment wall thickness. Therefore, the stress margins printed',
+     1 ' below are probably unconservative, especially at "shell"',
+     1 ' segment junctions where there are probably large, very local',
+     1 ' bending stress concentrations. In fabricating the balloon,',
+     1 ' reinforce the seams at "shell" junctions to avoid failure.'
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+C BEG DEC 2010
+            CASA=CASE(:I-1)//'.BEHX3'
+         ELSE
+            CASA=CASE//'.BEHX3'
+         ENDIF
+C END DEC 2010
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(2,61,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' stress components in materials 1,2,3',
+     1   CASA
+C BEG DEC 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFILE,'(A,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' Ordinarily, the file called ',CASA,
+     1 ' which contains valid input data for BIGBOSOR4,',
+     1 ' would be used for an execution of BIGBOSOR4 independently',
+     1 ' of the GENOPT environment. However, that BIGBOSOR4 execution',
+     1 ' will probably fail in this case because of failure of the',
+     1 ' Newton iterations for solution of the nonlinear pre-buckling',
+     1 ' equilibrium equations corresponding to the application of the',
+     1 ' "fixed" loads (non-eigenvalue loads: Load Set B), PINNER and',
+     1 ' PMIDDL and DELTAT (if any DELTAT exists). BIGBOSOR4 does not',
+     1 ' presently have the capability to divide Load Set B into sub-',
+     1 ' steps.'
+C END DEC 2010
+      ENDIF
+C
+      CALL B4READ
+C
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+C With INDIC = 0,
+C BIGBOSOR4 generates stress constraints for laminated composite
+C material in the following form (in this case all shell segments
+C have only one layer, and the balloon is in tension everywhere.:
+C
+C****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********
+C 1  3.1045E+00 fiber tension : matl=1 ,  A , seg=50, node=32, layer=1 ,z=0.01   ;FS=1.
+C 2  1.7557E+00 transv tension: matl=1 ,  A , seg=92, node=33, layer=1 ,z=0.01   ;FS=1.
+C 3  5.1415E+02 fiber tension : matl=2 ,  A , seg=1 , node=33, layer=1 ,z=1.     ;FS=1.
+C 4  1.7557E+02 transv tension: matl=2 ,  A , seg=91, node=33, layer=1 ,z=1.     ;FS=1.
+C 5  4.9549E+00 fiber tension : matl=3 ,  A , seg=11, node=1 , layer=1 ,z=-0.01  ;FS=1.
+C 6  1.7557E+00 transv tension: matl=3 ,  A , seg=90, node=33, layer=1 ,z=0.01   ;FS=1.
+C****************************************************
+C
+C or, for an isotropic material:
+C
+C****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********
+C 1  1.5325E+00 effect. stress: matl=1 ,  A , seg=52, node=32, layer=1 ,z=0.01   ;FS=1.
+C 2  1.0960E+00 effect. stress: matl=2 ,  A , seg=81, node=32, layer=1 ,z=0.01   ;FS=1.
+C 3  1.9372E+00 effect. stress: matl=3 ,  A , seg=84, node=33, layer=1 ,z=0.01   ;FS=1.
+C****************************************************
+C
+      ICONST = 5*3
+C
+      DO 10 J = 1,5
+         STRC1(ILOADX,J) = 0.
+         STRC2(ILOADX,J) = 0.
+         STRC3(ILOADX,J) = 0.
+   10 CONTINUE
+C
+      DO 50 I = 1,ICONST
+         IF (STRRAT(I).EQ.0.) THEN
+            ICONS2 = ICONST - 1
+            GO TO 60
+         ENDIF
+         IF (ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+           IF (I.EQ.1) WRITE(IFILE,'(/,A,A)')
+     1   ' Minimum stress constraints in the entire structure',
+     1   ' at the last load step (from BIGBOSOR4):'
+           WRITE(IFILE,40) I,STRRAT(I),STRWRD(I)(1:64)
+         ENDIF
+   40 FORMAT(I3,1P,E12.4,1X,A)
+   50 CONTINUE
+   60 CONTINUE
+C
+      DO 100 I = 1,ICONS2
+C
+        ILET1(I,1)  = INDEX(STRWRD(I),'fiber tension')
+        ILET1(I,2)  = INDEX(STRWRD(I),'fiber compres')
+        ILET1(I,3)  = INDEX(STRWRD(I),'transv tension')
+        ILET1(I,4)  = INDEX(STRWRD(I),'transv compres')
+        ILET1(I,5)  = INDEX(STRWRD(I),'in-plane shear')
+        ILET1(I,6)  = INDEX(STRWRD(I),'effect. stress')
+C
+        ILET2(I,1)  = INDEX(STRWRD(I),'matl=1')
+        ILET2(I,2)  = INDEX(STRWRD(I),'matl=2')
+        ILET2(I,3)  = INDEX(STRWRD(I),'matl=3')
+  100 CONTINUE
+C
+      DO 200 I = 1,ICONS2
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        IF (ILET1(I,1).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,1)=STRM1A(ILOADX,1)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,1)=STRM2A(ILOADX,1)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,1)=STRM3A(ILOADX,1)/STRRAT(I)
+        ENDIF
+C
+        IF (ILET1(I,2).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,2)=STRM1A(ILOADX,2)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,2)=STRM2A(ILOADX,2)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,2)=STRM3A(ILOADX,2)/STRRAT(I)
+        ENDIF
+C
+        IF (ILET1(I,3).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,3)=STRM1A(ILOADX,3)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,3)=STRM2A(ILOADX,3)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,3)=STRM3A(ILOADX,3)/STRRAT(I)
+        ENDIF
+C
+        IF (ILET1(I,4).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,4)=STRM1A(ILOADX,4)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,4)=STRM2A(ILOADX,4)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,4)=STRM3A(ILOADX,4)/STRRAT(I)
+        ENDIF
+C
+        IF (ILET1(I,5).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,5)=STRM1A(ILOADX,5)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,5)=STRM2A(ILOADX,5)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,5)=STRM3A(ILOADX,5)/STRRAT(I)
+        ENDIF
+C
+        IF (ILET1(I,6).NE.0) THEN
+         IF (ILET2(I,1).NE.0) STRC1(ILOADX,1)=STRM1A(ILOADX,1)/STRRAT(I)
+         IF (ILET2(I,2).NE.0) STRC2(ILOADX,1)=STRM2A(ILOADX,1)/STRRAT(I)
+         IF (ILET2(I,3).NE.0) STRC3(ILOADX,1)=STRM3A(ILOADX,1)/STRRAT(I)
+        ENDIF
+C
+  200 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IMODX.EQ.0) THEN
+         WRITE(IFILE,'(/,A,A,/,A,A,/,A)')
+     1 ' FIVE STRESS COMPONENTS (including bending) FOR MATL i,',
+     1 ' STRCi(ILOADX,J), J=1,5:',
+     1 '    fiber tension  fiber compres ',
+     1 ' transv tension transv compres in-plane shear',
+     1 '  or effect.stress'
+         WRITE(IFILE,'(A,/,1P,5E15.4)')
+     1 ' Material 1 stress: STRC1(ILOADX,J),J=1,5)=',
+     1   (STRC1(ILOADX,J),J=1,5)
+         WRITE(IFILE,'(A,/,1P,5E15.4)')
+     1 ' Material 2 stress: STRC2(ILOADX,J),J=1,5)=',
+     1   (STRC2(ILOADX,J),J=1,5)
+         WRITE(IFILE,'(A,/,1P,5E15.4,/)')
+     1 ' Material 3 stress: STRC3(ILOADX,J),J=1,5)=',
+     1   (STRC3(ILOADX,J),J=1,5)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        IF (ISHAPE.EQ.1)
+     1  WRITE(IFILE,'(/,A,/,A,/,A,/,A,/,A,1P,E12.4,A,/,A,/,A,1P,E12.4)')
+     1' Changes in temperature required to create 2 total axial loads:',
+     1'  ',
+     1'  1. Change in temperature required to create the axial thermal',
+     1'     strain that generates the axial tension due to closing the',
+     1'     two ends of the pressurized volume (PMIDDL=',
+     1  PMIDDL(ILOADX),')',
+     1'     between the inner and outer walls of the balloon in',
+     1'     Load Step No. 1:                                DELTAT=',
+     1  DELTAT
+        IF (ISHAPE.EQ.1)
+     1  WRITE(IFILE,'(/,A,/,A,/,A,1P,1E12.4,A,1P,E12.4,/,/)')
+     1'  2. Change in temperature required to simulate the Poisson',
+     1'     axial expansion caused by the application of the outer',
+     1'     pressure, POUTER =',
+     1  POUTER(ILOADX),' in Load Step No. 2:  DELT=',
+     1  DELT
+        IF (ITYPEX.NE.2) WRITE(IFILE,'(A)')
+     1' BEHAVIOR OVER J =  stress component number'
+        WRITE(IFILE,'(A,/,A,/,A,/,/,A,/,A,/,A,/,A)'),
+     1' ********* END OF PRINTOUT OF STRESS CONSTRAINTS AND MAXIMUM',
+     1' STRESSES INCLUDING BENDING OPTAINED FROM BIGBOSOR4 *********',
+     1' *************************************************************',
+     1' The maximum stresses from membrane theory (no bending)',
+     1' follow. It is these much smaller stress components that are',
+     1' used to compute the stress margins listed below and that are',
+     1' used as constraints during optimization cycles.'
+      ENDIF
+C
+  500 CONTINUE
+C
+C   NOTE: the quantities, STRS1V and STRS2V, are computed
+C         in SUBROUTINE BEHX1.
+C
+      STRC1(ILOADX,1) = MAX(STRS1V(1,2),STRS1V(1,4))
+      STRC1(ILOADX,2) = 0.
+      STRC1(ILOADX,3) = MAX(STRS2V(1,2),STRS2V(1,4))
+      STRC1(ILOADX,4) = 0.
+      STRC1(ILOADX,5) = 0.
+C
+      STRM1(ILOADX,JCOL) = STRC1(ILOADX,JCOL)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX4
+      SUBROUTINE BEHX4
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,JCOL,PHRASE)
+C
+C   PURPOSE: OBTAIN stress component in material 2
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRM2(ILOADX,JCOL)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C   THE jth COLUMN  (JCOL)
+C   INDEX IS DEFINED AS FOLLOWS:
+C     stress component number
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     JCOL   = jth column of STRM2
+C     JCOL   = stress component number
+C     PHRASE = stress component in material 2
+C
+C   OUTPUT:
+C
+C     STRM2(ILOADX,JCOL)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C BEG NOV 2010
+      COMMON/MEMSTR/STRS1F(1,6),STRS2F(1,6),STRS1V(1,6),STRS2V(1,6)
+C END NOV 2010
+      COMMON/STRCMP/STRC1(20,5),STRC2(20,5),STRC3(20,5)
+C
+C    Do not need any calculations added here because
+C    STRC2(ILOADX,JCOL), JCOL = 1,2,3,4,5
+C    are computed in SUBROUTINE BEHX2
+C
+C  NOTE IMPORTANT CHANGE:
+C
+C  October 7, 2010: Use the MEMBRANE stresses because the
+C  meridional curvature change, KAPPA1, from BIGBOSOR4 is
+C  sometimes much too large in the immediate neighborhoods
+C  of the ends of the shell segments, generating maximum
+C  stress components that are much too high in this particular
+C  case that involves a balloon-like (membrane) structure,
+C  This is especially true for the outer and inner curved
+C  membranes, that is, segments 2 (outer) and 4 (inner)
+C  of each module of the multi-module model. For example,
+C  here is some BIGBOSOR4 output for Segment 4 (inner
+C  curved membrane) for Load Step No. 1:
+C
+C      AXISYMMETRIC PRESTRESS DISTRIBUTION FOR SEGMENT 4
+C POINT   EPSILON 1  EPSILON 2   KAPPA 1      KAPPA 2
+C          MERID.     CIRCUMF.    MERID.      CIRCUMF.
+C          STRAIN     STRAIN     CHANGES IN CURVATURE
+C   1    1.070E-01   7.019E-15   5.784E-01   1.795E-08
+C   2    1.062E-01  -1.695E-09  -1.015E+01  -4.307E-10
+C   3    1.059E-01   1.154E-08   2.981E+00  -8.949E-09
+C   4    1.074E-01   1.021E-08  -1.251E+00  -2.625E-09
+C   5    1.077E-01   1.483E-08   6.715E-01  -5.319E-09
+C   6    1.085E-01   1.647E-08  -2.629E-01  -3.690E-09
+C   7    1.090E-01   1.910E-08   1.910E-01  -4.184E-09
+C   8    1.096E-01   2.095E-08  -3.076E-02  -3.533E-09
+C   9    1.100E-01   2.283E-08   7.706E-02  -3.398E-09
+C  10    1.104E-01   2.441E-08   2.394E-02  -2.950E-09
+C
+C
+C   NOTE: the quantities, STRS1V and STRS2V, are computed
+C         in SUBROUTINE BEHX1.
+C
+      STRC2(ILOADX,1) = MAX(STRS1V(1,1),STRS1V(1,3))
+      STRC2(ILOADX,2) = 0.
+      STRC2(ILOADX,3) = MAX(STRS2V(1,1),STRS2V(1,3))
+      STRC2(ILOADX,4) = 0.
+      STRC2(ILOADX,5) = 0.
+C
+      STRM2(ILOADX,JCOL) = STRC2(ILOADX,JCOL)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX5
+      SUBROUTINE BEHX5
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,JCOL,PHRASE)
+C
+C   PURPOSE: OBTAIN stress component in material 3
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRM3(ILOADX,JCOL)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C   THE jth COLUMN  (JCOL)
+C   INDEX IS DEFINED AS FOLLOWS:
+C     stress component number
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     JCOL   = jth column of STRM3
+C     JCOL   = stress component number
+C     PHRASE = stress component in material 3
+C
+C   OUTPUT:
+C
+C     STRM3(ILOADX,JCOL)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C BEG NOV 2010
+      COMMON/MEMSTR/STRS1F(1,6),STRS2F(1,6),STRS1V(1,6),STRS2V(1,6)
+C END NOV 2010
+      COMMON/STRCMP/STRC1(20,5),STRC2(20,5),STRC3(20,5)
+C
+C    Do not need any calculations added here because
+C    STRC3(ILOADX,JCOL), JCOL = 1,2,3,4,5
+C    are computed in SUBROUTINE BEHX2
+C
+C  NOTE IMPORTANT CHANGE:
+C
+C  October 7, 2010: Use the MEMBRANE stresses because the
+C  meridional curvature change, KAPPA1, from BIGBOSOR4 is
+C  sometimes much too large in the immediate neighborhoods
+C  of the ends of the shell segments, generating maximum
+C  stress components that are much too high in this particular
+C  case that involves a balloon-like (membrane) structure,
+C  This is especially true for the outer and inner curved
+C  membranes, that is, segments 2 (outer) and 4 (inner)
+C  of each module of the multi-module model. For example,
+C  here is some BIGBOSOR4 output for Segment 4 (inner
+C  curved membrane) for Load Step No. 1:
+C
+C      AXISYMMETRIC PRESTRESS DISTRIBUTION FOR SEGMENT 4
+C POINT   EPSILON 1  EPSILON 2   KAPPA 1      KAPPA 2
+C          MERID.     CIRCUMF.    MERID.      CIRCUMF.
+C          STRAIN     STRAIN     CHANGES IN CURVATURE
+C   1    1.070E-01   7.019E-15   5.784E-01   1.795E-08 
+C   2    1.062E-01  -1.695E-09  -1.015E+01  -4.307E-10 
+C   3    1.059E-01   1.154E-08   2.981E+00  -8.949E-09 
+C   4    1.074E-01   1.021E-08  -1.251E+00  -2.625E-09 
+C   5    1.077E-01   1.483E-08   6.715E-01  -5.319E-09 
+C   6    1.085E-01   1.647E-08  -2.629E-01  -3.690E-09 
+C   7    1.090E-01   1.910E-08   1.910E-01  -4.184E-09 
+C   8    1.096E-01   2.095E-08  -3.076E-02  -3.533E-09 
+C   9    1.100E-01   2.283E-08   7.706E-02  -3.398E-09 
+C  10    1.104E-01   2.441E-08   2.394E-02  -2.950E-09 
+C
+C
+C   NOTE: the quantities, STRS1V and STRS2V, are computed
+C         in SUBROUTINE BEHX1.
+C
+      IF (IWEBS.EQ.1) STRC3(ILOADX,1) = STRS1V(1,5)
+      IF (IWEBS.EQ.2) STRC3(ILOADX,1) = MAX(STRS1V(1,5),STRS1V(1,6))
+      STRC3(ILOADX,2) = 0.
+      IF (IWEBS.EQ.1) STRC3(ILOADX,3) = STRS2V(1,5)
+      IF (IWEBS.EQ.2) STRC3(ILOADX,3) = MAX(STRS2V(1,5),STRS2V(1,6))
+      STRC3(ILOADX,4) = 0.
+      STRC3(ILOADX,5) = 0.
+C
+      STRM3(ILOADX,JCOL) = STRC3(ILOADX,JCOL)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:weight/length of the balloon
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = weight/length of the balloon
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV03/EMOD1(10),IEMOD1
+      REAL EMOD1
+      COMMON/FV04/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV01/LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      REAL LENGTH,RADIUS,HEIGHT,RINNER,ROUTER,TINNER,TOUTER
+      COMMON/FV10/ALPHA2(10),TEMPER(10),DENSTY(10)
+      REAL ALPHA2,TEMPER,DENSTY
+      COMMON/FV21/PINNER(20)
+      REAL PINNER
+      COMMON/FV26/BUCKB4(20),BUCKB4A(20),BUCKB4F(20)
+      REAL BUCKB4,BUCKB4A,BUCKB4F
+      COMMON/FV29/TENLOS(20),TENLOSA(20),TENLOSF(20)
+      REAL TENLOS,TENLOSA,TENLOSF
+      COMMON/FV32/STRM1(20,5 ),JSTRM1 ,STRM1A(20,5 ),STRM1F(20,5 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV35/STRM2(20,5 ),STRM2A(20,5 ),STRM2F(20,5 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/FV38/STRM3(20,5 ),STRM3A(20,5 ),STRM3F(20,5 )
+      REAL STRM3,STRM3A,STRM3F
+      COMMON/IV01/NMODUL,ISHAPE,IWEBS
+      INTEGER NMODUL,ISHAPE,IWEBS
+      COMMON/FV18/TFINNR,TFOUTR,TFWEBS,WEIGHT
+      REAL TFINNR,TFOUTR,TFWEBS,WEIGHT
+      COMMON/FV22/PMIDDL(20),POUTER(20)
+      REAL PMIDDL,POUTER
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C FOR CYLINDRICAL BALLOONS:
+C Get the weight per axial length of the balloon.
+C The quantity, WEIGHT, is computed as follows in
+C SUBROUTINE BOSDEC:
+C
+C     WEIGHT = 4.*(ARCOUT*TOUTER*DENSTY(1) +ARCINR*TINNER*DENSTY(1)
+C    1        +ARCFOT*TFOUTR*DENSTY(2) +ARCFIN*TFINNR*DENSTY(2)
+C    1        +ARCWEB*TFWEBS*DENSTY(3))
+C
+C in which
+C    ARCOUT = total arc length of the outer curved membranes
+C    ARCINR = total arc length of the inner curved membranes
+C    ARCFOT = total arc length of the outer flat membranes
+C    ARCFIN = total arc length of the inner flat membranes
+C    ARCWEB = total length of the slanted webs.
+C
+C BEG NOV 2010
+      COMMON/TOTMAX/TOTMAS
+C
+      IF (ISHAPE.EQ.1) THEN
+         OBJGEN =WEIGHT 
+      ELSE
+C BEG DEC 2010
+         OBJGEN = 2.0*TOTMAS
+C END DEC 2010
+      ENDIF
+C END NOV 2010
+C
+      RETURN
+      END
+C
+C
+C

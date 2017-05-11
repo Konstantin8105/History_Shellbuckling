@@ -1,0 +1,995 @@
+C=DECK      EBAND2
+      SUBROUTINE EBAND2(IFILE,ISTORE,N,ILOC,DIAG,A,B,C,D,DI,X,Y,Z,IMOD,
+     1                  NT,IBLK,IDRW,NGBK,NKF,IMAXB,KMAXB,INDIC,IPV2,
+C BEG JUN 2004
+     1                  IBVC,IENMAX,IGLOB,ILOCAL,ITER,FNX,FNY,
+     1                  IFLGG,KTM,KROOTS)
+C END JUN 2004 
+C     CALLED FROM BUCKLE WHICH IS CALLED FROM MAIN.
+C     THIS SUBROUTINE IS USED TO CALCULATE NVEC VIBRATION FREQUENCIES
+C     OR BUCKLING LOADS
+C     FOR A GIVEN AXIAL WAVENUMBER N.  THE EIGENVALUE
+C     PROBLEM HAS THE FORM . .
+C                               A*X  - OMEGA**2*M*X  = 0
+C
+C     SEE ADDITIONAL COMMENTS SPRINKLED THROUGHOUT EBAND
+C
+      DOUBLE PRECISION A,B,C,D,DI,Z,X,Y
+      DOUBLE PRECISION SUM,SUM1,SUM2,SM,BIG
+C BEG JUN 2004
+C     COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+C END JUN 2004
+      COMMON/IHIGH/ITOOHI
+      COMMON/EIGNO/NVEC,ROOT(50),AXB
+      DIMENSION ILOC(*),DIAG(*),A(*),B(*),C(*),D(*),DI(*),X(*),Y(*),Z(*)
+      DIMENSION SM(50),ISAVE1(50),ISAVE2(50)
+      COMMON/OUTP/NPRINT
+      COMMON/GMAXX/GMI(50)
+      COMMON/AMPFC2/IMPHI(200)
+C BEG MARCH 1990
+      COMMON /EIG1X/IDI,IMI,AX,ACX(3),DM(3,3),IMXP(3),IMDV(3)
+C END MARCH 1990
+      COMMON /EIG2/ ITP1(1),ITP2,ITP3,ITP4,ITP5
+C     COMMON/EIG3/RHO,SD
+      COMMON /EIG4/NEG(100)
+      DIMENSION IDRW(20,5),NGBK(20),NKF(20)
+      DIMENSION KMAXB(20)
+      DIMENSION IBVC(50),IPV2(50)
+      COMMON /IDEIG/ IVEC(500),NVECTL,EIGENW(500)
+C BEG JUN 2004
+C     COMMON/ORTA/IFLGG,KTM,KROOTS
+C END JUN 2004
+10    FORMAT(25X,' ROOT NUMBER ',I4,', ITERATION ',I4,',AX=',E14.8/
+     1' DET=',E14.8,'+',I6,', NUMBER OF NEGATIVE ROOTS= ',I3)
+20    FORMAT (' THERE ARE ',I5,' EIGENVALUES IN THE RANGE ',E15.7,
+     1' TO ',E15.7)
+30    FORMAT (' THERE ARE  ',I5,' EIGENVALUES BETWEEN  ',E15.7,' AND',
+     1E15.7)
+40    FORMAT (' THERE ARE ',I5,' FREQUENCIES BETWEEN  ',E15.7,' AND',
+     1E15.7)
+50    FORMAT (15X,' SUB ITERATION  ',I4,',  ARQ= ',E14.8,',   DARQ=',
+     1E14.8,',  FREQ= ',E14.8)
+60    FORMAT (' ROOT NUMBER  ',I3,'.',I7,' SPECTRAL SHIFTS. ',I7,
+     1' SUB ITERATIONS.',5X,' EIGENVALUE= ',E14.8,',    FREQUENCY= ',
+     1E14.8)
+      DATA IDB1,IMAX,MAX,EPS,EPS1,EPS2/1,3,18,.0001,.0002,.005/ 
+      DATA C1,C2,C3,C4/.99,.95,.85,.7/ 
+      DATA KA, KB,CC,SD/0,0,1.,.1591549/ 
+      DATA ARQ,AXG,AX2,DARQ,DZ,ER/0.,0.,0.,0.,0.,0./
+70    FORMAT (' NO FURTHER EIGENVALUES CAN BE FOUND IN THE SPECIFIED'/
+     1' RANGE.')
+80    FORMAT (' VECTOR '/(6E15.6))
+90    FORMAT (' GENERALIZED MASS=  ',E15.8//)
+      IF (NPRINT.GT.2) WRITE (IFILE,100)NVEC,N
+100   FORMAT(//' Enter EBAND2 to calculate lowest',I2,' eigenvalues'/
+     1' for',I6,'   axial half-waves.'/)
+      IID = 2
+      IF (INDIC.EQ.2) IID = 3
+      IWARN = 0
+      ITHIS = 0
+      NSHIFT = 0
+      DECR = 0.95
+      M3 = NT
+      AXB = 0.0
+      AX2 = 0.0
+      ITOTL = 0
+      NEXT = 1
+      IEND = 0
+      IFLAG = 0
+C **********************************
+C **********************************
+C **********************************
+      NPRT = 0
+C **********************************
+C **********************************
+C **********************************
+      SUM2 = 0.
+      NROW = NT
+      N8=0
+      ND=NROW
+      ND2 = ND*2
+      LGTH = 2*ILOC(NT)
+      AX1=AXB
+      N9=5
+      IMAX=10
+      ITP1(1) = 0
+      ITP2=0
+C
+      IF (INDIC.NE.-1) IFLGG = 0
+      MAX=18
+      AROOT=0.
+      ASTEP=.5*(AX2-AX1)
+      IF (AX1.GT.0.) GO TO 110
+      ASTEP=2.*ASTEP
+110   CONTINUE
+      IF (AX2.GT.0.) GO TO 120
+      ASTEP=1.E+20
+      KB=100000
+      AX2=1.E+20
+      GO TO 150
+C     FIND NR OF EIGENVALUES AT UPPER END OF RANGE
+120   AXT=-AX2
+      CALL ADD2(AXT,A,B,C,D,IDRW,ILOC,IID,IBLK,NGBK,NKF)
+      IF (NPRT.GT.0) WRITE (IFILE,130)
+130   FORMAT(' FINISH FORMING B - AXT*C AND START FACTORING.')
+      NEX=0
+C BEG JUN 2004
+      CALL FACTR(D,C,IDRW(1,5),DET,NEX,IBLK,NGBK,NKF,ILOC,DIAG,DI,KMAXB,
+     1           KTM)
+C END JUN 2004
+      IF (NPRT.GT.0) WRITE (IFILE,140)KTM,AXT
+140   FORMAT(I5,'  NEGATIVE ROOTS  FOR SHIFT. AXT =  ',1PE13.5)
+      KB=KTM
+150   CONTINUE
+C     IF (IBLK.EQ.1) CALL GASP(C,LGTH,3,IDRW(1,IID))
+      IF(AX2.EQ.0) AX2=1.E+15
+      N3=0
+      N4=0
+      N5=0
+      N6=0
+      N7=0
+      IDF=0
+      TOP=0.0
+      NIT=0
+      NITT=0
+      IPOW=0
+      NEIG=0
+      IDIF=50
+      NTOT=ND2
+      IDF1=IDIF-1
+      TOP1=TOP
+      AXR2=.99*AX1
+      GO TO 230
+C
+C     USE THE LAST EIGENVALUE'
+C
+160   AXR2=AXR+CC*ARQ
+      IF (AXR2.GT.AX2) GO TO 210
+      IF (AXR2.LT.AX1) GO TO 200
+      IF (AXG.LT.AX1) GO TO 200
+      IF (AXR2) 170,520,170
+170   IF (ABS(ARQ/AXR2).LT.0.01) GO TO 180
+      GO TO 190
+180   CONTINUE
+      N3 = N3 + 1
+      IF (N3.GT.IMAX) GO TO 790
+      IF (NIT.EQ.MAX) GO TO 765
+      NIT = 1
+      GO TO 520
+190   CONTINUE
+      AXM=AMAX1(ASTEP,C4*AROOT)
+      CX=AXM/ABS(ARQ)
+      CC=AMIN1(CC,CX)
+      AXR2=AXR+CC*ARQ
+      GO TO 240
+200   CONTINUE
+      IF (INDIC.NE.-1) GO TO 203
+      IF (KTM.LE.KROOTS) GO TO 203
+      IF (KTM.EQ.(KROOTS+1)) GO TO 240
+203   AXR2 = AXR - 1.5*ARQ
+      IF (KB.EQ.100000) GO TO 230
+      IF (AXR2.GT.AX2) GO TO 220
+      GO TO 230
+210   IF (KB.EQ.100000) GO TO 810
+      AXR2=AXR-C2*CC*ARQ
+      IF (AXR2.GE.AX1) GO TO 230
+220   AXR2=.5*(AX1+AX2)
+230   CONTINUE
+C BEG VMS
+C     IF (IMOD.EQ.0) CALL URNDM(0,ND,Y)
+C END VMS
+C BEG UNIX
+      IF (IMOD.EQ.0) CALL urvec(ND,Y)
+C END UNIX
+      CALL VEC(0,B,Y,X,IBLK,IDRW(1,IID),NGBK,ILOC)
+240   N3 =N3+1
+      NSHIFT = NSHIFT + 1
+      AXR=AXR2
+      IF (N3-IMAX) 250,250,790
+250   CONTINUE
+260   CONTINUE
+      AXT=-AXR-AXB
+      CALL ADD2(AXT,A,B,C,D,IDRW,ILOC,IID,IBLK,NGBK,NKF)
+      NEX=0
+      IF (NPRT.GT.0) WRITE (IFILE,130)
+C BEG JUN 2004
+      CALL FACTR(D,C,IDRW(1,5),DET,NEX,IBLK,NGBK,NKF,ILOC,DIAG,DI,KMAXB,
+     1           KTM)
+C END JUN 2004
+C     IF (IBLK.EQ.1) CALL GASP(C,LGTH,3,IDRW(1,IID))
+      IF (NPRT.GT.0) WRITE (IFILE,140)KTM,AXT
+      IF (INDIC.NE.-1) GO TO 171
+      IF (KTM.LE.(KROOTS+1)) GO TO 171
+51    IF (NSHIFT.NE.1) GO TO 161
+61    ISIG = IFLGG + 1
+      GO TO (71,81,91,101,111),ISIG
+71    FACT = 0.7
+      GO TO 121
+81    FACT = 0.9
+      GO TO 121
+91    FACT = 0.95
+      GO TO 121
+101   FACT = 0.99
+      GO TO 121
+111   FACT = 0.999
+121   CONTINUE
+      ITOOHI = ITOOHI + 1
+      WRITE (IFILE,131)ITOOHI,FACT
+131   FORMAT(///' LOAD MUST BE DECREASED BECAUSE ROOTS HAVE BEEN'/
+     1' SKIPPED. ',I3,'ST SUCH DECREASE BY FACTOR OF ',1PE12.4//)
+      CALL ERREX
+  151 CONTINUE
+      GO TO 830
+161   AXR = DECR*AXR
+      ITHIS = ITHIS + 1
+      IF (ITHIS.GT.10) DECR = 0.5
+      IF (ITHIS.GT.20) CALL ERREX
+      GO TO 260
+171   CONTINUE
+      ITOOHI = 0
+      IF (NPRT.NE.0) WRITE (IFILE,10)N4,N3,AXR,DET,NEX,KTM
+      IF (N5.EQ.0) GO TO 290
+      KT=KTM-KA
+      IF (INDIC.EQ.2) GO TO 270
+      IF (INDIC.NE.1.AND.INDIC.NE.4) GO TO 280
+      IF (NPRT.GT.0) WRITE (IFILE,30)KT,AX1,AXR2
+      GO TO 280
+270   F1=SQRT(AX1)*SD
+      IF (AXR.LT.0.) GO TO 280
+      F2=SQRT(AXR)*SD
+      IF (NPRT.GT.0) WRITE (IFILE,40)KT,F1,F2
+280   CONTINUE
+      IF (N7.GE.NVEC) GO TO 820
+      GO TO 300
+290   N5=1
+      KA=KTM
+      IF (KB.EQ.100000) GO TO 350
+      KT=KB-KA
+      IF (NPRT.GT.0) WRITE (IFILE,20)KT,AX1,AX2
+      IF (KT.LE.0) GO TO 820
+      GO TO 350
+300   KN=KTM-KA
+      IF (KN.LE.N7) GO TO 350
+      NSKIPT = KN - N7
+      IF (NSKIPT.LT.2) IFLAG = IFLAG + 1
+      IF (NSKIPT.GT.0.OR.IFLAG.GT.3) THEN
+         N3 = N3 - 1
+         IF (NPRT.GT.0) WRITE(IFILE,315) N7, NSKIPT
+315      FORMAT(/' ********** WARNING  WARNING  WARNING **********'//
+     1' IT IS POSSIBLE FOR THIS WAVENUMBER THAT EIGENVALUES'/
+     1' MAY BE CALCULATED OUT OF ORDER OR THAT EIGENVALUES MAY BE'/
+     1' SKIPPED.'/
+     1'  Number of eigenvalues accepted so far                =',I5/
+     1'  Number of eigenvalues skipped                        =',I5//
+     1'  Now shifting downward to try to capture lower eigenvalues.'//
+     1'  If, after this warning message, the following lines appear'/
+     1'  everything is okay:'//
+     1'   FINISH FORMING B - AXT*C AND START FACTORING.'/
+     1' M  NEGATIVE ROOTS FOR SHIFT, AXT =   -YYYYYYY'/
+     1' THERE ARE    0  EIGENVALUES BETWEEN 0.0000 AND YYYYYYY'//
+     1'  The thing to look for is that "0  EIGENVALUES BETWEEN..."'/
+     1' ********** END WARNING    END WARNING    END WARNING *******'/)
+      ENDIF
+C
+C     IF (N7.GT.0.OR.IFLAG.GT.3) GO TO 350
+C
+      GO TO (320,330,340),IFLAG
+320   AXR2 = 0.7*AXR2 + 0.3*AX1
+      GO TO 230
+330   AXR2 =0.83*AXR2 + 0.3*AX1
+      GO TO 230
+340   AXR2 =0.93*AXR2 + 0.3*AX1
+      GO TO 230
+C     ***********************
+C     INVERSE POWER SECTION'
+C     ***********************
+350   MW = 1
+      NITT=NITT+NIT
+      NIT= 0
+      N41 = N4 + 1
+      IF (NPRT.GT.0) WRITE (IFILE,360)N41,N
+360   FORMAT(' BEGIN INVERSE POWER ITERATIONS FOR EIGENVALUE NO.',I3,
+     1' NUMBER OF AXIAL HALF-WAVES=',I6)                           
+370   CALL SOLVE(C,X,IBLK,IDRW(1,5),NGBK,ILOC,DIAG,M3,1)
+C
+      BIG = 0.0
+      SUM = 0.0
+      SUM1= SUM2
+      SUM2= 0.0
+      IF (IDB1.GT.IDF.OR.IPOW.EQ.2) GO TO 430
+      BR=2.*ABS(ARQ)
+      IHIGH = N4*2*NT
+      ILOW = IHIGH - IEND + 1
+      ISUB = NEXT
+      IF (NEXT.GT.1) CALL GASP(Z,J22,3,IPV2(N4))
+      I = IDF + 1
+380   I = I - 1
+      IF (I.LT.IDB1) GO TO 420
+      IF (NIT*N8.EQ.0) GO TO 390
+      BRA=ABS(ROOT(I)-AXR)
+      IF (BRA.GT.BR) GO TO 420
+390   CONTINUE
+      ISTART = (I-1)*2*NT + 1
+400   IF (ISTART.GE.ILOW.AND.ISTART.LE.IHIGH) GO TO 410
+      ISUB = ISUB - 1
+      LEGTH = 2*ISAVE1(ISUB)
+      CALL GASP(Z,LEGTH,3,IBVC(ISUB))
+      IHIGH = ISAVE2(ISUB)*2*NT
+      ILOW = IHIGH - ISAVE1(ISUB) + 1
+      GO TO 400
+410   CONTINUE
+      ILESS = 0
+      ISUB1 = ISUB - 1
+      IF (ISUB1) 417,417,414
+414   DO 416 K=1,ISUB1
+416   ILESS = ILESS + ISAVE1(K)
+417   IARG = ISTART - ILESS
+C BEG JUN 2004
+      CALL ORTHO2(X,Z(IARG),Z(IARG+NT),I,ND,SM,IFLGG)
+C END JUN 2004
+      GO TO 380
+420   CONTINUE
+430   DO 440 I=1,ND
+      BIG = DMAX1(BIG,DABS(X(I)))
+      SUM=SUM+X(I)*Y(I)
+      SUM2= SUM2+X(I)**2
+440   CONTINUE
+      DO 450 I=1,ND
+      Y(I)=X(I)/BIG
+450   CONTINUE
+      CALL VEC(0,B,Y,X,IBLK,IDRW(1,IID),NGBK,ILOC)
+      SUM2=SUM2/BIG**2
+      ARQ2=ARQ
+      IF (SUM.NE.0.0) ARQ = SUM1/SUM
+      ARQ=-ARQ
+      AXG=AXR+ARQ
+      DZ1= DZ
+      DZ = ARQ-ARQ2
+      DARQ2=DARQ
+      DZZ = DZ - DZ1
+      DARQ = ARQ
+C BEG MAY 1997
+      IF (DZ.GT.1.E+15) THEN
+         WRITE(8,'(A,/,1P,5E12.4)')
+     1           ' DZ,DZ1,DZZ,ARQ,ARQ2=',DZ,DZ1,DZZ,ARQ,ARQ2
+         WRITE(8,'(A,/,1P,4E12.4)')
+     1           ' BIG,SUM2,SUM1,SUM=',BIG,SUM2,SUM1,SUM
+         WRITE(8,458) ND, (Y(I),I=1,ND)
+  458    FORMAT(' ND, (Y(I),I=1,ND)=',I5,/(1P,5E12.4))
+      ENDIF
+C END MAY 1997
+      IF (DZZ.NE.0.0) DARQ = ARQ - DZ**2/DZZ
+      G = ABS(AXR + AXB + ARQ)
+      FREQ = SQRT(G)*SD
+      IF (NPRT.GT.0) WRITE (IFILE,50)NIT,ARQ,DARQ,FREQ
+      ER2=ER
+460   CONTINUE
+      ER = 0.0
+      ERR = 0.0
+      ARX = ARQ + AXR
+C
+C ******************************
+C ******************************
+C
+C  CHANGE MADE ON MARCH 12, 1984 TO AVOID MODE SHAPES ASSOCIATED WITH
+C  NEGATIVE EIGENVALUES...
+C
+C     IF (ARX.LT.0.) GO TO 570
+C
+C ********************************
+C ********************************
+C
+      FREQ = SQRT(ABS(ARX))/(2.*3.1415927)
+      IF (NPRT.GT.0.AND.INDIC.EQ.2) WRITE (IFILE,530)N,NIT,FREQ
+      IF (NPRT.GT.0.AND.INDIC.NE.2) WRITE (IFILE,531)N,NIT,ARX
+531   FORMAT('    AXIAL WAVES,M= ',I6,',  ITERATION NO.= ',I3/
+     1' EIGENVALUE (FACTOR TO BE MULT. BY LOAD SET A)= ',1PE13.5)
+      IF (ARX.NE.0.0) ER = ABS((ARQ-ARQ2)/ARX)
+      IF (ARX.NE.0.0) ERR= ABS((DARQ-DARQ2)/ARX)
+      ER =AMAX1(ER,ERR)
+      IF (NIT.LE.1) GO TO 520
+      IF (NIT.GE.N9.AND.INDIC.EQ.-1.AND.ARX.GT.0..AND.KTM.GE.(KROOTS+1))
+     1GO TO 51
+      IF (ER.GT.EPS2) GO TO 520
+      IF (ARX.LE.0.0) THEN
+C BEG AUG 1990
+         IF (IWARN.EQ.0.AND.IGLOB.EQ.1) THEN
+            WRITE(8,15) N,ARX
+   15    FORMAT(//' ************* NEGATIVE BUCKLING LOAD(S) **********'/
+     1' We are now in the discretized model analysis branch.'/
+     1' We are now in SUBROUTINE EBAND2. '/
+     1'   Number of      axial      halfwaves in this part, m=',I5/
+     1'   Buckling load factor, EIGVAL                       =',1PE12.4)
+            WRITE(8,1501)
+ 1501    FORMAT(
+     1' CHECK FOR THE FOLLOWING:'/
+     1'   1. Are the signs of your applied loads correct?'/
+     1'   2. Can you possibly put any tensile applied loads into'/
+     1'      Load Set B rather than into Load Set A?'/
+     1'   3. Do you have a Load Set B that is more than large enough'/
+     1'      to cause buckling by itself?'/
+     1'   4. Are thermal resultants large enough to cause buckling by'/
+     1'      themselves?'/
+     1'   5. Is the axial resultant from Load Set A positive in any'/
+     1'      of the panel module segments or overall?'/
+     1'   6. Are any terms on the diagonal of the tangent stiffness'/
+     1'      matrix CTAN negative?'/
+     1'   7. Is the pressure in Load Set A and does it give rise to'/
+     1'      significant tensile stress resultants?   If so, you'/
+     1'      should probably do one of the following:'/
+     1'         (a) make the edges IN-PLANE MOVABLE  (in MAINSETUP)'/
+     1'         (b) put the pressure in Load Set B.  (in MAINSETUP)'/
+     1'      You should probably try option (a) first.'/)
+           ENDIF
+C END AUG 1990
+         IWARN = 1
+         IF (IGLOB.EQ.1) CALL ERREX
+         IF (ILOCAL.EQ.1.AND.IGLOB.NE.-1) THEN
+            IF (FNX.GE.0.0.AND.FNY.GE.0.0) THEN
+                WRITE(8,*)' WE ARE NOW IN SUBROUTINE EBAND2.'
+                WRITE(8,*)' POSITIVE LOADS ONLY. THERE CAN BE NO'
+                WRITE(8,*)' BUCKLING.   NX, NY =', FNX,FNY
+                CALL ERREX
+            ENDIF
+            GO TO 520
+         ENDIF
+      ENDIF
+C
+      IF (NIT.GT.N9) GO TO 470
+      IF (ER.LT.EPS.AND.ARX.GT.0.) GO TO 570
+470   IF (ER.LT.EPS1) GO TO 480
+      IF (NIT.LT.13) GO TO 520
+      IF (ER.LT.0.001) GO TO 540
+      IF (ER2.GT.2.*EPS2) GO TO 520
+      CC=C3
+      GO TO 160
+480   IF (NIT.LT.N9) GO TO 520
+      IF (IPOW.GT.0) GO TO 500
+      IF (NIT.LT.10) GO TO 490
+      GO TO 540
+490   CC=C1
+      N8 = N8+1
+      IPOW= 1
+      GO TO 160
+500   CONTINUE
+510   IF (ER.LT.EPS.AND.ARX.GT.0.) GO TO 570
+520   NIT=NIT+1
+530   FORMAT('    AXIAL WAVES,M= ',I6,',  ITERATION NO.= ',I3/
+     1' EIGENVALUE (FREQUENCY IN CYCLES PER SECOND)= ',1PE13.5)
+      IF (NIT.LT.MAX) GO TO 370
+      IF (ER.GT.EPS1) GO TO 550
+540   CC=C2
+      N8=N8+1
+      GO TO 160
+550   IF (ER.GT.EPS2) GO TO 560
+      CC=C3
+      N8=N8+1
+      GO TO 160
+560   CC=C4
+      GO TO 160
+570   CONTINUE
+      IF (INDIC.EQ.-1.AND.ARX.GT.0..AND.KTM.GE.(KROOTS+1)) GO TO 51
+C
+C     **************************
+C     THE ROOT HAS BEEN ACCEPTED
+C     **************************
+      AROOT=AXR+ARQ
+      IF (N4.LE.0) GO TO 575
+      RDIFF = ABS(ROOT(1)) - ABS(AXR)
+      IF (N4.EQ.1) GO TO 574
+      DO 572 I=2,N4
+      R1DIFF = ABS(ROOT(I)) - ABS(AXR)
+      RDIFF = AMIN1(RDIFF,R1DIFF)
+572   CONTINUE
+574   RRATIO = ABS(ARQ/RDIFF)
+      IF (RRATIO.LT.1000.) GO TO 575
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      IF (NPRT.GT.0) WRITE (IFILE,573)RRATIO
+573   FORMAT(' NEED TO CHECK ROOT BY ADDITIONAL SHIFTS SINCE'/
+     1' (AROOT-SHIFT)/MIN(ROOT(I)-SHIFT).GT.1000. IT= ',1PE14.1)
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      IF (NPRT.GT.0) WRITE (IFILE,593)
+      CC = 0.95
+      GO TO 160
+575   TOP = AMAX1(TOP,AROOT)
+      ADL=AROOT-TOP
+      IF (N4.LE.0) GO TO 580
+      IF (ABS(TOP-TOP1)-EPS1) 590,590,580
+580   TOP1=TOP
+590   N4  = N4+1
+      GMI(N4) = 0.0
+      FREQ = SQRT(ABS(AROOT))/(2.*3.1415927)
+593   FORMAT(' ******************************')
+598   CONTINUE
+      IF (INDIC.EQ.2.AND.NPRT.GT.0) WRITE (IFILE,600)N4,FREQ,N
+      IF (INDIC.NE.2.AND.NPRT.GT.0) WRITE (IFILE,601)N4,AROOT,N
+600   FORMAT(' ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.',I3,
+     1' FREQUENCY (CPS) =',1PE13.5,',  ',I6,' AXIAL WAVES')
+601   FORMAT(' ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.',I3,
+     1' BUCKLING LOAD FACTOR=',1PE13.5,',  ',I6,' AXIAL WAVES')  
+      ITP3=N4
+      NITT=NITT+NIT
+      IF (NPRT.EQ.0) GO TO 610
+      IF (NPRT.GT.0) WRITE (IFILE,60)N4,N3,NITT,AROOT,FREQ
+610   CONTINUE
+      NIT=0
+      NITT=0
+      ROOT(N4)=AROOT
+C
+C *******************************
+C ******************************
+C
+C  ANOTHER MARCH 12, 1984 CHANGE... (MODIFIED AGAIN ON JUNE 15, 1986)
+C
+      IF (ROOT(N4).LT.0.) ROOT(N4)  = ABS(ROOT(N4))
+C
+C **********************************
+      IPOW=0
+      NEIG=0
+      N6  =0
+      IDF=MIN0( N4, IDIF)
+      IF (N4.LE.IDIF) GO TO 630
+      DO 620 I=1,IDF1
+      SM(I)=SM(I+1)
+620   CONTINUE
+630   CONTINUE
+      SUMM= 0.0
+      DO 640 J=1,ND
+      SUMM=SUMM+X(J)*Y(J)
+640   CONTINUE
+      N8=0
+      SM(IDF)=SUMM
+      IF (ADL) 650,670,670
+650   IF (INDIC.EQ.-1) GO TO 670
+      N6 = 1
+      NI=N4-IDIF
+      IF (NI.LT.1) GO TO 670
+      ARR=ABS(ROOT(N4))
+      DO 660 I=1,NI
+      ER2 = 0.0
+      ARX2 = ARR + ABS(ROOT(I))
+      IF (ARX2.NE.0.0) ER2 = ABS(ROOT(I)-ROOT(N4))/ARX2
+      IF (ER2.LT.0.005) GO TO 730
+660   CONTINUE
+670   N3=0
+      J22 = 2*J2
+      IF (NEXT.GT.1) CALL GASP(Z,J22,3,IPV2(N4-1))
+680   IPOS = ITOTL + 1
+      IENDS = IEND
+      IEND = IPOS + 2*NT - 1
+      IF (IEND.LT.IENMAX) GO TO 690
+      IENDS2 = 2*IENDS
+      CALL GASP(Z,IENDS2,1,IBVC(NEXT))
+      ITOTL = 0
+      ISAVE1(NEXT) = IENDS
+      ISAVE2(NEXT) = N4-1
+      NEXT = NEXT + 1
+      GO TO 680
+690   CONTINUE
+      DO 700 I=1,NT
+      J1 = IPOS + I - 1
+      J2 = IPOS + NT + I - 1
+      Z(J1) = Y(I)
+700   Z(J2) = X(I)
+      J2 = IPOS + 2*NT - 1
+708   CONTINUE
+      IF (ISTORE.NE.0) CALL GASP(Y,NTOT,1,IVEC(NVECTL+N4))
+      ITOTL = ITOTL + 2*NT
+      J22 = 2*J2
+      IF (NEXT.GT.1) CALL GASP(Z,J22,1,IPV2(N4))
+      IF (INDIC.NE.2) GO TO 711
+      DO 710 I=1,ND
+710   GMI(N4) = GMI(N4) + X(I)*Y(I)
+C
+      CALL GASP(X,NTOT,1,IMPHI(NVECTL+N4))
+C
+711   CONTINUE
+      N3=0
+      IF (AROOT.GT.AX2) GO TO 210
+      IF (AROOT.GE.AX1.OR.INDIC.EQ.-1) GO TO 720
+      AXR2=AX1-1.5*AROOT
+      GO TO 230
+720   CONTINUE
+      IF (INDIC.EQ.-1) GO TO 740
+      IF (AROOT) 750,740,740
+C     THIS IS A PREVIOUSLY COMPUTED ROOT.  REJECT IT.
+730   N4  =N4-1
+      NEIG=0
+      GO TO 780
+740   N7=N7+1
+      N3=0
+      MW=2
+      ART=AROOT+AXB
+      GO TO (460,760),MW
+750   N6=1
+760   IF (N7.LT.NVEC) GO TO 770
+      IF (ARQ.LT.0.) GO TO 820
+      IF (KB.NE.100000) GO TO 820
+765   CONTINUE
+      AXR2=1.0003*AROOT
+      AXR=AXR2
+      IF (AROOT.GT.0.) GO TO 820
+C     ABOVE STATEMENT "IF (AROOT...GO TO 820" IS NEW (JAN. 27,1984)
+      GO TO 260
+770   CONTINUE
+      NEIG=0
+C BEG VMS
+C     CALL URNDM(0,ND,Y)
+C END VMS
+C BEG UNIX
+      CALL urvec(ND,Y)
+C END UNIX
+      CALL VEC(0,B,Y,X,IBLK,IDRW(1,IID),NGBK,ILOC)
+      GO TO 350
+780   AXR= TOP-ADL*0.85
+      GO TO 240
+790   N5=N7+1
+C BEG AUG 1990
+C     WRITE (IFILE,800)N5,ER,AXR
+C END AUG 1990
+800   FORMAT(//' THE ITERATION FOR ROOT ',I4,' HAS FAILED.'/
+     1'   FINAL VALUE OF ER = ', E15.8/
+     2'   FINAL VALUE OF AXR= ', E15.8 /)
+C
+C  OCT. 5, 1988 MODIFICATION (TO PROVIDE HIGH EIGENVALUE IN CASE
+C  EBAND2 FAILS TO CONVERGE ON LOWEST EIGENVALUE BECAUSE OF HIGH
+C  TENSILE STRESSES IN THE PANEL MODULE CROSS SECTION
+C
+      AROOT = ABS(AXR)
+      IF (N4.LT.1) N4 = 1
+      ROOT(N4) = AROOT
+C  END  OCT. 5, 1988 MODIFICATION
+C
+      GO TO 830
+810   IF (AX2.EQ.0.0) GO TO 820
+      IF (NPRT.GT.0) WRITE (IFILE,70)
+820   CONTINUE
+      NVEC = N4
+830   IF (NPRT.GT.0) WRITE (IFILE,840)
+840   FORMAT(' LEAVING SUBROUTINE EBAND2.')
+      RETURN
+      END
+C
+C
+C
+C=DECK      VEC
+      SUBROUTINE VEC(IZERO,A,X,Y,NBLK,IBLK,KEQ,LOC)
+C
+C     CALLED FROM EBAND,EBAND2, AND EIGEN IN THE BUCKLE OVERLAY
+C     PERFORMS MULTIPLICATION OF A MATRIX TIMES A VECTOR FOR
+C     MATRICES WHICH ARE STORED IN BLOCKS ON DISK
+C     CALCULATIONS GIVE . .    Y = Y*IZERO  + A*X
+      DOUBLE PRECISION A,X,Y
+      DIMENSION X(*),Y(*),A(*),KEQ(*),LOC(*),IBLK(*)
+      IF (IZERO.NE.0) GO TO 20
+      N=KEQ(NBLK)
+      DO 10 I=1,N
+10    Y(I)=0.
+20    I1 = 1
+      DO 50 I=1,NBLK
+      I2=KEQ(I)
+      NW = LOC(I2)*2
+      IF (NBLK.GT.1) CALL GASP(A,NW,3,IBLK(I))
+      K1=1
+      DO 40 J=I1,I2
+      K2=LOC(J)
+      KL=J-LOC(J)
+      DO 30 K=K1,K2
+      Y(K+KL) = Y(K+KL) + X(J)*A(K)
+30    Y(J)=Y(J)+X(K+KL)*A(K)
+      Y(J) = Y(J) - X(J)*A(K2)
+40    K1=K2+1
+50    I1=I2+1
+      RETURN
+      END
+C
+C
+C
+C=DECK      ADD2
+      SUBROUTINE ADD2(AXT,A,B,C,D,IDRW,ILOC,IID,IBLK,NGBK,NKF)
+C     CALLED FROM EBAND2 (VIBRATION PROBLEMS). TRACE IS BUCKLE,MAIN
+C
+      DOUBLE PRECISION AXD,A,B,C,D
+      DIMENSION NGBK(20),NKF(20)
+      DIMENSION ILOC(*),A(*),B(*),C(*),D(*),IDRW(20,5)
+C     THE MATRIX C - AXT*B IS FORMED AND STORED IN IDRW(I,5),I=1,IBLK
+C
+      AXD = AXT
+      DO 20 I=1,IBLK
+      NLAST = NGBK(I)
+      LENGTH = 2*ILOC(NLAST)
+      IF (IBLK.GT.1) THEN
+        CALL GASP(C,LENGTH,3,IDRW(I,1))
+        CALL GASP(B,LENGTH,3,IDRW(I,IID))
+      ELSE
+        CALL MOVER(A,1,C,1,LENGTH)
+      ENDIF
+      L2 = LENGTH/2
+      DO 10 J=1,L2
+10    C(J) = C(J) - AXD*B(J)
+      IF (IBLK.GT.1) CALL GASP(C,LENGTH,1,IDRW(I,5))
+20    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      ORTHO2
+C BEG JUN 2004
+      SUBROUTINE ORTHO2(X,Y,Z,I,ND,SM,IFLGG)
+C END JUN 2004
+C
+C     CALLED FROM EBAND2, WHOSE TRACE IS BUCKLE, MAIN
+C     PERFORMS ORTHOGONALIZATION CORRESPONDING TO THE EIGENVALUE
+C     PROBLEM    A*X  - OMEGA**2*B*X  = 0
+C
+      DOUBLE PRECISION X,Y,Z,SM,SUM,SUM2,SF
+      DIMENSION Z(3000),SM(50)
+C BEG JUN 2004
+C     COMMON/ORTA/IFLGG,KTM,KROOTS
+C END JUN 2004
+      COMMON/OUTP/NPRINT
+      DIMENSION Y(3000),X(3000)
+10    FORMAT (' I= ',I3,', Y*Z= ',E16.7,', X*Z= ',E16.7,', X*X=  ',
+     1 E16.7)
+      SUM2=0.
+      SUM=0.
+      DO 20 J=1,ND
+      IF(IFLGG.GT.0) SUM2=SUM2+X(J)*X(J)
+20    SUM = SUM +X(J)*Z(J)
+      SF=SUM/SM(I)
+      DO 30 J=1,ND
+30    X(J)=X(J)-SF*Y(J)
+      IF(IFLGG.EQ.0) RETURN
+      S0=SM(I)
+      S1=SUM
+      S2=SUM2
+C BEG MARCH 1990
+      IF (NPRINT.GT.2) WRITE (8,10)I,S0,S1,S2
+C END MARCH 1990
+      RETURN
+      END
+C
+C
+C
+C=DECK      FACTR
+C BEG JUN 2004
+      SUBROUTINE FACTR(A,B,IBLK,DET,NEX,NBLK,KEQ,KBAND,LOC,DIAG,DI,KMAX,
+     1                 KTM)
+C END JUN 2004
+      DOUBLE PRECISION A,B,DI,SUM
+      DIMENSION A(*),B(*),IBLK(NBLK),KEQ(NBLK),KBAND(NBLK),LOC(*),DIAG(*
+     1)
+      DIMENSION DI(1500),KMAX(NBLK)
+C BEG JUN 2004
+C     COMMON/ORTA/IFLGG,KTM,KROOTS
+C END JUN 2004
+      COMMON/OUTP/NPRT
+      COMMON /INSTAB/ INDIC
+C
+C     KEQ(N)       TRUE EQUATION NUMBER OF LAST EQ IN BLOCK N
+C     KBAND(N)     LOWEST TRUE UNKNOWN NUMBER REFERENCED IN BLOCK N
+C     LOC(I)       RELATIVE LOCATION OF MAIN DIAGONAL OF EQ I IN BLOCK N
+C     IBLK(I)      AUXILIARY STORAGE INDEX NR FOR BLOCK I
+C     NBLK         NUMBER OF BLOCKS
+C     A            ARRAY WORKING SPACE (LARGEST BLOCK)
+C     B            ARRAY WORKING SPACE (LARGEST BLOCK)
+C     DIAG         ARRAY FOR MAIN DIAG OF MATRIX (SINGLE PRECISION)
+      N=KEQ(NBLK)
+      KTM=0
+      I=1
+      MB=0
+C                                      NEXT I BLOCK
+10    J=I
+      IA=1
+      IF (I.EQ.1) GO TO 20
+      IA=KEQ(I-1)+1
+20    CONTINUE
+      IB=KEQ(I)
+C                                      NEXT J BLOCK
+30    JB=KEQ(J)
+      JA=1
+      IF (J.EQ.1) GO TO 40
+      JA=KEQ(J-1)+1
+40    CONTINUE
+      IF (MB.EQ.J) GO TO 60
+      IF (MB.EQ.0) GO TO 50
+      IF (NBLK.GT.1) CALL GASP(B,NW,1,IBLK(MB  ))
+50    N1=KEQ(J)
+      NW = LOC(N1)*2
+      IF (NBLK.GT.1) CALL GASP(B,NW,3,IBLK(J   ))
+      MB=J
+60    IG=1
+C                                      LOOP ON I BLOCK
+70    CONTINUE
+      DO 230 II=IA,IB
+      I1=0
+      I2=LOC(II)
+      IF (II.EQ.IA) GO TO 80
+      I1=LOC(II-1)
+80    IN=I2-I1
+C                                      LOOP ON J BLOCK
+90    J2 = 0
+      JM = JA
+      IF (JA.GE.II) GO TO 100
+      JM = II
+      J2 = I1
+100   CONTINUE
+      JE = MIN0(JB, II+KMAX(J))
+      IF (JE.LT.JM) GO TO 230
+      DO 220 JJ=JM,JE
+      IDIF = JJ - II
+      JN = LOC(JJ) - J2 - IDIF
+      J2 = LOC(JJ)
+      IF (JN.LE.0) GO TO 220
+      KN=MIN0(IN,JN)-1
+      IF (KN) 220,170,110
+110   KA=I2-KN-1
+      KB=J2-KN-1-IDIF
+      SUM=0.
+      IF (IDIF.GT.0) GO TO 150
+      KL=II-I2
+      I11=I1+1
+      I21=I2-1
+      DO 140 K=I11,I21
+      IF (DIAG(K+KL)) 120,130,130
+120   A(K)=-B(K)
+      GO TO 140
+130   A(K)=B(K)
+140   CONTINUE
+150   DO 160 K=1,KN
+160   SUM=SUM+A(K+KA)*B(K+KB)
+      B(J2-IDIF)=B(J2-IDIF)-SUM
+170   IF (I.NE.J) GO TO 210
+      IF (IDIF.GT.0) GO TO 210
+      DI(IG) = DSQRT(DABS(B(I2)))
+      B(I2) = DSIGN(DI(IG),B(I2))
+      IF (B(I2)) 190,180,200
+180   B(I2)=1.
+      DI(IG)=1.
+      GO TO 200
+190   KTM=KTM+1
+200   CONTINUE
+      DIAG(II)=B(I2)
+      GO TO 220
+210   CONTINUE
+      B(J2-IDIF)=B(J2-IDIF)/DI(IG)
+220   CONTINUE
+230   IG=IG+1
+240   J=J+1
+      IF (J.GT.NBLK) GO TO 250
+      IF (IB.GE.KBAND(J)) GO TO 30
+      GO TO 240
+250   I=I+1
+      IF (I.LE.NBLK) GO TO 10
+C                                      COMPUTE DETERMINANT
+      IF (NBLK.GT.1) CALL GASP(B,NW,1,IBLK(NBLK))
+      DET=1.
+      NEX=0
+      DO 280 I=1,N
+      DET=DET*DIAG(I)
+      IF (DET.EQ.0.) GO TO 280
+260   IF (ABS(DET).LT.1.E+10) GO TO 270
+      DET=DET*1.E-10
+      NEX=NEX+10
+      GO TO 260
+270   IF (ABS(DET).GT.1.E-10) GO TO 280
+      DET=DET*1.E+10
+      NEX=NEX-10
+      GO TO 270
+280   CONTINUE
+C BEG JUNE 1992
+C BEG OCT 1994
+C     IF (NPRT.GT.3.AND.ITER.EQ.1)
+      IF (NPRT.GT.3)
+C END OCT 1994
+     1  WRITE (8,290) DET,NEX,(DIAG(I),I=1,N)
+C END JUNE 1992
+290   FORMAT('  DET=',E17.7,',  NEX= ',I6,',   DIAG FOLLOWS'/
+     1(10E12.4))
+      RETURN
+      END
+C
+C
+C
+C=DECK      SOLVE
+      SUBROUTINE SOLVE(A,X,NBLK,IBLK,KEQ,LOC,DIAG,NT,NV)
+      DOUBLE PRECISION A,X,AII
+      DIMENSION A(*),X(NT,NV),IBLK(*),KEQ(*),LOC(*),DIAG(*)
+C
+C                  *****************************************
+C                            FORWARD SWEEP
+C                  *****************************************
+      I1=1
+      I=1
+10    I2=KEQ(I)
+      NW = 2*LOC(I2)
+      IF (NBLK.GT.1) CALL GASP(A,NW,3,IBLK(I))
+      J1=1
+20    II=I1
+30    J2=LOC(II)-1
+      JL=II-LOC(II)
+      AII=1./A(J2+1)
+      DO 50 KK=1,NV
+      IF (J2.LT.J1) GO TO 50
+      DO 40 J=J1,J2
+40    X(II,KK)=X(II,KK)-A(J)*X(J+JL,KK)
+50    X(II,KK)=X(II,KK)*AII
+      IF (II.EQ.I2) GO TO 60
+      J1=LOC(II)+1
+      II=II+1
+      GO TO 30
+60    IF (I.EQ.NBLK) GO TO 70
+      I=I+1
+      I1=I2+1
+      GO TO 10
+C                  *****************************************
+C                            BACK SWEEP
+C                  *****************************************
+70    II=I2
+80    J2=LOC(II)-1
+      AII = 1./DABS(A(J2+1))
+      DO 100 KK=1,NV
+      X(II,KK)=X(II,KK)*AII
+      IF (J2.LT.J1) GO TO 100
+      JL=II-LOC(II)
+      DO 90 J=J1,J2
+90    X(J+JL,KK)=X(J+JL,KK)-X(II,KK)*A(J)*SIGN(1.,DIAG(J+JL))
+100   CONTINUE
+      II=II-1
+      IF (II-I1) 130,110,120
+110   J1=1
+      GO TO 80
+120   J1=LOC(II-1)+1
+      GO TO 80
+130   I=I-1
+      IF (I-1) 170,140,150
+140   I1=1
+      GO TO 160
+150   I1=KEQ(I-1)+1
+160   I2=KEQ(I)
+      J1=LOC(I2-1)+1
+      NW = 2*LOC(I2)
+      IF (NBLK.GT.1) CALL GASP(A,NW,3,IBLK(I))
+      GO TO 70
+170   CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      RAYLEY
+      SUBROUTINE RAYLEY(IFILE,M3,NBLK,IDRW,NGBK,ILOC,IID,A,B,PHI,Y,EIG)
+C
+C  PURPOSE IS TO CALCULATE THE EIGENVALUE, EIG, FROM THE RAYLEIGH
+C  QUOTIENT.
+C
+      DOUBLE PRECISION A,B,PHI,Y
+      DOUBLE PRECISION SUMNUM, SUMDEN
+      DIMENSION IDRW(20,5),NGBK(*),ILOC(*),A(*),B(*),PHI(*),Y(*)
+C
+C  FIRST GET K1*PHI (PART OF NUMERATOR IN THE RAYLEIGH QUOTIENT)
+C
+      CALL VEC(0,A,PHI,Y,NBLK,IDRW(1,1),NGBK,ILOC)
+      SUMNUM = 0.
+      DO 10 I = 1,M3
+   10 SUMNUM = SUMNUM + PHI(I)*Y(I)
+C
+C  NEXT, GET K2*PHI (PART OF DENOMINATOR IN THE RAYLEIGH QUOTIENT
+C
+      CALL VEC(0,B,PHI,Y,NBLK,IDRW(1,IID),NGBK,ILOC)
+      SUMDEN = 0.
+      DO 20 I = 1,M3
+   20 SUMDEN = SUMDEN + PHI(I)*Y(I)
+C
+C  RAYLEIGH QUOTIENT...
+C
+      EIG = - SUMNUM/SUMDEN
+C
+C     WRITE(IFILE,*)' EIGENVALUE FROM RAYLEIGH QUOTIENT=',EIG
+C
+      RETURN
+      END

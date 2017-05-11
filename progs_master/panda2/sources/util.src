@@ -1,0 +1,3400 @@
+C BEG APR 1996 (moved from GETCIJ library)
+C=DECK      CSHIFT
+      SUBROUTINE CSHIFT(C,D,CNEW)
+C
+C  PURPOSE IS TO DERIVE CNEW(I,J) FOR NEW REFERENCE SURFACE LOCATED A
+C  DISTANCE D FROM THE OLD REFERENCE SURFACE.
+C
+C  INPUT...
+C
+C    C = OLD CONSTITUTIVE MATRIX
+C    D = REFERENCE SURFACE SHIFT
+C
+C  OUTPUT...
+C
+C    CNEW = NEW CONSTITUTIVE MATRIX
+C
+      DIMENSION C(6,6),CNEW(6,6)
+C
+      DO 10 I = 1,3
+      DO 10 J = 1,3
+         CNEW(I,J) = C(I,J)
+   10 CONTINUE
+C
+      CNEW(1,4) = C(1,4) + D*C(1,1)
+      CNEW(4,1) = CNEW(1,4)
+      CNEW(1,5) = C(1,5) + D*C(1,2)
+      CNEW(5,1) = CNEW(1,5)
+      CNEW(1,6) = C(1,6) + D*C(1,3)
+      CNEW(6,1) = CNEW(1,6)
+C
+      CNEW(2,4) = C(2,4) + D*C(1,2)
+      CNEW(4,2) = CNEW(2,4)
+      CNEW(2,5) = C(2,5) + D*C(2,2)
+      CNEW(5,2) = CNEW(2,5)
+      CNEW(2,6) = C(2,6) + D*C(2,3)
+      CNEW(6,2) = CNEW(2,6)
+C
+      CNEW(3,4) = C(3,4) + D*C(1,3)
+      CNEW(4,3) = CNEW(3,4)
+      CNEW(3,5) = C(3,5) + D*C(2,3)
+      CNEW(5,3) = CNEW(3,5)
+      CNEW(3,6) = C(3,6) + D*C(3,3)
+      CNEW(6,3) = CNEW(3,6)
+C
+      CNEW(4,4) = C(4,4) + 2.*D*C(1,4) + D*D*C(1,1)
+      CNEW(4,5) = C(4,5) + D*(C(2,4)+C(1,5)) + D*D*C(1,2)
+      CNEW(5,4) = CNEW(4,5)
+      CNEW(4,6) = C(4,6) + D*(C(1,6)+C(3,4)) + D*D*C(1,3)
+      CNEW(6,4) = CNEW(4,6)
+C
+      CNEW(5,5) = C(5,5) + 2.*D*C(2,5) + D*D*C(2,2)
+      CNEW(5,6) = C(5,6) + D*(C(2,6)+C(3,5)) + D*D*C(2,3)
+      CNEW(6,5) = CNEW(5,6)
+C
+      CNEW(6,6) = C(6,6) + 2.*D*C(3,6) + D*D*C(3,3)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CSTACK
+C BEG FEB 2004
+      SUBROUTINE CSTACK(IFILE,ISEG,CX,THERMX,TX,NCX,ICX,
+     1                  CTOT,THERMT,THCURX,THCURT)
+C END FEB 2004
+C
+C PURPOSE IS TO GET THE INTEGRATED CONSTITUTIVE LAW CTOT(6,6) FOR A
+C STACK OF WALLS, CX(6,6,5), EACH OF WHOSE THICKNESSES TX IS KNOWN.
+C
+C  Input:
+C  CX(6,6,5): CX(6,6,1),CX(6,6,2),CX(6,6,3),CX(6,6,4) are the individual
+C  wall constitutive matrices
+C  THERMX(6,5) are the thermal stress and moment resultants
+C  TX(1),TX(2),TX(3),TX(4) are the thicknesses corresponding to CX
+C  NCX is the number of stacked walls (must be 4 or less)
+C  ICX is an array in which the identities of the stacked walls are given.
+C 
+C  Output:
+C  CTOT(6,6) is the integrated constitutive matrix for the stacked wall.
+C  THERMT(6) is the vector of thermal stress and moment resultants for
+C            the stacked wall.
+C
+      DIMENSION CX(6,6,5),THERMX(6,5)
+      DIMENSION TX(*),ICX(*),CTOT(6,6),CNEW(6,6),D(4)
+C BEG FEB 2004
+      DIMENSION TNEW(6),THERMT(*),TCUR(6),THCURX(6,5),THCURT(6)
+C END FEB 2004
+C
+C  GET TOTAL WALL THICKNESS (NEEDED LATER FOR ECCENTRICITIES, D())
+      TXTOT = 0.
+      DO 10 I = 1,NCX
+        IC = ICX(I)
+        TXTOT = TXTOT + TX(IC)
+C       WRITE(8,*)' NCX,I,IC,TX(IC),TXTOT=',NCX,I,IC,TX(IC),TXTOT
+   10 CONTINUE
+C
+      IC1 = ICX(1)
+      TXPART = TX(IC1)/2.
+      D(1) = (TXTOT/2. - TXPART)
+      DO 20 I = 2,NCX
+        I1 = I - 1
+        IC = ICX(I)
+        IC1= ICX(I1)
+        TXPART = TXPART + 0.5*(TX(IC1) + TX(IC))
+        D(I) = TXTOT/2. - TXPART
+   20 CONTINUE
+C     WRITE(8,*)' ICX(1),ICX(2),D(1),D(2)=',ICX(1),ICX(2),D(1),D(2)
+C
+      CALL MOVER(0.,0,CTOT,1,36)
+      CALL MOVER(0.,0,THERMT,1,6)
+C BEG FEB 2004
+      CALL MOVER(0.,0,THCURT,1,6)
+C END FEB 2004
+C
+      DO 100 I = 1,NCX
+        IC = ICX(I)
+        CALL CSHIFT(CX(1,1,IC),D(I),CNEW)
+C       WRITE(8,*)' NCX,I,IC, CNEW=',NCX,I,IC
+C       DO 35 II = 1,6
+C          WRITE(8,36) (CNEW(II,J),J=1,6)
+C  35   CONTINUE
+C  36   FORMAT(1P6E12.4)
+        TNEW(1) = THERMX(1,IC)
+        TNEW(2) = THERMX(2,IC)
+        TNEW(3) = THERMX(3,IC)
+        TNEW(4) = THERMX(4,IC) + D(I)*THERMX(1,IC)
+        TNEW(5) = THERMX(5,IC) + D(I)*THERMX(2,IC)
+        TNEW(6) = THERMX(6,IC) + D(I)*THERMX(3,IC)
+C BEG FEB 2004
+        TCUR(1) = THCURX(1,IC)
+        TCUR(2) = THCURX(2,IC)
+        TCUR(3) = THCURX(3,IC)
+        TCUR(4) = THCURX(4,IC) + D(I)*THCURX(1,IC)
+        TCUR(5) = THCURX(5,IC) + D(I)*THCURX(2,IC)
+        TCUR(6) = THCURX(6,IC) + D(I)*THCURX(3,IC)
+C END FEB 2004
+        DO 60 J = 1,6
+          THERMT(J) = THERMT(J) + TNEW(J)
+C BEG FEB 2004
+          THCURT(J) = THCURT(J) + TCUR(J)
+C END FEB 2004
+        DO 50 K = 1,6
+          CTOT(J,K) = CTOT(J,K) + CNEW(J,K)
+   50   CONTINUE
+   60   CONTINUE
+  100 CONTINUE
+C
+C     WRITE(IFILE,200) ISEG
+C 200 FORMAT(/' CONSTITUTIVE MATRIX C(I,J) FOR STACKED WALL; SEGMENT',
+C    1 I3,':',18X,'   THERMAL {NT}  ETHERM {ET}')
+C     CALL OUTCIJ(0,1,IFILE,CTOT,THERMT,ETHRMT)
+C
+      RETURN
+      END
+C
+C
+C
+C END APR 1996
+C BEG FEB 1996
+C=DECK      LTESTB
+      SUBROUTINE LTESTB(P,PRESS,FNX,FNY,FNXY,FNX0,FNY0,FNXY0,IABT,
+     1  IABP,PSAVE,IABTS,IABPS,FNXS,FNYS,FNXYS,FNX0S,FNY0S,FNXY0S,
+C BEG FEB 1999
+C BEG JUN 1999
+     1  ITESTB,IFLAT,MX,MY,MXS,MYS)
+C END JUN 1999
+C END FEB 1999
+C  Purpose is to determine if there should be a test for buckling
+C  under Load Set B acting by itself, and if there should be, to
+C  reset all load set A loads to zero, to place all load set B loads
+C  into load set A, to save the original loads, and to set a control
+C  index, ITESTB, to unity.
+C
+C BEG JUN 1999
+      REAL MX,MY,MXS,MYS
+      ITESTB = 0
+C BEG MAR 2009
+C     WRITE(8,'(A,3I3,1P,E12.4)')
+C    1 ' In LTESTB: IFLAT,IABP,IABT,PRESS=',IFLAT,IABP,IABT,PRESS
+C     WRITE(8,'(A,1P,2E12.4)')' FNX0,FNY0=',FNX0,FNY0
+C END MAR 2009
+C END JUN 1999
+C BEG FEB 1999
+      IF (IFLAT.EQ.0
+     1   .AND.FNX0.GE.0.0.AND.FNY0.GE.0.0.AND.IABT.EQ.1) RETURN
+C END FEB 1999
+      IF ((PRESS.EQ.0.0.OR.IABP.EQ.1)
+     1   .AND.FNX0.GE.0.0.AND.FNY0.GE.0.0.AND.IABT.EQ.1) RETURN
+C
+C  We should test for buckling under load set B acting by itself.
+C
+      ITESTB = 1
+      IABPS = IABP
+      IABTS = IABT
+      PSAVE = P
+      IF (IABP.EQ.0) THEN
+C BEG FEB 1999
+         IF (IFLAT.EQ.0.AND.FNX0.GE.0.0.AND.FNY0.GE.0.0) GO TO 10
+C END FEB 1999
+         IABP = 1
+      ELSE
+         P = 0.0
+         IABP = 0
+      ENDIF
+C BEG FEB 1999
+   10 CONTINUE
+C END FEB 1999
+      IF (IABT.EQ.0) THEN
+         IABT = 1
+C BEG FEB 1999  (COMMENT OUT FOLLOWING TWO LINES)
+C     ELSE
+C        IABT = 0
+C END FEB 1999
+      ENDIF
+      FNXS   = FNX
+      FNYS   = FNY
+      FNXYS  = FNXY
+      FNX0S  = FNX0
+      FNY0S  = FNY0
+      FNXY0S = FNXY0
+C BEG FEB 1999
+C BEG JUN 1999
+      MXS    = MX
+      MYS    = MY
+      IF (IFLAT.EQ.0.AND.FNX0.GE.0.0.AND.FNY0.GE.0.0) THEN
+         P = PSAVE
+         IABP = IABPS
+         IABT = IABTS
+         ITESTB = 0
+         RETURN
+      ENDIF
+C END FEB 1999
+      FNX    = FNX0 + 0.000001*FNX
+      FNY    = FNY0 + 0.000001*FNY
+      FNXY   = FNXY0+ 0.000001*FNXY
+      MX     =        0.000001*MX
+      MY     =        0.000001*MY
+C END JUN 1999
+      IF (FNXY.EQ.0.0.AND.FNX.NE.0.0) FNXY = -0.005*FNX
+      IF (ABS(FNX).LE.ABS(.05*FNXY))  FNX  = -0.05*ABS(FNXY)
+      FNX0   = 0.
+      FNY0   = 0.
+      FNXY0  = 0.
+C
+      RETURN
+      END
+C
+C
+C     
+C=DECK      LOADBA
+C BEG FEB 1999
+      SUBROUTINE LOADBA(NUMB)
+C END FEB 1999
+C  Purpose is to put all loads in Load Set A. PANDA2 does this when
+C  negative buckling eigenvalues are detected.
+      COMMON/IGOTOX/ILOAD,ICASE,IGOTO2(5,2),IABP(5),IABT(5)
+      COMMON/FNXNX0/FNXX(5),FNYY(5),FNXXYY(5),
+     1              FNX00(5),FNY00(5),FNXY00(5)
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+      COMMON/IRESTX/IRESTY
+      COMMON/SAVLOD/FNXS,FNYS,FNXYS,FNX0S,FNY0S,FNXY0S
+      COMMON/SAVIAB/IABPS,IABTS
+C BEG FEB 1999
+      COMMON/EDGCON/PEDG
+      LOGICAL PEDG
+C END FEB 1999
+C
+C     WRITE(8,*)' IN LOADBA: IRESTY,ILOAD,ICASE,IABP(ILOAD)=',
+C    1                       IRESTY,ILOAD,ICASE,IABP(ILOAD)
+      IF (IGOTO2(ILOAD,ICASE).EQ.0.AND.
+     1             (IABP(ILOAD).EQ.0.OR.IABT(ILOAD).EQ.0
+     1      .OR.FNX0.LT.0.0.OR.FNY0.LT.0.0.OR.FNXY0.NE.0.0) ) THEN
+C BEG FEB 1999
+         WRITE(8,'(/,A,I3)')
+     1   ' IN SUB. LOADBA(NUMB): CALL NO., NUMB=',NUMB
+C END FEB 1999
+         WRITE(8,10) ILOAD,ICASE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG NOV 2003
+   10    FORMAT(/
+     1 ' ******** WARNING ********* WARNING ********* WARNING ********'/
+     1 ' THIS IS LOAD CASE NO.',I2,'; SUBCASE NO.',I2,':'/
+     1 ' NEGATIVE EIGENVALUES OR MARGINS SOMETIMES RESULT WHEN THE'/
+     1 ' PREBUCKLING STRESS RESULTANTS IN LOAD SET B ARE ENOUGH TO'/
+     1' CAUSE BUCKLING BY THEMSELVES. THIS MAY HAVE HAPPENED HERE.'//
+     1 ' COMPUTATIONS WILL CONTINUE WITH ALL LOADS IN LOAD SET B'/
+     1 ' ADDED TO THOSE OF LOAD SET A, AND THE LOADS IN LOAD SET B'/
+     1 ' SET EQUAL TO ZERO FOR THE REMAINDER OF THIS RUN. YOU'/
+     1 ' SHOULD SERIOUSLY CONSIDER USING MAINSETUP PERMANENTLY TO MOVE'/
+     1 ' LOAD SET B LOADS INTO LOAD SET A. UNLESS YOU CHANGE THE DATA'/
+     1 ' IN THE *.OPT FILE, YOU MAY SEE THIS MESSAGE IN YOUR NEXT'/
+     1 ' AND SUCCESSIVE "PANDAOPT" RUNS ALSO. THIS DOES NOT MEAN THE'/
+     1 ' FINAL DESIGN WILL BE UNSAFE OR TOO CONSERVATIVE, ONLY THAT'/
+     1 ' WITH YOUR INPUT PANDA2 HAS A DIFFICULT TIME AND THEREFORE'/
+     1 ' AUTOMATICALLY ALTERS THE PROBLEM THAT YOU POSED BY SHIFTING'/
+     1 ' WHAT YOU DEFINED AS LOAD SET B INTO LOAD SET A.'/
+     1 ' ------------------------------------------------------------')
+C END NOV 2003
+C
+         WRITE(8,20) IABP(ILOAD),IABT(ILOAD),
+     1               FNX,FNY,FNXY,FNX0,FNY0,FNXY0
+   20    FORMAT(' EXISTING LOADS AS YOU DEFINED THEM IN "MAINSETUP":'/
+     1 ' Load set indicator for pressure (1="A"; 0="B"), IABP=',I2/
+     1 ' Load set indicator for thermal  (1="A"; 0="B"), IABT=',I2/
+     1 ' In-plane resultants in Load Set A: Nx, Ny, Nxy =',1P3E10.2/
+     1 ' In-plane resultants in Load Set B: Nxo,Nyo,Nxyo=',1P3E10.2/
+     1 ' ------------------------------------------------------------')
+C
+         IF (IRESTY.EQ.0.AND.ICASE.EQ.1) THEN
+            IABPS  = IABP(ILOAD)
+            IABTS  = IABT(ILOAD)
+            FNXS   = FNX
+            FNYS   = FNY
+            FNXYS  = FNXY
+            FNX0S  = FNX0
+            FNY0S  = FNY0
+            FNXY0S = FNXY0
+         ENDIF
+C
+C BEG FEB 1999
+         IABT(ILOAD) = 1
+         IF (PEDG.AND.FNX0.GE.0.0.AND.FNY0.GE.0.0) GO TO 25
+C END FEB 1999
+         IABP(ILOAD) = 1
+         FNX = FNX + FNX0
+         FNY = FNY + FNY0
+         FNXY= FNXY+ FNXY0
+         FNXX(ILOAD) = FNX
+         FNYY(ILOAD) = FNY
+         FNXXYY(ILOAD)= FNXY
+         FNX0 = 0.
+         FNY0 = 0.
+         FNXY0= 0.
+         FNX00(ILOAD) = 0.
+         FNY00(ILOAD) = 0.
+         FNXY00(ILOAD)= 0.
+C BEG FEB 1999
+   25    CONTINUE
+C END FEB 1999
+         IGOTO2(ILOAD,ICASE) = 1
+         IRESTY = 1
+         WRITE(8,30) IABP(ILOAD),IABT(ILOAD),
+     1               FNX,FNY,FNXY,FNX0,FNY0,FNXY0
+   30    FORMAT(' LOADS AFTER PANDA2 SHIFTED THEM INTO LOAD SET A:'/
+     1 ' Load set indicator for pressure (1="A"; 0="B"), IABP=',I2/
+     1 ' Load set indicator for thermal  (1="A"; 0="B"), IABT=',I2/
+     1 ' In-plane resultants in Load Set A: Nx, Ny, Nxy =',1P3E10.2/
+     1 ' In-plane resultants in Load Set B: Nxo,Nyo,Nxyo=',1P3E10.2/
+     1 ' ------------------------------------------------------------'/
+     1 ' ***** END WARNING **** END WARNING **** END WARNING ********')
+C
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C END FEB 1996
+C=DECK      ERREX 
+      SUBROUTINE ERREX  
+C     
+C    PURPOSE IS TO TRIGGER A SYSTEM ERROR TERMINATION.
+C
+C BEG MAY 1995     
+C VMS VERSION:
+C     FNUM  = 1.
+C     QUOT  = FNUM/(FNUM - FNUM)
+C     FQUOT = QUOT
+C UNIX VERSION:
+C     call abortf(0)
+      CALL EXIT(1)
+C END MAY 1995
+      RETURN
+      END   
+C
+C
+C
+C=DECK      ABORTF
+      subroutine abortf(i)
+      i = 1/i
+      return
+      end
+C
+C
+C
+C=DECK      MOVER 
+      SUBROUTINE MOVER (KK,II,LL,JJ,N)    
+C        MOVE 4-BYTE WORDS FROM KK TO LL  
+C     
+      DIMENSION KK(1), LL(1)  
+      IF(N.LT.1) RETURN 
+C UNIX VERSION:
+#if cray
+      if (II .eq. 0) then
+        do 10 i = 1, N
+          LL(i) = KK(1)
+  10    continue
+      elseif ((II .eq. 1) .and. (JJ .eq. 1)) then
+        do 20 i = 1, N
+          LL(i) = KK(i)
+  20    continue
+      elseif ((II .ne. 1) .or. (JJ .ne. 1)) then
+        j = 1
+        k = 1
+        do 30 i = 1, N
+          LL(j) = KK(k)
+          j = j + JJ
+          k = k + II
+  30    continue
+      endif
+#else
+      I=1   
+      J=1   
+      DO 10 K=1,N 
+      LL(J)=KK(I) 
+      I=I+II
+ 10   J=J+JJ
+#endif
+C VMS VERSION
+C     I=1   
+C     J=1   
+C     DO 10 K=1,N 
+C     LL(J)=KK(I) 
+C     I=I+II
+C  10 J=J+JJ
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CONVRT
+      SUBROUTINE CONVRT(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*3 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100) WRITE(CN,'(I3)') I
+      RETURN
+      END
+C BEG OCT 1996
+C
+C
+C
+C=DECK      CONVR5
+      SUBROUTINE CONVR5(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*5 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100.AND.I.LT.1000) WRITE(CN,'(I3)') I
+      IF (I.GE.1000.AND.I.LT.10000) WRITE(CN,'(I4)') I
+      IF (I.GE.10000.AND.I.LT.100000) WRITE(CN,'(I5)') I
+      RETURN
+      END
+C END OCT 1996
+C
+C BEG 26 JAN 1989
+C
+C
+C=DECK      CONVR2
+      SUBROUTINE CONVR2(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*2 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100) THEN
+         WRITE(8,*)' INTEGER TOO LARGE FOR CONVERSION TO CHARACTER.'
+         CALL ERREX
+      ENDIF
+      RETURN
+      END
+C
+C END 26 JAN 1989
+C
+C
+C=DECK      CONVRF
+      SUBROUTINE CONVRF(SLOPE,CN)
+C
+C  CONVERT FLOATING POINT NUMBER "SLOPE" TO CHARACTER FORMAT, CN
+C
+C BEG APRIL 1990
+      CHARACTER*7 CN,CN2
+C END APRIL 1990
+C
+C BEG 26 JAN 1989
+      IF (ABS(SLOPE).LT.1.) WRITE(CN,'(F7.4)') SLOPE
+      IF (ABS(SLOPE).GE.1.0.AND.ABS(SLOPE).LT.10.)
+     1                      WRITE(CN,'(F7.4)') SLOPE
+C BEG APRIL 1990
+      IF (ABS(SLOPE).GE.10.0.AND.ABS(SLOPE).LE.999.99)
+     1                      WRITE(CN,'(F7.2)') SLOPE
+      IF (ABS(SLOPE).GT.999.99.AND.ABS(SLOPE).LE.9999.9)
+     1                      WRITE(CN,'(F7.1)') SLOPE
+      IF (ABS(SLOPE).GT.9999.9) WRITE(CN,'(F7.0)') SLOPE
+C END 26 JAN 1989
+      DO 10 K = 7,1,-1
+         IF (CN(K:K).NE.'0') GO TO 20
+         CN(K:K) = ' '
+   10 CONTINUE
+   20 CONTINUE
+C
+      DO 30 I = 1,7
+         ISTART = I
+         IF (CN(I:I).NE.' ') GO TO 40
+   30 CONTINUE
+   40 CONTINUE
+      CN2 = CN(ISTART: )
+      CN = CN2
+C END APRIL 1990
+C
+      RETURN
+      END
+C
+C
+C BEG 26 JAN 1989
+C
+C=DECK      CONVRE
+      SUBROUTINE CONVRE(SLOPE,CN)
+C
+C  CONVERT FLOATING POINT NUMBER "SLOPE" TO CHARACTER FORMAT, CN
+C
+      CHARACTER*10 CN
+C
+      WRITE(CN,'(1PE9.2)') SLOPE
+C
+      RETURN
+      END
+C
+C
+C=DECK      CONVRH
+      SUBROUTINE CONVRH(PHRASE,HOLLER)
+C
+C  CONVERT CHARACTER STRING, CHARAC, TO HOLLERITH ARRAY, HOLLER
+C
+      CHARACTER*80 PHRASE
+      CHARACTER*4 HTEMP
+      DIMENSION HOLLER(20)
+C
+      DO 10 I = 1,20
+         ISTART = 4*I - 3
+         IEND   = 4*I
+         WRITE(HTEMP,100) PHRASE(ISTART:IEND)
+         READ (HTEMP,100) HOLLER(I)
+   10 CONTINUE
+  100 FORMAT(A)
+C
+      RETURN
+      END
+C
+C
+C
+C END 26 JAN 1989
+C
+C=DECK      THKCON
+      SUBROUTINE THKCON(INDX,TX,TXMIN,INUMTT,IMOD,CONMAX,IPOINC,
+     1                  ICONST,WORDB,CONSTR)
+C
+C  PURPOSE IS TO GENERATE CONSTRAINT CONDITION FOR EITHER MINIMUM
+C  OR MAXIMUM ALLOWABLE TOTAL THICKNESS FOR EACH SEGMENT IN THE
+C  PANEL MODULE FOR EITHER STRINGERS OR RINGS.
+C
+C BEG APR 2007
+      COMMON/OUTP/NPRT
+C END APR 2007
+C BEG 26 JAN 1989
+      COMMON/FMAXPP/MAXCON
+      COMMON/WORDS5/PCWORD(99)
+      COMMON/PLOTCD/ICAR,IADDCC(99),CPLOT(99)
+      CHARACTER*80 PCWORD
+C END 26 JAN 1989
+C BEG MAR 1991
+      COMMON/FSAFEB/FSAFEP(99)
+C END MAR 1991
+      DIMENSION TX(*),TXMIN(*),WORDB(*),IPOINC(*),CONSTR(*)
+      CHARACTER*80 WORDB
+      CHARACTER*1  CN
+      CHARACTER*7  CN2
+C
+      DO 100 ISEG = 1,4
+         IF (TXMIN(ISEG).EQ.0.0) GO TO 100
+         IF (TX(ISEG).EQ.0.0) GO TO 100
+         INUMTT = INUMTT + 1
+         IF (INDX.EQ.1) TXCON = ABS(TX(ISEG)/TXMIN(ISEG))
+         IF (INDX.EQ.2) TXCON = ABS(TXMIN(ISEG)/TX(ISEG))
+C BEG 26 JAN 1989
+         FSTX = 1.0
+         CALL CONVRF(FSTX,CN2)
+         CALL CONVRT(ISEG,CN)
+         IF (IMOD.EQ.0.AND.TXCON.LT.MAXCON) THEN
+            ICAR = ICAR + 1
+            IF (INDX.EQ.1) PCWORD(ICAR)=
+     1'[Total thickness of segment('//CN//')]/(minimum allowed) - 1            
+     1       ; F.S.='//CN2
+            IF (INDX.EQ.2) PCWORD(ICAR)=
+     1'(Maximum allowed)/[Total thickness of segment('//CN//')] - 1            
+     1       ; F.S.='//CN2
+            CPLOT(ICAR) = TXCON - 1.
+            IADDCC(ICAR) = 10*ISEG
+C BEG MAR 1991
+            FSAFEP(ICAR) = 1.0
+C END MAR 1991
+         ENDIF
+C END 26 JAN 1989
+         IF (IMOD.EQ.0.AND.TXCON.GT.CONMAX) GO TO 90
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 90
+         ICONST = ICONST + 1
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         CONSTR(ICONST) = TXCON
+         IF (INDX.EQ.1) WORDB(ICONST)=
+     1'[Total thickness of segment('//CN//')]/(minimum allowed) - 1            
+     1       ; F.S.='//CN2
+         IF (INDX.EQ.2) WORDB(ICONST)=
+     1'(Maximum allowed)/[Total thickness of segment('//CN//')] - 1            
+     1       ; F.S.='//CN2
+C BEG APR 2007
+         IF (NPRT.GE.0) WRITE(8,'(A,1P,E12.4,2X,A)')
+     1 ' Margin=',CONSTR(ICONST)-1.,WORDB(ICONST)
+C END APR 2007
+   90    CONTINUE
+  100    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C BEG 26 JAN 1989           (TWO NEW ROUTINES)
+C=DECK      BLANKX
+      SUBROUTINE BLANKX(PHRASE,J)
+C
+C   PURPOSE IS TO REMOVE TRAILING BLANKS FROM PHRASE
+C
+      CHARACTER*80 PHRASE
+C
+      LENGTH = LEN(PHRASE)
+      DO 20 K = LENGTH,1,-1
+      J = K
+      IF (PHRASE(K:K).NE.' ') GO TO 30
+   20 CONTINUE
+   30 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVR1
+      SUBROUTINE CONVR1(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      CHARACTER*1 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTVR2
+      SUBROUTINE OUTVR2(NVAR,VAR,WORD,TITLE,IFILE4,LENGTH,IPR,ISUB,IDM)
+C
+C  PURPOSE IS TO LIST PARAMETERS AND DEFINITIONS
+C
+C  INPUT DATA...
+C
+C  NVAR  = NUMBER OF PARAMETERS
+C   VAR  = VALUE OF PARAMETERS
+C  WORD  = DEFINITIONS OF PARAMETERS
+C TITLE  = TITLE OF LIST
+C
+C  OUTPUT DATA...
+C
+C  NONE
+C
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      DIMENSION VAR(*),WORD(*),ISUB(*)
+      CHARACTER*80 WORD
+      CHARACTER*65 TITLE
+      CHARACTER*80 PHRASE
+      CHARACTER*3 STRRNG
+      CHARACTER*12 STTYP
+C
+      IF (IFILE4.NE.6) WRITE(IFILE4,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE4,'(1X,A)') TITLE
+      IF (IDM.EQ.1) WRITE(IFILE4,10)
+   10 FORMAT(' VARIABLE   CURRENT'/
+     1       '  NUMBER     VALUE            DEFINITION')
+      IF (IDM.EQ.2) WRITE(IFILE4,11)
+   11 FORMAT(' MARGIN'/
+     1       ' NUMBER                 DEFINITION')
+      IF (IDM.EQ.3) WRITE(IFILE4,12)
+   12 FORMAT('  LOAD'/
+     1       '  STEP                  DEFINITION')
+      IF (IDM.EQ.4) WRITE(IFILE4,13)
+   13 FORMAT(' BEHAVIOR'/
+     1       '  NUMBER                  DEFINITION')
+      IF (IDM.EQ.5) WRITE(IFILE4,14)
+   14 FORMAT(' MATERIAL   NOMINAL'/
+     1       ' PROPERTY    VALUE         DEFINITION'/
+     1       ' NUMBER')
+      IF (IDM.EQ.6) WRITE(IFILE4,142)
+C BEG NOV 1996
+C 142 FORMAT(' MARGIN     MARGIN'/
+C    1       ' NUMBER      VALUE         DEFINITION')
+  142 FORMAT(' MAR. MARGIN'/
+     1       ' NO.  VALUE                DEFINITION')
+C END NOV 1996
+C BEG APRIL 1990
+      IF (IDM.EQ.7) WRITE(IFILE4,143)
+  143 FORMAT(' LOCATION'/
+     1       '  NUMBER                  DEFINITION')
+C END APRIL 1990
+C
+      DO 100 I = 1,NVAR
+C
+      IF (ISUB(I).EQ.1) GO TO 100
+C
+      DO 15 J = 1,80
+   15 PHRASE(J:J) = WORD(I)(J:J)
+        IF (IDM.EQ.1) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.4) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.5) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.2) WRITE(IFILE4,21) I,PHRASE(1:LENGTH)
+        IF (IDM.EQ.3) WRITE(IFILE4,21) I-1,PHRASE(1:LENGTH)
+C BEG NOV 1996
+C       IF (IDM.EQ.6) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.6) WRITE(IFILE4,22) I,VAR(I),PHRASE(1:LENGTH)
+C END NOV 1996
+C BEG APRIL 1990
+        IF (IDM.EQ.7) WRITE(IFILE4,21) I,PHRASE(1:LENGTH)
+C END APRIL 1990
+   20   FORMAT(I5,1PE14.4,2X,A)
+   21   FORMAT(I5,2X,A)
+C BEG NOV 1996
+   22   FORMAT(I2,1PE10.2,1X,A)
+C END NOV 1996
+C
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK              INTERP
+      subroutine    INTERP (lun, n, xdat, ydat, xval, yval)
+ 
+*     implicit real (a-h,o-z)
+*     implicit double precision (a-h,o-z)
+C+---------------------------------------------------------------------+
+C|    for a given value of (xval), this function searches the array    |
+C|    x(*) which may be INCREASING or DECREASING, to locate the        |
+C|    closest point xdat(i) in the array, and returns it index (ic).   |
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C|                  C O M M O N   &   G L O B A L S                    |
+C+---------------------------------------------------------------------+
+*     include       'interc.inc'
+C+---------------------------------------------------------------------+
+C|                  A R G U M E N T S                                  |
+C+---------------------------------------------------------------------+
+      integer       lun,      n
+ 
+      real          xdat(*),  ydat(*),  xval,     yval
+*     double precision        xdat(*),  ydat(*),  xval,     yval
+C+---------------------------------------------------------------------+
+C|                  L O C A L   V A R I A B L E S                      |
+C+---------------------------------------------------------------------+
+      integer       k,        klo,      khi
+
+      real          rat,      ratmax,   hlf
+*     double precision        rat,      ratmax,   hlf
+C+---------------------------------------------------------------------+
+C|                  D A T A                                            |
+C+---------------------------------------------------------------------+
+      data          ratmax / 2.000e-02 /
+*     data          ratmax / 2.000d-02 /
+
+      data          hlf    / 0.500e+00 /
+*     data          hlf    / 0.500d+00 /
+C+---------------------------------------------------------------------+
+C|                  L O G I C                                          |
+C+---------------------------------------------------------------------+
+      if (n .le. 1)                    then
+        yval  =  ydat(1)
+        return
+      endif
+C+---------------------------------------------------------------------+
+C|    check for xdat(-) ascending or descending ?                      |
+C+---------------------------------------------------------------------+
+      if (xdat(1) .le. xdat(n))        then
+C+---------------------------------------------------------------------+
+C|                                                                     |
+C|      xdat(n) is in  ASCENDING  order                                |
+C|                                                                     |
+C+---------------------------------------------------------------------+
+C|      check if (xval) is in range of table                           |
+C+---------------------------------------------------------------------+
+        if     (xval .le. xdat(1))     then
+          ic   =  1
+
+          if (xval .lt. xdat(1))       then
+            rat  =  (xdat(1) - xval) / (xdat(n) - xdat(1))
+            if (rat .gt. ratmax)       then
+              write(lun,3000) xval, 1, 1, xdat(1), n, n, xdat(n),
+     $                        rat,  ratmax
+              call     ERREX
+            endif
+          endif
+
+C BEG OCT 2003
+          yval = ydat(ic)
+C END OCT 2003
+          return
+ 
+        elseif (xval .ge. xdat(n))          then
+          ic   =  n
+
+          if (xval .gt. xdat(n))            then
+            rat  =  (xval - xdat(n)) / (xdat(n) - xdat(1))
+            if (rat .gt. ratmax)       then
+              write(lun,3000) xval, 1, 1, xdat(1), n, n, xdat(n),
+     $                        rat,  ratmax
+              call     ERREX
+            endif
+          endif
+
+          yval  =  ydat(ic)
+          return
+        endif
+C+---------------------------------------------------------------------+
+C|      use a BINARY search throuygh xdat(*) to find (xval)            |
+C+---------------------------------------------------------------------+
+        klo   =  1
+        khi   =  n
+ 
+   10   if ((khi-klo) .gt. 1)        then
+          k   =  (khi + klo) / 2
+          if (xdat(k) .gt. xval)          then
+            khi   =  k
+          else
+            klo   =  k
+          endif
+           go to 10
+        endif
+C+---------------------------------------------------------------------+
+C|      (xval) now lies between xdat(klo) and xdat(khi), hence         |
+C|      interpolate (yval) using ydat(klo) and ydat(khi).              |
+C+---------------------------------------------------------------------+
+        rat  =  (xval - xdat(klo)) / (xdat(khi) - xdat(klo))
+
+        yval =  ydat(klo) + rat * (ydat(khi) - ydat(klo))
+C+---------------------------------------------------------------------+
+C|                                                                     |
+C|      xdat(n) is in  DECENDING  order                                |
+C|                                                                     |
+C+---------------------------------------------------------------------+
+      else
+C+---------------------------------------------------------------------+
+C|      check if (xval) is in range of table                           |
+C+---------------------------------------------------------------------+
+        if     (xval .ge. xdat(1))          then
+          ic  =  1
+
+          if (xval .gt. xdat(1))            then
+            rat  =  (xval - xdat(1)) / (xdat(1) - xdat(n))
+            if (rat .gt. ratmax)       then
+              write(lun,3000) xval, n, n, xdat(n), 1, 1, xdat(1),
+     $                        rat,  ratmax
+              call     ERREX
+            endif
+          endif
+
+C BEG OCT 2003
+          yval = ydat(ic)
+C END OCT 2003
+          return
+ 
+        elseif (xval .le. xdat(n))          then
+          ic  =  n
+
+          if (xval .lt. xdat(n))            then
+            rat  =  (xdat(n) - xval) / (xdat(1) - xdat(n))
+            if (rat .gt. ratmax)       then
+              write(lun,3000) xval, n, n, xdat(n), 1, 1, xdat(1),
+     $                        rat, ratmax
+              call     ERREX
+            endif
+          endif
+
+          yval  =  ydat(ic)
+          return
+        endif
+C+---------------------------------------------------------------------+
+C|      use a BINARY search throuygh xdat(*) to find (xval)            |
+C+---------------------------------------------------------------------+
+        khi   =  1
+        klo   =  n
+C BEG DEC 2003 
+C  20   if ((khi-klo) .gt. 1)        then
+   20   if ((klo-khi) .gt. 1)        then
+C END DEC 2003
+          k   =  (khi + klo) / 2
+          if (xdat(k) .gt. xval)          then
+            khi   =  k
+          else
+            klo   =  k
+          endif
+          go to 20
+        endif
+C+---------------------------------------------------------------------+
+C|      (xval) now lies between xdat(klo) and xdat(khi), hence         |
+C|      interpolate (yval) using ydat(klo) and ydat(khi).              |
+C+---------------------------------------------------------------------+
+        rat  =  (xval - xdat(klo)) / (xdat(khi) - xdat(klo))
+
+        yval =  ydat(klo) + rat * (ydat(khi) - ydat(klo))
+C+---------------------------------------------------------------------+
+C|      finished, return to caller                                     |
+C+---------------------------------------------------------------------+
+      endif
+ 
+      return
+C+---------------------------------------------------------------------+
+C|    format statements                                                |
+C+---------------------------------------------------------------------+
+ 3000 format (/,' INTERP:  selected point (xval) lies too far outside',
+     $          ' range of array values',
+     $       //,'         test    point =        xval     = ',1pe15.6,
+     $        /,'         lowest  point = ',i3,',   xdat(',i3,') = ',
+     $          e15.6,
+     $        /,'         highest point = ',i3,',   xdat(',i3,') = ',
+     $          e15.6,
+     $       //,'         relative distance away (rat)  = ', e15.6,
+     $        /,'         span of array xdat(-)  (ratmax)  = ',
+     $          e15.6,/)
+      end
+C
+C
+C
+C=DECK      GETVAR
+      SUBROUTINE GETVAR(IARRAY,DATUM,ILOOP,IS,LAYER,IVAR,VAR,WORD,IADD)
+C
+C  PURPOSE IS TO FILL PARAMETER ARRAY AND WORD ARRAY, AND TO SET UP
+C  CORRESPONDENCES BETWEEN THE PARAMETER ARRAY AND PHYSICAL LOCATIONS
+C  OF PARAMETERS (E.G. THICKNESS TYPE K OCCURS IN CERTAIN LAYERS OF
+C  CERTAIN SEGMENTS IN THE STRUCTURE.)
+C
+C  INPUT DATA...
+C
+C  IARRAY = 0 IF PARAMETER IS NOT AN ARRAY ELEMENT; NONZERO OTHERWISE
+C  DATUM  = THIS IS THE PARAMETER TO BE STORED IN VAR(IVAR). ITS
+C           DEFINITION IS TO BE STORED IN WORD(IVAR)
+C  ILOOP  = 1 FOR STRINGERS, 2 FOR RINGS
+C     IS  = SEGMENT NO. WITHIN A MODULE (PANEL CONSISTS OF MODULES)
+C  LAYER  = LAYER NUMBER WITHIN ISEG
+C 
+C  OUTPUT DATA...
+C
+C   IVAR  = PARAMETER INDEX
+C    VAR  = DATUM IS STORED IN VAR(IVAR)
+C   WORD  = PHRASE THAT IDENTIFIES VAR(IVAR)
+C   IADD  = IADD(IVAR) = ILOOP + 10*IS + 100*LAYER
+C
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+C BEG JULY 1989
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C END JULY 1989
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      CHARACTER*80 PHRASE, WORD(*)
+      CHARACTER*2  CN
+C BEG 26 JAN 1989
+      CHARACTER*2  CL,CISEG
+      CHARACTER*3  WOR
+      CHARACTER*22 POS
+C END 26 JAN 1989
+      DIMENSION VAR(*),IADD(*)
+C
+      IF(IARRAY.GE.10) THEN
+         WRITE(CN,'(I2)') IARRAY
+      ELSE
+         WRITE(CN,'(I1)') IARRAY
+      ENDIF
+C
+      IVAR = IVAR + 1
+      IF (IVAR.GT.99) THEN
+         WRITE(6,*)' TOO MANY PARAMETERS. REDUCE NO. OF LAYER TYPES'
+         WRITE(6,*)' OR MATERIAL TYPES.'
+C BEG MARCH 1990
+C   FOUR STATEMENTS REMOVED:  " IF (IPROMP.GT.1) THEN ....  ENDIF"
+C END MARCH 1990
+         CALL ERREX
+      ENDIF
+C
+C BEG 26 JAN 1989
+      IF (ILOOP.NE.0) THEN
+         CALL CONVR2(LAYER,CL)
+         IF (LAYER.EQ.0) CL = 'NA'
+         CALL CONVR2(IS,CISEG)
+         IF (IS.EQ.0) CISEG = 'NA'
+         WOR = '   '
+C BEG JULY 1989
+         IF (ISTIF(ILOOP).NE.5) THEN
+C BEG AUG 1992
+            IF (ILOOP.EQ.1) THEN
+               IF (ISOGRD.EQ.0) WOR = 'STR'
+               IF (ISOGRD.EQ.1) WOR = 'ISO'
+C BEG DEC 2004
+               IF (IS.EQ.1) WOR = 'SKN'
+C END DEC 2004
+            ENDIF
+C END AUG 1992
+            IF (ILOOP.EQ.2) WOR = 'RNG'
+         ELSE
+            IF (IS.EQ.1.OR.IS.EQ.3) WOR = 'SKN'
+            IF (IS.EQ.2) WOR = 'WEB'
+         ENDIF
+C END JULY 1989
+         POS=': '//WOR//' seg='//CISEG//', layer='//CL
+         IEND1 = MIN(57,IBLANK)
+         IEND2 = MIN(53,IBLANK)
+         IF (IARRAY.EQ.0) WORD(IVAR)=PHRASE(1:IEND1)//POS
+         IF (IARRAY.NE.0) WORD(IVAR)=PHRASE(1:IEND2)//'('//CN//')'//POS
+      ELSE
+         IF (IARRAY.EQ.0) WORD(IVAR)=PHRASE(1:IBLANK)
+         IF (IARRAY.NE.0) WORD(IVAR)=PHRASE(1:IBLANK)//'('//CN//')'
+      ENDIF
+C END 26 JAN 1989
+      VAR(IVAR) = DATUM
+      IADD(IVAR) = ILOOP + 10*IS + 100*LAYER
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      MODULE
+C BEG FEB 1995
+C BEG MAY 1997
+      SUBROUTINE MODULE(IFILE,IOUT,ISTIF,IPROMP,IFAY,ILOOP,IZSTIF)
+C END MAY 1997
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+C END FEB 1995
+C
+C  PURPOSE IS TO PRESENT A PICTURE OF THE MODULE CROSS SECTION
+C
+      IF (ISTIF.EQ.0) RETURN
+C BEG JULY 1989
+      GO TO (10,20,30,40,50), ISTIF
+C END JULY 1989
+C
+   10 CALL DATUM(IFILE,120,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      RETURN
+C BEG MAY 1997
+   20 CONTINUE
+      IF (IZSTIF.EQ.0)
+     1  CALL DATUM(IFILE,115,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (IZSTIF.EQ.1)
+     1  CALL DATUM(IFILE,117,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END MAY 1997
+      RETURN
+   30 CALL DATUM(IFILE,125,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      RETURN
+   40 CONTINUE
+      IF (IFAY.EQ.0) THEN
+C BEG JULY 1989
+C BEG FEB 1995
+         IF (B2(ILOOP).GT.W2(ILOOP))
+     1     CALL DATUM(IFILE,127,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (B2(ILOOP).LE.W2(ILOOP))
+     1     CALL DATUM(IFILE,126,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END FEB 1995
+      ELSE
+         CALL DATUM(IFILE,128,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+      RETURN
+C BEG NOV 1995
+   50 CONTINUE
+      IF (B2(1).LE.0.0)
+     1  CALL DATUM(IFILE,130,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (B2(1).GT.0.0)
+     1  CALL DATUM(IFILE,131,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END NOV 1995
+C END JULY 1989
+      RETURN
+      END
+C
+C
+C
+C=DECK      PICTS
+      SUBROUTINE PICTS(IFILE,ISTIF,INTEXT,B2,W2,ILOOP,IFAY)
+C
+C  PURPOSE IS TO PRODUCE A SKETCH OF THE PANEL MODULE
+C
+C BEG APR 1996
+      COMMON/GEOM6/IFAYX(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAXXX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END APR 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/GEOM1/AXIAL,CIRC,R
+      IF (ISTIF.EQ.0.AND.ILOOP.EQ.2) RETURN 
+      IF (ISTIF.EQ.0) THEN
+         WRITE(IFILE,5)
+C
+C   NO STRINGER...
+C
+    5 FORMAT(/
+     1'      MODULE WITH NO STRINGER...'//
+     1'       Seg. No. 1-.                            .-Seg. No. 2'/
+     1'                   .                          .(same as Seg. 1)'/
+     1'        ------------------------ ------------------------'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1'        !<---------  Entire panel width, CIRC  -------->!'/)
+C
+      WRITE(IFILE,6)
+    6 FORMAT(/
+     1'     VIEW SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'       Layer No. 1-.                       .-Layer No. 1'/
+     1'                    .                     .'/
+     1'                     .                   .'/
+     1'    -------------------------      -------------------------'/
+     1'  (1,1)   .               (1,11) (2,1)            .     (2,11)'/
+     1'           .                                       .'/
+     1'            .                                       .'/
+     1'             Layer No. m                 Layer No. m_.')
+C
+         RETURN
+      ENDIF
+C
+C BEG JULY 1989
+      IF (ISTIF.NE.5) THEN
+         IF (R.GE.0.) THEN
+            IF (ILOOP.EQ.1) THEN
+C BEG AUG 1992
+               IF (ISOGRD.EQ.0) WRITE(IFILE,*)'      External Stringer'
+               IF (ISOGRD.EQ.1) WRITE(IFILE,*)'      External Isogrid '
+C END AUG 1992
+            ELSE
+               IF (INTEXT.EQ.0) THEN
+                  WRITE(IFILE,*)'      External Ring'
+               ELSE
+                  WRITE(IFILE,*)'      Internal Ring'
+               ENDIF
+            ENDIF
+         ELSE
+            IF (ILOOP.EQ.1) THEN
+C BEG AUG 1992
+               IF (ISOGRD.EQ.0) WRITE(IFILE,*)'      Internal Stringer'
+               IF (ISOGRD.EQ.1) WRITE(IFILE,*)'      Internal Isogrid '
+C END AUG 1992
+            ELSE
+               IF (INTEXT.EQ.0) THEN
+                  WRITE(IFILE,*)'      Internal Ring'
+               ELSE
+                  WRITE(IFILE,*)'      External Ring'
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDIF
+C
+      GO TO (10,20,30,40,50),ISTIF
+C
+C END JULY 1989
+C
+   10 CONTINUE
+C
+C  T-SHAPED STIFFENER...
+C
+      WRITE(IFILE,15)
+   15 FORMAT(/
+     1'      MODULE WITH T-SHAPED STIFFENER...'//
+     1'       Seg. No. 4-.'/
+     1'                    . !<------  w  ------>!'/
+     1'                     ._____________________'/
+     1'                                !   ^'/
+     1'           Segment No. 3 -----> !   !'/
+     1'                                !   !'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .         .  !   V         .(same as Seg. 1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+      WRITE(IFILE,16)
+   16 FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                   Layer No. 1------.'/
+     1'                                     .'/
+     1' (Segment,Node) = (4,1)_____________________(4,11)'/
+     1'                                       .'/
+     1'                              (3,11)     ._____ Layer No. j'/
+     1'                                !  '/
+     1'             Layer No. 1 -----> ! <----------- Layer No. k'/
+     1'                                !   '/
+     1'          Layer No. 1-.         !   '/
+     1'                       .        !   '/
+     1'    Layer No. 1-.       .       !               .-Layer No. 1'/
+     1'               .         .      !                .'/
+     1'              .           .   (3,1)               .'/          
+     1'    --------------    =====================    --------------'/
+     1'  (1,1)   .   (1,11)(2,1)   . (2,6)    (2,11)(5,1)  .    (5,11)'/
+     1'           .                 .                       .'/
+     1'            .                 .                       .'/
+     1'             Layer No. m       Layer No. n    Layer No. m')
+C
+      GO TO 100
+C
+   20 CONTINUE
+C
+C BEG MAY 1997
+C  J-SHAPED OR Z-SHAPED STIFFENER...
+C
+      IF (IZSTIF(ILOOP).EQ.0) THEN
+C END MAY 1997
+         WRITE(IFILE,25)
+   25    FORMAT(/
+     1'      MODULE WITH J-SHAPED STIFFENER...'//
+     1'                                !<-- w -->!'/
+     1'                                ___________'/
+     1'                                !   ^    .'/
+     1'           Segment No. 3 -----> !   !     .'/
+     1'                                !   !      .Seg. No. 4'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .         .  !   V         .(same as Seg.1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+         WRITE(IFILE,26)
+         WRITE(IFILE,27)
+   26    FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                       Layer No. 1___'/
+     1'                                     . '/
+     1'                                      . '/
+     1'             (Segment,Node)=(4,1)____________(4,11)'/
+     1'                                         . '/
+     1'                              (3,11)      .__Layer No. j'/
+     1'                                !  '/
+     1'             Layer No. 1 -----> ! <----------- Layer No. k'/
+     1'                                !   '/
+     1'          Layer No. 1-.         !   '/
+     1'                       .        !   '/
+     1'    Layer No. 1-.       .       !               .-Layer No. 1'/
+     1'               .         .      !                .'/
+     1'              .           .   (3,1)               .'/          
+     1'    --------------    =====================    --------------'/
+     1'  (1,1)   .   (1,11)(2,1)   . (2,6)    (2,11)(5,1)  .    (5,11)'/
+     1'           .                 .                       .'/
+     1'            .                 .                       .')
+   27    FORMAT(
+     1'             Layer No. m       Layer No. n    Layer No. m')
+C BEG MAY 1997
+      ELSE
+         WRITE(IFILE,250)
+  250    FORMAT(/
+     1'      MODULE WITH Z-SHAPED STIFFENER...'//
+     1'                                !<-- w -->!'/
+     1'                                ___________'/
+     1'                                !   ^    .'/
+     1'           Segment No. 3 -----> !   !     .'/
+     1'                                !   !      .Seg. No. 4'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .      R  .  !   !         .(same as Seg.1)'/
+     1'                  .  _____I_____!   V        .'/
+     1' ------------------------ V ------------------------'/
+     1'                     !    E     !'/
+     1'                     !    T     !'/
+     1'                     !<---b2--->!'/
+     1' !<---- Module width  =  stiffener spacing, b ---->!'/)
+C
+         WRITE(IFILE,260)
+         WRITE(IFILE,270)
+  260    FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                       Layer No. 1___'/
+     1'                                     . '/
+     1'                                      . '/
+     1'             (Segment,Node)=(4,1)____________(4,11)'/
+     1'                                         . '/
+     1'                              (3,11)      .__Layer No. j'/
+     1'                                !  '/
+     1'             Layer No. 1 -----> ! <----------- Layer No. k'/
+     1'                                !   '/
+     1'             Layer No. 1-.      !   '/
+     1' Layer No. 1-.            .     !         .-Layer No. 1'/
+     1'            .              .    !          .'/
+     1'           .             R  . (3,1)         .'/          
+     1'          .   (2,1)______I______(2,11)       .'/
+     1' ----------------------  V  ------------------------'/
+     1' (1,1)    .       (1,11) E (5,1)              .   (5,11)'/
+     1'           .             T                     .'/
+     1'            .                                   .')
+  270    FORMAT(
+     1'             Layer No. m                         Layer No. m')
+      ENDIF
+C
+      GO TO 100
+C
+   30 CONTINUE
+C
+C  RECTANGULAR STIFFENER...
+C
+      WRITE(IFILE,35)
+   35 FORMAT(/
+     1'      MODULE WITH RECTANGULAR STIFFENER...'//
+     1'                                !   ^'/
+     1'           Segment No. 3 -----> !   !'/
+     1'                                !   !'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'      Segment No. 1-.       .   !   !          .-Seg. No. 4'/
+     1'                   .         .  !   V         .(same as Seg. 1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+C
+      WRITE(IFILE,36)
+   36 FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                              (3,11) '/
+     1'                                !   '/
+     1'             Layer No. 1 -----> ! <---------- Layer No. k'/
+     1'                                !   '/
+     1'          Layer No. 1-.         !   '/
+     1'                       .        !   '/
+     1'    Layer No. 1-.       .       !               .-Layer No. 1'/
+     1'               .         .      !                .'/
+     1'              .           .   (3,1)               .'/          
+     1'    --------------    =====================    --------------'/
+     1'  (1,1)   .   (1,11)(2,1)   . (2,6)    (2,11)(4,1)  .    (4,11)'/
+     1'           .                 .                       .'/
+     1'            .                 .                       .'/
+     1'             Layer No. m       Layer No. n    Layer No. m')
+C
+      GO TO 100
+C
+   40 CONTINUE
+C
+C  HAT-SHAPED STIFFENER...
+C
+      IF (IFAY.EQ.0) WRITE(IFILE,45)
+      IF (IFAY.EQ.1) WRITE(IFILE,451)
+C VMS VERSION:
+C  45 FORMAT(/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 4 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 3 ---> /     !     \ '/
+C    1'                         /      h      \ '/
+C    1'       Seg. 1-.         /       !       \ '/
+C    1'               .       /        V        \ '/
+C    1'        ----------=============================----------'/
+C UNIX VERSION:
+   45 FORMAT(/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 4 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 3 ---> /     !     \\'/
+     1'                         /      h      \\'/
+     1'       Seg. 1-.         /       !       \\'/
+     1'               .       /        V        \\'/
+     1'        ----------=============================----------'/
+     1'                       !<----- w2 ------>!'/
+     1'                  !<--Segment 2 width,  b2 -->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1' '/
+     1'  (NOTE: Segment numbering in the above sketch corresponds to'/
+     1'         numbering used for purposes of providing input data.'/
+     1'         The number of discretized segments into which the'/
+     1'         panel module is divided depends on whether or not'/
+     1'         the length b2 is greater than w2, as shown below.')
+C
+C VMS VERSION:
+C 451 FORMAT(/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 4 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 3 ---> /     !     \ '/
+C    1'                         /      h      \ '/
+C    1'       Seg. 1-.         /       !       \ '/
+C    1'               .       /        V        \ '/
+C    1'        ----------=====-------------------=====----------'/
+C UNIX VERSION:
+  451 FORMAT(/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 4 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 3 ---> /     !     \\'/
+     1'                         /      h      \\'/
+     1'       Seg. 1-.         /       !       \\'/
+     1'               .       /        V        \\'/
+     1'        ----------=====-------------------=====----------'/
+     1'                       !<----- w2 ------>!'/
+     1'                  !<--Segment 2 width,  b2 -->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1' '/
+     1'  (NOTE: Segment numbering in the above sketch corresponds to'/
+     1'         numbering used for purposes of providing input data.'/
+     1'         The number of discretized segments into which the'/
+     1'         panel module is divided depends on whether or not'/
+     1'         the length b2 is greater than w2, as shown below.')
+C
+      IF (B2.EQ.W2) THEN
+         WRITE(IFILE,46)
+         WRITE(IFILE,47)
+      ELSE
+         IF (IFAY.EQ.0) WRITE(IFILE,48)
+         IF (IFAY.EQ.0) WRITE(IFILE,49)
+         IF (IFAY.EQ.1) WRITE(IFILE,481)
+         IF (IFAY.EQ.1) WRITE(IFILE,491)
+      ENDIF
+C VMS VERSION:
+C  46 FORMAT(/
+C    1'      MODULE FOR CASE WHEN b2 = w2...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 4 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 3 ---> /     !     \ <--- Segment No. 5'/
+C    1'                         /      h      \ '/
+C    1'       Seg. 1-.         /       !       \       .- Seg. No.6'/
+C    1'               .       /        V        \     .'/
+C    1'        --------------=====================--------------'/
+C UNIX VERSION:
+   46 FORMAT(/
+     1'      MODULE FOR CASE WHEN b2 = w2...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 4 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 3 ---> /     !     \\ <--- Segment No. 5'/
+     1'                         /      h      \\'/
+     1'       Seg. 1-.         /       !       \\       .- Seg. No.6'/
+     1'               .       /        V        \\     .'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ w2 ------->!'/
+     1'                      !<--Seg. No. 2, b2->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1' '/
+     1'         (Segment numbering for discretized module model.)')
+C
+C BEG AUG 1991
+C VMS VERSION:
+C  47 FORMAT(/
+C    1'    MODULE FOR CASE WHEN b2 = w2...'/
+C    1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+C    1'                Layer No. 1-.'/
+C    1'                             .'/
+C    1'                              .'/
+C    1'     (Segment,Node) = (4,1)----------(4,11)'/
+C    1'                         (3,11)^   (5,1)'/
+C    1'                          /    !      \ '/
+C    1'          Layer No. 1--->/   Layer j   \<--- Layer No. 1'/
+C    1'                        /               \ '/
+C    1'    Layer No. 1-.      /<--- Layer k --->\       .-Layer No. 1'/
+C    1'               .      /      Layer 1-.    \       .'/
+C    1'              .    (3,1)              .  (5,11)    .'/          
+C    1'    --------------    =====================    --------------'/
+C UNIX VERSION:
+   47 FORMAT(/
+     1'    MODULE FOR CASE WHEN b2 = w2...'/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                Layer No. 1-.'/
+     1'                             .'/
+     1'                              .'/
+     1'     (Segment,Node) = (4,1)----------(4,11)'/
+     1'                         (3,11)^   (5,1)'/
+     1'                          /    !      \\ '/
+     1'          Layer No. 1--->/   Layer j   \\<--- Layer No. 1'/
+     1'                        /               \\ '/
+     1'    Layer No. 1-.      /<--- Layer k --->\\       .-Layer No. 1'/
+     1'               .      /      Layer 1-.    \\       .'/
+     1'              .    (3,1)              .  (5,11)    .'/          
+     1'    --------------    =====================    --------------'/
+     1'  (1,1)   .   (1,11)(2,1)   . (2,6)    (2,11)(6,1)    .  (6,11)'/
+     1'           .                 .                         .'/
+     1'            .                 .                         .'/
+     1'             Layer No. m       Layer No. n    Layer No. m')
+C END AUG 1991
+C
+C VMS VERSION:
+C  48 FORMAT(/'      MODULE WITH b2 > w2...'/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 5 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 4 ---> /     !     \ <--- Seg. 6'/
+C    1'                         /      h      \ '/
+C    1'    Seg. 1-.            /       !       \           .-Seg. 8'/
+C    1'            .          /        V        \         .'/
+C    1'        ----------=============================----------'/
+C UNIX VERSION:
+   48 FORMAT(/'      MODULE WITH b2 > w2...'/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 5 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 4 ---> /     !     \\ <--- Seg. 6'/
+     1'                         /      h      \\'/
+     1'    Seg. 1-.            /       !       \\           .-Seg. 8'/
+     1'            .          /        V        \\         .'/
+     1'        ----------=============================----------'/
+     1'                  !<->!<-Seg. No. 3, w2 ->!<->!'/
+     1'                  ! ^                       ^ !'/
+     1'                  ! !                       ! !'/
+     1'                  ! !                       ! !'/
+     1'                  ! !_Seg. 2         Seg. 7_! !'/
+     1'                  !                           !'/
+     1'                  !<---------- b2 ----------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'//
+     1'         (Segment numbering for discretized module model.)')
+C
+C VMS VERSION:
+C 481 FORMAT(/'      MODULE WITH b2 > w2...'/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 5 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 4 ---> /     !     \ <--- Seg. 6'/
+C    1'                         /      h      \ '/
+C    1'    Seg. 1-.            /       !       \           .-Seg. 8'/
+C    1'            .          /        V        \         .'/
+C    1'        ----------=====-------------------=====----------'/
+C UNIX VERSION:
+  481 FORMAT(/'      MODULE WITH b2 > w2...'/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 5 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 4 ---> /     !     \\ <--- Seg. 6'/
+     1'                         /      h      \\'/
+     1'    Seg. 1-.            /       !       \\           .-Seg. 8'/
+     1'            .          /        V        \\         .'/
+     1'        ----------=====-------------------=====----------'/
+     1'                  !<->!<-Seg. No. 3, w2 ->!<->!'/
+     1'                  ! ^                       ^ !'/
+     1'                  ! !                       ! !'/
+     1'                  ! !                       ! !'/
+     1'                  ! !_Seg. 2         Seg. 7_! !'/
+     1'                  !                           !'/
+     1'                  !<---------- b2 ----------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'//
+     1'         (Segment numbering for discretized module model.)')
+C
+C VMS VERSION:
+C  49 FORMAT(/'    MODULE FOR CASE WHEN b2 > w2...'/
+C    1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+C    1'                Layer No. 1-.'/
+C    1'                             .'/
+C    1'                              .'/
+C    1'     (Segment,Node) = (5,1)-----------(5,11)'/
+C    1'                         (4,11)^   (6,1)'/
+C    1'                          /    !      \ '/
+C    1'          Layer No. 1--->/   Layer j   \<--- Layer No. 1'/
+C    1'                        /               \ '/
+C    1'    .-Layer No. 1-.    /<--- Layer k --->\   .-Layer No. 1-.'/
+C    1'     .           .    /   Layer 1-.       \   .           .'/
+C    1' (1,1).(1,11)   .  (4,1)           .     (6,11).   (8,1).(8,11)'/
+C    1'   -------  ======    ====================    ======  -------'/
+C UNIX VERSION:
+   49 FORMAT(/'    MODULE FOR CASE WHEN b2 > w2...'/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                Layer No. 1-.'/
+     1'                             .'/
+     1'                              .'/
+     1'     (Segment,Node) = (5,1)-----------(5,11)'/
+     1'                         (4,11)^   (6,1)'/
+     1'                          /    !      \\'/
+     1'          Layer No. 1--->/   Layer j   \\<--- Layer No. 1'/
+     1'                        /               \\'/
+     1'    .-Layer No. 1-.    /<--- Layer k --->\\   .-Layer No. 1-.'/
+     1'     .           .    /   Layer 1-.       \\   .           .'/
+     1' (1,1).(1,11)   .  (4,1)           .     (6,11).   (8,1).(8,11)'/
+     1'   -------  ======    ====================    ======  -------'/
+     1'      .  (2,1)(2,11)(3,1)  .  (3,6)   (3,11)(7,1)(7,11)   .'/
+     1'       .                    .                            .'/
+     1'        .                    .                          .'/
+     1'         Layer No. m          Layer No. n    Layer No. m')
+C
+C VMS VERSION:
+C 491 FORMAT(/'    MODULE FOR CASE WHEN b2 > w2...'/
+C    1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+C    1'                Layer No. 1-.'/
+C    1'                             .'/
+C    1'                              .'/
+C    1'     (Segment,Node) = (5,1)-----------(5,11)'/
+C    1'                         (4,11)^   (6,1)'/
+C    1'                          /    !      \ '/
+C    1'          Layer No. 1--->/   Layer j   \<--- Layer No. 1'/
+C    1'                        /               \ '/
+C    1'    .-Layer No. 1-.    /<--- Layer k --->\   .-Layer No. 1-.'/
+C    1'     .           .    /   Layer 1-.       \   .           .'/
+C    1' (1,1).(1,11)   .  (4,1)           .     (6,11).   (8,1).(8,11)'/
+C    1'   -------  ======    --------------------    ======  -------'/
+C UNIX VERSION:
+  491 FORMAT(/'    MODULE FOR CASE WHEN b2 > w2...'/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                Layer No. 1-.'/
+     1'                             .'/
+     1'                              .'/
+     1'     (Segment,Node) = (5,1)-----------(5,11)'/
+     1'                         (4,11)^   (6,1)'/
+     1'                          /    !      \\'/
+     1'          Layer No. 1--->/   Layer j   \\<--- Layer No. 1'/
+     1'                        /               \\'/
+     1'    .-Layer No. 1-.    /<--- Layer k --->\\   .-Layer No. 1-.'/
+     1'     .           .    /   Layer 1-.       \\   .           .'/
+     1' (1,1).(1,11)   .  (4,1)           .     (6,11).   (8,1).(8,11)'/
+     1'   -------  ======    ---------------------    ======  -------'/
+     1'      .  (2,1)(2,11)(3,1)  .  (3,6)   (3,11)(7,1)(7,11)   .'/
+     1'       .                    .                            .'/
+     1'        .                    .                          .'/
+     1'         Layer No. m          Layer No. n    Layer No. m')
+C
+      GO TO 100
+C
+C BEG JULY 1989
+C
+   50 CONTINUE
+C
+C  TRUSS-CORE SANDWICH CONSTRUCTION...
+C
+C BEG NOV 1995
+      IF (B2.LE.0.0) THEN
+         WRITE(IFILE,55)
+         WRITE(IFILE,551)
+         WRITE(IFILE,552)
+      ELSE
+         WRITE(IFILE,56)
+C BEG APR 1996
+         IF (IFAYT(1).EQ.0) WRITE(IFILE,563)
+         IF (IFAYT(1).EQ.1) WRITE(IFILE,564)
+C END APR 1996
+         WRITE(IFILE,561)
+         WRITE(IFILE,562)
+      ENDIF
+C END NOV 1995
+C VMS VERSION:
+C  55 FORMAT(/' Truss-core sandwich wall construction....'//
+C    1'                    Seg. 3 -->                       Upper skin'/
+C    1'  -------------------------------------------- ---<--middle'/
+C    1'   \            /\S           /\            /   ^    surface'/
+C    1'    \          /  \e        4/  \          /    !'/
+C    1'     \        /  . \g.     g/    \        /     !'/
+C    1'      \      /   !\ \     e/ /    \      /      h = height from'/
+C    1'       \    /      \ \2  S/ /      \    /       !   midsurface'/
+C    1'        \  /          \  /!/        \  /        !   to midsurf.'/
+C    1'         \/ Seg. 1-->  \/ "          \/         V'/
+C    1'  -------------------------------------------- ---<--Lower skin'/
+C UNIX VERSION:
+   55 FORMAT(/' Truss-core sandwich wall construction....'//
+     1'                    Seg. 3 -->                       Upper skin'/
+     1'  -------------------------------------------- ---<--middle'/
+     1'   \\            /\\S           /\\            /   ^    surface'/
+     1'    \\          /  \\e        4/  \\          /    !'/
+     1'     \\        /  . \\g.     g/    \\        /     !'/
+     1'      \\      /   !\\ \\     e/ /    \\      /      h = height',
+     1' from'/
+     1'       \\    /      \\ \\2  S/ /      \\    /       !   ',
+     1'midsurface'/
+     1'        \\  /          \\  /!/        \\  /        !   to',
+     1'midsurface'/
+     1'         \\/ Seg. 1-->  \\/ "          \\/         V'/
+     1'  -------------------------------------------- ---<--Lower skin'/
+     1'          <---- b ----->                             middle'/
+     1'                                                     surface'//
+     1'   A single module consists of Seg. 1 through Seg. 4.'/
+     1'   Seg. 4 has the same wall construction as Seg. 2.'//
+     1'  (Segment numbering is for a discretized module model.)')
+C BEG NOV 1995
+C VMS VERSION:
+C  56 FORMAT(/' Truss-core sandwich wall with extra segments (b2):'//
+C    1'          < b2 >  ---- Seg. 3 ---->'/
+C    1' ---------======--------------------======---------<-Upper skin'/
+C    1'         /-Seg6>\S                 /      \      ^    middle'/
+C    1'        /        \e              4/        \     !    surface'/
+C    1'       /        . \g.           g/          \    !'/
+C    1'      /         !\ \           e/ /          \   h =height from'/
+C    1'     /            \ \2        S/ /            \  !  midsurface'/
+C    1'    /                \        /!/              \ !  to midsurf.'/
+C    1'   /  --- Seg. 1----> \<Seg5-/ "                \V'/
+C    1' ==--------------------======--------------------==<-Lower skin'/
+C UNIX VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   56 FORMAT(/' Truss-core sandwich wall with extra segments (b2):'//
+     1'          < b2 >  ---- Seg. 3 ---->'/
+     1' ---------======--------------------======---------<-Upper skin'/
+     1'         /-Seg6>\\S                 /      \\      ^    middle'/
+     1'        /        \\e              4/        \\     !    surface'/
+     1'       /        . \\g.           g/          \\    !'/
+     1'      /         !\\ \\           e/ /          \\   h =height',
+     1' from'/
+     1'     /            \\ \\2        S/ /            \\  !  ',
+     1'midsurface'/
+     1'    /                \\        /!/              \\ !  to ',
+     1'midsurface'/
+     1'   /  --- Seg. 1----> \\<Seg5-/ "                \\V'/
+     1' ==--------------------======--------------------==<-Lower skin'/
+     1'                       < b2 >                        midsurface'/
+     1'   <---------- b ----------->'//
+C BEG APR 1996
+     1' A single module consists of Seg. 1 through Seg. 6.'/
+     1' Seg. 4 has the same wall construction as Seg. 2.')
+  563 FORMAT(
+     1' Seg. 5 has wall construction = Seg. 1.'/
+     1' Seg. 6 has wall construction = Seg. 3.')
+  564 FORMAT(
+     1' Seg. 5 has wall construction = Seg. 2 + Seg. 1.'/
+     1' Seg. 6 has wall construction = Seg. 3 + Seg. 2.')
+C END APR 1996
+C END NOV 1995
+C
+C VMS VERSION:
+C 551 FORMAT(/
+C    1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+C    1'                     Layer No. 1-.'/
+C    1'                                  .'/
+C    1'                                   .'/
+C    1'           (Segment,Node) = (3,1)--------------------(3,11)'/
+C    1'                                     . '/
+C    1'                                      ._Layer No. j'/
+C    1'                           (2,11)\                  /(4,1)'/
+C    1'                                  \<--- layer k -->/'/
+C    1'                   Layer No. 1 --> \              /'/
+C    1'                                    \            /'/
+C    1'                                     \          /'/
+C    1'                                      \        /<-- Layer No. 1'/
+C    1'                                       \      /'/
+C    1'             Layer No. 1 -.             \    /'/
+C    1'                           .             \  /'/
+C    1'                            .        (2,1)\/(4,11)')
+C UNIX VERSION:
+  551 FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                     Layer No. 1-.'/
+     1'                                  .'/
+     1'                                   .'/
+     1'           (Segment,Node) = (3,1)--------------------(3,11)'/
+     1'                                     . '/
+     1'                                      ._Layer No. j'/
+     1'                           (2,11)\\                  /(4,1)'/
+     1'                                  \\<--- layer k -->/'/
+     1'                   Layer No. 1 --> \\              /'/
+     1'                                    \\            /'/
+     1'                                     \\          /'/
+     1'                                      \\        /<-- Layer No. 1'/
+     1'                                       \\      /'/
+     1'             Layer No. 1 -.             \\    /'/
+     1'                           .             \\  /'/
+     1'                            .        (2,1)\\/(4,11)')
+  552 FORMAT(
+     1' (Segment,Node) = (1,1)--------------------(1,11)'/
+     1'                             .'/
+     1'                              ._ Layer No. m')
+C BEG NOV 1995
+C VMS VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C 561 FORMAT(/
+C    1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+C    1'                     Layer No. 1-.'/
+C    1'                                  .'/
+C    1' (Segment, Node)   (6,11)          .               (3,11)'/
+C    1'         (6,1)======== (3,1)--------------------------'/
+C    1'                                     . '/
+C    1'                                      ._Layer No. j'/
+C    1'                   (2,11)\                             /(4,1)'/
+C    1'                          \<------- layer k --------->/'/
+C    1'           Layer No. 1 --> \                         /'/
+C    1'                            \                       /'/
+C    1'                             \                     /'/
+C    1'                              \                   /<-- Layer'/
+C    1'                               \                 /      No. 1'/
+C    1'      Layer No. 1 -.            \               /'/
+C    1'                    .            \             /'/
+C    1'                     .       (2,1)\           /(4,11)')
+C UNIX VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  561 FORMAT(/
+     1'    EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS'//
+     1'                     Layer No. 1-.'/
+     1'                                  .'/
+     1' (Segment, Node)   (6,11)          .               (3,11)'/
+     1'         (6,1)======== (3,1)--------------------------'/
+     1'                                     . '/
+     1'                                      ._Layer No. j'/
+     1'                   (2,11)\\                             /(4,1)'/
+     1'                          \\<------- layer k --------->/'/
+     1'           Layer No. 1 --> \\                         /'/
+     1'                            \\                       /'/
+     1'                             \\                     /'/
+     1'                              \\                   /<-- Layer'/
+     1'                               \\                 /      No. 1'/
+     1'      Layer No. 1 -.            \\               /'/
+     1'                    .            \\             /'/
+     1'                     .       (2,1)\\           /(4,11)')
+  562 FORMAT(
+     1'                      .       (1,11)     (5,1)'/
+     1'        (1,1)--------------------   ========'/
+     1'                 .                (5,11)'/
+     1'                  ._ Layer No. m')
+  100 CONTINUE
+C
+C END JULY 1989
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      PICT2
+      SUBROUTINE PICT2(IFILE,ISTIF,INTEXT,B2,W2,ILOOP,IFAY)
+C
+C  PURPOSE IS TO PRODUCE A SKETCH OF THE PANEL MODULE
+C
+C BEG APR 1996
+      COMMON/GEOM6/IFAYX(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAXXX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END APR 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/GEOM1/AXIAL,CIRC,R
+      IF (ISTIF.EQ.0.AND.ILOOP.EQ.2) RETURN 
+      IF (ISTIF.EQ.0) THEN
+         WRITE(IFILE,5)
+C
+C   NO STRINGER...
+C
+    5 FORMAT(/
+     1'      MODULE WITH NO STRINGER...'//
+     1'       Seg. No. 1-.                            .-Seg. No. 2'/
+     1'                   .                          .(same as Seg. 1)'/
+     1'        ------------------------ ------------------------'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1'        !<---------  Entire panel width, CIRC  -------->!'/)
+C
+         RETURN
+      ENDIF
+C
+C BEG JULY 1989
+      IF (ISTIF.NE.5) THEN
+         IF (R.GE.0.) THEN
+            IF (ILOOP.EQ.1) THEN
+C BEG AUG 1992
+               IF (ISOGRD.EQ.0) WRITE(IFILE,*)'      External Stringer'
+               IF (ISOGRD.EQ.1) WRITE(IFILE,*)'      External Isogrid '
+C END AUG 1992
+            ELSE
+               IF (INTEXT.EQ.0) THEN
+                  WRITE(IFILE,*)'      External Ring'
+               ELSE
+                  WRITE(IFILE,*)'      Internal Ring'
+               ENDIF
+            ENDIF
+         ELSE
+            IF (ILOOP.EQ.1) THEN
+C BEG AUG 1992
+               IF (ISOGRD.EQ.0) WRITE(IFILE,*)'      Internal Stringer'
+               IF (ISOGRD.EQ.1) WRITE(IFILE,*)'      Internal Isogrid '
+C END AUG 1992
+            ELSE
+               IF (INTEXT.EQ.0) THEN
+                  WRITE(IFILE,*)'      Internal Ring'
+               ELSE
+                  WRITE(IFILE,*)'      External Ring'
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDIF
+C
+      GO TO (10,20,30,40,50),ISTIF
+C
+C END JULY 1989
+C
+   10 CONTINUE
+C
+C  T-SHAPED STIFFENER...
+C
+      WRITE(IFILE,15)
+   15 FORMAT(/
+     1'      MODULE WITH T-SHAPED STIFFENER...'//
+     1'       Seg. No. 4-.'/
+     1'                    . !<------  w  ------>!'/
+     1'                     ._____________________'/
+     1'                                !   ^'/
+     1'           Segment No. 3 -----> !   !'/
+     1'                                !   !'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .         .  !   V         .(same as Seg. 1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+      GO TO 100
+C
+   20 CONTINUE
+C
+C BEG MAY 1997
+C  J-SHAPED OR Z-SHAPED STIFFENER...
+C
+      IF (IZSTIF(ILOOP).EQ.0) THEN
+C END MAY 1997
+         WRITE(IFILE,25)
+   25    FORMAT(/
+     1'      MODULE WITH J-SHAPED STIFFENER...'//
+     1'                                !<-- w -->!'/
+     1'                                ___________'/
+     1'                                !   ^    .'/
+     1'           Segment No. 3 -----> !   !     .'/
+     1'                                !   !      .Seg. No. 4'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .         .  !   V         .(same as Seg.1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+C BEG MAY 1997
+      ELSE
+         WRITE(IFILE,250)
+  250    FORMAT(/
+     1'      MODULE WITH Z-SHAPED STIFFENER...'//
+     1'                                !<-- w -->!'/
+     1'                                ___________'/
+     1'                                !   ^    .'/
+     1'           Segment No. 3 -----> !   !     .'/
+     1'                                !   !      .Seg. No. 4'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'         Seg. No. 1-.       .   !   !          .-Seg. No. 5'/
+     1'                   .      R  .  !   !         .(same as Seg.1)'/
+     1'                  .  _____I_____!   V        .'/
+     1' ------------------------ V ------------------------'/
+     1'                     !    E     !'/
+     1'                     !    T     !'/
+     1'                     !<---b2--->!'/
+     1' !<---- Module width  =  stiffener spacing, b ---->!'/)
+C
+      ENDIF
+C END MAY 1997
+C
+      GO TO 100
+C
+   30 CONTINUE
+C
+C  RECTANGULAR STIFFENER...
+C
+      WRITE(IFILE,35)
+   35 FORMAT(/
+     1'      MODULE WITH RECTANGULAR STIFFENER...'//
+     1'                                !   ^'/
+     1'           Segment No. 3 -----> !   !'/
+     1'                                !   !'/
+     1'               Seg. No. 2-.     !   h'/
+     1'                           .    !   !'/
+     1'      Segment No. 1-.       .   !   !          .-Seg. No. 4'/
+     1'                   .         .  !   V         .(same as Seg. 1)'/
+     1'        --------------=====================--------------'/
+     1'                      !<------ b2 ------->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/)
+C
+      GO TO 100
+C
+   40 CONTINUE
+C
+C  HAT-SHAPED STIFFENER...
+C
+      IF (IFAY.EQ.0) WRITE(IFILE,45)
+      IF (IFAY.EQ.1) WRITE(IFILE,451)
+C VMS VERSION:
+C  45 FORMAT(/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 4 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 3 ---> /     !     \ '/
+C    1'                         /      h      \ '/
+C    1'       Seg. 1-.         /       !       \ '/
+C    1'               .       /        V        \ '/
+C    1'        ----------=============================----------'/
+C UNIX VERSION:
+   45 FORMAT(/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 4 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 3 ---> /     !     \\'/
+     1'                         /      h      \\'/
+     1'       Seg. 1-.         /       !       \\'/
+     1'               .       /        V        \\'/
+     1'        ----------=============================----------'/
+     1'                       !<----- w2 ------>!'/
+     1'                  !<--Segment 2 width,  b2 -->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1' '/)
+C
+C VMS VERSION:
+C 451 FORMAT(/
+C    1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+C    1'                            !<- w ->!'/
+C    1'       Segment No. 4 ---->  ---------'/
+C    1'                           /    ^    \ '/
+C    1'       Segment No. 3 ---> /     !     \ '/
+C    1'                         /      h      \ '/
+C    1'       Seg. 1-.         /       !       \ '/
+C    1'               .       /        V        \ '/
+C    1'        ----------=====-------------------=====----------'/
+C UNIX VERSION:
+  451 FORMAT(/
+     1'      MODULE WITH HAT-SHAPED (TRAPEZOIDAL) STIFFENER...'//
+     1'                            !<- w ->!'/
+     1'       Segment No. 4 ---->  ---------'/
+     1'                           /    ^    \\'/
+     1'       Segment No. 3 ---> /     !     \\'/
+     1'                         /      h      \\'/
+     1'       Seg. 1-.         /       !       \\'/
+     1'               .       /        V        \\'/
+     1'        ----------=====-------------------=====----------'/
+     1'                       !<----- w2 ------>!'/
+     1'                  !<--Segment 2 width,  b2 -->!'/
+     1'        !<--- Module width  =  stiffener spacing, b --->!'/
+     1' '/)
+C
+      GO TO 100
+C
+C BEG JULY 1989
+C
+   50 CONTINUE
+C
+C  TRUSS-CORE SANDWICH CONSTRUCTION...
+C
+C BEG NOV 1995
+      IF (B2.LE.0.0) WRITE(IFILE,55)
+C BEG APR 1996
+      IF (B2.GT.0.0) THEN
+         WRITE(IFILE,56)
+C END NOV 1995
+         IF (IFAYT(1).EQ.0) WRITE(IFILE,563)
+         IF (IFAYT(1).EQ.1) WRITE(IFILE,564)
+      ENDIF
+C END APR 1996
+C END NOV 1995
+C VMS VERSION:
+C  55 FORMAT(/
+C    1' Truss-core sandwich wall construction....'//
+C    1'                  Seg. 3 -->                         Upper skin'/
+C    1'  -------------------------------------------- ---<--middle'/
+C    1'   \            /\S           /\            /   ^    surface'/
+C    1'    \          /  \e        4/  \          /    !'/
+C    1'     \        /  . \g.     g/    \        /     !'/
+C    1'      \      /   !\ \     e/ /    \      /      h = height from'/
+C    1'       \    /      \ \2  S/ /      \    /       !   midsurface'/
+C    1'        \  /          \  /!/        \  /        !   to midsurf.'/
+C    1'         \/ Seg. 1-->  \/ "          \/         V'/
+C    1'  -------------------------------------------- ---<--Lower skin'/
+C UNIX VERSION:
+   55 FORMAT(/
+     1' Truss-core sandwich wall construction....'//
+     1'                  Seg. 3 -->                         Upper skin'/
+     1'  -------------------------------------------- ---<--middle'/
+     1'   \\            /\\S           /\\            /   ^    surface'/
+     1'    \\          /  \\e        4/  \\          /    !'/
+     1'     \\        /  . \\g.     g/    \\        /     !'/
+     1'      \\      /   !\\ \\     e/ /    \\      /      h = height',
+     1'from'/
+     1'       \\    /      \\ \\2  S/ /      \\    /       !   ',
+     1'midsurface'/
+     1'        \\  /          \\  /!/        \\  /        !   to',
+     1'midsurface.'/
+     1'         \\/ Seg. 1-->  \\/ "          \\/         V'/
+     1'  -------------------------------------------- ---<--Lower skin'/
+     1'          <---- b ----->                             middle'/
+     1'                                                     surface'//
+     1'     A single module consists of Seg. 1 through Seg. 4.'/
+     1'     Seg. 4 has the same wall construction as Seg. 2.'/)
+C
+C BEG NOV 1995
+C VMS VERSION:
+C  56 FORMAT(/' Truss-core sandwich wall with extra segments (b2):'//
+C    1'          < b2 >  ---- Seg. 3 ---->'/
+C    1' ---------======--------------------======---------<-Upper skin'/
+C    1'         /-Seg6>\S                 /      \      ^    middle'/
+C    1'        /        \e              4/        \     !    surface'/
+C    1'       /        . \g.           g/          \    !'/
+C    1'      /         !\ \           e/ /          \   h =height from'/
+C    1'     /            \ \2        S/ /            \  !  midsurface'/
+C    1'    /                \        /!/              \ !  to midsurf.'/
+C    1'   /  --- Seg. 1----> \<Seg5-/ "                \V'/
+C    1' ==--------------------======--------------------==<-Lower skin'/
+C UNIX VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   56 FORMAT(/' Truss-core sandwich wall with extra segments (b2):'//
+     1'          < b2 >  ---- Seg. 3 ---->'/
+     1' ---------======--------------------======---------<-Upper skin'/
+     1'         /-Seg6>\\S                 /      \\      ^    middle'/
+     1'        /        \\e              4/        \\     !    surface'/
+     1'       /        . \\g.           g/          \\    !'/
+     1'      /         !\\ \\           e/ /          \\   h =height',
+     1' from'/
+     1'     /            \\ \\2        S/ /            \\  !  ',
+     1'midsurface'/
+     1'    /                \\        /!/              \\ !  to ',
+     1'midsurface'/
+     1'   /  --- Seg. 1----> \\<Seg5-/ "                \\V'/
+     1' ==--------------------======--------------------==<-Lower skin'/
+     1'                       < b2 >                        midsurface'/
+     1'   <---------- b ----------->'//
+C BEG APR 1996
+     1' A single module consists of Seg. 1 through Seg. 6.'/
+     1' Seg. 4 has the same wall construction as Seg. 2.')
+  563 FORMAT(
+     1' Seg. 5 has wall construction = Seg. 1.'/
+     1' Seg. 6 has wall construction = Seg. 3.')
+  564 FORMAT(
+     1' Seg. 5 has wall construction = Seg. 2 + Seg. 1.'/
+     1' Seg. 6 has wall construction = Seg. 3 + Seg. 2.')
+C END APR 1996
+C END NOV 1995
+  100 CONTINUE
+C
+C END JULY 1989
+C
+      RETURN
+      END
+C
+C
+C BEG APRIL 1990
+C
+C=DECK      PICT3
+      SUBROUTINE PICT3(IFILE,ISTIF,INTEXT,B2,W2,ILOOP,IFAY)
+C
+C  PURPOSE IS TO PRODUCE A SKETCH OF THE PANEL MODULE
+C
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+      COMMON/GEOM1/AXIAL,CIRC,R
+      IF (ISTIF.EQ.0.AND.ILOOP.EQ.2) RETURN 
+      IF (ISTIF.EQ.0) THEN
+         WRITE(IFILE,5)
+C
+C   NO STRINGER...
+C
+    5 FORMAT(/
+     1'      MODULE WITH NO STRINGER...'//
+     1'       Seg. No. 1-.                            .-Seg. No. 2'/
+     1'                   .                          .(same as Seg. 1)'/
+     1'        -------------------------- ---------------------------'/
+     1' Point->1    2    3    4    5    6 7            8            9'/
+     1'        !<-----------  Entire panel width, CIRC  ----------->!'/)
+C
+         RETURN
+      ENDIF
+C
+C
+      GO TO (10,20,30,40,50),ISTIF
+C
+   10 CONTINUE
+C
+C  T-SHAPED STIFFENER...
+C
+      WRITE(IFILE,15)
+   15 FORMAT(/
+     1'                       13        14        15'/
+     1'           Seg. No. 4-> --------------------- '/
+     1'                                12! '/
+     1'             Segment No. 3 -----> !       Select one of the'/
+     1'                                  !       points 1 - 18 for'/
+     1'             Seg. No. 2-.       11!       strain plot.'/
+     1'                         .        ! '/
+     1'      Seg. No. 1-.        .       !               .-Seg. No. 5'/
+     1'                  .        .    10!              .'/
+     1'        ---------------- ==================== ----------------'/
+     1' POINT->1  2  3  4  5  6 7        8         9 16     17     18'/
+     1'                         !<------ b2 ------>!'/
+     1'        !<----- Module width  =  stiffener spacing, b ------>!'/)
+C
+      GO TO 100
+C
+   20 CONTINUE
+C
+C BEG MAY 1997
+C  J-SHAPED OR Z-SHAPED STIFFENER...
+C
+      IF (IZSTIF(ILOOP).EQ.0) THEN
+         WRITE(IFILE,25)
+   25    FORMAT(/
+     1'                                  13    14     15'/
+     1'                     Seg. No. 4-> --------------- '/
+     1'                                12! '/
+     1'             Segment No. 3 -----> !       Select one of the'/
+     1'                                  !       points 1 - 18 for'/
+     1'             Seg. No. 2-.       11!       strain plot.'/
+     1'                         .        ! '/
+     1'      Seg. No. 1-.        .       !               .-Seg. No. 5'/
+     1'                  .        .    10!              .'/
+     1'        ---------------- ==================== ----------------'/
+     1' POINT->1  2  3  4  5  6 7        8         9 16     17     18'/
+     1'                         !<------ b2 ------>!'/
+     1'        !<----- Module width  =  stiffener spacing, b ------>!'/)
+C
+C BEG MAY 1997
+      ELSE
+         WRITE(IFILE,250)
+  250    FORMAT(/
+     1'                                  13    14     15'/
+     1'                     Seg. No. 4-> --------------- '/
+     1'                                12! '/
+     1'             Segment No. 3 -----> !       Select one of the'/
+     1'                                  !       points 1 - 18 for'/
+     1'                                11!       strain plot.'/
+     1'                Seg. No. 2-.      ! '/
+     1'                            .     ! '/
+     1'   Seg. No. 1-.              .  10! '/
+     1'               .      7     8 .   9            .-SEG. No. 5'/
+     1'                .     -------------           .'/
+     1' --------------------------   ---------------------------'/
+     1' 1    2    3    4    5    6  16           17            18'/
+     1'                     !<----b2---->!'/
+     1' !<------ Module width  =  stiffener spacing, b ------->!'/)
+C
+      ENDIF
+C END MAY 1997
+C
+      GO TO 100
+C
+   30 CONTINUE
+C
+C  RECTANGULAR STIFFENER...
+C
+      WRITE(IFILE,35)
+   35 FORMAT(/
+     1'                                12! '/
+     1'             Segment No. 3 -----> !       Select one of the'/
+     1'                                  !       points 1 - 15 for'/
+     1'             Seg. No. 2-.       11!       strain plot.'/
+     1'                         .        ! '/
+     1'      Seg. No. 1-.        .       !               .-Seg. No. 4'/
+     1'                  .        .    10!              .'/
+     1'        ---------------- ==================== ----------------'/
+     1' POINT->1  2  3  4  5  6 7        8         9 13     14     15'/
+     1'                         !<------ b2 ------>!'/
+     1'        !<----- Module width  =  stiffener spacing, b ------>!'/)
+C
+      GO TO 100
+C
+   40 CONTINUE
+C
+C  HAT-SHAPED STIFFENER...
+C
+      IF (B2.GT.W2) THEN
+         IF (IFAY.EQ.0) WRITE(IFILE,45)
+         IF (IFAY.EQ.1) WRITE(IFILE,451)
+      ENDIF
+C
+C VMS VERSION:
+C  45 FORMAT(/
+C    1'                         16   17  18          Select one of the'/
+C    1'                          ----------          points 1 - 26 for'/
+C    1'                       15/          \19       strain plot.'/
+C    1'                        /            \ '/
+C    1'                     14/              \20'/
+C    1'                      /                \ '/
+C    1' 1 2 3 4 5 6       13/                  \21        24   25   26'/
+C    1' -----------=======================================-----------'/
+C UNIX VERSION:
+   45 FORMAT(/
+     1'                         16   17  18          Select one of the'/
+     1'                          ----------          points 1 - 26 for'/
+     1'                       15/          \\19       strain plot.'/
+     1'                        /            \\'/
+     1'                     14/              \\20'/
+     1'                      /                \\'/
+     1' 1 2 3 4 5 6       13/                  \\21        24   25   26'/
+     1' -----------=======================================-----------'/
+     1'            7   8  9 10      11       12 22      23'/
+     1'                     !<------ w2 ------>!'/
+     1'            !<---- Stringer base width,  b2 ----->!'/
+     1' !<-------- Module width  =  stiffener spacing, b ---------->!'/
+     1' '/)
+C
+C VMS VERSION:
+C 451 FORMAT(/
+C    1'                         16   17  18          Select one of the'/
+C    1'                          ----------          points 1 - 26 for'/
+C    1'                       15/          \19       strain plot.'/
+C    1'                        /            \ '/
+C    1'                     14/              \20'/
+C    1'                      /                \ '/
+C    1' 1 2 3 4 5 6       13/                  \21        24   25   26'/
+C    1' -----------=======================================-----------'/
+C UNIX VERSION:
+  451 FORMAT(/
+     1'                         16   17  18          Select one of the'/
+     1'                          ----------          points 1 - 26 for'/
+     1'                       15/          \\19       strain plot.'/
+     1'                        /            \\ '/
+     1'                     14/              \\20'/
+     1'                      /                \\ '/
+     1' 1 2 3 4 5 6       13/                  \\21        24   25   26'/
+     1' -----------=======================================-----------'/
+     1'            7   8  9 10      11       12 22      23'/
+     1'                     !<------ w2 ------>!'/
+     1'            !<---- Stringer base width,  b2 ----->!'/
+     1' !<-------- Module width  =  stiffener spacing, b ---------->!'/
+     1' '/)
+C
+C
+      IF (B2.EQ.W2) WRITE(IFILE,46)
+C
+C BEG AUG 1991
+C VMS VERSION:
+C  46 FORMAT(/
+C    1'                         13    14   15        Select one of the'/
+C    1'                          -----------         points 1 - 20 for'/
+C    1'                       12/           \16      strain plot.'/
+C    1'                        /             \ '/
+C    1'                     11/               \17'/
+C    1'                      /                 \ '/
+C    1'                   10/                   \18 '/
+C    1' ------------------- ====================== -------------------'/
+C UNIX VERSION:
+   46 FORMAT(/
+     1'                         13    14   15        Select one of the'/
+     1'                          -----------         points 1 - 20 for'/
+     1'                       12/           \\16      strain plot.'/
+     1'                        /             \\ '/
+     1'                     11/               \\17'/
+     1'                      /                 \\ '/
+     1'                   10/                   \\18 '/
+     1' ------------------- ====================== -------------------'/
+     1' 1  2  3   4   5   6 7         8          9 19      20       21'/
+     1'                    !<------- w2 ------->!'/
+     1'                    !<------- b2 ------->!'/
+     1' !<---------- Module width  =  stiffener spacing, b --------->!'
+     1/)
+C END AUG 1991
+C
+      GO TO 100
+C
+C BEG JULY 1989
+C
+   50 CONTINUE
+C
+C  TRUSS-CORE SANDWICH CONSTRUCTION...
+C
+C BEG NOV 1995
+      IF (B2.LE.0.0) WRITE(IFILE,55)
+      IF (B2.GT.0.0) WRITE(IFILE,56)
+C END NOV 1995
+C VMS VERSION:
+C  55 FORMAT(/
+C    1'                  10     11     12  '/
+C    1'  --------------------------------------'/
+C    1'   \              9\            /13          Select one of the'/
+C    1'    \               \          /             points 1 - 15 for'/
+C    1'     \        /      \        /    \         strain plot.'/
+C    1'      \      /       8\      /14    \ '/
+C    1'       \    /          \    /        \    /   '/
+C    1'        \  /            \  /          \  /    '/
+C    1'         \/             7\/15          \/     '/
+C    1'  ------------------------------------------'/
+C UNIX VERSION:
+   55 FORMAT(/
+     1'                  10     11     12  '/
+     1'  --------------------------------------'/
+     1'   \\              9\\            /13          Select one of the'/
+     1'    \\               \\          /             points 1 - 15 for'/
+     1'     \\        /      \\        /    \\         strain plot.'/
+     1'      \\      /       8\\      /14    \\'/
+     1'       \\    /          \\    /        \\    /   '/
+     1'        \\  /            \\  /          \\  /    '/
+     1'         \\/             7\\/15          \\/     '/
+     1'  ------------------------------------------'/
+     1'  Point-> 1  2  3  4  5  6'/
+     1'          <----- b ------>'/)
+C
+C BEG NOV 1995
+C VMS VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C  56 FORMAT(
+C    1'                   17   10        11        12  '/
+C    1'              --========----------------------========---------'/
+C    1'               /       9\                    /13'/
+C    1'              /          \                  /'/
+C    1'             /            \                /'/
+C    1'            /             8\              /14'/
+C    1'           /                \            /   Select one of the'/
+C    1'          /                  \          /    points 1 - 17 for'/
+C    1'         /                   7\   16   /15   the strain plot.'/
+C    1'       ==----------------------========-----------'/
+C UNIX VERSION:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   56 FORMAT(
+     1'                   17   10         11        12  '/
+     1'              --========-----------------------========--------'/
+     1'               /       9\\                    /13'/
+     1'              /          \\                  /'/
+     1'             /            \\                /'/
+     1'            /             8\\              /14'/
+     1'           /                \\            /   Select one of the'/
+     1'          /                  \\          /    points 1 - 17 for'/
+     1'         /                   7\\   16   /15   the strain plot.'/
+     1'       ==-----------------------========-----------'/
+     1' Point-> 1   2   3   4    5    6'/
+     1'         <------------- b ------------->'/)
+C
+  100 CONTINUE
+C
+C END JULY 1989
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTVAR
+      SUBROUTINE OUTVAR(NVAR,VAR,WORD,IADD,TITLE,IFILE4,LENGTH,IPR,ISUB)
+C
+C  PURPOSE IS TO LIST PARAMETERS AND DEFINITIONS
+C
+C  INPUT DATA...
+C
+C  NVAR  = NUMBER OF PARAMETERS
+C   VAR  = VALUE OF PARAMETERS
+C  WORD  = DEFINITIONS OF PARAMETERS
+C  IADD  = ADDRESSES OF PARAMETERS: IADD(IVAR) = ILOOP + 10*ISEG +
+C                                                100*ILAYER
+C TITLE  = TITLE OF LIST
+C
+C  OUTPUT DATA...
+C
+C  NONE
+C
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      DIMENSION VAR(*),IADD(*),WORD(*),ISUB(*)
+      CHARACTER*80 WORD
+      CHARACTER*65 TITLE
+      CHARACTER*80 PHRASE
+      CHARACTER*3 STRRNG
+      CHARACTER*12 STTYP
+C
+      IF (IFILE4.NE.6) WRITE(IFILE4,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE4,'(1X,A)') TITLE
+      WRITE(IFILE4,10)
+   10 FORMAT(' VAR. STR/ SEG. LAYER   CURRENT'/
+     1       ' NO.  RNG  NO.   NO.     VALUE            DEFINITION')
+C
+      DO 100 I = 1,NVAR
+C
+      IF (ISUB(I).EQ.1) GO TO 100
+      CALL WHERE(IADD(I),LAYER,ISEG,ILOOP)
+C
+      ISTTYP = INDEX(WORD(I),'Identify type of')
+      STTYP = '      NONE  '
+      IF (ISTTYP.NE.0) THEN
+         IF (ISTIF(ILOOP).EQ.1) STTYP = '    T-SHAPED'
+         IF (ISTIF(ILOOP).EQ.2) STTYP = '    J-SHAPED'
+         IF (ISTIF(ILOOP).EQ.3) STTYP = ' RECTANGULAR'
+         IF (ISTIF(ILOOP).EQ.4) STTYP = '      HAT   '
+C BEG JULY 1989
+         IF (ISTIF(ILOOP).EQ.5) STTYP = '  TRUSS-CORE'
+C END JULY 1989
+      ENDIF
+C
+      DO 15 J = 1,80
+   15 PHRASE(J:J) = WORD(I)(J:J)
+      STRRNG = '   '
+C BEG 26 JAN 1989
+      IF (ISEG.EQ.1) STRRNG = 'SKN'
+C BEG AUG 1992
+      IF (ISEG.GT.1.AND.ILOOP.EQ.1) THEN
+         IF (ISOGRD.EQ.0) STRRNG = 'STR'
+         IF (ISOGRD.EQ.1) STRRNG = 'ISO'
+      ENDIF
+C END AUG 1992
+      IF (ISEG.GT.1.AND.ILOOP.EQ.2) STRRNG = 'RNG'
+C END 26 JAN 1989
+      IF (IPR.EQ.1) THEN
+        IF (ISTTYP.EQ.0) WRITE(IFILE4,20) I,STRRNG,ISEG,LAYER,VAR(I),
+     1   PHRASE(1:LENGTH)
+        IF (ISTTYP.NE.0) WRITE(IFILE4,22) I,STRRNG,ISEG,LAYER,STTYP,
+     1   PHRASE(1:LENGTH)
+   20   FORMAT(I3,3X,A3,I4,I6,1PE12.3,2X,A)
+   22   FORMAT(I3,3X,A3,I4,I6,A12,2X,A)
+      ELSE
+        IF (ISTTYP.EQ.0) WRITE(IFILE4,24) STRRNG,ISEG,LAYER,VAR(I),
+     1   PHRASE(1:LENGTH)
+        IF (ISTTYP.NE.0) WRITE(IFILE4,26) STRRNG,ISEG,LAYER,STTYP,
+     1   PHRASE(1:LENGTH)
+   24   FORMAT(6X,A3,I4,I6,1PE12.3,2X,A)
+   26   FORMAT(6X,A3,I4,I6,A12,2X,A)
+      ENDIF
+C
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTOPT
+      SUBROUTINE OUTOPT(IFILE,NVAR,IDV,IEV,ILV,CLINK,IDLINK,VLB,VUB,VAR,
+     1 WORDV,TITLE,LENGTH)
+C
+C  PURPOSE IS TO PRESENT SUMMARY OF CONDITIONS FOR OPTIMIZATION
+C
+      DIMENSION IDV(*),ILV(*),CLINK(*),IDLINK(*),VLB(*),VUB(*),VAR(*)
+      DIMENSION IEV(*)
+      CHARACTER*80 WORDV(*)
+      CHARACTER*65 TITLE
+      CHARACTER*1 ANS1,ANS2,ANS3
+C
+      WRITE(IFILE,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE,'(1X,A)') TITLE
+      WRITE(IFILE,10)
+   10 FORMAT(' VAR. DEC. ESCAPE LINK. LINKED  LINKING   LOWER    CURREN'
+     1,'T    UPPER       DEFINITION'/
+     1       '  NO. VAR.  VAR.  VAR.    TO   CONSTANT   BOUND     VALUE'
+     1,'     BOUND')
+C
+      DO 100 I = 1,NVAR
+C
+      ANS1 = 'N'
+      IF (IDV(I).EQ.1) ANS1 = 'Y'
+      ANS2 = 'N'
+      IF (IEV(I).EQ.1) ANS2 = 'Y'
+      ANS3 = 'N'
+      IF (ILV(I).EQ.1) ANS3 = 'Y'
+C
+      WRITE(IFILE,20) I,ANS1,ANS2,ANS3,IDLINK(I),CLINK(I),VLB(I),
+     1                VAR(I),VUB(I),WORDV(I)(1:LENGTH)
+   20 FORMAT(I4,3X,A1,5X,A1,5X,A1,I7,1PE12.2,1PE10.2,1PE11.4,1PE10.2,2X,
+     1 A)
+C
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTV2
+      SUBROUTINE OUTV2(IFILE,ISIG,NDEC,DEC,VAR,WORDD,TITLE)
+C
+C  PURPOSE IS TO PRINT OUT TABLE OF DECISION VARIABLES
+C
+      DIMENSION DEC(*),VAR(*),WORDD(*)
+      CHARACTER*80 WORDD
+      CHARACTER*65 TITLE
+C
+      IF (IFILE.NE.6) WRITE(IFILE,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE,'(1X,A)') TITLE
+      WRITE(IFILE,10)
+   10 FORMAT(' VARIABLE NO.    DEFINITION VALUE        DEFINITION')
+C
+      DO 100 I = 1,NDEC
+C
+      IDEC = DEC(I)
+      INDX = I
+      IF (ISIG.EQ.1) INDX = IDEC
+      WRITE(IFILE,20) IDEC,VAR(INDX),WORDD(I)(1:46)
+   20 FORMAT(I3,16X,1PE12.3,2X,A46)
+C
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      WHERE
+      SUBROUTINE WHERE(IADD,LAYER,ISEG,ILOOP)
+C
+C  PURPOSE IS TO DECOMPOSE IADD INTO LAYER, ISEG, AND ILOOP.
+C  IADD = ILOOP + 10*ISEG + 100*LAYER
+C
+C  INPUT DATA...
+C
+C   IADD  = LAYER, ISEG, AND LOOP STORED IN IADD AS JUST DESCRIBED
+C
+C  OUTPUT DATA...
+C
+C  LAYER  = LAYER NUMBER
+C   ISEG  = MODULE SEGMENT NUMBER
+C  ILOOP  = 1 MEANS STRINGERS; 2 MEANS RINGS
+C
+      LAYER = IADD/100
+       ISEG = (IADD - 100*LAYER)/10
+      ILOOP = IADD - 100*LAYER - 10*ISEG
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTWAL
+      SUBROUTINE OUTWAL(IFILE4,ISTIF,NLAYER,NSEG,LTYPE,T,ANGLE,MATL,
+     1                  INTEXT,CRACK,B2,W2)
+C
+C  PURPOSE IS TO LIST WALL PROPERTIES FOR SKIN AND STIFFENERS
+C
+C BEG AUG 1992
+      COMMON/ISOGR/ISOGRD,ISOANG
+C END AUG 1992
+      COMMON/GEOM6/IFAY(2),IMISCL(28)
+      DIMENSION ISTIF(*),INTEXT(*),NLAYER(4,2),NSEG(2),LTYPE(99,5,2)
+      DIMENSION T(*),ANGLE(*),MATL(*),CRACK(99,5,2),B2(2),W2(2)
+      CHARACTER*4 STTYP
+      CHARACTER*3 STRRNG
+C
+   10 FORMAT(/' WALL PROPERTIES (Segment numbering below refers to the '
+     1,'topmost of the sketches above.)'/
+     1' STR/ TYPE  SEG.  LAYER  LAYER  THICKNESS   WINDING     MATERAL '
+     1,'  CRACKING'/
+     1' RNG        NO.    NO.   TYPE                ANGLE       TYPE   '
+     1,'   RATIO')
+C
+      DO 100 ILOOP = 1,2
+C
+C
+      STTYP = 'NONE'
+      IF (ISTIF(ILOOP).EQ.1) STTYP = '  T '
+      IF (ISTIF(ILOOP).EQ.2) STTYP = '  J '
+      IF (ISTIF(ILOOP).EQ.3) STTYP = '  R '
+      IF (ISTIF(ILOOP).EQ.4) STTYP = ' HAT'
+C BEG JULY 1989
+      IF (ISTIF(ILOOP).EQ.5) STTYP = '  C '
+C END JULY 1989
+C
+C BEG 26 JAN 1989
+      STRRNG = '   '
+C   STATEMENTS ABOUT  STRRNG MOVED DOWN AND MODIFIED...
+C END 26 JAN 1989
+C
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+C BEG JULY 1989
+      IF (ILOOP.EQ.2) THEN
+         ISTART = 2
+         IF (B2(ILOOP).EQ.0.) ISTART = 3
+      ENDIF
+C END JULY 1989
+C
+      IF (ISTART.GT.IEND) GO TO 100
+C
+      IF (ILOOP.EQ.1) THEN
+C BEG AUG 1992
+         IF (ISOGRD.EQ.0) WRITE(IFILE4,4)
+         IF (ISOGRD.EQ.1) WRITE(IFILE4,3)
+    3    FORMAT(/' *************************************************'/
+     1'          GEOMETRY OF THE CROSS SECTION OF AN ISOGRID RIB')
+C END AUG 1992
+    4    FORMAT(/' *************************************************'/
+     1'          PANEL GEOMETRY IN THE AXIAL (L1) DIRECTION')
+      ELSE
+         WRITE(IFILE4,5)
+    5    FORMAT(/' ************************************************'/
+     1'       PANEL GEOMETRY IN THE CIRCUMFERENTIAL (L2) DIRECTION')
+      ENDIF
+      CALL PICTS(IFILE4,ISTIF(ILOOP),INTEXT(ILOOP),B2(ILOOP),W2(ILOOP),
+     1           ILOOP,IFAY(ILOOP))
+      WRITE(IFILE4,10)
+C
+      DO 60 I = ISTART,IEND
+C
+C BEG 26 JAN 1989
+      IF (I.EQ.1) STRRNG = 'SKN'
+C BEG AUG 1992
+      IF (I.GT.1.AND.ILOOP.EQ.1) THEN
+         IF (ISOGRD.EQ.0) STRRNG = 'STR'
+         IF (ISOGRD.EQ.1) STRRNG = 'ISO'
+      ENDIF
+C END AUG 1992
+      IF (I.GT.1.AND.ILOOP.EQ.2) STRRNG = 'RNG'
+C END 26 JAN 1989
+      WRITE(IFILE4,*)' '
+      NLAY = NLAYER(I,ILOOP)
+C
+      TTOTAL = 0.
+      DO 30 J = 1,NLAY
+C
+      K = LTYPE(J,I,ILOOP)
+      WRITE(IFILE4,20) STRRNG,STTYP,I,J,K,T(K),ANGLE(K),MATL(K),
+     1 CRACK(J,I,ILOOP)
+   20 FORMAT(1X,A3,2X,A4,I4,I7,I7,1PE13.4,1PE12.4,I6,1PE18.4)
+      TTOTAL = TTOTAL + T(K)
+C
+   30 CONTINUE
+      WRITE(IFILE4,23) I,TTOTAL
+   23 FORMAT(' TOTAL THICKNESS OF SEG. ',I2,' =',1PE12.4)
+   60 CONTINUE
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      IDSEG
+C BEG JUN 2004
+      SUBROUTINE IDSEG(ISTIF,ISEG,NSEGB5,B2,W2,J,IFAY)
+C END JUN 2004
+C
+C  PURPOSE IS TO GET INDEX J FOR WALL PROPERTIES OF BOSOR5 SEGMENT NO.
+C  ISEG.
+C
+C BEG JUN 2004
+      DIMENSION IFAY(2)
+C     COMMON/GEOM6/IFAY(2),IMISCL(28)
+C END JUN 2004
+      J = 1
+      IF (ISTIF.NE.4) THEN
+         IF (ISEG.NE.NSEGB5) J = ISEG
+      ELSE
+         IF (ISEG.EQ.2) J = ISEG
+         IF (B2.GT.W2) THEN
+            IF (ISEG.GE.3.AND.ISEG.LE.5) J = ISEG-1
+            IF (ISEG.EQ.6) J = 3
+            IF (ISEG.EQ.7) J = 2
+            IF (IFAY(1).EQ.1.AND.ISEG.EQ.3) J = 1
+         ELSE
+            IF (ISEG.EQ.3) J = ISEG
+            IF (ISEG.EQ.4) J = ISEG
+            IF (ISEG.EQ.5) J = 3
+         ENDIF
+      ENDIF
+C BEG JULY 1989
+C BEG NOV 1995
+      IF (ISTIF.EQ.5) THEN
+         IF (B2.LE.0.0) THEN
+            IF (ISEG.EQ.NSEGB5) J = 2
+         ELSE
+            IF (ISEG.EQ.4) J = 2
+            IF (ISEG.EQ.5) J = 1
+            IF (ISEG.EQ.6) J = 3
+         ENDIF
+      ENDIF
+C END NOV 1995
+C END JULY 1989
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CHGCIJ
+      SUBROUTINE CHGCIJ(COLD,CNEW)
+C
+C  PURPOSE IS TO SHUFFLE C(I,J) TO ACCOUNT FOR THE FACT THAT THE "1"
+C  DIRECTION IN THE PANEL IS ACTUALLY THE "2" DIRECTION IN STABIL AND
+C  VISA VERSA
+C
+      DIMENSION COLD(6,6),CNEW(6,6)
+C
+      DO 10 I = 1,6
+      DO 10 J = 1,6
+   10 CNEW(I,J) = COLD(I,J)
+C
+      CNEW(1,1) = COLD(2,2)
+      CNEW(2,2) = COLD(1,1)
+      CNEW(4,4) = COLD(5,5)
+      CNEW(5,5) = COLD(4,4)
+      CNEW(1,4) = COLD(2,5)
+      CNEW(2,5) = COLD(1,4)
+      CNEW(4,1) = CNEW(1,4)
+      CNEW(5,2) = CNEW(2,5)
+      CNEW(5,1) = CNEW(1,5)
+      CNEW(4,2) = CNEW(2,4)
+C
+      CNEW(1,3) = 0.
+      CNEW(3,1) = 0.
+      CNEW(1,6) = 0.
+      CNEW(6,1) = 0.
+      CNEW(2,3) = 0.
+      CNEW(3,2) = 0.
+      CNEW(2,6) = 0.
+      CNEW(6,2) = 0.
+      CNEW(3,4) = 0.
+      CNEW(4,3) = 0.
+      CNEW(3,5) = 0.
+      CNEW(5,3) = 0.
+      CNEW(3,6) = -COLD(3,6)
+      CNEW(6,3) = CNEW(3,6)
+      CNEW(4,6) = 0.
+      CNEW(6,4) = 0.
+      CNEW(5,6) = 0.
+      CNEW(6,5) = 0.
+C
+      RETURN
+      END
+C
+C
+C BEG MARCH 1990
+C
+C=DECK      CGCIJP
+      SUBROUTINE CGCIJP(COLD,CNEW)
+C
+C  PURPOSE IS TO SHUFFLE C(I,J) TO ACCOUNT FOR THE FACT THAT THE "1"
+C  DIRECTION IN THE "X" CROSS SECTION IS THE "2" DIRECTION IN THE
+C  "Y" CROSS SECTION AND VISA VERSA (USED IN GETCIJ FOR FILLING CY
+C  WITH APPROPRIATE CX VALUES FOR FIRST AND SECOND SEGMENTS IN THE
+C  RING-SKIN CROSS SECTION. (ADDED MARCH 1990)
+C
+      DIMENSION COLD(6,6),CNEW(6,6)
+C
+      DO 10 I = 1,6
+      DO 10 J = 1,6
+   10 CNEW(I,J) = COLD(I,J)
+C
+      CNEW(1,1) = COLD(2,2)
+      CNEW(2,2) = COLD(1,1)
+      CNEW(4,4) = COLD(5,5)
+      CNEW(5,5) = COLD(4,4)
+      CNEW(1,4) = COLD(2,5)
+      CNEW(2,5) = COLD(1,4)
+      CNEW(4,1) = CNEW(1,4)
+      CNEW(5,2) = CNEW(2,5)
+      CNEW(5,1) = CNEW(1,5)
+      CNEW(4,2) = CNEW(2,4)
+C
+      CNEW(1,3) = -COLD(2,3)
+      CNEW(3,1) =  CNEW(1,3)
+      CNEW(1,6) = -COLD(2,6)
+      CNEW(6,1) =  CNEW(1,6)
+      CNEW(2,3) = -COLD(1,3)
+      CNEW(3,2) =  CNEW(2,3)
+      CNEW(2,6) = -COLD(1,6)
+      CNEW(6,2) =  CNEW(2,6)
+      CNEW(3,4) = -COLD(3,5)
+      CNEW(4,3) =  CNEW(3,4)
+      CNEW(3,5) = -COLD(3,4)
+      CNEW(5,3) =  CNEW(3,5)
+      CNEW(3,6) =  COLD(3,6)
+      CNEW(6,3) =  CNEW(3,6)
+      CNEW(4,6) = -COLD(5,6)
+      CNEW(6,4) =  CNEW(4,6)
+      CNEW(5,6) = -COLD(4,6)
+      CNEW(6,5) =  CNEW(5,6)
+C
+      RETURN
+      END
+C
+C END MARCH 1990
+C
+C
+C=DECK      SIMPSN
+      SUBROUTINE SIMPSN(IFILE,NNODES,DX,Y,YINT)
+C
+C  SIMPSON'S RULE INTEGRATION:
+C
+C  NNODES = NUMBER OF NODAL POINTS SPANNING INTEGRATION DOMAIN (ODD)
+C  DX     = SPACING OF POINTS (UNIFORM)
+C   Y     = VALUES OF FUNCTION TO BE INTEGRATED AT THE NODAL POINTS
+C   YINT  = THE INTEGRAL OF Y WITH RESPECT TO X
+C
+      DIMENSION Y(*)
+C
+      NPOINT = NNODES - 1
+      ITEST = MOD(NPOINT,2)
+      IF (ITEST.NE.0) THEN
+         WRITE(IFILE,*)' YOU MUST HAVE AN ODD NUMBER OF NODAL POINTS'
+         WRITE(IFILE,*)' FOR SIMPSONS RULE INTEGRATION. ABORTING RUN.'
+         WRITE(IFILE,*)' NNODES, NPOINT, ITEST =', NNODES,NPOINT,ITEST
+         CALL ERREX
+      ENDIF
+      YINT = 0.
+      DO 10 I = 1,NPOINT,2
+      YINT = YINT + Y(I) + 4.*Y(I+1) + Y(I+2)
+   10 CONTINUE
+      YINT = DX*YINT/3.
+      RETURN
+      END
+C
+C
+C
+C END 26 JAN 1989
+C BEG APRIL 1990
+C
+C
+C
+C=DECK      LENWRD
+      SUBROUTINE LENWRD(WORD,J)
+C  PURPOSE IS TO FIND THE LENGTH, J, OF A CHARACTER STRING, WORD.
+      CHARACTER*80 WORD
+C
+      IEND = LEN(WORD)
+      DO 10 K = IEND,1,-1
+         J = K
+         IF (WORD(K:K).NE.' ') GO TO 20
+   10 CONTINUE
+   20 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C
+C BEG MAY 1990
+C
+C
+C=DECK      EQSOLV
+      SUBROUTINE EQSOLV(N,C,RHS,SOLN)
+C
+C  PURPOSE IS TO SOLVE AN NXN SYSTEM OF EQUATIONS:
+C    C*SOLN = RHS
+C
+      DIMENSION SOLN(*),C(N,N),CINV(4,4),RHS(*)
+C
+      CALL MOVER(0.,0,SOLN,1,N)
+      NN = N*N
+      CALL MOVER(C,1,CINV,1,NN)
+      CALL INVERT(CINV,N,ISING)
+      IF (ISING.NE.0) THEN
+         WRITE(8,*)' SINGULAR C(i,j) MATRIX.'
+         WRITE(8,*)' IN SUBROUTINE EQSOLV. NO. OF EQS., N=',N
+         CALL ERREX
+      ENDIF
+C
+      DO 3 I = 1,N
+      DO 3 J = 1,N
+      SOLN(I) = SOLN(I) + CINV(I,J)*RHS(J)
+    3 CONTINUE
+C
+      RETURN
+      END
+C
+C END MAY 1990
+C
+C
+C BEG AUG 1995
+C
+C
+C=DECK      CUBIC
+C BEG MAR 1997
+C     SUBROUTINE CUBIC(CONST,CLIN,CQUAD,DEN,EIG)
+      SUBROUTINE CUBIC(CONST,CLIN,CQUAD,DEN,EIG,IMOD,ICUBIC,JCUBIC,
+     1                 IFINAL,NPRNT,INDX)
+C END MAR 1997
+C
+C  PURPOSE IS TO SOLVE THE CUBIC EQUATION FOR THE LOWEST EIGENVALUE,
+C  EIG .
+C
+C  The method used is described on pp 103-104 of:
+C  CRC Standard Mathematical Tables, Student Edition, 18th Edition,
+C  S. M. Selby, Editor, The Chemical Rupper Company, Cleveland, OH 44128
+C
+      DOUBLE PRECISION DEN,CQUAD,CLIN,CONST,P,Q,R,A,B,DISCRM
+      DOUBLE PRECISION CPHI,PHI,SA3,ARG1,X1,ARG2,X2,ARG3,X3
+      DOUBLE PRECISION ARG,PSI,TPSI,TPHI,T2PHI,DARG,BOA
+      DOUBLE PRECISION BIGA,BIGB,SDISCM
+C
+      PI = 3.1415927
+C BEG MAR 1997
+      IF (IMOD.EQ.0.AND.IFINAL.EQ.1) THEN
+         ICUBIC = 0
+         JCUBIC = 0
+      ENDIF
+C END MAR 1997
+      IF (DEN.NE.0.0) THEN
+         P = CQUAD/DEN
+         Q = CLIN/DEN
+         R = CONST/DEN
+         A = (3.*Q -P*P)/3.
+         B = (2.*P**3 -9.*P*Q +27.*R)/27.
+C BEG JULY 1995
+         BOA = B/A
+C END JULY 1995
+C BEG MAR 1997
+         DISCRM = B*B/4. +A**3/27.
+C        ABNORM = ABS(A**3/27.) + ABS(B**2/4.)
+C        IF (ABS(DISCRM).LT.1.E-10*ABNORM) DISCRM = 1.E-20
+         IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX) THEN
+            WRITE(8,*) ' P,Q,R,A,B=',P,Q,R,A,B
+            WRITE(8,*) ' DISCRM   =',DISCRM
+         ENDIF
+         IF (DISCRM.LT.0.) THEN
+            IF (IMOD.EQ.0.AND.IFINAL.EQ.1) ICUBIC = 1
+C BEG OCT 1998 (comment out the branching):
+C           IF (IMOD.EQ.1.AND.ICUBIC.GE.2) THEN
+C              DISCRM = 0.
+C              GO TO 100
+C           ENDIF
+C END OCT 1998
+C END MAR 1997
+C BEG JULY 1995
+C           DARG = -B*B*27./(4.*A**3)
+            DARG = -(BOA**2)*27./(4.*A)
+            CPHI = -SQRT(DARG)
+C END JULY 1995
+            IF (B.LT.0.) CPHI = -CPHI
+            PHI = ACOS(CPHI)
+            SA3 = 2.*SQRT(-A/3.)
+            ARG1 = PHI/3.
+            X1 = SA3*COS(ARG1) -P/3.
+            ARG2 = PHI/3. + 2.*PI/3.
+            X2 = SA3*COS(ARG2) -P/3.
+            ARG3 = PHI/3. + 4.*PI/3.
+            X3 = SA3*COS(ARG3) -P/3.
+C BEG APR 1998
+            IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1         WRITE(8,'(A,1P,3E12.4)')' EIG1,EIG2,EIG3=',X1,X2,X3
+C END APR 1998
+            Y1 = 10.E+16
+            IF (X1.GT.0.) Y1 = X1
+            Y2 = 10.E+16
+            IF (X2.GT.0.) Y2 = X2
+            Y3 = 10.E+16
+            IF (X3.GT.0.) Y3 = X3
+            EIG = MIN(Y1,Y2)
+            EIG = MIN(EIG,Y3)
+         ENDIF
+C BEG AUG 1995
+C BEG MAR 1997
+         IF (DISCRM.GT.0.0) THEN
+            IF (IMOD.EQ.0.AND.IFINAL.EQ.1) ICUBIC = 2
+C BEG OCT 1998 (comment out the branching)
+C           IF (IMOD.EQ.1.AND.(ICUBIC.EQ.1.OR.ICUBIC.EQ.3)) THEN
+C              DISCRM = 0.
+C              GO TO 100
+C           ENDIF
+C END OCT 1998
+C END MAR 1997
+            IF (A.GT.0.) THEN
+C BEG MAR 1997
+               IF (IMOD.EQ.0.AND.IFINAL.EQ.1) JCUBIC = 1
+C END MAR 1997
+C              WRITE(8,*)' A IS GREATER THAN ZERO'
+               DARG = (BOA**2)*27./(4.*A)
+               ARG = -SQRT(DARG)
+               IF (B.LT.0.) ARG = -ARG
+               PSI = ATAN(1./ARG)/2.
+               TPSI = TAN(PSI)
+               ARG = LOG(ABS(TPSI))/3.
+               TPHI = EXP(ARG)
+               IF (TPSI.LT.0.) TPHI = -TPHI
+               PHI = ATAN(TPHI)
+               T2PHI = TAN(2.*PHI)
+               X1 = 2.*SQRT(A/3.)/T2PHI -P/3.
+C BEG APR 1998
+               IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1            WRITE(8,'(A,1P,E12.4)')' positive "A": EIG1=',X1
+C END APR 1998
+               EIG = 10.E+16
+               IF (X1.GT.0.) EIG = X1
+            ELSE
+C BEG MAR 1997
+               IF (IMOD.EQ.0.AND.IFINAL.EQ.1) JCUBIC = 2
+C END MAR 1997
+C              WRITE(8,*)' A IS LESS THAN OR EQUAL TO ZERO'
+               SDISCM = SQRT(DISCRM)
+               ARG = -0.5*B + SDISCM
+               IF (ARG.NE.0.0) THEN
+                  ARG1= LOG(ABS(ARG))/3.
+                  BIGA = EXP(ARG1)
+                  IF (ARG.LT.0.) BIGA = -BIGA
+               ELSE
+                  BIGA = 0.
+               ENDIF
+               ARG = -0.5*B - SDISCM
+               IF (ARG.NE.0.0) THEN
+                  ARG1= LOG(ABS(ARG))/3.
+                  BIGB = EXP(ARG1)
+                  IF (ARG.LT.0.) BIGB = -BIGB
+               ELSE
+                  BIGB = 0.
+               ENDIF
+               X1 = BIGA + BIGB - P/3.
+C BEG APR 1998
+               IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1            WRITE(8,'(A,1P,E12.4)')' negative "A": EIG1=',X1
+C END APR 1998
+               EIG = 10.E+16
+               IF (X1.GT.0.) EIG = X1
+            ENDIF
+         ENDIF
+C END AUG 1995
+C BEG MAR 1997
+  100    CONTINUE
+         IF (DISCRM.EQ.0.0) THEN
+            IF (IMOD.EQ.0.AND.IFINAL.EQ.1) ICUBIC = 3
+            IF (A.GT.0.0) THEN
+C              WRITE(8,'(A,4I3,1P,2E12.4)')
+C    1       ' IMOD,IFINAL,ICUBIC,JCUBIC,A,P=',
+C    1         IMOD,IFINAL,ICUBIC,JCUBIC,A,P
+               A = 0.
+            ENDIF
+C END MAR 1997
+            Y1 = SQRT(-A/3.)
+            IF (B.LT.0.) Y1 = -Y1
+            X1 = Y1 - P/3.
+C BEG AUG 1995
+            Y2 = -2.*Y1
+            X2 = Y2 - P/3.
+C BEG APR 1998
+            IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1         WRITE(8,'(A,1P,2E12.4)')' discrm=0: EIG1,EIG2=',X1,X2
+C END APR 1998
+            IF (X1.LT.0.0) X1 = 10.E+16
+            IF (X2.LT.0.0) X2 = 10.E+16
+            EIG = MIN(X1,X2)
+C END AUG 1995
+         ENDIF      
+      ELSE
+C        WRITE(8,*)' DEN=0; THIS IS THE QUADRATIC PROBLEM'
+         IF (CQUAD.NE.0.) THEN
+C
+C  SOLVE QUADRATIC PROBLEM...
+C           WRITE(8,*)' QUAD IS NOT EQUAL TO ZERO'
+            DISCRM = CLIN**2 -4.*CQUAD*CONST
+            EIG = 10.E+16
+            IF (DISCRM.GT.0.) THEN
+               X1 = (-CLIN + SQRT(DISCRM))/(2.*CQUAD)
+               X2 = (-CLIN - SQRT(DISCRM))/(2.*CQUAD)
+C BEG APR 1998
+C23456789012345678901234567890123456789012345678901234567890123456789012
+               IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1          WRITE(8,'(A,1P,2E12.4)')' quadratic: EIG1,EIG2=',X1,X2
+C END APR 1998
+               Y1 = 10.E+16
+               IF (X1.GT.0.) Y1 = X1
+               Y2 = 10.E+16
+               IF (X2.GT.0.) Y2 = X2
+               EIG = MIN(Y1,Y2)
+            ENDIF
+         ELSE
+C        WRITE(8,*)' QUAD IS EQUAL TO ZERO'
+C
+C   SOLVE LINEAR PROBLEM...
+            EIG = 10.E+16
+            IF (CLIN.NE.0.) THEN     
+               X1 = -CONST/CLIN
+C BEG APR 1998
+               IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX)
+     1          WRITE(8,'(A,1P,E12.4)')' linear: EIG1=',X1
+C END APR 1998
+               IF (X1.GT.0.) EIG = X1
+            ENDIF
+         ENDIF
+      ENDIF
+C
+C  TEST FOR SOLUTION ACCURACY:
+C BEG APR 1998
+      IF (IFINAL.EQ.1.AND.NPRNT.EQ.INDX) THEN
+         Y = EIG
+         POLY = Y**3 + P*Y**2 + Q*Y + R
+         WRITE(8,'(A,1P,2E12.4)')' Y,POLY=',Y,POLY
+      ENDIF
+C END APR 1998
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      INVERT
+      SUBROUTINE INVERT (A,IMAX,ISING)
+C  INVERT A REAL MATRIX. (THE MATRIX IS NOT NECESSARILY SYMMETRIC).
+      DIMENSION A(IMAX,IMAX),IN(40),TEMP(40)
+      IF(IMAX.GT.40) CALL ERREX
+      ISING=0
+      N=IMAX
+      IMAXO=N-1
+      I1=1
+   10 I3=I1
+      IN(I1)=0
+      SUM=ABS(A(I1,I1))
+      DO 20 I=I1,N
+      IF (SUM-ABS(A(I,I1))) 15,20,20
+   15 I3=I
+      IN(I1)=I
+      SUM=ABS(A(I,I1))
+   20 CONTINUE
+      IF (I3-I1) 25,35,25
+   25 DO 30 J=1,N
+      SUM=A(I1,J)
+      A(I1,J)=A(I3,J)
+   30 A(I3,J)=SUM
+   35 I3=I1+1
+      IF (A(I1,I1)) 40,160,40
+   40 DO 45 I=I3,N
+   45 A(I,I1)=A(I,I1)/A(I1,I1)
+      J2=I1-1
+      IF (J2) 50,60,50
+   50 DO 55 J=I3,N
+      DO 55 I=1,J2
+   55 A(I1,J)=A(I1,J)-A(I1,I)*A(I,J)
+   60 J2=I1
+      I1=I1+1
+      DO 65 I=I1,N
+      DO 65 J=1,J2
+   65 A(I,I1)=A(I,I1)-A(I,J)*A(J,I1)
+      IF (I1-N) 10,70,10
+   70 IF (A(N,N)) 75,160,75
+   75 DO 90 JP=1,N
+      J=N+1-JP
+      A(J,J)=1.D0/A(J,J)
+      IF (J-1) 80,95,80
+   80 DO 90 IP=2,J
+      I=J+1-IP
+      IPO=I+1
+      SUM=0.
+      DO 85 L=IPO,J
+   85 SUM=SUM-A(I,L)*A(L,J)
+   90 A(I,J)=SUM/A(I,I)
+   95 DO 115 J=1,IMAXO
+      JPO=J+1
+      DO 115 I=JPO,N
+      SUM=0.
+      IMO=I-1
+      DO 110 L=J,IMO
+      IF (L-J) 100,105,100
+  100 SUM=SUM-A(I,L)*A(L,J)
+      GO TO 110
+  105 SUM=SUM-A(I,L)
+  110 CONTINUE
+  115 A(I,J)=SUM
+      DO 140 I=1,N
+      DO 135 J=1,N
+      TEMP(J)=0.0
+      DO 130 K=I,N
+      IF (K-J) 130,125,120
+  120 TEMP(J)=TEMP(J)+A(I,K)*A(K,J)
+      GO TO 130
+  125 TEMP(J)=TEMP(J)+A(I,K)
+  130 CONTINUE
+  135 CONTINUE
+      DO 140 J=1,N
+  140 A(I,J)=TEMP(J)
+      DO 155 I=2,N
+      M=N+1-I
+      IF (IN(M)) 145,155,145
+  145 ISS=IN(M)
+      DO 150 L=1,N
+      SUM=A(L,ISS)
+      A(L,ISS)=A(L,M)
+  150 A(L,M)=SUM
+  155 CONTINUE
+      GO TO 165
+  160 ISING=1
+  165 RETURN
+      END
+C END AUG 1995
+C
+C
+C
+C=DECK      URVEC
+      subroutine urvec(n, u)
+c
+c  urvec places n pseudo-random numbers, x ~ U(0,1), in vector u
+c
+      integer i, n
+      double precision u
+#if cray
+      double precision ranf
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = ranf()
+   10 continue
+#endif
+#if (sun3 || sun4 || cnvx)
+      double precision drand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = drand(0)
+   10 continue
+#endif
+#if (sgi || rs6k)
+      double precision rand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = rand()
+   10 continue
+#endif
+#if dec
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RAN(1234567891)
+   10 continue
+#endif
+#if !(cray || sun3 || sun4 || cnvx || sgi || rs6k || dec)
+      real RANDOM
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RANDOM(0)
+   10 continue
+#endif
+      return
+      end
+c
+C
+C
+      function RANDOM (start)
+* -------------------------------------------------------------------- *
+*     Linear Congruential Method (LCM) Random Number Generator         *
+*                                                                      *
+*     Values for LCM used here are optimal for 32-bit words.           *
+*     A sequence of M psuedo-random REAL numbers, uniform on the       *
+*     interval [0..1) will be repeated.  A new sequence is started     *
+*     when a non-zero value is passed in via the parameter "start".    *
+*                                                                      *
+*     CAUTION: It is best to use a high-quality random number          *
+*              generator from your FORTRAN system library,             *
+*              if one is available.                                    *
+*                                                                      *
+*     Harold D. Cabiness     December, 1990                            *
+* -------------------------------------------------------------------- *
+      IMPLICIT   NONE
+      REAL       RANDOM
+      INTEGER    start,   seed,   L,   C,   M
+      LOGICAL    init
+      SAVE       init,    seed,   L,   C,   M
+      DATA       init  / .true. /
+      if (init) then
+         M = 2**20
+         C = M * (3.0-SQRT(3.0))/6.0
+         C = C + 1 - MOD(C,2)
+         L = 1029
+         seed = MOD(start*L+C, M)
+         if (start .ne. 0) then
+            seed = MOD(ABS(seed*L+C), M)
+         endif
+         init = .false.
+      endif
+      seed   = MOD(seed*L+C, M)
+      RANDOM = REAL(seed) / M
+      return
+      end
+C
+C
+C
+      integer function lastch(str)
+      character*(*) str
+c lastch returns the index of the last character in a string that is not
+c whitespace.  ASSUMES ASCII CODING SCHEME!
+c input:  str - the string
+c output: lastch
+c ----------------- Declarations -----------------------------------
+#define debug 0
+      integer i, ch
+c ----------------- Executable Code --------------------------------
+      do 10 i = len(str), 1, -1
+        ch = ichar(str(i:i))
+c If character is printing non-whitespace, then end-of-string found.
+        if (ch .ge. 33 .and. ch .le. 126) then
+          go to 20
+        endif
+   10 continue
+   20 lastch = i
+      return
+      end

@@ -1,0 +1,1258 @@
+C=DECK      INSERT
+      PROGRAM INSERT
+C
+C  PURPOSE IS TO PERMIT USER TO SET UP A PROMPT FILE.
+C
+      CHARACTER*1 TN1,CN1,CNTYPE,CNV1,N,CIX,Q
+C BEG JUN 2009
+C     CHARACTER*7 ANS, ANS2, VNAME, WIJ
+      CHARACTER*8 ANS, ANS2, VNAME, WIJ
+C END JUN 2009
+      CHARACTER*80 PHRASE,PHRAS2,P4,P5,P6,ROWDEF,COLDEF,ROWDSV,COLDSV
+      CHARACTER*2 CNV2,CNNV,CI,CNROWS,CNCOLS,CN2
+      CHARACTER*3 CN3,CN
+      CHARACTER*4 KEYWRD
+C BEG JUN 2009
+C     CHARACTER*6 NV,NC,VB,VBA,VBF,WICHA,WCHA,NVSAVE,NCSAVE,NAMSAV
+      CHARACTER*6 WICHA,WCHA
+      CHARACTER*7 NV,NC,VB,VBA,VBF,NVSAVE,NCSAVE,NAMSAV
+C END JUN 2009
+C BEG OCT 2005
+C     CHARACTER*12 CASE,CASE0
+C     CHARACTER*16 CASE1,CASE3,CASE4,CASE13
+      CHARACTER*28 CASE,CASE0
+      CHARACTER*32 CASE1,CASE3,CASE4,CASE13
+C END OCT 2005
+      INTEGER ILOC,LABL
+      INTEGER DK,TYPE,TYPEH
+      LOGICAL ANSL1     
+
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+
+      LABL = 0
+      ILOC = 0
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      CASE = 'INSERT      '
+      I=INDEX(CASE,' ')
+C
+c Added 11/90
+      open(1,status='OLD')
+      CALL CASGEN(1,CASE0)
+      close(1)
+c End 11/90
+      J=INDEX(CASE0,' ')
+C
+C  NEXT, THE NAMES OF VARIOUS FILES ARE ESTABLISHED. THE
+C  PURPOSES OF THESE FILES ARE LISTED IN TABLE 1 IN FILE CASE.DEF.
+C
+      IF(J.NE.0) THEN
+         CASE1=CASE0(:J-1)//'.INP'
+         CASE3=CASE0(:J-1)//'.MOD'
+      ELSE
+         CASE1=CASE0//'.INP'
+         CASE3=CASE0//'.MOD'
+      ENDIF
+      JLET = J - 1
+C BEG OCT 2005
+C     IF (J.EQ.0) JLET = 12
+      IF (J.EQ.0) JLET = 28
+C END OCT 2005
+C
+      IF(I.NE.0) THEN
+         CASE4=CASE(:I-1)//'.INP'
+         CASE13=CASE(:I-1)//'.INS'
+      ELSE
+         CASE4=CASE//'.INP'
+         CASE13=CASE//'.INS'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28
+C END OCT 2005
+C
+      OPEN(UNIT=7,FILE=CASE4,STATUS='UNKNOWN')
+      OPEN(UNIT=25,FILE=CASE13,STATUS='UNKNOWN')
+C
+      IRAW   = 7
+      IINS   = 25
+C
+  100 CONTINUE
+      WRITE(6,'(1X,A,$)')
+     *' ARE YOU CORRECTING, ADDING TO, OR USING INSERT.INP ?'
+
+  105 READ(5,'(A)',END=395,ERR=100) ANS
+      CALL SHIFTC(ANS)
+
+      IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *    ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+         WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+         GO TO 100
+      ENDIF
+
+      INFILE = 5
+      IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') INFILE = 7
+C
+      WRITE(6,2000) CASE(1:NLET),CASE1(1:JLET)
+C
+      IVAR = 0
+      IPAR = 0
+      IALLOW = 0
+      ILAR = 0
+      ICAR = 0
+      IFACT= 0
+      IOAR = 0
+      NLOADS = 0
+C BEG JUN 2009 
+C     NAMSAV = '      '
+      NAMSAV = '       '
+C END JUN 2009 
+C BEG JAN 1990
+      NDIMSV = 0
+      NROWSV = 0
+      NCOLSV = 0
+C BEG JUN 2005 
+C     NVSAVE = '------'
+C     NCSAVE = '------'
+C     ROWDSV = '------'
+C     COLDSV = '------'
+C     ILONG1 = 6
+C     ILONG2 = 6
+      NVSAVE = '-------'
+      NCSAVE = '-------'
+      ROWDSV = '-------'
+      COLDSV = '-------'
+      ILONG1 = 7
+      ILONG2 = 7
+C END JUN 2009 
+C END JAN 1990
+C
+      WRITE(6,2001) CASE(1:NLET),CASE(1:NLET),CASE1(1:JLET),
+     *             CASE3(1:JLET),CASE1(1:JLET)
+C
+C  NEXT, INSERT THE  INSERT.INS  FILE INTO THE APPROPRIATE POSITION
+C  IN THE NAME.INP FILE...
+C
+      OPEN(UNIT=2,FILE=CASE1,STATUS='OLD')
+      OPEN(UNIT=3,FILE=CASE3,STATUS='UNKNOWN')
+
+      IINP = 2
+      IMOD = 3
+
+      WRITE(6,2002) CASE1(1:JLET),CASE3(1:JLET),CASE3(1:JLET),
+     *             CASE3(1:JLET),CASE3(1:JLET),CASE3(1:JLET)
+
+  110 CONTINUE
+      WRITE(6,'(1X,A,$)')
+     *      ' Prompt index immediately preceding the insertion = '
+
+         LABL =   1
+         ILOC = 115
+
+  115    READ(INFILE,'(I8)',END=395,ERR=110) NPROMP
+
+         IF (NPROMP.LE.0.OR.NPROMP.GT.999) THEN
+            WRITE(6,*)' PROMPT INDEX MUST BE AN INTEGER FROM 1 TO 999'
+            GO TO 110
+         ENDIF
+
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') NPROMP,
+     *       '  $ Prompt index immediately preceding the insertion'
+         WRITE(6,'(1X,A,I7)')' NPROMP=',NPROMP
+C
+      IF (NPROMP.GT.99) THEN
+         CALL CONVRT(NPROMP,CN3)
+         CN = CN3
+      ENDIF
+
+      IF (NPROMP.GT.9.AND.NPROMP.LT.100) THEN
+         CALL CONVR2(NPROMP,CN2)
+         CN = CN2
+      ENDIF
+
+      IF (NPROMP.LT.10) THEN
+         CALL CONVR1(NPROMP,CN1)
+         CN = CN1
+      ENDIF
+
+      CALL SHIFTC(CN)
+      KEYWRD = '$'//CN
+
+      WRITE(6,2003) KEYWRD,CASE1(1:JLET)
+
+C BEG NOV 2011
+
+ 120  READ(IINP,'(A)',END=125) PHRASE
+      ILET = INDEX(PHRASE,KEYWRD)
+      CALL BLANKX(PHRASE,J)
+      WRITE(IMOD,'(A)') PHRASE(1:J)
+      IF (ILET.NE.0) GO TO 130
+      GO TO 120
+
+  125 WRITE(6,'(A,A)')' PROMPT NUMBER NOT FOUND IN THE FILE  ',
+     *      CASE1(1:JLET),'.INP.'
+      WRITE(6,'(A,A)')' PROMPT NUMBER SOUGHT =',KEYWRD
+      WRITE(6,'(A,A,A)')' FILE  ',CASE1(1:JLET),'.INP  NOT MODIFIED.'
+      CALL ERREX
+C END NOV 2011
+
+  130 CONTINUE
+C
+      ILET1 = INDEX(PHRASE,'role types  1  or  2   ?')
+      ILET3 = INDEX(PHRASE,'role type  3 ?')
+      ILET4 = INDEX(PHRASE,'role type  4 ?')
+
+      IF (ILET1.NE.0) THEN
+         IROLEVV = 1
+         NROWS = 0
+         NCOLS = 0
+         NDIMEN= 0
+         NDIMSV= 0
+         NROWSV= 0
+         NCOLSV= 0
+      ENDIF
+
+      IF (ILET3.NE.0) THEN
+         IROLEVV = 3
+         NROWS = 20
+         NCOLS = 0
+         NDIMEN= 1
+         NDIMSV= 1
+         NROWSV= 20
+         NCOLSV= 0
+      ENDIF
+
+      IF (ILET4.NE.0) THEN
+         IROLEVV = 4
+         NROWS = 20
+         NCOLS = 1
+         NDIMEN= 2
+         NDIMSV= 2
+         NROWSV= 20
+         NCOLSV= 1
+      ENDIF
+C
+  135 CONTINUE
+      KOUNT = 1
+      K = K - DK
+      NIV = 0
+      NFV = 0
+      NCV = 0
+
+  140 CONTINUE
+      WRITE(6,'(1X,A)')' CHOOSE: 0  or  1:'
+      WRITE(6,'(1X,A)')' (0 means "introductory explanatory text")'
+      WRITE(6,'(1X,A)')' (1 means "one-line input datum prompt")'
+      WRITE(6,'(1X,A,$)')' CHOOSE: 0  or  1: '
+
+  145 CONTINUE
+
+      LABL =   2
+      ILOC = 150
+
+  150 READ(INFILE,'(I8)',END=395,ERR=145) TYPE
+
+      IF (TYPE.NE.0.AND.TYPE.NE.1) THEN
+         WRITE(6,*)' PLEASE ANSWER EITHER  0  OR  1 .  TRY AGAIN.'
+         GO TO 140
+      ENDIF
+
+      TYPEH = TYPE
+      IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') TYPE,
+     *'  $ Type of prompt: 0="help" paragraph, 1=one-line prompt'
+      WRITE(IINS,'(1X,I7,A)') TYPE,
+     *'  $ Type of prompt: 0="help" paragraph, 1=one-line prompt'
+      WRITE(6,'(1X,A,I7)')' TYPE=',TYPE
+C
+C     ITYPE = 0
+C    ===========
+C
+      IF (TYPE.EQ.0) THEN
+         WRITE(6,'(1X,A)')' PROVIDE INTRODUCTORY EXPLANATORY TEXT'
+
+  155    CONTINUE
+
+         LABL =   0
+         ILOC = 160
+
+  160    READ(INFILE,'(A)',END=395,ERR=155) PHRASE
+
+         CALL SHIFTP(PHRASE)
+         CALL BLANKX(PHRASE,ILONG)
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRASE(1:ILONG)
+         WRITE(IINS,'(1X,A)') PHRASE(1:ILONG)
+         WRITE(6,'(1X,A)') PHRASE(1:ILONG)
+
+  165    CONTINUE
+         WRITE(6,'(1X,A,$)')
+     *   ' ANY MORE LINES IN THIS PARAGRAPH? (y  or  <cr> or  n): '
+         ANS = ' '
+
+         LABL =   0
+         ILOC = 170
+
+  170    READ(INFILE,'(A)',END=395,ERR=165) ANS
+         CALL SHIFTC(ANS)
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *   '  $ Are there more lines in the "help" paragraph?'
+         WRITE(IINS,'(1X,A,A)') ANS,
+     *   '  $ Are there more lines in the "help" paragraph?'
+         WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+         IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y'.OR.ANS(1:1).EQ.' ')
+     *       GO TO 155
+         GO TO 140
+      ENDIF
+C
+C     ITYPE = 1
+C    ===========
+C
+      IF (TYPE.EQ.1) THEN
+
+        IF (KOUNT.EQ.1) THEN
+         WRITE(6,2004)
+C
+         WRITE(6,2005)
+C
+        ENDIF
+        KOUNT = KOUNT + 1
+
+  175   CONTINUE
+C BEG OCT 2005
+C        WRITE(6,'(1X,A,$)')
+C    1 ' PROVIDE A NAME FOR THE VARIABLE (6 or less characters, CAPS):'
+         WRITE(6,'(1X,A,$)')
+     * ' PROVIDE A NAME FOR THE VARIABLE (7 or less characters, CAPS):'
+C END OCT 2005
+
+         LABL =   0
+         ILOC = 180
+
+  180    READ(INFILE,'(A)',END=395,ERR=175) VNAME
+
+C BEG JUN 2009 (the write statement inserted to avoid compiler bug-sgi)
+         IF (INFILE.EQ.7) WRITE(6,'(/,1X,A,A)')
+     *   ' before SHIFTC: variable name=',VNAME(1:8)
+         CALL SHIFTC(VNAME)
+         IF (INFILE.EQ.7) WRITE(6,'(/,1X,A,A)')
+     *   ' after  SHIFTC: variable name=',VNAME(1:8)
+C END JUN 2009 
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') VNAME,
+     *   '  $ Name of a variable in the users program (defined below)'
+         WRITE(IINS,'(1X,A,A)') VNAME,
+     *   '  $ Name of a variable in the users program (defined below)'
+
+         I=INDEX(VNAME,' ')
+         MLET = I - 1
+
+C BEG JUN 2009 
+C        IF (I.EQ.0) MLET = 6
+         IF (I.EQ.0) MLET = 7
+C END JUN 2009 
+         WRITE(6,'(1X,A,A)')' VNAME=',VNAME(1:MLET)
+C
+  185    CONTINUE
+         WRITE(6,'(1X,A,A,A)')
+     *      ' IDENTIFY ROLE OF  ',VNAME(1:MLET),
+     *      ' (1  or  2  or  3  or  4  or  5  or  6  or  7): '
+         WRITE(6,'(1X,A)')
+     *' 1 = decision variable candidate(e.g.length, width, thickness)'
+         WRITE(6,'(1X,A)')
+     *' 2 = fixed parameter (e.g. control integer, material property)'
+         WRITE(6,'(1X,A)')
+     *' 3 = environmental factor (e.g. load, temperature)'
+         WRITE(6,'(1X,A)')
+     *' 4 = response quantity (e.g. stress, buckling load, frequency)'
+         WRITE(6,'(1X,A)')
+     *' 5 = allowable (e.g. maximum stress, minimum frequency)'
+         WRITE(6,'(1X,A)')
+     *' 6 = factor of safety'
+         WRITE(6,'(1X,A)')
+     *' 7 = objective (e.g. minimum weight, minimum cost)'
+         WRITE(6,'(1X,A,$)')
+     *' CHOOSE:  1  or  2  or  3  or  4  or  5  or  6  or  7: '
+
+         LABL =   0
+         ILOC = 190
+
+  190    READ(INFILE,'(I8)',END=395,ERR=185) IROLEV
+
+         IF (IROLEV.NE.1.AND.IROLEV.NE.2.AND.IROLEV.NE.3.AND.
+     *       IROLEV.NE.4.AND.IROLEV.NE.5.AND.IROLEV.NE.6.AND.
+     *       IROLEV.NE.7) THEN
+            WRITE(6,*)' CHOOSE AN INTEGER: 1,2,3,4,5,6,7  . TRY AGAIN.'
+            GO TO 185
+         ENDIF
+
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') IROLEV,
+     *   '  $ Role of the variable in the users program'
+         WRITE(IINS,'(1X,I7,A)') IROLEV,
+     *   '  $ Role of the variable in the users program'
+         WRITE(6,'(1X,A,I7)')' IROLEV=',IROLEV
+C
+C        IROLEV = 2
+C       ============
+C
+         IF (IROLEV.EQ.2) THEN
+
+  195       CONTINUE
+            WRITE(6,'(1X,A,A,A,$)')
+     *         ' IDENTIFY TYPE FOR VARIABLE  ',VNAME(1:MLET),
+     *         ' (1  or  2): '
+            WRITE(6,'(1X,A)')' 1 = integer'
+            WRITE(6,'(1X,A)')' 2 = floating point'
+            WRITE(6,'(1X,A,$)')' CHOOSE: 1  or  2: '
+
+            LABL =   0
+            ILOC = 200
+
+  200       READ(INFILE,'(I8)',END=395,ERR=195) ITYPEV
+
+            IF (ITYPEV.NE.1.AND.ITYPEV.NE.2) THEN
+               WRITE(6,*)' PLEASE CHOOSE EITHER  1  OR  2  . TRY AGAIN.'
+               GO TO 195
+            ENDIF
+
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') ITYPEV,
+     *      '  $ type of variable:  1 =integer,  2 =floating point'
+            WRITE(IINS,'(1X,I7,A)') ITYPEV,
+     *      '  $ type of variable:  1 =integer,  2 =floating point'
+            WRITE(6,'(1X,A,I7)')' ITYPEV=', ITYPEV
+C
+C        IROLEV != 2
+C       =============
+C
+         ELSE
+            ITYPEV = 2
+         ENDIF
+
+C
+         IF (IROLEV.NE.IROLEVV) THEN
+            IF (IROLEV.LE.2.AND.IROLEVV.LE.2) GO TO 205
+            IF (IROLEVV.GT.2) WRITE(6,2006) IROLEVV, IROLEV, IROLEVV
+            IF (IROLEVV.LE.2) WRITE(6,2007) IROLEV
+            GO TO 185
+         ENDIF
+
+  205    CONTINUE
+C
+C BEG JUN 2009 (1:6) changed to (1:7)
+
+         IF (IROLEV.EQ.4) THEN
+            VB = VNAME(1:7)
+            MLET4 = MLET
+         ENDIF
+
+         IF (IROLEV.EQ.5) THEN
+            VBA = VNAME(1:7)
+            MLET5 = MLET
+         ENDIF
+
+         IF (IROLEV.EQ.6) THEN
+            VBF = VNAME(1:7)
+            MLET6 = MLET
+         ENDIF
+
+C END JUN 2009 
+C
+         NDIMEN = 0
+C
+         IF (IROLEV.NE.7) THEN
+
+            IF (IROLEV.EQ.3) THEN
+               NROWS = 20
+               NCOLS = 1
+               NV = 'NCASES'
+               NC = 'MCASES'
+               ROWDEF=' Number of load cases (number of environments)'
+               COLDEF='                                              '
+               NDIMEN = 1
+               ILONG1 = 46
+               NLOADS = 1
+               NAMSAV = VNAME(1:MLET)
+               NVSAVE = NV
+               NCSAVE = NC
+               ROWDSV = ROWDEF
+               COLDSV = COLDEF
+               NROWSV = NROWS
+               NCOLSV = NCOLS
+               NDIMSV = NDIMEN
+               NEWD4  = 0
+               GO TO 285
+            ENDIF
+
+            ANS(1:1) = 'Y'
+
+            IF (IROLEV.GT.2) THEN
+               WRITE(6,'(1X,A,A)') VNAME(1:MLET),
+     *       ' is an array with the number of rows equal to 20 .'
+               WRITE(6,'(1X,A)')' Each row corresponds to a load case.'
+            ENDIF
+C
+            IF (IROLEV.LE.2) THEN
+
+  210          CONTINUE
+               WRITE(6,'(1X,A,A,A,$)')
+     *            ' Is the variable,  ',VNAME(1:MLET),' ,  an array? '
+
+               LABL =   0
+               ILOC = 215
+
+  215          READ(INFILE,'(A)',END=395,ERR=210) ANS
+               CALL SHIFTC(ANS)
+
+               IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *             ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+                  WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+                  GO TO 210
+               ENDIF
+
+               IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A,A,A)') ANS,
+     *         '  $ Is the variable, ',VNAME(1:MLET),' an array? '
+               WRITE(IINS,'(1X,A,A,A,A)') ANS,
+     *         '  $ Is the variable, ',VNAME(1:MLET),' an array? '
+               WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+            ENDIF
+
+            IF (ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n') THEN
+               NDIMEN = 0
+               COLDEF ='                                              '
+               ROWDEF ='                                              '
+               NEWDIM = 0
+               NEWD4  = 0
+            ENDIF
+C
+            IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+
+               IF (IROLEV.LE.2) THEN
+                  WRITE(6,'(1X,A,A,A,$)')
+     *            ' Do you want to establish new dimension(s) for ',
+     *            VNAME(1:MLET),'? '
+                  IF (NAMSAV.NE.'      ') WRITE(6,'(1X,A)')
+     *' [If you answer "no", INSERT will use the dimensions of the last'
+C BEG JAN 1990
+                IF (NAMSAV.NE.'      ') WRITE(6,'(1X,A,A,A)')'  array ('
+     *            ,NAMSAV,') for which dimension(s) were established.'
+                  WRITE(6,'(1X,A,A,A,/,1X,A,A,A)')
+     *            '  The row index would be named "',NVSAVE,
+     *           '", with the definition: ','   "',ROWDSV(1:ILONG1),'".'
+                  IF (NDIMSV.EQ.2) WRITE(6,'(1X,A,A,A,/,1X,A,A,A)')
+     *            '  The col index would be named "',NCSAVE,
+     *           '", with the definition: ','   "',COLDSV(1:ILONG2),'".'
+C END JAN 1990
+                  IF (NAMSAV.NE.'      '.AND.NDIMSV.EQ.2) 
+     *            WRITE(6,'(1X,A,A,A,A,A,I2,A,I2,A)')
+     *         '  In this case ',VNAME(1:MLET),' would be dimensioned ',
+     *            VNAME(1:MLET),'(',NROWSV,',',NCOLSV,'). ]'
+                  IF (NAMSAV.NE.'      '.AND.NDIMSV.EQ.1) 
+     *            WRITE(6,'(1X,A,A,A,A,A,I2,A)')
+     *         '  In this case ',VNAME(1:MLET),' would be dimensioned ',
+     *            VNAME(1:MLET),'(',NROWSV,'). ]'
+C BEG JAN 1990
+                  IF (NAMSAV.NE.'      ')
+     *               WRITE(6,'(1X,A,/,1X,A,A,A,/,1X,A,/,1X,A,/)')
+     *'  If you want either or both of the following:',
+     *'     1. new dimension(s) for ',VNAME(1:MLET),' and/or',
+     *'     2. new name(s) and definition(s) of the array indices',
+     *'  then answer "yes".  If you are in doubt, then answer "yes".'
+C END JAN 1990
+                  IF (NAMSAV.NE.'      ') WRITE(6,'(1X,A,A,A,$)')
+     *            ' Do you want to establish new dimension(s) for ',
+     *            VNAME(1:MLET),'?'
+
+               ELSE
+
+                  ANS2(1:1) = 'N'
+
+                  IF (IROLEV.EQ.4) THEN
+                   WRITE(6,'(1X,A,A,A,$)')
+     *               ' Do you want to reset the number of columns in ',
+     *               VNAME(1:MLET),'?'
+                   IF (NDIMSV.EQ.2) WRITE(6,'(1X,A,A,A,A,A,I2,A,I2,A)')
+     *               ' In this case, if you answer "no" ',
+     *               VNAME(1:MLET),' would be dimensioned ',
+     *               VNAME(1:MLET),'(',NROWSV,',',NCOLSV,'). ]'
+                   IF (NDIMSV.EQ.1) WRITE(6,'(1X,A,A,A,A,A,I2,A)')
+     *               ' In this case, if you answer "no" ',
+     *               VNAME(1:MLET),' would be dimensioned ',
+     *               VNAME(1:MLET),'(',NROWSV,'). ]'
+                   WRITE(6,'(1X,A,A,A,$)')
+     *               ' Do you want to reset the number of columns in ',
+     *               VNAME(1:MLET),'?'
+                  ENDIF
+
+               ENDIF
+C
+               IF (IROLEV.NE.5.AND.IROLEV.NE.6) THEN
+
+  220             CONTINUE
+
+                  LABL =   0
+                  ILOC = 225
+
+  225             READ(INFILE,'(A)',END=395,ERR=220) ANS2
+                  CALL SHIFTC(ANS2)
+
+                  IF (ANS2(1:1).NE.'Y'.AND.ANS2(1:1).NE.'y'.AND.
+     *             ANS2(1:1).NE.'N'.AND.ANS2(1:1).NE.'n') THEN
+                     WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+                     GO TO 220
+                  ENDIF
+
+                  IF (INFILE.EQ.5.AND.IROLEV.LE.2)
+     *               WRITE(IRAW,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to establish new dimensions for ',
+     *            VNAME(1:MLET),' ?'
+                  IF (INFILE.EQ.5.AND.IROLEV.EQ.4)
+     *               WRITE(IRAW,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to reset the number of columns in ',
+     *            VNAME(1:MLET),' ?'
+                  IF (IROLEV.LE.2)
+     *               WRITE(IINS,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to establish new dimensions for ',
+     *            VNAME(1:MLET),' ?'
+                  IF (IROLEV.EQ.4)
+     *               WRITE(IINS,'(1X,A,A,A,A)') ANS2,
+     *            '  $ Do you want to reset the number of columns in ',
+     *            VNAME(1:MLET),' ?'
+                  WRITE(6,'(1X,A,A)')' ANSWER=',ANS2(1:1)
+
+               ENDIF
+C
+               NEWDIM = 1
+
+               IF (ANS2(1:1).EQ.'N'.OR.ANS2(1:1).EQ.'n') THEN
+                  NEWDIM = 0
+                  NV = NVSAVE
+                  NC = NCSAVE
+                  ROWDEF = ROWDSV
+                  COLDEF = COLDSV
+                  NROWS  = NROWSV
+                  NCOLS  = NCOLSV
+                  NDIMEN = NDIMSV
+                  GO TO 280
+               ENDIF
+
+  230          CONTINUE
+               WRITE(6,'(1X,A,A,A)')
+     *       ' Array ',VNAME(1:MLET),' is of type 1 or 2:'
+               WRITE(6,'(1X,A,$)')
+     * '  1 = vector (1-dim. array),  2 = matrix (2-d array): NDIMEN='
+
+               LABL =   0
+               ILOC = 235
+
+  235          READ(INFILE,'(I8)',END=395,ERR=230) NDIMEN
+
+               IF (NDIMEN.NE.1.AND.NDIMEN.NE.2) THEN
+                  WRITE(6,*)' CHOOSE EITHER  1  OR  2  .  TRY AGAIN.'
+                  GO TO 230
+               ENDIF
+
+               IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NDIMEN,
+     *       '  $ Number of dimensions in the array,  ',VNAME(1:MLET)
+               WRITE(IINS,'(1X,I7,A,A)') NDIMEN,
+     *       '  $ Number of dimensions in the array,  ',VNAME(1:MLET)
+               WRITE(6,'(1X,A,I7)')' NDIMEN=', NDIMEN
+
+               IF (NDIMEN.EQ.1)
+     *         COLDEF ='                                              '
+
+               IF (IROLEV.LE.2) THEN
+                  IF (MLET.LT.6) NV = 'I'//VNAME(1:MLET)
+                  MLET1 = MLET - 1
+                  IF (MLET.EQ.6) NV = 'I'//VNAME(1:MLET1)
+
+  240             CONTINUE
+                  WRITE(6,'(1X,A,A,A,A,A)')' The row index of ',
+     *            VNAME(1:MLET),' is called ',NV,' .'
+                  WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *            NV,'.  (LESS THAN 60 CHARACTERS, PLEASE!)'
+
+                  LABL =   0
+                  ILOC = 245
+
+  245             READ(INFILE,'(A)',END=395,ERR=240) ROWDEF
+                  CALL SHIFTP(ROWDEF)
+                  CALL BLANKX(ROWDEF,ILONG1)
+
+                  IF (ILONG1.GT.61) THEN
+                     IDIFF = ILONG1 - 61
+                     WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY '
+     *              ,IDIFF,
+     *             ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',NV
+                     GO TO 240
+                  ENDIF
+
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)')ROWDEF(1:ILONG1)
+                  WRITE(IINS,'(1X,A)')ROWDEF(1:ILONG1)
+
+  250             CONTINUE
+                  WRITE(6,'(1X,A)') ROWDEF(1:ILONG1)
+                  WRITE(6,'(1X,A,A,A,$)')
+     *            ' Maximum allowable number of rows in the array,  ',
+     *            VNAME(1:MLET),'. NROWS='
+
+                  LABL =   0
+                  ILOC = 255
+
+  255             READ(INFILE,'(I8)',END=395,ERR=250) NROWS
+
+                  IF (NROWS.LE.0.OR.NROWS.GE.100) THEN
+                     WRITE(6,*)' PLEASE MAKE   NROWS   GREATER THAN 0'
+                     WRITE(6,*)' AND LESS THAN 100 '
+                     GO TO 250
+                  ENDIF
+
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NROWS,
+     *       '  $ Max. allowable number of rows NROWS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(IINS,'(1X,I7,A,A)') NROWS,
+     *       '  $ Max. allowable number of rows NROWS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(6,'(1X,A,I7)')' NROWS=', NROWS
+
+               ENDIF
+C
+               NCOLS = 1
+C BEG JUN 2009 
+C              IF (MLET.LT.6) NC = 'J'//VNAME(1:MLET)
+               IF (MLET.LT.7) NC = 'J'//VNAME(1:MLET)
+C END JUN 2009 
+               MLET1 = MLET - 1
+C BEG JUN 2009 
+C              IF (MLET.EQ.6) NC = 'J'//VNAME(1:MLET1)
+               IF (MLET.EQ.7) NC = 'J'//VNAME(1:MLET1)
+C END JUN 2009 
+C              IF (NDIMEN.EQ.1) WRITE(IBEG,'(6X,A,A)') NC,' = 1'
+
+               IF (NDIMEN.EQ.2) THEN
+  260             CONTINUE
+                  WRITE(6,'(1X,A,A,A,A,A)')' The column index of ',
+     *            VNAME(1:MLET),' is called ',NC,' .'
+                  WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *            NC,'.  (LESS THAN 60 CHARACTERS, PLEASE!)'
+
+                  LABL =   0
+                  ILOC = 265
+
+  265             READ(INFILE,'(A)',END=395,ERR=260) COLDEF
+                  CALL SHIFTP(COLDEF)
+                  CALL BLANKX(COLDEF,ILONG2)
+
+                  IF (ILONG2.GT.61) THEN
+                     IDIFF = ILONG2 - 61
+                     WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY '
+     *              ,IDIFF,
+     *             ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',NC
+                     GO TO 260
+                  ENDIF
+
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)')COLDEF(1:ILONG2)
+                  WRITE(IINS,'(1X,A)')COLDEF(1:ILONG2)
+
+  270             CONTINUE
+
+                  WRITE(6,'(1X,A)') COLDEF(1:ILONG2)
+                  WRITE(6,'(1X,A,A,A,$)')
+     *          ' Maximum allowable number of columns in the array, ',
+     *            VNAME(1:MLET),'. NCOLS='
+
+                  LABL =   0
+                  ILOC = 275
+
+  275             READ(INFILE,'(I8)',END=395,ERR=270) NCOLS
+
+                  IF (NCOLS.LE.0.OR.NCOLS.GE.100) THEN
+                     WRITE(6,*)' PLEASE MAKE   NCOLS   GREATER THAN 0'
+                     WRITE(6,*)' AND LESS THAN 100 '
+                     GO TO 270
+                  ENDIF
+
+                  IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A,A)') NCOLS,
+     *     '  $ Max. allowable number of columns NCOLS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(IINS,'(1X,I7,A,A)') NCOLS,
+     *     '  $ Max. allowable number of columns NCOLS in the array, ',
+     *            VNAME(1:MLET)
+                  WRITE(6,'(1X,A,I7)')' NCOLS=', NCOLS
+
+               ENDIF
+
+               NAMSAV = VNAME(1:MLET)
+               NVSAVE = NV
+               NCSAVE = NC
+               ROWDSV = ROWDEF
+               COLDSV = COLDEF
+               NROWSV = NROWS
+               NCOLSV = NCOLS
+               NDIMSV = NDIMEN
+C
+  280          CONTINUE
+
+               IF (IROLEV.EQ.4) NEWD4 = NEWDIM
+C
+            ENDIF
+
+         ENDIF
+C
+  285    CONTINUE
+         WRITE(6,'(1X,A,A,A)')' PROVIDE A DEFINITION FOR  ',
+     *   VNAME(1:MLET),'.  (LESS THAN 60 CHARACTERS, PLEASE!)'
+
+         LABL =   0
+         ILOC = 290
+
+  290    READ(INFILE,'(A)',END=395,ERR=285) PHRASE
+         CALL SHIFTP(PHRASE)
+         PHRAS2 = PHRASE
+         CALL BLANKX(PHRAS2,IENDP)
+
+         IF (IENDP.GT.61) THEN
+            IDIFF = IENDP - 61
+            WRITE(6,'(1X,A,I3,A,A)')' DEFINITION TOO LONG BY ',IDIFF,
+     *      ' CHARACTERS. PLEASE SHORTEN DEFINITION FOR ',VNAME(1:MLET)
+            GO TO 285
+         ENDIF
+
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRAS2(1:IENDP)
+         WRITE(IINS,'(1X,A)') PHRAS2(1:IENDP)
+         WRITE(6,'(1X,A,A,A)') VNAME(1:MLET),' = ', PHRAS2(1:IENDP)
+
+         IF (IROLEV.EQ.4) THEN
+             IENDP4 = IENDP
+             P4 = PHRAS2(:IENDP4)
+         ENDIF
+
+         IF (IROLEV.EQ.5) THEN
+             IENDP5 = IENDP
+             P5 = PHRAS2(:IENDP5)
+         ENDIF
+
+         IF (IROLEV.EQ.6) THEN
+             IENDP6 = IENDP
+             P6 = PHRAS2(:IENDP6)
+         ENDIF
+C
+  295    CONTINUE
+C
+  300    CONTINUE
+         WRITE(6,'(1X,A,$)')
+     *      ' DO YOU WANT TO INCLUDE A "HELP" PARAGRAPH? (y  or  n): '
+
+         LABL =   0
+         ILOC = 305
+
+  305    READ(INFILE,'(A)',END=395,ERR=300) ANS
+         CALL SHIFTC(ANS)
+
+         IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *       ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+            WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+            GO TO 300
+         ENDIF
+
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *'  $ Do you want to include a "help" paragraph?'
+         WRITE(IINS,'(1X,A,A)') ANS,
+     *'  $ Do you want to include a "help" paragraph?'
+         WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+
+         IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+            TYPEH = 2
+            WRITE(6,'(1X,A)')' PROVIDE HELP PARAGRAPH TO EXPLAIN INPUT'
+
+  310       CONTINUE
+
+            LABL =   0
+            ILOC = 315
+
+  315       READ(INFILE,'(A)',END=395,ERR=310) PHRASE
+            CALL SHIFTP(PHRASE)
+            CALL BLANKX(PHRASE,ILONG)
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A)') PHRASE(1:ILONG)
+            WRITE(IINS,'(1X,A)') PHRASE(1:ILONG)
+            WRITE(6,'(1X,A)') PHRASE(1:ILONG)
+
+  320       CONTINUE
+            WRITE(6,'(1X,A,$)')
+     *    ' ANY MORE LINES IN THIS PARAGRAPH? (y  or  <cr> or  n): '
+            ANS = ' '
+
+            LABL =   0
+            ILOC = 325
+
+  325       READ(INFILE,'(A)',END=395,ERR=320) ANS
+            CALL SHIFTC(ANS)
+            IF (INFILE.EQ.5) WRITE(IRAW,'(1X,A,A)') ANS,
+     *'  $ Any more lines in the "help" paragraph?'
+            WRITE(IINS,'(1X,A,A)') ANS,
+     *'  $ Any more lines in the "help" paragraph?'
+            WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+            IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y'.OR.ANS(1:1).EQ.' ')
+     *          GO TO 310
+         ENDIF
+C
+C
+C
+         GO TO (330,335,340,345,350,355,360),IROLEV
+
+  330    IVAR = IVAR + 1
+         GO TO 365
+
+  335    CONTINUE
+         IF (ITYPEV.EQ.2) THEN
+            IPAR = IPAR + 1
+         ENDIF
+         GO TO 365
+
+  340    ILAR = ILAR + 1
+         GO TO 365
+
+  345    ICAR = ICAR + 1
+         GO TO 365
+
+  350    IALLOW = IALLOW + 1
+         GO TO 365
+
+  355    IFACT = IFACT + 1
+         GO TO 365
+
+  360    IOAR = IOAR + 1
+         IF (IOAR.GT.1) THEN
+            WRITE(6,*)' NUMBER OF OBJECTIVE FUNCTIONS EXCEEDS 1.'
+            CALL EXIT
+         ENDIF
+
+  365    CONTINUE
+C
+         IF (IROLEV.EQ.6) THEN
+
+            WRITE(6,2008) P4(:IENDP4),VB(1:MLET4),
+     *                   P5(:IENDP5),VBA(1:MLET5),
+     *                   P6(:IENDP6),VBF(1:MLET6)
+C
+            WRITE(6,2009)
+C
+  370      CONTINUE
+           WRITE(6,'(1X,A,A,A,$)')
+     * ' PLEASE CHOOSE  1 OR 2 OR 3  FOR THIS CASE (',VB(1:MLET4),') :'
+
+           LABL =   0
+           ILOC = 375
+
+  375      READ(INFILE,'(I8)',END=395,ERR=370) INDX
+
+           IF (INDX.NE.1.AND.INDX.NE.2.AND.INDX.NE.3) THEN
+              WRITE(6,*)' PLEASE CHOOSE  1 OR 2 OR 3 . TRY AGAIN.'
+              GO TO 370
+           ENDIF
+
+           IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') INDX,
+     *     '  $ Indicator (1 or 2 or 3) for type of constraint'
+           WRITE(IINS,'(1X,I7,A)') INDX,
+     *     '  $ Indicator (1 or 2 or 3) for type of constraint'
+           WRITE(6,'(1X,A,I7)')' TYPE OF CONSTRAINT=', INDX
+
+         ENDIF
+C
+      ENDIF
+C
+      IF (IROLEV.EQ.7) GO TO 390
+C
+      IF (IROLEV.EQ.1.OR.IROLEV.EQ.2) THEN
+        WRITE(6,'(1X,A)')
+     *' ANY MORE DECISION VARIABLE CANDIDATES     (ROLE 1 VARIABLES) '
+        WRITE(6,'(1X,A,$)')
+     *'    OR    FIXED PARAMETERS (e.g. material) (ROLE 2 VARIABLES)? '
+      ENDIF
+C
+      IF (IROLEV.EQ.3) WRITE(6,'(1X,A,$)')
+     *' ANY MORE ENVIRONMENTAL PARAMETERS (loads) (ROLE 3 VARIABLES)? '
+
+      IF (IROLEV.EQ.4) THEN
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(1X,A,A,A)')
+     *' CHOOSE AN ALLOWABLE FOR ',VB(1:MLET4),' (ROLE 5 VARIABLE).'
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         IROLEVV = 5
+         GO TO 140
+      ENDIF
+
+      IF (IROLEV.EQ.5) THEN
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(1X,A,A,A)')
+     *' CHOOSE FACTOR OF SAFETY FOR ',VB(1:MLET4),' (ROLE 6 VARIABLE).'
+         WRITE(6,'(A)') '  '
+         WRITE(6,'(A)') '  '
+         IROLEVV = 6
+         GO TO 140
+      ENDIF
+
+      IF (IROLEV.EQ.6) THEN
+        WRITE(6,'(1X,A,$)')
+     *' ANY MORE RESPONSE VARIABLES (e.g.buckling) (ROLE 4 VARIABLES)? '
+        IROLEVV = 4
+      ENDIF
+C
+  380 CONTINUE
+
+      LABL =   3
+      ILOC = 385
+
+  385 READ(INFILE,'(A)',END=395,ERR=380) ANS
+      CALL SHIFTC(ANS)
+
+      IF (ANS(1:1).NE.'Y'.AND.ANS(1:1).NE.'y'.AND.
+     *    ANS(1:1).NE.'N'.AND.ANS(1:1).NE.'n') THEN
+         WRITE(6,*)' PLEASE ANSWER  y  OR  n . TRY AGAIN. '
+         GO TO 380
+      ENDIF
+C
+      IF (INFILE.EQ.5) THEN
+         IF (IROLEVV.GT.2) WRITE(IRAW,'(1X,A,A,I2,A)') ANS,
+     *   '  $ Any more variables for role type ',IROLEVV,' ?'
+         IF (IROLEVV.LE.2) WRITE(IRAW,'(1X,A,A)') ANS,
+     *   '  $ Any more variables for role types  1  or  2   ?'
+      ENDIF
+
+         IF (IROLEVV.GT.2) WRITE(IINS,'(1X,A,A,I2,A)') 'y      ',
+     *   '  $ Any more variables for role type ',IROLEVV,' ?'
+         IF (IROLEVV.LE.2) WRITE(IINS,'(1X,A,A)') 'y      ',
+     *   '  $ Any more variables for role types  1  or  2   ?'
+C
+      WRITE(6,'(1X,A,A)')' ANSWER=',ANS(1:1)
+
+      IF (ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y') THEN
+
+         IF (IROLEVV.EQ.1.OR.IROLEVV.EQ.2) THEN
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER DECISION VARIABLE CANDIDATE (ROLE 1 VARIABLE)'
+            WRITE(6,'(1X,A)')
+     *'       OR       FIXED PARAMETER             (ROLE 2 VARIABLE).'
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            IROLEVV = 1
+            GO TO 140
+         ENDIF
+
+         IF (IROLEV.EQ.3) THEN
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER ENVIRONMENTAL PARAMETER     (ROLE 3 VARIABLE).'
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            IROLEVV = 3
+            GO TO 140
+         ENDIF
+
+         IF (IROLEV.EQ.6) THEN
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(1X,A)')
+     *' CHOOSE ANOTHER RESPONSE VARIABLE           (ROLE 4 VARIABLE).'
+            WRITE(6,'(A)') '  '
+            WRITE(6,'(A)') '  '
+            IROLEVV = 4
+            GO TO 140
+         ENDIF
+
+         GO TO 140
+
+      ENDIF
+
+  390 CONTINUE
+C
+      GO TO 400
+C
+C     PATH FOR END-OF-FILE ON THE INPUT DATA FILE, INFILE
+c     ===================================================
+
+  395 CONTINUE
+
+      INFILE = 5
+
+C     WRITE(6,*)' LABL,ILOC = ',LABL,ILOC
+C
+C BEG SEP 2011 
+C
+C     ########## original GOTO statement ##########
+
+C     GO TO (115,150,155,170,180,190,200,215,225,235,
+C    *       245,255,265,275,290,305,310,325,375,385), LABL
+C
+C     ########## modified GOTO logic ##########
+
+      IF (LABL .EQ. 0) THEN
+        WRITE(6,2010) LABL, ILOC
+      ENDIF
+
+      GO TO (110,145,380), LABL
+
+C END SEP 2011 
+C
+  400 CONTINUE
+C
+      NCAR = ICAR
+C
+      WRITE(6,2000) CASE(1:NLET),CASE1(1:JLET)
+C
+c Changed 11/90 STATUS keyword and argument removed.
+      CLOSE(UNIT=IRAW)
+c End 11/90 changes
+C
+C  NEXT, READ  INSERT.IINS  ONTO THE NEW FILE...
+C
+      REWIND IINS
+
+C BEG NOV 2011 
+
+C     DO 405 I = 1,10000
+C     READ(IINS,'(A)',END=410) PHRASE
+C     CALL BLANKX(PHRASE,J)
+C     WRITE(IMOD,'(A)') PHRASE(1:J)
+C 405 CONTINUE
+
+  405 READ(IINS,'(A)',END=410) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(IMOD,'(A)') PHRASE(1:J)
+      GO TO 405
+
+C END NOV 2011 
+
+  410 CONTINUE
+C
+C
+C  NEXT, COPY REST OF THE FILE NAME.INP ONTO THE NEW FILE NAME.MOD...
+C
+C BEG NOV 2011 
+
+C     DO 415 I = 1,10000
+C     READ(IINP,'(A)',END=420) PHRASE
+C     CALL BLANKX(PHRASE,J)
+C     WRITE(IMOD,'(A)') PHRASE(1:J)
+C 415 CONTINUE
+
+  415 READ(IINP,'(A)',END=420) PHRASE
+      CALL BLANKX(PHRASE,J)
+      WRITE(IMOD,'(A)') PHRASE(1:J)
+      GO TO 415
+
+C END NOV 2011 
+
+  420 CONTINUE
+C
+c Changed 11/90 STATUS keyword and argument removed.
+      CLOSE(UNIT=IINS)
+      CLOSE(UNIT=IMOD)
+c End 11/90 changes
+C
+      WRITE(6,2001) CASE(1:NLET),CASE(1:NLET),CASE1(1:JLET),
+     *             CASE3(1:JLET),CASE1(1:JLET)
+C
+      RETURN
+C+---------------------------------------------------------------------+
+C|    FORMAT STATEMENTS                                                |
+C+---------------------------------------------------------------------+
+ 2000 FORMAT(/' The purpose of INSERT is to generate a '/
+     *' file called',1X,A,'.INS and to insert this file'/
+     *' into the file called',1X,A,'.INP at the location'/
+     *' specified by a user-provided prompt number.')
+ 2001 FORMAT(/' DESCRIPTION OF FILEs GENERATED BY THIS RUN:'//
+     * 5X,A,'.INP  = input data for INSERT generated by this run.'/
+     * 5X,A,'.INS  = file for insertion into the ',1X,A,'.INP  file.'/
+     * 6X,A,'.MOD  = the ',1X,A,' file after insertion of INSERT.INS')
+ 2002 FORMAT(//' THE FILE  INSERT.INS  IS TO BE INSERTED INTO THE'/
+     *' APPROPRIATE SPOT IN THE FILE ',A,'.INP.  A NEW FILE CALLED'/
+     *' ', A,'.MOD  WILL BE GENERATED.  THE NEW FILE, ',A,'.MOD'/
+     *' CONTAINS THE INSERTION,  INSERT.INS, AT A POSITION DETERMINED'/
+     *' BY YOUR NEXT INPUT DATUM.  NOW PROVIDE THE PROMPT INDEX'/
+     *' FOLLOWING WHICH YOU WANT THE NEW INSERTION TO BE MADE.'//
+     *' TO GET THE PROMPT INDEX, LOOK AT THE FILE ',A,'.INP.  NOTICE'/
+     *' THAT AT THE END OF CERTAIN LINES AN INTEGER PRECEDED BY A'/
+     *' DOLLAR SIGN APPEARS (example: $105). THE INTEGER IS A PROMPT'/
+     *' INDEX.  CHOOSE AN INDEX WHERE YOU WANT THE INSERTION TO BE'/
+     *' MADE.  DO NOT TYPE THE DOLLAR SIGN!'//
+     *' CAUTION: PROMPT INDICES ALSO APPEAR IN TABLE 2 OF THE FILE'/
+     *'          CALLED ',A,'.DEF.  HOWEVER, IT IS NOT "LEGAL" TO'/
+     *'          SELECT ANY OF THE INDICES IN THAT TABLE. ONLY CERTAIN'/
+     *'          OF THE PROMPT INDICES ARE "LEGAL".  THE "LEGAL" ONES'/
+     *'          ARE THE ONES THAT APPEAR IN THE FILE ',A,'.INP.'/)
+ 2003 FORMAT(/' The  INSERT.INS  file will be inserted immediately'/
+     *' following the line containing the character string, ',A,' , in'/
+     *' the file called ',A,'.INP.')
+ 2004 FORMAT(//' You will next be asked to provide information'/
+     * ' about a new variable that will play a role in your program.'/
+     * ' The following items relative to this new variable will be'/
+     * ' asked of you:'/
+     * '  1. A name of the variable (six characters or less, please.)'/
+     * '  2. The role of the variable in your program.'/
+     * '  3. Is the variable an array? (If yes, give number of rows,'/
+     * '     NROWS and columns, NCOLS.)'/
+     * '  4. A one-line definition of the variable.'/
+     * '  5. Do you want to include a "help" paragraph that explains'/
+     * '     more about the variable than the one-line definition?'/)
+ 2005 FORMAT(' A variable can have one of the following roles:'/
+     * '    1 = a possible decision variable for optimization,'/
+     * '        typically a dimension of a structure.'/
+     * '    2 = a constant parameter (cannot vary as design evolves),'/
+     * '        typically a control integer or a material property.'/
+     * '    3 = a parameter characterizing the environment, such'/
+     * '        as a load component or a temperature.'/
+     * '    4 = a quantity that describes the response of the'/
+     * '        structure, (e.g. stress, buckling load, frequency)'/
+     * '    5 = an allowable, such as maximum allowable stress,'/
+     * '        minimum allowable frequency, etc.'/
+     * '    6 = a factor of safety'/
+     * '    7 = the quantity that is to be minimized (e.g. weight)'/
+     * ' ===========================================================')
+ 2006 FORMAT(/' REQUIRED VALUE OF THE ROLE IS',I2/
+     *        ' VALUE OF THE ROLE YOU CHOSE =',I2/
+     *        ' PLEASE USE THE REQUIRED VALUE',I2/)
+ 2007 FORMAT(/' REQUIRED VALUE OF THE ROLE IS  1   OR   2.'/
+     *        ' VALUE OF THE ROLE YOU CHOSE =',I2/
+     *        ' PLEASE USE EITHER  1  OR  2  .'/)
+ 2008 FORMAT(/
+     *' ACTUAL RESPONSE    = BEHAV = ',A,' = ',A6/
+     *' ALLOWABLE RESPONSE = ALLOW = ',A,' = ',A6/
+     *' FACTOR OF SAFETY   = FSAFE = ',A,' = ',A6)
+ 2009 FORMAT(/' There are two types of behavioral constraint'/
+     *' conditions in an optimization problem:'//
+     *'   1  For a feasible design the allowable response, ALLOW'/
+     *'      must be greater than the product of the actual'/
+     *'      response, BEHAV, times its factor of safety, FSAFE.'/
+     *'      EXAMPLE: Allowable stress must be greater than the actual'/
+     *'               stress x the factor of safety for stress.'//
+     *'   2  For a feasible design the actual response, BEHAV, must'/
+     *'      must be greater than the product of the allowable'/
+     *'      response, ALLOW, times its factor of safety, FSAFE.'/
+     *'      EXAMPLES: (a) buckling load factor must be greater than'/
+     *'                    the allowable value x the factor of safety'/
+     *'                    for buckling.'/
+     *'                (b) lowest natural frequency must be greater'/
+     *'                    than the allowable value x the factor of'/
+     *'                    safety for natural frequency.'/)
+ 2010 FORMAT(/,'INSERT - ERROR:  LABL = ',I5,',  ILOC = ',I5)
+      END

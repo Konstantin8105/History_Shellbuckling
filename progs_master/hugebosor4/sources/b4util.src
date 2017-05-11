@@ -1,0 +1,2931 @@
+C=DECK      UTILLIB
+C
+C  THIS IS THE UTIL LIBRARY (SOURCE FILE)
+C
+C
+C
+C=DECK      ERREX
+      SUBROUTINE ERREX
+C
+C    PURPOSE IS TO TRIGGER A SYSTEM ERROR TERMINATION.
+C
+C BEG OCT 1995
+C     DENOM = 0.
+C     FNUM  = 1.
+C BEG 26 JAN 1989
+C     QUOT  = FNUM/(FNUM - FNUM)
+C END 26 JAN 1989
+      CALL EXIT(1)
+C END OCT 1995
+      RETURN
+      END
+C
+C
+C
+C=DECK      MOVER 
+      SUBROUTINE MOVER (KK,II,LL,JJ,N)    
+C        MOVE 4-BYTE WORDS FROM KK TO LL  
+C     
+      DIMENSION KK(*), LL(*)
+      IF(N.LT.1) RETURN 
+      I=1   
+      J=1   
+      DO 10 K=1,N 
+      LL(J)=KK(I) 
+      I=I+II
+   10 J=J+JJ
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CHANGL
+      SUBROUTINE CHANGL(FACT,NTOT)
+C
+C     CALLED FROM MAIN. ALSO CALLED FROM EIGEN, WHOSE TRACE IS BUCKLE,
+C     MAIN.  LOAD INCREMENT SIZES ARE ALTERED DEPENDING ON PREVIOUS
+C     CALCULATIONS.
+      COMMON/MAXSTP/STEPM,STEPMI,RHOM
+      COMMON/TEMTUR/ TEMP,DTEMP
+      COMMON/STEPS/STEP,STEP1(198),STEP2(198),STEP3(198)
+      COMMON/ROTATN/OMEGA,DOMEGA
+      STEP = STEP*FACT
+      DTEMP = DTEMP*FACT
+      DOMEGA= DOMEGA*FACT
+      STEPM = STEPM*FACT
+      IF (NTOT.EQ.0) RETURN
+      DO 10 I=1,NTOT
+      STEP1(I) = STEP1(I)*FACT
+      STEP2(I) = STEP2(I)*FACT
+10    STEP3(I) = STEP3(I)*FACT
+      RETURN
+      END
+C
+C
+C
+C=DECK      DUMMY
+      SUBROUTINE DUMMY
+      ENTRY FDATE
+      ENTRY JOBNAM
+      ENTRY NARG
+      ENTRY WDATE
+      RETURN
+      END
+C
+C
+C
+C=DECK      FACTOR
+C./      ADD   NAME=FACTR
+      SUBROUTINE FACTOR (FACT)
+C
+C       SUB TO WRITE TO A PLOT FILE
+C
+C     WRITE (53,100) 'FACTOR ',FACT
+      RETURN
+100   FORMAT (' ',A7,9E13.5)
+      END
+C
+C
+C
+C=DECK      FACTR
+C BEG OCT 2005
+      SUBROUTINE FACTR(A,B,IBLK,DET,NEX,NBLK,KEQ,KBAND,LOC,DIAG,DI,KMAX,
+     1 IFILEX,ITESTX,IABORT,DIAMX0)
+      DOUBLE PRECISION A,B,DI,SUM
+C BEG OCT 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      DIMENSION A(*),B(*),IBLK(NBLK),KEQ(NBLK),KBAND(NBLK),LOC(*)
+      DIMENSION DIAG(*)
+C END OCT 2005
+      DIMENSION DI(1500),KMAX(NBLK)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/ORTA/IFLGG,KTM,KROOTS
+      COMMON/OUTP/NPRT
+      COMMON /INSTAB/ INDIC
+C
+C     KEQ(N)       TRUE EQUATION NUMBER OF LAST EQ IN BLOCK N
+C     KBAND(N)     LOWEST TRUE UNKNOWN NUMBER REFERENCED IN BLOCK N
+C     LOC(I)       RELATIVE LOCATION OF MAIN DIAGONAL OF EQ I IN BLOCK N
+C     IBLK(I)      AUXILIARY STORAGE INDEX NR FOR BLOCK I
+C     NBLK         NUMBER OF BLOCKS
+C     A            ARRAY WORKING SPACE (LARGEST BLOCK)
+C     B            ARRAY WORKING SPACE (LARGEST BLOCK)
+C     DIAG         ARRAY FOR MAIN DIAG OF MATRIX (SINGLE PRECISION)
+      N=KEQ(NBLK)
+C BEG OCT 2005
+C     WRITE(IFILE4,'(A,I8)')' Entering FACTR. NBLK=',NBLK
+C     CALL MOVER(0.,0,DIAG,1,N)
+C END OCT 2005
+      KTM=0
+      I=1
+      MB=0
+C                                      NEXT I BLOCK
+10    J=I
+      IA=1
+      IF (I.EQ.1) GO TO 20
+      IA=KEQ(I-1)+1
+20    CONTINUE
+      IB=KEQ(I)
+C                                      NEXT J BLOCK
+30    JB=KEQ(J)
+      JA=1
+      IF (J.EQ.1) GO TO 40
+      JA=KEQ(J-1)+1
+40    CONTINUE
+      IF (MB.EQ.J) GO TO 60
+      IF (MB.EQ.0) GO TO 50
+      IF (NBLK.GT.1) CALL GASP(B,NW,1,IBLK(MB  ))
+50    N1=KEQ(J)
+      NW = LOC(N1)*2
+      IF (NBLK.GT.1) CALL GASP(B,NW,3,IBLK(J   ))
+      MB=J
+60    IG=1
+C                                      LOOP ON I BLOCK
+70    DO 230 II=IA,IB
+      I1=0
+      I2=LOC(II)
+      IF (II.EQ.IA) GO TO 80
+      I1=LOC(II-1)
+80    IN=I2-I1
+C                                      LOOP ON J BLOCK
+90    J2 = 0
+      JM = JA
+      IF (JA.GE.II) GO TO 100
+      JM = II
+      J2 = I1
+100   CONTINUE
+      JE = MIN0(JB, II+KMAX(J))
+      IF (JE.LT.JM) GO TO 230
+      DO 220 JJ=JM,JE
+      IDIF = JJ - II
+      JN = LOC(JJ) - J2 - IDIF
+      J2 = LOC(JJ)
+      IF (JN.LE.0) GO TO 220
+      KN=MIN0(IN,JN)-1
+      IF (KN) 220,170,110
+110   KA=I2-KN-1
+      KB=J2-KN-1-IDIF
+      SUM=0.
+      IF (IDIF.GT.0) GO TO 150
+      KL=II-I2
+      I11=I1+1
+      I21=I2-1
+      DO 140 K=I11,I21
+      IF (DIAG(K+KL)) 120,130,130
+120   A(K)=-B(K)
+      GO TO 140
+130   A(K)=B(K)
+140   CONTINUE
+150   DO 160 K=1,KN
+160   SUM=SUM+A(K+KA)*B(K+KB)
+      B(J2-IDIF)=B(J2-IDIF)-SUM
+170   IF (I.NE.J) GO TO 210
+      IF (IDIF.GT.0) GO TO 210
+      DI(IG) = DSQRT(DABS(B(I2)))
+      B(I2) = DSIGN(DI(IG),B(I2))
+      IF (B(I2)) 190,180,200
+180   B(I2)=1.
+      DI(IG)=1.
+      GO TO 200
+190   KTM=KTM+1
+200   DIAG(II)=B(I2)
+      GO TO 220
+210   B(J2-IDIF)=B(J2-IDIF)/DI(IG)
+220   CONTINUE
+230   IG=IG+1
+240   J=J+1
+      IF (J.GT.NBLK) GO TO 250
+      IF (IB.GE.KBAND(J)) GO TO 30
+      GO TO 240
+250   I=I+1
+      IF (I.LE.NBLK) GO TO 10
+C BEG NOV 2005
+      IABORT = 0
+      DIAMAX = 0.
+      DO 255 IROWS = 1,N
+         DIAMAX = MAX(DIAMAX,ABS(DIAG(IROWS)))
+  255 CONTINUE
+      IF (DIAMAX.GT.DIAMX0*10.E+06) THEN
+         WRITE(IFILEX,'(/,A,/,A,1P,E12.4,/,A,1P,E12.4,/,A,/,A)')
+     1 ' ********** ALMOST SINGULAR STIFFNESS MATRIX **********',
+     1 ' Maximum diagonal of factored matrix at iteration 0=',DIAMX0,
+     1 ' Maximum diagonal of factored matrix, current iter.=',DIAMAX,
+     1 ' Newton iterations now aborting.',
+     1 ' ********** ALMOST SINGULAR STIFFNESS MATRIX **********'
+         IABORT = 1
+         RETURN
+      ENDIF
+C END NOV 2005
+C BEG OCT 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (ITESTX.EQ.1) THEN
+       WRITE(IFILEX,'(A,3I8)')' Compute determinant. NBLK,I,N=',NBLK,I,N
+       WRITE(IFILEX,'(A,/,(1P,5E12.4))')
+     1' (DIAG(IIDIAG),IIDIAG=1,M3)=',(DIAG(IIDIAG),IIDIAG=1,N)
+C      WRITE(IFILEX,'(/,A,/,(1P,5E12.4))')
+C    1' (DI(IIDIAG),IIDIAG=1,M3)=',(DI(IIDIAG),IIDIAG=1,N)
+       WRITE(IFILEX,'(A,I3)')
+     1' INDIC=1 in FACTR before determinant computation: ITESTX=',ITESTX
+       CALL EXIT
+      ENDIF
+C END OCT 2005
+C                                      COMPUTE DETERMINANT
+      IF (NBLK.GT.1) CALL GASP(B,NW,1,IBLK(NBLK))
+      DET=1.
+      NEX=0
+      DO 280 I=1,N
+C BEG OCT 2005
+C     WRITE(IFILE4,'(A,2I8,1P,2E12.4)')' N,I,DET,DIAG(I)=',
+C    1                                   N,I,DET,DIAG(I)
+C     IF (ITESTX.EQ.1) WRITE(IFIL8X,'(A,I3)')
+C    1' INDIC=1 in FACTR during determinant computation: ITESTX=',ITESTX
+C     IF (ITESTX.EQ.1) CALL EXIT
+C END OCT 2005
+C END OCT 2005
+      DET=DET*DIAG(I)
+      IF (DET.EQ.0.) GO TO 280
+260   IF (ABS(DET).LT.1.E+10) GO TO 270
+      DET=DET*1.E-10
+      NEX=NEX+10
+      GO TO 260
+270   IF (ABS(DET).GT.1.E-10) GO TO 280
+      DET=DET*1.E+10
+      NEX=NEX-10
+      GO TO 270
+280   CONTINUE
+      IF (NPRT.GT.2) WRITE(IFILE4,290)DET,NEX,(DIAG(I),I=1,N)
+290   FORMAT('  DET=',E17.7,',  NEX=',I6,',   DIAG FOLLOWS',/,
+     1(10E12.4))
+      RETURN
+      END
+C
+C
+C
+C=DECK      FINDZ
+      SUBROUTINE FINDZ(NZVALU,IZVAL,ZVAL,NMESH,Z,S)
+C
+C     CALLED FROM DISTP,DISTT,GETZ,MESH,GETPST,GEOM3,CFB1,CFB5,CFB8,
+C     ALL OF WHICH ARE IN THE READIT OVERLAY
+C
+C     THIS IS A SIMPLE LINEAR INTERPOLATOR. THE INPUT VALUES ARE IN ZVAL
+C     AND THE OUTPUT VALUES IN Z.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      DIMENSION IZVAL(50),ZVAL(50),Z(100),S(100)
+      Z(1) = ZVAL(1)
+      J = 1
+      DO 40 I=2,NMESH
+      J1 = J + 1
+      ZIZ = ZVAL(J)
+      IZJ = IZVAL(J)
+      IZJ1 = IZVAL(J1)
+      FDIF1 = S(I) - S(IZJ)
+      FDIF2 = S(IZJ1) - S(IZJ)
+      IF (FDIF2.NE.0.) GO TO 20
+      WRITE(IFILE4,10)I
+C23456789012345678901234567890123456789012345678901234567890123456789012
+10    FORMAT(/,' TOO MANY CALLOUTS NEAR MESH POINT ',I2,/,
+     1' THIS MESSAGE PRINTED OUT FROM SUBR. FINDZ.',/)
+      CALL ERREX
+20    CONTINUE
+      Z(I) = ZIZ +(ZVAL(J1) - ZIZ)*FDIF1/FDIF2
+      IF (I.EQ.IZVAL(J1)) GO TO 30
+      GO TO 40
+30    J = J + 1
+40    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      GETZ  
+      SUBROUTINE GETZ(NTYPEZ,NMSH,S,Z,RAD,RADD,ZAXIAL)
+C     
+C     CALLED FROM GEOMTY, WHICH IS CALLED FROM READIT,WHICH IS CALLED   
+C     FROM MAIN.  
+C     DISTANCE OF THE REFERENCE SURFACE FROM THE SHELL INNER SURFACE, Z,
+C     IS ESTABLISHED. DEPENDING ON CONTROL INTEGER NTYPEZ,Z IS EITHER   
+C     READ IN FOR NZVALU STATIONS OR A GIVEN VALUE IS READ IN, OR 
+C     Z IS ESTABLISHED BY MEANS OF A FUNCTION GIVEN BELOW.  
+C     GETZ ALSO CALLED FROM CFB2 AND CFB7 TO READ IN WALL THICKNESSES.  
+C     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      CHARACTER*4 CHARAC
+      DIMENSION IZVAL(50),ZVAL(50),Z(100),S(100),RAD(100),RADD(100)     
+      DIMENSION ZAXIAL(*)
+10    FORMAT(10I6)
+20    FORMAT(6E12.8)
+      GO TO (30,60,80,100,110),NTYPEZ     
+30    CONTINUE    
+C     NZVALU = NUMBER OF CALLOUTS   
+      CALL DATUM(IFILE2,IPRM(1),1,2,NZVALU,REALL,CHARAC,IOUT,0,1)
+      IF (NZVALU.LT.2.OR.NZVALU.GT.20) THEN
+        WRITE(IFILE4,*)' NVALUE NOT IN PERMISSIBLE RANGE 2 TO 20'
+        CALL ERREX
+      ENDIF
+C     CALLOUT MESH POINT TAGS ESTABLISHED IN STA
+      CALL STA(IZVAL,ZAXIAL,RAD,RADD,S,NZVALU,NMSH)   
+      IF (IZVAL(1).EQ.1.AND.IZVAL(NZVALU).EQ.NMSH) GO TO 50 
+      WRITE(IFILE4,40)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+40    FORMAT(/,' REF. SURFACE OR THICKNESS DISTRIBUTION CALLOUTS MUST',
+     1' INCLUDE',/,' VALUES AT FIRST AND LAST MESH PTS IN SEGMENT',/)
+      CALL ERREX
+50    CONTINUE    
+C     ZVAL = VALUE OF PARAMETER CORRESPONDING TO MESH POINT TAGS  
+C
+      DO 55 J = 1,NZVALU
+      IPROMP = 1
+      IF (J.GT.1) IPROMP = 0
+      CALL DATUM(IFILE2,IPRM(2)+3,1,2,INT,ZVAL(J),CHARAC,IOUT,J,IPROMP)
+   55 CONTINUE
+C     
+C     LINEAR INTERPOLATION PERFORMED BY FINDZ IN ORDER TO OBTAIN Z AT   
+C     EACH MESH STATION WHEN IT IS GIVEN AT ONLY NZVALU MESH STATIONS.  
+C     
+      CALL FINDZ(NZVALU,IZVAL,ZVAL,NMSH,Z,S)    
+      GO TO 120   
+60    CONTINUE    
+C     ZSURF1 ETC. = COEFFICIENTS OF FUNCTION GIVEN BELOW    
+      READ (5,20)ZSURF1,ZSURF2,ZSURF3,ZSURF4,ZSURF5   
+      Z(1) = ZSURF1     
+      DO 70 J=2,NMSH    
+70    Z(J)=ZSURF1+ZSURF2*(S(J)-S(1))**ZSURF3 +ZSURF4*(S(J)-S(1))**ZSURF5
+      GO TO 120   
+80    CONTINUE    
+C     ZVAL(1) = CONSTANT PARAMETER  
+      CALL DATUM(IFILE2,IPRM(2)+4,1,2,INT,ZVAL(1),CHARAC,IOUT,0,1)
+      DO 90 J=1,NMSH    
+90    Z(J) = ZVAL(1)    
+      GO TO 120   
+100   CONTINUE    
+      GO TO 120   
+110   CONTINUE    
+120   CONTINUE    
+      RETURN
+      END
+C
+C
+C
+C=DECK      INFO
+C     OVERLAY(1,0)
+C
+C     CALLED FROM MAIN, THIS SUBROUTINE CAUSES LINK 1 OF THE OVERLAY TO
+C     BE READ INTO CORE. ALL OF THE INPUT DATA FOR THE CURRENT CASE IS
+C     READ IN FROM THIS SUBROUTINE.
+C     THE GENERAL FORM OF THE INPUT DATA IS AS FOLLOWS - -
+C        FIRST SOME PRELIMINARY INFORMATION IS READ IN-- INFORMATION
+C        WHICH APPLIES TO ALL SHELL SEGMENTS.  THEN DATA IS READ IN COR-
+C        RESPONDING TO EACH SUCCESSIVE SHELL SEGMENT. ALL OF THE DATA FO
+C        A GIVEN SEGMENT IS READ IN BEFORE THE NEXT SEGMENT IS INTRODUCE
+C     THE ESSENTIAL OUTPUT OF THE CASE IS ALSO PRINTED OUT FROM READIT.
+C
+C
+C     READ IN PRELIMINARY DATA WHICH APPLIES FOR ALL SHELL SEGMENTS.
+C
+C
+C     DEFINITIONS OF THE INPUT DATA READ IN FROM READIT ARE GIVEN...
+C
+C     TITLE . . TITLE  OF CASE, FIRST 41 CHARACTERS OF WHICH APPEAR ON
+C               PLOTS.
+C     INDIC . . ANALYSIS TYPE CONTROL . .
+C     INDIC = -2 . . STABILITY ANALYSIS WITH DETERMINANT PLOT
+C     INDIC = -1 . . STABILITY ANALYSIS WITH SEARCH OVER CIRC. WAVES N
+C                    FOR MINIMUM CRITICAL LOAD.
+C     INDIC =  0 . . NONLINEAR AXISYMMETRIC STRESS ANALYSIS FOR SERIES
+C                    OF LOAD STEPS
+C     INDIC =  1 . . STABILITY ANALYSIS FOR SEQUENCE OF CIRC. WAVES N.
+C                    LINEAR PRESTRESS AND SEVERAL EIGENVALUES FOR EACH N
+C     INDIC =  2 . . VIBRATION ANALYSIS INCLUDING NONLINEAR PRESTRESS
+C                    EFFECTS. SEVERAL EIGENVALUES/N.
+C     INDIC =  3 . . LINEAR NONSYMMETRIC STRESS ANALYSIS
+C     INDIC =  4 . . STABILITY ANALYSIS WITH NONSYMMETRIC LINEAR
+C                    PRESTRESS ANALYSIS OR PRESTRESS READ IN.
+C
+C     NPRT = PRINTOUT OPTION
+C     NPRT = 1 . . MINIMUM PRINTOUT
+C     NPRT =2,3  MAXIMUM PRINTOUT
+C     NLAST = PLOTTING OPTION . .
+C     NLAST = 0,1  PLOTS PROVIDED FOR THIS CASE
+C     NLAST = -1  NO PLOTS FOR THIS CASE
+C     ISTRES = STRESS OUTPUT OPTION . .
+C     ISTRES = 0 STRESS RESULTANTS PRINTED AND PLOTTED
+C     ISTRES = 1 EXTREME FIBER STRESSES (ONLY FOR MONOCOQUE OR SEMI-
+C                SANDWICH CORRUGATED SHELLS)  PRINTED OUT.
+C     IPRE = PRESTRESS CALCULATION OPTION (INDIC = 4 ONLY)
+C     IPRE = 0 . . PRESTRESS READ IN IN SUBROUTINE GETPST
+C     IPRE = 1 . . PRESTRESS CALCULATED AS IN BRANCH WITH INDIC = 3
+C     NSEG = NO. OF SHELL SEGMENTS
+C     NCOND = NO. OF CONSTRAINT AND BOUNDARY CONDITIONS
+C     IBOUND = BOUNDARY CONDITION CONTROL . .
+C     IBOUND = 0  PRESTRESS AND BUCKLING OR VIB. B.C.'S THE SAME
+C     IBOUND = 1  PRESTRESS AND BUCKLING OR VIB. B.C.'S DIFFERENT
+C     IMAXP = PRESTRESS BLOCK SIZE DELIMITER.  USER CAN USE 0
+C     IMAXB = BUCKLING OR VIBRATION OR NONSYMMETRIC STRESS BLOCK SIZE
+C             DELIMITER . USER CAN USE 0
+C     IRIGID = RIGID BODY MODE CONTROL . .
+C     IRIGID = 0 . . NO NEED FOR RIGID BODY CONTROL
+C     IRIGID = 1 . . YES NEED FOR RIGID BODY CONTROL
+C     NSTART = STARTING CIRCUMFERENTIAL WAVE NUMBER IN STRESS ANALYSIS
+C     NFIN = ENDING CIRC. WAVE NO. IN STRESS ANALYSIS
+C     INCR = INCREMENT IN WAVE NO. IN STRESS ANALYSIS
+C     N0B = INITIAL BUCKLING OR VIBRATION WAVE NUMBER
+C     NMINB = MINIMUM BUCKLING OR VIBRATION WAVE NO.
+C     NMAXB = MAXIMUM BUCKLING OR VIBRATION WAVE NO.
+C     INCRB = INCREMENT IN BUCKLING OR VIBRATION WAVE NO.
+C     NVEC = NUMBER OF EIGENVALUES/WAVE NO.
+C     NDIST = NUMBER OF CIRCUMFERENTIAL STATIONS FOR WHICH MERIDIONAL
+C             DISPLACEMENT AND STRESS DISTRIBUTIONS ARE DESIRED
+C     NCIRC = NUMBER OF MERIDIONAL STATIONS FOR WHICH CIRCUMFERENTIAL
+C             DISPLACEMENT AND STRESS DISTRIBUTIONS ARE DESIRED
+C     NTHETA = NUMBER OF CIRCUMFERENTIAL POINTS AT WHICH CIRCUMFERENTIAL
+C              DISTRIBUTIONS ARE CALCULATED AND PRINTED.
+C     ITHETA = MERIDIONAL STATIONS FOR WHICH CIRCUMFERENTIAL DISTRIBU-
+C              TIONS ARE CALCULATED AND PRINTED
+C     THETA = CIRCUMFERENTIAL STATIONS FOR WHICH MERIDIONAL
+C             DISTRIBUTIONS ARE CALCULATED AND PRINTED
+C     THETAM = MAXIMUM PLUS-MINUS RANGE OF CIRCUMFERENTIAL COORDINATE
+C              THETA FOR FOURIER ANALYSIS AND PRINTOUT
+C     THETAS = CIRCUMFERENTIAL STATION FOR WHICH MERIDIONAL DISTRIBU-
+C              TION OF STRESSES WILL BE USED IN STABILITY ANALYSIS.
+C     IFIX = CONSTRAINT AND BOUNDARY CONDITION CONTROL . . .
+C     IFIX(I,1) = SEGMENT, POINT..EXAMPLE   001075 = SEG. 1, PT. 75
+C     IFIX(I,2) = SEGMENT, POINT..EXAMPLE . . 002001 = SEG. 2, PT. 1
+C     IFIX(I,3) = IF 0 . . NO USTAR CONSTRAINT, IF 1 . . YES CONSTRAINT
+C     IFIX(I,4) = IF 0 . . NO V     CONSTRAINT, IF 1 . . YES CONSTRAINT
+C     IFIX(I,5) = IF 0 . . NO WSTAR CONSTRAINT, IF 1 . . YES CONSTRAINT
+C     IFIX(I,6) = IF 0 . NO ROTATION CONSTRAINT IF 1 . . YES CONSTRAINT
+C     EXAMPLE OF IFIX(I,J),J = 1,6 . .
+C     STARTING IN COL. 1 OF DATA CARD&
+C                   001075002001     1     1     1     1
+C     ABOVE DATA MEAN. . SEGMENT NO. 1, POINT NO. 75 IS CONNECTED TO
+C                        SEGMENT NO. 2 POINT NO. 1  AND USTAR, V, WSTAR
+C                        AND MERIDIONAL ROTATION ARE ALL COMPATABLE
+C                        AT THE JUNCTURE.
+C
+C     D1 =  RADIAL DISCONTINUITY AT CONSTRAINT POINT
+C     D2 =  AXIAL  DISCONTINUITY AT CONSTRAINT POINT
+C     IFIXB = SAME MEANING AS IFIX. PERTAINS TO NONSYMMETRIC STRESS,
+C             BUCKLING OR VIBRATION ANALYSIS
+C     ISTOP0 = AXISYMMETRIC RIGID BODY MODE PREVENTER.  HAS SAME
+C              STRUCTURE AS IFIX, DESCRIBED ABOVE
+C     ISTOP1 = CIRCUMFERENTIAL WAVENUMBER N = 1 RIGID BODY MODE
+C              PREVENTER. SAME FORM AS IFIX.
+C     P =  PRESSURE OR SURFACE TRACTION MULTIPLIER (FIXED)
+C     STEP = PRESSURE OR SURFACE TRACTION MULTIPLIER (VARIABLE)
+C     TEMP = TEMPERATURE RISE DISTRIBUTION MULTIPLIER (FIXED)
+C     DTEMP= TEMPERATURE RISE DISTRIBUTION MULTIPLIER (VARIABLE)
+C     FSTART = STARTING LOAD
+C     FMAX = MAXIMUM LOAD
+C     DF =   LOAD INCREMENT
+C
+C
+C
+C=DECK              INTER
+      subroutine INTER (x, xo, ic, n)
+
+C BEG JUN 2001
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/RERUN/IFLAG
+C END JUN 2001
+*     implicit real (a-h,o-z)
+*     implicit double precision (a-h,o-z)
+C+---------------------------------------------------------------------+
+C|    for a given value of (xo), this function searches the array      |
+C|    x(*) which may be INCREASING or DECREASING, to locate the        |
+C|    closest point x(i) in the array, and returns it index (ic).      |
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C|                  C O M M O N   &   G L O B A L S                    |
+C+---------------------------------------------------------------------+
+*     include       'interc.inc'
+C+---------------------------------------------------------------------+
+C|                  A R G U M E N T S                                  |
+C+---------------------------------------------------------------------+
+      integer       ic,       n
+ 
+      real          xo,       x(*)
+*     double precision        xo,       x(*)
+C+---------------------------------------------------------------------+
+C|                  L O C A L   V A R I A B L E S                      |
+C+---------------------------------------------------------------------+
+      integer       k,        klo,      khi
+
+      real          rat,      ratmax,   hlf
+*     double precision        rat,      ratmax,   hlf
+C+---------------------------------------------------------------------+
+C|                  D A T A                                            |
+C+---------------------------------------------------------------------+
+      data          ratmax / 2.000e-02 /
+*     data          ratmax / 2.000d-02 /
+
+      data          hlf    / 0.500e+00 /
+*     data          hlf    / 0.500d+00 /
+C+---------------------------------------------------------------------+
+C|                  L O G I C                                          |
+C+---------------------------------------------------------------------+
+C BEG JUN 2001
+      IFLAG = 0
+C END JUN 2001
+      if (n .le. 1)                    then
+        ic    =  1
+        return
+      endif
+C+---------------------------------------------------------------------+
+C|    check for x(-) ascending or descending ?                         |
+C+---------------------------------------------------------------------+
+      if (x(1) .le. x(n))              then
+C+---------------------------------------------------------------------+
+C|                                                                     |
+C|      x(n) is in  ASCENDING  order                                   |
+C|                                                                     |
+C+---------------------------------------------------------------------+
+C|      check if (xo) is in range of table                             |
+C+---------------------------------------------------------------------+
+        if     (xo .le. x(1))          then
+          ic   =  1
+
+          if (xo .lt. x(1))            then
+            rat  =  (x(1) - xo) / (x(n) - x(1))
+            if (rat .gt. ratmax)       then
+C BEG JUN 2001
+              write(IFILE4,3000) xo,1,1,x(1),n,n,x(n),rat,ratmax
+              IFLAG = 1
+C END JUN 2001
+*             stop
+            endif
+          endif
+
+          return
+ 
+        elseif (xo .ge. x(n))          then
+          ic   =  n
+
+          if (xo .gt. x(n))            then
+            rat  =  (xo - x(n)) / (x(n) - x(1))
+            if (rat .gt. ratmax)       then
+C BEG JUN 2001
+              write(IFILE4,3000) xo,1,1,x(1),n,n,x(n),rat,ratmax
+              IFLAG = 1
+C END JUN 2001
+*             stop
+            endif
+          endif
+
+          return
+        endif
+C+---------------------------------------------------------------------+
+C|      use a BINARY search throuygh x(*) to find (xo)                 |
+C+---------------------------------------------------------------------+
+        klo   =  1
+        khi   =  n
+ 
+   10   if ((khi-klo) .gt. 1)        then
+          k   =  (khi + klo) / 2
+          if (x(k) .gt. xo)          then
+            khi   =  k
+          else
+            klo   =  k
+          endif
+           go to 10
+        endif
+C+---------------------------------------------------------------------+
+C|      xo now lies between x(klo) and x(khi), find closest point      |
+C+---------------------------------------------------------------------+
+        rat  =  (xo - x(klo)) / (x(khi) - x(klo))
+
+        if (rat .le. hlf)            then
+          ic  =  klo
+        else
+          ic  =  khi
+        endif
+C+---------------------------------------------------------------------+
+C|                                                                     |
+C|      x(n) is in  DECENDING  order                                   |
+C|                                                                     |
+C+---------------------------------------------------------------------+
+      else
+C+---------------------------------------------------------------------+
+C|      check if (xo) is in range of table                             |
+C+---------------------------------------------------------------------+
+        if     (xo .ge. x(1))          then
+          ic  =  1
+
+          if (xo .gt. x(1))            then
+            rat  =  (xo - x(1)) / (x(1) - x(n))
+            if (rat .gt. ratmax)       then
+C BEG JUN 2001
+              write(IFILE4,3000) xo,n,n,x(n),1,1,x(1),rat,ratmax
+              IFLAG = 1
+C END JUN 2001
+*             stop
+            endif
+          endif
+
+          return
+ 
+        elseif (xo .le. x(n))          then
+          ic  =  n
+
+          if (xo .lt. x(n))            then
+            rat  =  (x(n) - xo) / (x(1) - x(n))
+            if (rat .gt. ratmax)       then
+C BEG JUN 2001
+              write(IFILE4,3000) xo,n,n,x(n),1,1,x(1),rat,ratmax
+              IFLAG = 1
+C END JUN 2001
+*             stop
+            endif
+          endif
+
+          return
+        endif
+C+---------------------------------------------------------------------+
+C|      use a BINARY search throuygh x(*) to find (xo)                 |
+C+---------------------------------------------------------------------+
+        khi   =  1
+        klo   =  n
+C BEG DEC 2003
+C  20   if ((khi-klo) .gt. 1)        then
+   20   if ((klo-khi) .gt. 1)        then
+C END DEC 2003
+          k   =  (khi + klo) / 2
+          if (x(k) .gt. xo)          then
+            khi   =  k
+          else
+            klo   =  k
+          endif
+          go to 20
+        endif
+C+---------------------------------------------------------------------+
+C|      xo now lies between x(klo) and x(khi), find closest point      |
+C+---------------------------------------------------------------------+
+        rat  =  (xo - x(klo)) / (x(khi) - x(klo))
+
+        if (rat .le. hlf)            then
+          ic  =  klo
+        else
+          ic  =  khi
+        endif
+C+---------------------------------------------------------------------+
+C|      finished, return to caller                                     |
+C+---------------------------------------------------------------------+
+      endif
+ 
+      return
+C+---------------------------------------------------------------------+
+C|    format statements                                                |
+C+---------------------------------------------------------------------+
+ 3000 format (/,' INTER:  selected point (xo) lies too far outside',
+     $          ' range of array values',
+     $       //,'         test    point =        xo     = ',1pe15.6,
+     $        /,'         lowest  point = ',i3,',   x(',i3,') = ',e15.6,
+     $        /,'         highest point = ',i3,',   x(',i3,') = ',e15.6,
+     $       //,'         relative distance away (rat)  = ', e15.6,
+     $        /,'         span of array x(-)  (ratmax)  = ', e15.6,/)
+      end
+C
+C
+C
+C=DECK      MAIN1
+      SUBROUTINE MAIN1
+      COMMON/STRATG/ISTRAT,IFACTR
+      COMMON/CMAXS/CMAX
+      COMMON/INERT/ FIS(198),FIN(198),FISN(198)
+      COMMON/CLST/CLAST
+      COMMON/SPACE/HC(2950)
+      COMMON/RING2/GAM(198),GJ(198),
+     1             YC(198),XC(198),E1(198),E2(198),PHI(200)
+      COMMON/RNGGEO/RC(198),AREA(198),ER(198),
+     1             IY(198),IX(198),IXY(198),IP(198)
+      COMMON/APEX/INDX
+      REAL IX,IY,IXY,IP
+      COMMON/RMASS/RM(198)
+      COMMON/HED/TITLE(18)
+      COMMON/WALLTP/ NWALL(2950)
+      COMMON/SEGPLT/NUMSG1,NUMSG2
+      COMMON/WAVNUM/ITHETA(50),THETA(50),THETAS,THETAM
+      COMMON/KCHNG/NNWALL(2950),CCH(2950)
+C BEG MAR 2007
+C BEG JUN 2009
+      COMMON/JUNCT/IFIX(5980,6),IFX(5980,6),ITYPE(5980)
+      COMMON/JUNCTB/IFIXB(5980,6),IFXB(5980,6),ITYPEB(5980)
+      COMMON/RING3/D1(5980),D2(5980)
+C END JUN 2009
+C END MAR 2007
+      COMMON/GMASS/GM(500)
+      COMMON/RBODY/ISTOP0(6),ISTOP1(6)
+      COMMON/WALPRP/EA(2950),EB(2950),GAB(2950),UAB(2950),
+     1              ALPH1(2950),ALPH2(2950)
+      COMMON/MISCEL/ICOND1,ICOND2,IK,NSUB,KLAP,I5TOT,IC,III,IV
+      COMMON/FICTP/IFICT
+      COMMON/XTRSS/SIG1I,SIG1O,SIG2I,SIG2O,TAUI,TAUO,SIGEI,SIGEO
+      COMMON/SHEARF/SHEAR(198)
+      COMMON/LSEQ/ ALODE(200)
+      COMMON/BKSIZE/IMAXP,IMAXB,KMAXP(20),KMAXB(20)
+      COMMON/SLENGT/ADR
+      COMMON/FOSAVE/VSAVE(198),HSAVE(198),FMSAVE(198)
+       COMMON/DYNAM/FX(2),FY(2),FZ(2),MX(2),MY(2),MZ(2),
+     1              ICM,IZ,M,ZCM,IDYN(2)
+       REAL MX,MY,MZ,ICM,IZ,M
+      COMMON/IZDTR/IZZ
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      MATMU1
+      SUBROUTINE MATMU1(B,A,A1,C,K,J,IZERO)
+C
+C     CALLED FROM STABIL WHOSE TRACE IS STABIL,ASTAB,ARRAYS,MAIN.
+C     WE FORM THE PRODUCT C = A1(TRANSPOSE)*B*A.
+C
+      DOUBLE PRECISION B,A,A1,C,D
+      DIMENSION B(K,K),A(K,J),C(J,J),D(7,7),A1(K,J)
+      DO 10 KK=1,K
+      DO 10 JJ=1,J
+      D(KK,JJ) = 0.0
+10    CONTINUE
+      DO 30 KK=1,K
+      DO 30 JJ=1,J
+      DO 20 LL=1,K
+      D(KK,JJ) = D(KK,JJ) + B(KK,LL)*A(LL,JJ)
+20    CONTINUE
+30    CONTINUE
+      IF (IZERO.EQ.1) GO TO 50
+      DO 40 II=1,J
+      DO 40 JJ=1,J
+      C(II,JJ) = 0.0
+40    CONTINUE
+50    DO 70 II=1,J
+      DO 70 JJ=1,J
+      DO 60 KK=1,K
+      C(II,JJ) = C(II,JJ) + A1(KK,II)*D(KK,JJ)
+60    CONTINUE
+70    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      MATMU2
+      SUBROUTINE MATMU2(B,A,C,K,J,IZERO)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN
+C     WE FORM THE PRODUCT C = A(TRANSPOSE)*B*A.
+C
+      DOUBLE PRECISION B,A,C,D
+      DIMENSION B(K,K),A(K,J),C(J,J),D(7,7)
+      DO 10 KK=1,K
+      DO 10 JJ=1,J
+      D(KK,JJ) = 0.0
+10    CONTINUE
+      DO 30 KK=1,K
+      DO 30 JJ=1,J
+      DO 20 LL=1,K
+      D(KK,JJ) = D(KK,JJ) + B(KK,LL)*A(LL,JJ)
+20    CONTINUE
+30    CONTINUE
+      IF (IZERO.EQ.1) GO TO 50
+      DO 40 II=1,J
+      DO 40 JJ=1,J
+      C(II,JJ) = 0.0
+40    CONTINUE
+50    DO 70 II=1,J
+      DO 70 JJ=1,J
+      DO 60 KK=1,K
+      C(II,JJ) = C(II,JJ) + A(KK,II)*D(KK,JJ)
+60    CONTINUE
+70    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      MATMU3
+      SUBROUTINE MATMU3(B,A,D,K,J)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN
+C     WE FORM THE PRODUCT D = B*A.
+C
+      DOUBLE PRECISION B,A,D
+      DIMENSION B(K,K),A(K,J),D(K,J)
+      DO 10 KK=1,K
+      DO 10 JJ=1,J
+      D(KK,JJ) = 0.0
+10    CONTINUE
+      DO 30 KK=1,K
+      DO 30 JJ=1,J
+      DO 20 LL=1,K
+      D(KK,JJ) = D(KK,JJ) + B(KK,LL)*A(LL,JJ)
+20    CONTINUE
+30    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      MATMU4
+      SUBROUTINE MATMU4(B,A,C,K,J,IZERO)
+C
+C     CALLED FROM BOTH PRESTS AND STABIL (LINKS 2 AND 3). SIMILAR TO
+C     MATMU2 EXCEPT FOR ONE STATEMENT  AFTER LABEL 50.
+C     WE FORM THE PRODUCT C = A(TRANSPOSE)XBXA, WHERE B IS SYMMETRIC
+C
+      DOUBLE PRECISION B,A,C,D
+      DIMENSION B(K,K),A(K,J),C(J,J),D(7,7)
+      DO 10 KK=1,K
+      DO 10 JJ=1,J
+      D(KK,JJ) = 0.0
+10    CONTINUE
+      DO 30 KK=1,K
+      DO 30 JJ=1,J
+      DO 20 LL=1,K
+      D(KK,JJ) = D(KK,JJ) + B(KK,LL)*A(LL,JJ)
+20    CONTINUE
+30    CONTINUE
+      IF (IZERO.EQ.1) GO TO 50
+      DO 40 II=1,J
+      DO 40 JJ=1,J
+      C(II,JJ) = 0.0
+40    CONTINUE
+50    DO 70 II=1,J
+      DO 70 JJ=1,II
+      DO 60 KK=1,K
+      C(II,JJ) = C(II,JJ) + A(KK,II)*D(KK,JJ)
+60    CONTINUE
+70    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      MATMU5
+      SUBROUTINE MATMU3(B,A,D,K,J,M)
+C
+C     WE FORM THE PRODUCT D = B*A.
+C     Similar to MATMU3 except that B doesn't
+C     have to be a K x K matrix.
+C
+      DOUBLE PRECISION B,A,D
+      DIMENSION B(K,M),A(M,J),D(K,J)
+      DO 10 KK=1,K
+      DO 10 JJ=1,J
+      D(KK,JJ) = 0.0
+10    CONTINUE
+      DO 30 KK=1,K
+      DO 30 JJ=1,J
+      DO 20 LL=1,M
+      D(KK,JJ) = D(KK,JJ) + B(KK,LL)*A(LL,JJ)
+20    CONTINUE
+30    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      SOLVE
+      SUBROUTINE SOLVE(A,X,NBLK,IBLK,KEQ,LOC,DIAG,NT,NV)
+      DOUBLE PRECISION A,X,AII
+      DIMENSION A(*),X(NT,NV),IBLK(*),KEQ(*),LOC(*),DIAG(*)
+C
+C                  *****************************************
+C                            FORWARD SWEEP
+C                  *****************************************
+      I1=1
+      I=1
+10    I2=KEQ(I)
+      NW = 2*LOC(I2)
+      IF (NBLK.GT.1) CALL GASP(A,NW,3,IBLK(I))
+      J1=1
+20    II=I1
+30    J2=LOC(II)-1
+      JL=II-LOC(II)
+      AII=1./A(J2+1)
+      DO 50 KK=1,NV
+      IF (J2.LT.J1) GO TO 50
+      DO 40 J=J1,J2
+40    X(II,KK)=X(II,KK)-A(J)*X(J+JL,KK)
+50    X(II,KK)=X(II,KK)*AII
+      IF (II.EQ.I2) GO TO 60
+      J1=LOC(II)+1
+      II=II+1
+      GO TO 30
+60    IF (I.EQ.NBLK) GO TO 70
+      I=I+1
+      I1=I2+1
+      GO TO 10
+C                  *****************************************
+C                            BACK SWEEP
+C                  *****************************************
+70    II=I2
+80    J2=LOC(II)-1
+      AII = 1./DABS(A(J2+1))
+      DO 100 KK=1,NV
+      X(II,KK)=X(II,KK)*AII
+      IF (J2.LT.J1) GO TO 100
+      JL=II-LOC(II)
+      DO 90 J=J1,J2
+90    X(J+JL,KK)=X(J+JL,KK)-X(II,KK)*A(J)*SIGN(1.,DIAG(J+JL))
+100   CONTINUE
+      II=II-1
+      IF (II-I1) 130,110,120
+110   J1=1
+      GO TO 80
+120   J1=LOC(II-1)+1
+      GO TO 80
+130   I=I-1
+      IF (I-1) 170,140,150
+140   I1=1
+      GO TO 160
+150   I1=KEQ(I-1)+1
+160   I2=KEQ(I)
+      J1=LOC(I2-1)+1
+      NW = 2*LOC(I2)
+      IF (NBLK.GT.1) CALL GASP(A,NW,3,IBLK(I))
+      GO TO 70
+170   RETURN
+      END
+C
+C
+C
+C=DECK      SR100T
+      SUBROUTINE SR100T(I)
+      IF (I.EQ.1) THEN
+C      CALL TIMRB
+      RETURN
+      ENDIF
+      IF (I.EQ.2) THEN
+C      CALL TIMRE(T)
+C      WRITE(IFILE4,900) T
+900   FORMAT (' ELAPSED CPU TIME IN SECONDS =',G13.4)
+      RETURN
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      STA   
+      SUBROUTINE STA(IPOINT,ZAXIAL,RAD,RADD,S,NPOINT,NMESH) 
+C     CALLED FROM SEVERAL SUBROUTINES IN READIT LINK  
+      DIMENSION IPOINT(50),ZAXIAL(100),RAD(100),RADD(100),S(100),Z(50)  
+      DIMENSION R(50),SARC(50),THETA(50)  
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/ALOFIT/INDSIG,II,ITOT,JJ,III,IBOUND,IPT,IRIGID,ISEG,I5I,   
+     1KRING,NWALL,NLTYPE,NRINGS,DSTOT,SEND,IPOS,IEND,IENDS,IMAX,ITOTL,  
+     2LINTYP
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C BEG OCT 2005
+      COMMON/GORIGL/RORIGL(100),ZORIGL(100)
+C END OCT 2005
+      COMMON/RERUN/IFLAG
+      COMMON/JRING/JJRING
+      CHARACTER*4 CHARAC
+      DIMENSION ITEMP(50)     
+10    FORMAT(10I6)
+20    FORMAT(6E12.8)
+      CALL DATUM(IFILE2,IPRM(2),1,2,NTYPE,REALL,CHARAC,IOUT,0,1)
+C BEG JUN 2009
+C     IF (NTYPE.NE.2.AND.NTYPE.NE.3) THEN
+C      WRITE(IFILE4,*)' NTYPE  MUST BE EITHER   2   OR   3'
+      IF (NTYPE.NE.1.AND.NTYPE.NE.2.AND.NTYPE.NE.3) THEN
+       WRITE(IFILE4,*)' NTYPE MUST BE EITHER    1   OR   2   OR   3'
+C END JUN 2009
+       CALL ERREX
+      ENDIF
+C
+C     NTYPE = 1    LOCATIONS OF FOLLOWING INPUT VARIABLES IDENTIFIED BY 
+C                   MESH POINT NUMBERS    
+C           = 2    LOCATIONS OF FOLLOWING INPUT VARIABLES IDENTIFIED BY 
+C                  AXIAL COORDINATE, Z    
+C           = 3    LOCATIONS OF FOLLOWING INPUT VARIABLES IDENTIFIED BY 
+C                  RADIAL COORDINATE, R   
+C           = 4    LOCATIONS OF FOLLOWING INPUT VARIABLES IDENTIFIED BY 
+C                  ARC LENGTH FROM BEGINNING OF CURRENT SEGMENT, S
+C           = 5    LOCATIONS OF FOLLOWING INPUT VARIABLES IDENTIFIED BY 
+C                  ANGLE BETWEEN AXIS OF REVOLUTION AND NORMAL TO WALL  
+C     
+      GO TO (30,50,70,90,110),NTYPE 
+C     IPOINT = LOCAL MESH POINT TAGS TO WHICH INPUT DATA CORRESPOND     
+C BEG JUN 2009
+C30    READ (5,10)(IPOINT(J),J=1,NPOINT)
+   30 CONTINUE
+      REWIND IFILE2
+      DO 35 J = 1,NPOINT
+      IPROMP = 1
+      IF (J.GT.1) IPROMP = 0
+      CALL DATUM(IFILE2,267,1,2,IPOINT(J),REALL,CHARAC,IOUT,J,IPROMP)
+   35 CONTINUE
+      REWIND IFILE2
+C END JUN 2009
+      IF (IPOINT(NPOINT).GE.(NMESH-1)) IPOINT(NPOINT) = NMESH-2   
+      JSTART = 1  
+      IF (IPOINT(1).EQ.1) JSTART = 2
+      IF (NPOINT.LT.JSTART) RETURN  
+      DO 40 J=JSTART,NPOINT   
+40    IPOINT(J) = IPOINT(J) + 1     
+      IF (IPOINT(NPOINT).EQ.(NMESH-1)) IPOINT(NPOINT)=IPOINT(NPOINT) + 1
+      RETURN
+   50 CONTINUE
+      DO 55 J = 1,NPOINT
+      IPROMP = 1
+      IF (J.GT.1) IPROMP = 0
+      CALL DATUM(IFILE2,IPRM(2)+1,1,2,INT,Z(J),CHARAC,IOUT,J,IPROMP)
+   55 CONTINUE
+      DO 60 J=1,NPOINT  
+C BEG OCT 2005
+C     CALL INTER(ZAXIAL,Z(J),IPOINT(J),NMESH)   
+      CALL INTER(ZORIGL,Z(J),IPOINT(J),NMESH)
+C END OCT 2005
+      IF (IFLAG.EQ.0) GO TO 60
+      CALL ERREX
+   60 CONTINUE
+      IF (IPOINT(1).NE.1.AND.JJRING.EQ.0) THEN
+C BEG OCT 2005
+C        DIFF = ABS(Z(1) - ZAXIAL(1))/ABS(ZAXIAL(NMESH)-ZAXIAL(1))
+         DIFF = ABS(Z(1) - ZORIGL(1))/ABS(ZORIGL(NMESH)-ZORIGL(1))
+         IF (DIFF.LT.0.01.AND.IPOINT(1).LE.3) IPOINT(1) = 1
+C        WRITE(IFILE4,62) Z(1), ZAXIAL(1), IPOINT(1)
+         WRITE(IFILE4,62) Z(1), ZORIGL(1), IPOINT(1)
+C END OCT 2005
+   62    FORMAT(/,' BAD AXIAL CALLOUT AT BEGINNING OF SEGMENT:',/,
+     1'  Z( 1 ) =',1PE14.5,'.  Z( 1 ) SHOULD BE EQUAL TO',
+     1   1PE14.5,'.',/,'  IPOINT(1) =',I4,' IT SHOULD BE EQUAL TO 1')
+      ENDIF
+C
+      IF (IPOINT(NPOINT).NE.NMESH.AND.JJRING.EQ.0) THEN
+C BEG OCT 2005
+C        DIFF = ABS(Z(NPOINT) - ZAXIAL(NMESH))/
+C    1               ABS(ZAXIAL(NMESH)-ZAXIAL(1))
+         DIFF = ABS(Z(NPOINT) - ZORIGL(NMESH))/
+     1               ABS(ZORIGL(NMESH)-ZORIGL(1))
+         IF (DIFF.LT.0.01.AND.IPOINT(NPOINT).GE.(NMESH-2))
+     1                                 IPOINT(NPOINT) = NMESH
+C        WRITE(IFILE4,64) Z(NPOINT), ZAXIAL(NMESH),IPOINT(NPOINT),NMESH
+         WRITE(IFILE4,64) Z(NPOINT), ZORIGL(NMESH),IPOINT(NPOINT),NMESH
+C END OCT 2005
+   64    FORMAT(/,' BAD AXIAL CALLOUT AT    END    OF SEGMENT:',/,
+     1'  Z(end) =',1PE14.5,'.  Z(end) SHOULD BE EQUAL TO',
+     1   1PE14.5,'.',/,'  IPOINT(NPOINT) =',I4,
+     1'  IT SHOULD BE EQUAL TO',I4)
+      ENDIF
+C
+      IF (JJRING.EQ.0) THEN
+C BEG FEB 2008
+         IF (IPOINT(1).NE.1.OR.IPOINT(NPOINT).NE.NMESH) THEN
+            WRITE(IFILE4,'(/,A,/,(1P5E14.6))')
+     1    ' ZORIGL(i),i=1,NMESH)=',(ZORIGL(IARC),IARC=1,NMESH)
+            WRITE(IFILE4,'(/,A,/,A,/,A,/,A,/,A,/,A)')
+     1    ' CHECK TO SEE IF ZORIGL(i) VARIES MONOTONICALLY FROM ONE',
+     1    ' END OF THIS SEGMENT TO THE OTHER. IF IT DOES NOT, THEN',
+     1    ' YOU CANNOT USE THE AXIAL COORDINATE Z FOR CALLOUTS.',
+     1    ' EITHER TRY USING THE RADIAL COORDINATE R FOR CALLOUTS',
+     1    ' OR DIVIDE UP THE SEGMENT INTO MULTIPLE SEGMENTS SO THAT',
+     1    ' IN EACH SEGMENT Z (OR R) VARIES MONOTONICALLY.'
+            CALL ERREX
+         ENDIF
+C END FEB 2008
+      ENDIF
+C
+      GO TO 130
+   70 CONTINUE
+      DO 75 J = 1,NPOINT
+      IPROMP = 1
+      IF (J.GT.1) IPROMP = 0
+      CALL DATUM(IFILE2,IPRM(2)+2,1,2,INT,R(J),CHARAC,IOUT,J,IPROMP)
+   75 CONTINUE
+      DO 80 J=1,NPOINT  
+C BEG OCT 2005
+C     CALL INTER(RAD,R(J),IPOINT(J),NMESH)
+      CALL INTER(RORIGL,R(J),IPOINT(J),NMESH)
+C END OCT 2005
+      IF (IFLAG.EQ.0) GO TO 80
+      CALL ERREX
+   80 CONTINUE
+C
+      IF (IPOINT(1).NE.1.AND.JJRING.EQ.0) THEN
+C BEG OCT 2005
+C        DIFF = ABS(R(1) - RAD(1))/ABS(RAD(NMESH)-RAD(1))
+         DIFF = ABS(R(1) - RORIGL(1))/ABS(RORIGL(NMESH)-RORIGL(1))
+         IF (DIFF.LT.0.01.AND.IPOINT(1).LE.3) IPOINT(1) = 1
+C        WRITE(IFILE4,82) R(1), RAD(1), IPOINT(1)
+         WRITE(IFILE4,82) R(1), RORIGL(1), IPOINT(1)
+C END OCT 2005
+   82    FORMAT(/,' BAD RADIAL CALLOUT AT BEGINNING OF SEGMENT:',/,
+     1'  R( 1 ) =',1PE14.5,'.  R( 1 ) SHOULD BE EQUAL TO',
+     1   1PE14.5,'.',/,'  IPOINT(1) =',I4,' IT SHOULD BE EQUAL TO 1')
+      ENDIF
+C
+      IF (IPOINT(NPOINT).NE.NMESH.AND.JJRING.EQ.0) THEN
+C BEG OCT 2005
+C        DIFF = ABS(R(NPOINT) - RAD(NMESH))/
+C    1               ABS(RAD(NMESH)-RAD(1))
+         DIFF = ABS(R(NPOINT) - RORIGL(NMESH))/
+     1               ABS(RORIGL(NMESH)-RORIGL(1))
+         IF (DIFF.LT.0.01.AND.IPOINT(NPOINT).GE.(NMESH-2))
+     1                                 IPOINT(NPOINT) = NMESH
+C        WRITE(IFILE4,84) R(NPOINT), RAD(NMESH),IPOINT(NPOINT),NMESH
+         WRITE(IFILE4,84) R(NPOINT), RORIGL(NMESH),IPOINT(NPOINT),NMESH
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END OCT 2005
+   84    FORMAT(/,' BAD RADIAL CALLOUT AT    END    OF SEGMENT:',/,
+     1'  R(end) =',1PE14.5,'.  R(end) SHOULD BE EQUAL TO',
+     1   1PE14.5,'.',/,'  IPOINT(NPOINT) =',I4,
+     1'  IT SHOULD BE EQUAL TO',I4)
+      ENDIF
+C
+      IF (JJRING.EQ.0) THEN
+C BEG FEB 2008
+         IF (IPOINT(1).NE.1.OR.IPOINT(NPOINT).NE.NMESH) THEN
+            WRITE(IFILE4,'(/,A,/,(1P5E14.6))')
+     1    ' RORIGL(i),i=1,NMESH)=',(RORIGL(IARC),IARC=1,NMESH)
+            WRITE(IFILE4,'(/,A,/,A,/,A,/,A,/,A,/,A)')
+     1    ' CHECK TO SEE IF RORIGL(i) VARIES MONOTONICALLY FROM ONE',
+     1    ' END OF THIS SEGMENT TO THE OTHER. IF IT DOES NOT, THEN',
+     1    ' YOU CANNOT USE THE RADIAL COORDINATE R FOR CALLOUTS.',
+     1    ' EITHER TRY USING THE AXIAL COORDINATE Z FOR CALLOUTS',
+     1    ' OR DIVIDE UP THE SEGMENT INTO MULTIPLE SEGMENTS SO THAT',
+     1    ' IN EACH SEGMENT R (OR Z) VARIES MONOTONICALLY.'
+            CALL ERREX
+         ENDIF
+C END FEB 2008
+      ENDIF
+C
+      GO TO 130   
+90    READ (5,20)(SARC(J),J=1,NPOINT)     
+      DO 100 J=1,NPOINT 
+      SA = SARC(J) + SEND     
+100   CALL INTER(S,SA,IPOINT(J),NMESH)    
+      GO TO 130   
+110   READ (5,20)(THETA(J),J=1,NPOINT)    
+      DO 120 J=1,NPOINT 
+      THETAR = THETA(J)*3.1415927/180.    
+      RADDJ = COS(THETAR)     
+      IF (ABS(RADDJ).LT.0.0005) RADDJ = 0.0     
+120   CALL INTER(RADD,RADDJ,IPOINT(J),NMESH)    
+130   CONTINUE    
+      IF (NPOINT.EQ.1) RETURN 
+      ILOOP = 0   
+140   DO 150 J=1,NPOINT 
+150   ITEMP(J) = IPOINT(J)    
+      IFLAG = 0   
+      DO 170 J=2,NPOINT 
+      JM = J - 1  
+      IF (IPOINT(J).NE.IPOINT(JM)) GO TO 170    
+      IFLAG = IFLAG + 1 
+      IF (IPOINT(J).NE.NMESH) GO TO 160   
+      ITEMP(JM) = IPOINT(JM) - 1    
+      GO TO 170   
+160   ITEMP(J) = IPOINT(J) + 1
+170   CONTINUE    
+      IF (IFLAG.EQ.0) RETURN  
+      ILOOP = ILOOP + 1 
+      IF (ILOOP.EQ.1) WRITE (IFILE4,180)NTYPE   
+C23456789012345678901234567890123456789012345678901234567890123456789012
+180   FORMAT(/,' CALLOUT POINTS,(IPOINT(J),J=1,NPOINT), AS ORIGINALLY',
+     1' COMPUTED BY',/,' SUBROUTINE INTER .   NTYPE =', I2)        
+      IF (ILOOP.EQ.1) WRITE (IFILE4,210)(IPOINT(J),J=1,NPOINT)   
+      DO 190 J=1,NPOINT 
+190   IPOINT(J) = ITEMP(J)    
+      WRITE (IFILE4,200)NTYPE 
+200   FORMAT(/,' NOTE... CALLOUT POINTS, (IPOINT(J),J=1,NPOINT), HAVE',
+     1' BEEN SHIFTED. NTYPE=',I2,/)
+      WRITE (IFILE4,210)(IPOINT(J),J=1,NPOINT) 
+210   FORMAT(/,' IPOINT(J) =',35I3/(35I3))
+      IF (ILOOP.LE.20) GO TO 140     
+      WRITE (IFILE4,220) 
+220   FORMAT(/,' REVISE CALLOUT STATIONS IN THIS SEGMENT. THERE ARE',
+     1' MORE',/,
+     1' CALLOUT POINTS THAN MESH PTS. IN SOME AREAS OF THIS SEG.',/)  
+      IF (ILOOP.GT.20) CALL ERREX     
+      RETURN
+      END
+C
+C
+C
+C=DECK      STRESS
+      SUBROUTINE STRESS(EPS1,EPS2,EPS12,K1,K2,K12,T,Z,IS,I,TIN,TOUT,
+     1FK1,FK2)
+C
+C     CALLED FROM PLOCAL, WHOSE TRACE IS PREB,PRE,MAIN
+C     CALLED FROM LOCAL, WHOSE TRACE IS MODE,MAIN
+C     STRESSES CALCULATED FROM STRAINS AND CHANGES IN CURVATURE
+C     OF ARBITRARY REFERENCE SURFACE. USED ONLY FOR MONOCOQUE SHELL
+C     AND SEMI-SANDWICH CORRUGATED SHELL.
+C
+C BEG MAR 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/RECSTF/PK1(2950),PE1(2950),PH1(2950),
+     1              PK2(2950),PE2(2950),PH2(2950)
+C END MAR 2005
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/KCHNG/NNWALL(2950),CCH(2950)
+      COMMON/WALPRP/EA(2950),EB(2950),GAB(2950),UAB(2950),
+     1              ALPH1(2950),ALPH2(2950)
+      COMMON/XTRSS/SIG1I,SIG1O,SIG2I,SIG2O,TAUI,TAUO,SIGEI,SIGEO
+      REAL K1,K2,K12
+      NWALL = NNWALL(IS)
+      CH = CCH(IS)
+      Z1 = - Z
+      Z2 = -Z + T
+C
+      SIG1I = 0.
+      SIG1O = 0.
+      SIG2I = 0.
+      SIG2O = 0.
+      TAUI  = 0.
+      TAUO  = 0.
+C
+      UBA = 0.
+      IF (EA(IS).GT.0.) UBA = EB(IS)*UAB(IS)/EA(IS)
+      U = 1. - UAB(IS)*UBA
+      IF (U.LE.0.) THEN
+        WRITE(IFILE4,*)' BAD POISSONS RATIO.  SEGMENT NO. =',IS
+        CALL ERREX
+      ENDIF
+C
+      ATIN1 = ALPH1(IS)*TIN
+      ATIN2 = ALPH2(IS)*TIN
+      ATOUT1= ALPH1(IS)*TOUT
+      ATOUT2= ALPH2(IS)*TOUT
+C
+      E11 = EA(IS)/U
+      E22 = EB(IS)/U
+      E12 = UBA*E11
+C
+      E1IN = EPS1 - Z1*K1 - ATIN1
+      E2IN = EPS2 - Z1*K2 - ATIN2
+      E1OUT= EPS1 - Z2*K1 - ATOUT1
+      E2OUT= EPS2 - Z2*K2 - ATOUT2
+C
+      SIG1I = E11*E1IN + E12*E2IN
+      SIG1O = E11*E1OUT+ E12*E2OUT
+      SIG2I = E12*E1IN + E22*E2IN
+      SIG2O = E12*E1OUT+ E22*E2OUT
+      TAUI  = GAB(IS)*(EPS12 + 2.*Z1*K12)
+      TAUO  = GAB(IS)*(EPS12 + 2.*Z2*K12)
+C
+      SIGEI = SQRT(SIG1I**2 + SIG2I**2 - SIG1I*SIG2I +3.*TAUI**2)
+      SIGEO = SQRT(SIG1O**2 + SIG2O**2 - SIG1O*SIG2O +3.*TAUO**2)
+C BEG MAR 2005
+C  Deal with smeared stringers and/or rings, if any...
+C  This section works only if the smeared stiffeners are of
+C  rectangular cross section that is constant in the segment.
+C  The thermal stuff is questionable because there is no temperature
+C  input for smeared stiffeners in BOSOR.
+C
+      IF (PH1(IS).GT.0.0) THEN
+C  We have rectangular stringers with cross section constant in segment...
+         IF (PK1(IS).LT.0.9) THEN
+C  We have "leftmost" rectangular stringers...
+            Z1 = -Z - PH1(IS)
+            E1IN = EPS1 - Z1*K1 -ATIN1
+            SIG1 = PE1(IS)*E1IN
+            IF (ABS(SIG1).GT.ABS(SIG1I)) SIG1I = SIG1
+            IF (ABS(SIG1).GT.SIGEI) SIGEI = ABS(SIG1)
+         ELSE
+C  We have "rightmost" rectangular stringers...
+            Z2 = -Z + T + PH1(IS)
+            E1OUT = EPS1 - Z2*K1 -ATOUT1
+            SIG1 = PE1(IS)*E1OUT
+            IF (ABS(SIG1).GT.ABS(SIG1O)) SIG1O = SIG1
+            IF (ABS(SIG1).GT.SIGEO) SIGEO = ABS(SIG1)
+         ENDIF
+      ENDIF
+C
+      IF (PH2(IS).GT.0.0) THEN
+C  We have rectangular rings with cross section constant in segment...
+         IF (PK2(IS).LT.0.9) THEN
+C  We have "leftmost" rectangular rings...
+            Z1 = -Z - PH2(IS)
+            E2IN = EPS2 - Z1*K2 -ATIN2
+            SIG2 = PE2(IS)*E2IN
+            IF (ABS(SIG2).GT.ABS(SIG2I)) SIG2I = SIG2
+            IF (ABS(SIG2).GT.SIGEI) SIGEI = ABS(SIG2)
+         ELSE
+C  We have "rightmost" rectangular rings...
+            Z2 = -Z + T + PH2(IS)
+            E2OUT = EPS2 - Z2*K2 -ATOUT2
+            SIG2 = PE2(IS)*E2OUT
+            IF (ABS(SIG2).GT.ABS(SIG2O)) SIG2O = SIG2
+            IF (ABS(SIG2).GT.SIGEO) SIGEO = ABS(SIG2)
+         ENDIF
+      ENDIF
+C END MAR 2005
+      RETURN
+      END
+C
+C
+C
+C=DECK      TIMRB
+      SUBROUTINE TIMRB
+C
+C       SUB TO COMPUTE THE CPU TIME SPENT BETWEEN A CALL
+C       TIMRB (OR STIME) AND A CALL TO TIMRE (OR TTIME)
+C
+C       USAGE:
+C
+C               CALL STIME
+C               .
+C               DO YOUR STUFF
+C               .
+C               CALL TTIME (CPUSECS)
+C
+C       CPUSECS WILL THEN BE EQUAL TO THE AMOUNT OF CPU TIME
+C       YOUR STUFF TOOK TO DO.
+C
+C       B. MOSSBERG APRIL 1980
+C
+C      INTEGER*2       LEN, CPUCOD
+C     INTEGER*4       CPUADR,CPUTIM,NEWTIM,
+C    1                ZERO,ZERO1
+C     COMMON /JPARS/  LEN,CPUCOD,CPUADR,ZERO,
+C    1                ZERO1,CPUTIM
+C     DATA            CPUCOD/1031/,LEN/4/                         .
+C
+C     ENTRY   STIME
+C     RETURN
+C     ENTRY TIMRE (CPUSECS)
+C     ENTRY TTIME (CPUSECS)
+C     CPUSECS = 1.0
+      RETURN
+      END
+C
+C
+C
+C=DECK      ISHIFT
+      SUBROUTINE ISHIFT(N,INDEX,I5)
+C     CALLED FROM READIT. POINTS SHIFTED BECAUSE EXTRA MESH POINTS
+C     HAVE BEEN ADDED NEAR ENDS OF SEGMENT.
+C
+      DIMENSION INDEX(*),I5(2950)
+      IF (N.EQ.0) RETURN
+      DO 10 I=1,N
+      ISEG = INDEX(I)/1000
+      IPT = INDEX(I) - 1000*ISEG
+      IF (IPT.GT.1.AND.IPT.LT.(I5(ISEG)-2)) INDEX(I) = INDEX(I) + 1
+      IF (IPT.EQ.(I5(ISEG)-2)) INDEX(I) = INDEX(I) + 2
+10    CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      INTERP
+      SUBROUTINE INTERP(IMAX,XTABLE,XVALUE,YTABLE,YVALUE,ILOG)
+C     
+C     PURPOSE IS TO LINEARLY INTERPOLATE : Y VS X, OR LOG(Y) VS LOG(X)
+C     
+C     INPUT DATA...     
+C     
+C     IMAX = NUMBER OF ENTRIES IN XTABLE(I), YTABLE(I)
+C   XTABLE = X COORDINATES OF DATA TO BE INTERPOLATED 
+C   YTABLE = Y COORDINATES OF DATA TO BE INTERPOLATED 
+C   XVALUE = VALUE OF X FOR WHICH WE WANT TO FIND YVALUE    
+C   ILOG   = SELECTOR FOR INTERPOLATION :
+C          = 0 : CARTESIAN COORDINATES ( Y = A + B*X )
+C          = 1 : LOG-LOG COORDINATES   ( Y = A * X**Z )
+C     
+C     OUTPUT DATA...    
+C     
+C   YVALUE = INTERPOLATED VALUE CORRESPONDING TO XVALUE     
+C     
+      DIMENSION XTABLE(*),YTABLE(*) 
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C     
+C
+      DO 50 I = 2,IMAX  
+      J = I 
+      IF (XTABLE(I).GT.XVALUE) GO TO 60   
+   50 CONTINUE    
+   60 CONTINUE    
+      IF (J.LE.IMAX) GO TO 70 
+      WRITE(IFILE4,65) 
+   65 FORMAT(/' TABULAR DATA DOES NOT SPAN INPUT VALUE, XVALUE',/)
+      CALL ERREX  
+   70 CONTINUE    
+C     
+      J1 = J - 1  
+       IF (ILOG.EQ.1) GO TO 80
+      YDIFF = YTABLE(J) - YTABLE(J1)
+      XDIFF = XTABLE(J) - XTABLE(J1)
+C     
+      IF (XDIFF.EQ.0.) THEN
+         WRITE(IFILE4,*)
+     1  ' BAD TABULAR INPUT FOR FREQUENCY. TWO EQUAL VALUES'
+         CALL ERREX
+      ENDIF
+C
+      YVALUE = YTABLE(J1) + YDIFF*(XVALUE - XTABLE(J1) )/XDIFF    
+      GO TO 90
+C     
+80    CONTINUE
+C
+C     LOG-LOG INTERPOLATION
+      IF (YTABLE(J).EQ.0.) THEN
+         WRITE(IFILE4,*)' BAD TABULAR INPUT. ZERO VALUE ILLEGAL.'
+         CALL ERREX
+      ENDIF
+C
+      IF (YTABLE(J1).EQ.0.) THEN
+         WRITE(IFILE4,*)' BAD TABULAR INPUT. ZERO VALUE ILLEGAL.'
+         CALL ERREX
+      ENDIF
+C
+      IF (XTABLE(J).EQ.0.) THEN
+         WRITE(IFILE4,*)' BAD TABULAR INPUT. ZERO VALUE ILLEGAL.'
+         CALL ERREX
+      ENDIF
+C
+      IF (XTABLE(J1).EQ.0.) THEN
+         WRITE(IFILE4,*)' BAD TABULAR INPUT. ZERO VALUE ILLEGAL.'
+         CALL ERREX
+      ENDIF
+C
+       Z1=LOG(YTABLE(J)/YTABLE(J1))
+       Z2=LOG(XTABLE(J)/XTABLE(J1))
+       Z=Z1/Z2
+       A=YTABLE(J)/XTABLE(J)**Z
+C
+       YVALUE=A*XVALUE**Z
+C
+C
+90    CONTINUE
+      RETURN
+      END   
+C
+C
+C
+C=DECK      NODOUT
+      SUBROUTINE NODOUT(NWALL,ISEG,I5,NODES,NODALL,NODTOT)
+C
+C  PURPOSE IS TO CHOOSE NODAL POINTS FOR STRESS OUTPUT FOR COMPOSITE
+C  SEGMENTS.
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      DIMENSION NODES(*),NODALL(*)
+      CHARACTER*4 CHARAC,ANSOUT
+      LOGICAL ANSL1
+C
+C BEG APR 1992
+      IF (NWALL.NE.4.AND.NWALL.NE.9) GO TO 100
+C END APR 1992
+      WRITE(IFILE4,'(1X,A)')
+     1 ' This segment wall is laminated composite.'
+      WRITE(IFILE4,'(1X,A,I3,A)')' Seg. No. ',ISEG,', NWALL =4'
+      WRITE(IFILE4,'(1X,A,I2)')
+     1 ' End point of this segment is at node ',I5
+      REWIND IFILE3
+      CALL DATUM(IFILE3,620,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,622,1,1,INT,REALL,ANSOUT,IOUT,ISEG,1)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 100
+      NODALL(ISEG) = 0
+      CALL DATUM(IFILE3,624,0,0,INT,REALL,CHARAC,IOUT,0,1)
+   10 CONTINUE
+      REWIND IFILE3
+      CALL DATUM(IFILE3,626,1,1,NODE,REALL,CHARAC,IOUT,0,1)
+      IF (NODE.LT.1.OR.NODE.GT.I5) THEN
+         WRITE(IFILE4,'(1X,A,A,I2)')
+     1 ' NODAL POINT NOT IN PERMISSIBLE RANGE',
+     1   ' END POINT OF SEGMENT IS AT NODE NO.',I5
+         BACKSPACE(IOUT)
+         GO TO 10
+      ENDIF
+      NODTOT = NODTOT + 1
+C BEG APR 1992
+      IF (NODE.GT.1) NODE = NODE + 1
+      IF (NODE.EQ.(I5+1)) NODE = NODE + 1
+C END APR 1992
+      NODES(NODTOT) = ISEG*100 + NODE
+      IF (NODTOT.GT.1.AND.NODES(NODTOT).LT.NODES(NODTOT-1)) THEN
+         WRITE(IFILE4,'(1X,A,A)')' NODAL POINTS MUST BE PROVIDED IN',
+     1   ' INCREASING ORDER. PLEASE TRY AGAIN.'
+         NODTOT = NODTOT - 1
+         BACKSPACE(IOUT)
+         GO TO 10
+      ENDIF
+C
+      CALL DATUM(IFILE3,628,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+C
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      STRTHK
+      SUBROUTINE STRTHK(SMODE,IOUT,NNDIST,IDIST,FSSTR,NSEG,I5,
+     1                  ILOOP,INTVAL,NWALL,THET,ICOL1,ICOL2,ICOL3,
+     1                  ICOL4,ICOL5,ICOL6)
+C
+C  PURPOSE IS TO COMPUTE STRESSES THRU THE THICKNESS. STRESSES ARE NEEDED
+C  AT ALL MATERIAL INTERFACES.
+C
+      DIMENSION SMODE(IOUT,NNDIST,9)
+      DIMENSION CS(2,99),I5(*),INTVAL(*),ZREF(100),NWALL(*)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C BEG JUN 2009
+      COMMON/LAYER/MATL(90),LTYPE(5500),T(90),ANGLE(90),
+     1 NLAYER(2950)
+C END JUN 2009
+      COMMON/MATER1/EE1(20),EE2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),EALLOW(5,20)
+      COMMON/OUTP/NPRT
+      COMMON/IDZREF/IZREF(2950)
+      COMMON/COMNOD/NODES(2950),NODALL(2950),NODTOT
+      REAL K1,K2,K12
+      CHARACTER*15 MODE(6)
+      DATA DTR /.017453293/
+C
+         MODE(1) = ' 0 deg. tension'
+         MODE(2) = ' 0 deg. comp.  '
+         MODE(3) = '90 deg. tension'
+         MODE(4) = '90 deg. comp.  '
+         MODE(5) = ' in-plane shear'
+         MODE(6) = '  no failure   '
+C
+      WRITE(IFILE4,10)THET
+10    FORMAT(/,' MERIDIONAL DISTRIBUTION OF SUPERPOSED QUANTITIES',
+     1' CORRESPONDING',/,
+     1' TO CIRCUMFERENTIAL STATION, THETA= ',1PE12.4,' DEG.')
+      ITOT = 0
+      IS = 1
+      JOLD = 0
+      NODTOT = 1
+      IFILE= 6
+C
+      DO 300 ISEG=1,NSEG
+      IF (NWALL(ISEG).NE.4) GO TO 50
+C BEG MAR 2008
+      WRITE(IFILE4,10)THET
+C END MAR 2008
+      WRITE(IFILE4,20)ISEG,ISEG,ISEG,ISEG,ISEG
+   20 FORMAT(/,' STRESS RESULTANTS OR STRESSES OR STRAINS AND',/,
+     1        ' CHANGES IN CURVATURE IN SEGMENT NUMBER',5I6)
+      IF (ILOOP.EQ.1) WRITE(IFILE4,22)
+      IF (ILOOP.EQ.2) WRITE(IFILE4,23)
+   22 FORMAT(' *** RESULTS FROM APPLICATION OF LOAD SYSTEM "A" ****')
+   23 FORMAT(' *** RESULTS FROM APPLICATION OF LOAD SYSTEM "B" ****')
+C BEG APR 1992
+C  "IF" PART OF STATEMENT REMOVED
+      CALL GASP(ZREF,I5(ISEG),3,IZREF(ISEG))
+C END APR 1992
+C BEG JUL 2001
+C        WRITE(IFILE,24)
+         WRITE(IFILE4,24)
+C END JUL 2001
+   24    FORMAT(/,
+     1' BUCK.  LOCATION  IN  PANEL   WINDING   IN-PLANE STRESSES IN',
+     1' MATL',
+     1' COORDS.  MODE OF   TRANSVERSE CRACKING  ALLOWABLE  MATERIAL',/,
+     1' MODE  SEG. NODE LAYER    Z    ANGLE     SIG1        SIG2      ',
+     1'  SIG12     FAILURE  (1.0 means inactive)   STRESS      TYPE')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      I5I  = I5(ISEG)
+      IMAX = I5I
+      ITEST = IMAX
+      NODA  = NODALL(ISEG)
+      NLAY  = NLAYER(ISEG)
+      TTOT  = 0.
+      DO 40 J = 1,NLAY
+      JJ = J + JOLD
+      K = LTYPE(JJ)
+   40 TTOT = TTOT + T(K)
+C
+   50 CONTINUE
+      INEXT = ITOT + 1
+      I5I   = I5(ISEG)
+      IEND  = ITOT + I5I
+C
+      DO 200 I = 1,I5I
+C
+      ITOT = ITOT + 1
+      NODSTA = NODES(NODTOT) - 100*ISEG
+      IF (ITOT.NE.INEXT) THEN
+         IF (NWALL(ISEG).NE.4) GO TO 200
+         IF (NODA.EQ.1) GO TO 200
+         IF (I.NE.NODSTA) GO TO 200
+         NODTOT = NODTOT + 1
+         GO TO 200
+      ELSE
+         IF (NWALL(ISEG).NE.4) GO TO 140
+         IF (NODA.EQ.0) THEN
+            IF (I.NE.NODSTA) GO TO 140
+            NODTOT = NODTOT + 1
+         ENDIF
+      ENDIF
+C
+      NLAY = NLAYER(ISEG)
+      Z = -ZREF(I)
+      E1 = SMODE(IS,IDIST,ICOL1)
+      E2 = SMODE(IS,IDIST,ICOL2)
+      E12= SMODE(IS,IDIST,ICOL3)
+      K1 = SMODE(IS,IDIST,ICOL4)
+      K2 = SMODE(IS,IDIST,ICOL5)
+      K12= SMODE(IS,IDIST,ICOL6)
+C
+C     IF (I.EQ.I5I) THEN
+C        WRITE(IFILE4,*)' STRTHK BEF. LAYERS..ISEG,NLAY,I,IS,IDIST=',
+C    1                                ISEG,NLAY,I,IS,IDIST
+C        WRITE(IFILE,*)' E1,E2,E12=',E1,E2,E12
+C        WRITE(IFILE,*)' K1,K2,K12=',K1,K2,K12
+C     ENDIF
+C
+      DO 100 L = 1,NLAY
+C
+      JJ = L + JOLD
+      K = LTYPE(JJ)
+      M = MATL(K)
+      A1T = ALPHA1(M)*(-CURETP(M))
+      A2T = ALPHA2(M)*(-CURETP(M))
+      IF (I.EQ.1) THEN
+         ARG = ANGLE(K)*DTR
+         CS(1,L) = COS(ARG)
+         CS(2,L) = SIN(ARG)
+      ENDIF
+C
+      IF (L.GT.1) THEN
+         L1 = L - 1
+         JJ1 = L1 + JOLD
+         KM = LTYPE(JJ1)
+         M1 = MATL(KM)
+         A1T1 = ALPHA1(M1)*(-CURETP(M1))
+         A2T1 = ALPHA2(M1)*(-CURETP(M1))
+      ENDIF
+C
+      EX = E1 - Z*K1
+      EY = E2 - Z*K2
+      EXY= E12+2.*Z*K12
+C
+C     IF (I.EQ.I5I) THEN
+C        WRITE(IFILE4,*)' L,JOLD,JJ,K,M=',L,JOLD,JJ,K,M
+C        WRITE(IFILE4,*)' L1,JOLD,JJ1,KM,M1=',L1,JOLD,JJ1,KM,M1
+C        WRITE(IFILE4,*)' A1T,A2T,Z=',A1T,A2T,Z
+C        WRITE(IFILE4,*)' A1T1,A2T1=',A1T1,A2T1
+C        WRITE(IFILE4,*)' EX,EY,EXY=',EX,EY,EXY
+C        WRITE(IFILE4,*)' CS(1,L),CS(2,L)=',CS(1,L),CS(2,L)
+C        WRITE(IFILE4,*)' ARG=',ARG
+C     ENDIF
+C
+      IF (L.GT.1.AND.T(KM).GT.(0.001*TTOT)) THEN
+      IF (T(KM).NE.0.) THEN
+      CALL MAXSTR(IFILE,NPRT,EX,EY,EXY,ISEG,L1,I,Z,CS(1,L1),
+     1            A1T1,A2T1,EALLOW(1,M1),EE1(M1),EE2(M1),G(M1),FNU(M1),
+     1            MODE,M1,FSSTR,ANGLE(KM))
+      ENDIF
+      ENDIF
+C
+      IF (T(K).NE.0.) THEN
+        CALL MAXSTR(IFILE,NPRT,EX,EY,EXY,ISEG,L,I,Z,CS(1,L),
+     1            A1T,A2T,EALLOW(1,M),EE1(M),EE2(M),G(M),FNU(M),
+     1            MODE,M,FSSTR,ANGLE(K))
+      ENDIF
+C
+      Z = Z + T(K)
+C
+  100 CONTINUE
+      IF (T(K).EQ.0.) GO TO 140
+C
+      EX = E1 - Z*K1
+      EY = E2 - Z*K2
+      EXY= E12+2.*Z*K12
+C
+      CALL MAXSTR(IFILE,NPRT,EX,EY,EXY,ISEG,NLAY,I,Z,CS(1,NLAY),
+     1            A1T,A2T,EALLOW(1,M),EE1(M),EE2(M),G(M),FNU(M),
+     1            MODE,M,FSSTR,ANGLE(K))
+C
+  140 CONTINUE
+      IS = IS + 1
+      INEXT = ITOT + INTVAL(ISEG)
+      IF (INEXT.GT.IEND) INEXT = IEND
+  200 CONTINUE
+      IF (NWALL(ISEG).EQ.4) JOLD = JOLD + NLAY
+  300 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      MAXSTR
+      SUBROUTINE MAXSTR(IFILE,NPRT,EX,EY,EXY,ISEG,L,I,Z,CS,A1T,A2T,
+     1                  EALLST,E1,E2,G,U12,MODE,M,FSSTR,ANGLE)
+C
+C  PURPOSE IS TO FIND STRESS COMPONENTS IN MATERIAL COORDINATES
+C  AT A SINGLE POINT IN THE STRUCTURE, GIVEN EX, EY, EXY, AND POSITION.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      DIMENSION CS(*),EALLST(*)
+      CHARACTER*15 MODE(6)
+      CHARACTER*3 POSNEG
+      CHARACTER*6 STATUS
+C
+      CALL ROTATE(CS(1),CS(2),EX,EY,EXY,EPS1,EPS2,EPS12)
+C
+      U21 = 0.
+      IF (E2.GT.0.) U21 = U12*E1/E2
+      UD = 1. - U12*U21
+      SIG1 = (    E1*(EPS1-A1T) +U12*E1*(EPS2-A2T))/UD
+      SIG2 = (U12*E1*(EPS1-A1T) +    E2*(EPS2-A2T))/UD
+      SIG12= G*EPS12
+C
+C     IF (I.EQ.39) THEN
+C        WRITE(IFILE4,*)' EX,EY,EXY=',EX,EY,EXY
+C        WRITE(IFILE4,*)' EPS1,EPS2=',EPS1,EPS2
+C        WRITE(IFILE4,*)' A1T,A2T  =',A1T,A2T
+C        WRITE(IFILE4,*)' E1,U12,UD=',E1,U12,UD
+C        WRITE(IFILE4,*)' SIG1,SIG2=',SIG1,SIG2
+C     ENDIF
+C
+      POSNEG = '   '
+      REDCOM = 1.
+      REDSHR = 1.
+      CRACKD = 1.
+      ISKIP  = 0
+      RATIO  = 1.1
+C
+C  THE FOLLOWING STATEMENTS ARE FOR THE PURPOSE OF LISTING THE
+C  STRESSES EVERYWHERE THEY ARE CALCULATED.
+C
+         DO 200 J = 1,5
+C
+            GO TO (30,40,10,20,50),J
+C
+   10       CONTINUE
+            INDEX = 1
+            IF (SIG1.LE.0.) GO TO 100
+            RATIO = ABS(EALLST(1)/(SIG1*FSSTR))
+            GO TO 100
+   20       CONTINUE
+            INDEX = 2
+            IF (SIG1.GE.0.) GO TO 100
+            RATIO = ABS(EALLST(2)*REDCOM/(SIG1*FSSTR))
+            GO TO 100
+   30       CONTINUE
+            INDEX = 3
+            IF (SIG2.LE.0.) GO TO 100
+            RATIO = ABS(EALLST(3)/(SIG2*FSSTR))
+            GO TO 100
+   40       CONTINUE
+            INDEX = 4
+            IF (SIG2.GE.0.) GO TO 100
+            RATIO = ABS(EALLST(4)/(SIG2*FSSTR))
+            GO TO 100
+   50       CONTINUE
+            INDEX = 5
+            IF (SIG12.EQ.0.) GO TO 100
+            RATIO = ABS(EALLST(5)*REDSHR/(SIG12*FSSTR))
+C
+  100       CONTINUE
+C
+      IF (RATIO.GT.1.0.AND.(J.LT.5.OR.ISKIP.EQ.1)) GO TO 200
+         IF (RATIO.LT.1.0) THEN
+            STATUS = 'FAILED'
+            ISKIP  = 1
+         ELSE
+            STATUS = '  OK  '
+            INDEX  = 6
+         ENDIF
+         IF (STATUS.EQ.'FAILED') THEN
+            EALSR = EALLST(INDEX)
+            IF (INDEX.EQ.2) EALSR = EALLST(INDEX)*REDCOM
+            IF (INDEX.EQ.5) EALSR = EALLST(INDEX)*REDSHR
+C BEG JUL 2001
+         WRITE(IFILE4,150) POSNEG,ISEG,I,L,Z,ANGLE,SIG1,SIG2,
+     1   SIG12,MODE(INDEX),CRACKD,EALSR,M
+C END JUL 2001
+         ELSE
+C BEG JUL 2001
+         WRITE(IFILE4,151) POSNEG,ISEG,I,L,Z,ANGLE,SIG1,SIG2,
+     1   SIG12,MODE(INDEX),CRACKD,M
+C END JUL 2001
+         ENDIF
+  150    FORMAT(1X,A3,I5,I6,I5,1PE10.2,0PF6.1,1P3E12.4,1X,A15,1PE12.4,
+     1          1PE15.4,I7)
+  151    FORMAT(1X,A3,I5,I6,I5,1PE10.2,0PF6.1,1P3E12.4,1X,A15,1PE12.4,
+     1          15X,I7)
+         RATIO = 1.1
+  200    CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      ROTATE
+      SUBROUTINE ROTATE(C,S,EX,EY,EXY,E1,E2,E12)
+C
+C  PURPOSE IS TO TRANSFORM STRAINS FROM (AXIAL,TRANSVERSE = EX,EY)
+C  SYSTEM TO MATERIAL COORDINATES (E1,E2).  WINDING ANGLE = ANGLE
+C
+      C2 = C*C
+      S2 = S*S
+      SC = S*C
+C
+C  E1, E2, E12 ARE STRAIN COMPONENTS IN MATERIAL COORDINATES...
+C
+      E1 = C2*EX + S2*EY + SC*EXY
+      E2 = S2*EX + C2*EY - SC*EXY
+      E12= -2.*SC*(EX - EY) + (C2-S2)*EXY
+C
+      RETURN
+      END
+C
+C
+C=DECK      IB
+      FUNCTION IB(N)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C     M = N
+      IB= N
+      IF (N.LE.0) IB = 1
+CD     TYPE *,'IB ENTERED',M,N
+      RETURN
+      END
+C
+C
+C BEG APR 1992
+C=DECK      STRTHX
+      SUBROUTINE STRTHX(SMODE,IOUT,NNDIST,IDIST,FSSTR,NSEG,I5,
+     1                  ILOOP,INTVAL,NWALL,THET,ICOL1,ICOL2,ICOL3,
+     1                  ICOL4,ICOL5,ICOL6,WORDB,EMAX,EMARG,
+     1                  IMOD,ITYPE,FMAX,INUMTT,IPOINC,ICONST,CONSTR,
+     1                  INDIC)
+C
+C  PURPOSE IS TO COMPUTE STRESSES THRU THE THICKNESS. STRESSES ARE NEEDED
+C  AT ALL MATERIAL INTERFACES.
+C
+C BEG AUG 1999
+      COMMON/LAMSTR/STRRAT(99)
+      COMMON/WRDSTR/STRWRD(99)
+      CHARACTER*80 STRWRD
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C END AUG 1999
+      DIMENSION SMODE(IOUT,NNDIST,9)
+      DIMENSION CS(2,99),I5(*),INTVAL(*),ZREF(100),NWALL(*)
+C BEG JUN 2009
+      COMMON/LAYER/MATL(90),LTYPE(5500),T(90),ANGLE(90),
+     1 NLAYER(2950)
+C END JUN 2009
+      COMMON/MATER1/EE1(20),EE2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),EALLOW(5,20)
+      COMMON/OUTP/NPRT
+      COMMON/IDZREF/IZREF(2950)
+      COMMON/COMNOD/NODES(2950),NODALL(2950),NODTOT
+C BEG APR 1992
+      DIMENSION EMAX(5,20),POSI(5,20),POSIP(5,20),POSTST(5,20)
+      DIMENSION EMARG(5,20),WORDB(*),CONSTR(*),IPOINC(*),VAR(99)
+C BEG MAR 2007
+      DIMENSION IADDB(99),ISUB(99),THICK(100000),TIO(400),ITSET(90)
+C END MAR 2007
+      DIMENSION THK(90)
+      COMMON/ILVARS/ILVAR(11,2950),ITREF(2950),NLVAR(2950),
+     1 ITIO(2950)
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+C BEG NOV 2011
+C     COMMON/WORDS5/PCWORD(99)
+      COMMON/WRDS5X/PCWORD(99)
+C END NOV 2011
+C BEG NOV 1999
+      COMMON/PLTCDX/ICAR,IADDCC(99),CPLOT(99)
+C END NOV 1999
+      COMMON/FSAFEB/FSAFEP(99)
+      COMMON/FMAXPP/MAXCON
+      REAL MAXCON
+      CHARACTER*15 MODE(7)
+      CHARACTER*51 POSI,POSTST,POS
+      CHARACTER*38 POSIP,POSP
+      CHARACTER*7 CN2
+      CHARACTER*2 CJ
+      CHARACTER*80 WORDB,PCWORD
+C BEG DEC 2003
+      CHARACTER*72 ARGSTR
+C END DEC 2003
+C END APR 1992
+      REAL K1,K2,K12
+      DATA DTR /.017453293/
+C BEG APR 1992
+C   TEMPORARY INITIALIZATION IN STRINI WHILE WE DEVELOP
+C   OPTIMIZATION BOSOR4 CODE:
+      IF (IDIST.EQ.1)
+     1   CALL STRINI(FSSTR,IMOD,ITYPE,FMAX,INUMTT,IPOINC,ICONST,
+     1               CONSTR,EMAX,EMARG)
+C
+      MMAX = 0
+C END APR 1992
+         MODE(1) = ' 0 deg. tension'
+         MODE(2) = ' 0 deg. comp.  '
+         MODE(3) = '90 deg. tension'
+         MODE(4) = '90 deg. comp.  '
+         MODE(5) = ' in-plane shear'
+         MODE(6) = '  no failure   '
+         MODE(7) = 'von Mises yield'
+C
+      WRITE(IFILE4,10)THET
+10    FORMAT(/,' MERIDIONAL DISTRIBUTION OF SUPERPOSED QUANTITIES',
+     1' CORRESPONDING',/,
+     1' TO CIRCUMFERENTIAL STATION, THETA= ',1PE12.4,' DEG.')
+      ITOT = 0
+      IS = 1
+      JOLD = 0
+      NODTOT = 1
+      IFILE= 6
+C
+      DO 300 ISEG=1,NSEG
+      IF (NWALL(ISEG).NE.4.AND.NWALL(ISEG).NE.9) GO TO 50
+C BEG MAR 2008
+      WRITE(IFILE4,10)THET
+C END MAR 2008
+      WRITE(IFILE4,20)ISEG,ISEG,ISEG,ISEG,ISEG
+   20 FORMAT(/,' STRESS RESULTANTS OR STRESSES OR STRAINS AND',/,
+     1        ' CHANGES IN CURVATURE IN SEGMENT NUMBER',5I6)
+      IF (ILOOP.EQ.1) WRITE(IFILE4,22)
+      IF (ILOOP.EQ.2) WRITE(IFILE4,23)
+   22 FORMAT(' **** RESULTS FROM APPLICATION OF LOAD SYSTEM "A" ****')
+   23 FORMAT(' **** RESULTS FROM APPLICATION OF LOAD SYSTEM "B" ****')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      CALL GASP(ZREF,I5(ISEG),3,IZREF(ISEG))
+      INUMB = I5(ISEG)*NLVAR(ISEG)
+      IF (INUMB.GT.0) CALL GASP(THICK,INUMB,3,ITREF(ISEG))
+      CALL GASP(TIO,4*I5(ISEG),3,ITIO(ISEG))
+C
+C BEG JUL 2001
+C        WRITE(IFILE,24)
+         WRITE(IFILE4,24)
+C END JUL 2001
+   24    FORMAT(/,
+     1' MATL.  LOCATION  IN  PANEL   WINDING   IN-PLANE STRESSES IN',
+     1' MATL',
+     1' COORDS.  MODE OF        EFFECTIVE   ALLOWABLE',/,
+     1' TYPE  SEG. NODE LAYER    Z    ANGLE     SIG1        SIG2      ',
+     1'  SIG12     FAILURE         STRESS      STRESS')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      I5I  = I5(ISEG)
+      IMAX = I5I
+      ITEST = IMAX
+      NODA  = NODALL(ISEG)
+      NLAY  = NLAYER(ISEG)
+      TTOT  = 0.
+      DO 40 J = 1,NLAY
+      JJ = J + JOLD
+      K = LTYPE(JJ)
+      THK(J) = T(K)
+   40 TTOT = TTOT + T(K)
+      KVAR = 1
+      DO 45 J = 1,NLAY
+         ITSET(J) = 0
+         IF (ILVAR(KVAR,ISEG).EQ.J) THEN
+            ITSET(J) = KVAR
+            KVAR = KVAR + 1
+         ENDIF
+   45 CONTINUE
+C
+   50 CONTINUE
+      INEXT = ITOT + 1
+      I5I   = I5(ISEG)
+      IEND  = ITOT + I5I
+C
+      DO 200 I = 1,I5I
+C
+      ITOT = ITOT + 1
+      NODSTA = NODES(NODTOT) - 100*ISEG
+      IF (ITOT.NE.INEXT) THEN
+         IF (NWALL(ISEG).NE.4.AND.NWALL(ISEG).NE.9) GO TO 200
+         IF (NODA.EQ.1) GO TO 200
+         IF (I.NE.NODSTA) GO TO 200
+         NODTOT = NODTOT + 1
+         GO TO 200
+      ELSE
+         IF (NWALL(ISEG).NE.4.AND.NWALL(ISEG).NE.9) GO TO 140
+         IF (NODA.EQ.0) THEN
+            IF (I.EQ.NODSTA) NODTOT = NODTOT + 1
+         ENDIF
+      ENDIF
+C
+C  FIND INNER AND OUTER SURFACE TEMPERATURE RISES ABOVE ZERO STRESS STATE..
+      CALL TMPNON(INDIC,ILOOP,ISEG,I,I5I,TIO,IDIST,TMPIN,TMPOUT)
+      DTEMP = TMPOUT - TMPIN
+C
+      NLAY = NLAYER(ISEG)
+      Z = -ZREF(I)
+      Z0 = -ZREF(I)
+      E1 = SMODE(IS,IDIST,ICOL1)
+      E2 = SMODE(IS,IDIST,ICOL2)
+      E12= SMODE(IS,IDIST,ICOL3)
+      K1 = SMODE(IS,IDIST,ICOL4)
+      K2 = SMODE(IS,IDIST,ICOL5)
+      K12= SMODE(IS,IDIST,ICOL6)
+C
+C     IF (I.EQ.I5I) THEN
+C        WRITE(IFILE4,*)' STRTHX BEF. LAYERS..ISEG,NLAY,I,IS,IDIST=',
+C    1                                ISEG,NLAY,I,IS,IDIST
+C        WRITE(IFILE,*)' E1,E2,E12=',E1,E2,E12
+C        WRITE(IFILE,*)' K1,K2,K12=',K1,K2,K12
+C     ENDIF
+C
+C  FIND THE TOTAL THICKNESS OF THE LAMINATE AT THIS ITH STATION...
+      IF (NLVAR(ISEG).GT.0) THEN
+         TTOT = 0.
+         DO 90 J = 1,NLAY
+            JJ = J + JOLD
+             K = LTYPE(JJ)
+           THK(J) = T(K)
+           IF (ITSET(J).NE.0) THEN
+              ITJ = ITSET(J) - 1
+C BEG JAN 1993
+              IIJ = I5I*ITJ + I
+C END JAN 1993
+              THK(J) = THICK(IIJ)
+           ENDIF
+           TTOT = TTOT + THK(J)
+   90    CONTINUE
+      ENDIF
+C
+      DO 100 L = 1,NLAY
+C
+      LL = L
+      JJ = L + JOLD
+      K = LTYPE(JJ)
+      M = MATL(K)
+      MMAX = MAX(M,MMAX)
+      TEMP = TMPIN +(Z-Z0)*DTEMP/TTOT
+      A1T = ALPHA1(M)*(-CURETP(M)+TEMP)
+      A2T = ALPHA2(M)*(-CURETP(M)+TEMP)
+      IF (I.EQ.1) THEN
+         ARG = ANGLE(K)*DTR
+         CS(1,L) = COS(ARG)
+         CS(2,L) = SIN(ARG)
+      ENDIF
+C
+      IF (L.GT.1) THEN
+         L1 = L - 1
+         JJ1 = L1 + JOLD
+         KM = LTYPE(JJ1)
+         M1 = MATL(KM)
+         A1T1 = ALPHA1(M1)*(-CURETP(M1)+TEMP)
+         A2T1 = ALPHA2(M1)*(-CURETP(M1)+TEMP)
+      ENDIF
+C
+      EX = E1 - Z*K1
+      EY = E2 - Z*K2
+      EXY= E12+2.*Z*K12
+C
+C     IF (I.EQ.I5I) THEN
+C        WRITE(IFILE4,*)' L,JOLD,JJ,K,M=',L,JOLD,JJ,K,M
+C        WRITE(IFILE4,*)' L1,JOLD,JJ1,KM,M1=',L1,JOLD,JJ1,KM,M1
+C        WRITE(IFILE4,*)' A1T,A2T,Z=',A1T,A2T,Z
+C        WRITE(IFILE4,*)' A1T1,A2T1=',A1T1,A2T1
+C        WRITE(IFILE4,*)' EX,EY,EXY=',EX,EY,EXY
+C        WRITE(IFILE4,*)' CS(1,L),CS(2,L)=',CS(1,L),CS(2,L)
+C        WRITE(IFILE4,*)' ARG=',ARG
+C     ENDIF
+C
+      IF (L.GT.1.AND.THK(L1).GT.(0.001*TTOT)) THEN
+      IF (THK(L1).NE.0.) THEN
+      CALL MAXSTX(IFILE,NPRT,EX,EY,EXY,ISEG,L1,I,Z,CS(1,L1),EMAX(1,M1),
+     1            A1T1,A2T1,EALLOW(1,M1),EE1(M1),EE2(M1),G(M1),FNU(M1),
+     1            MODE,M1,FSSTR,ANGLE(KM),
+     1            POSI(1,M1),POSIP(1,M1),POSTST(1,M1),IMOD,ITYPE,
+     1            NODSTA,NODA)
+      ENDIF
+      ENDIF
+C
+      IF (THK(L).NE.0.) THEN
+        CALL MAXSTX(IFILE,NPRT,EX,EY,EXY,ISEG,L,I,Z,CS(1,L),EMAX(1,M),
+     1            A1T,A2T,EALLOW(1,M),EE1(M),EE2(M),G(M),FNU(M),
+     1            MODE,M,FSSTR,ANGLE(K),
+     1            POSI(1,M),POSIP(1,M),POSTST(1,M),IMOD,ITYPE,
+     1            NODSTA,NODA)
+     
+      ENDIF
+C
+      Z = Z + THK(L)
+C
+  100 CONTINUE
+      IF (THK(LL).EQ.0.) GO TO 140
+C
+      TEMP = TMPIN +(Z-Z0)*DTEMP/TTOT
+      A1T = ALPHA1(M)*(-CURETP(M)+TEMP)
+      A2T = ALPHA2(M)*(-CURETP(M)+TEMP)
+C
+      EX = E1 - Z*K1
+      EY = E2 - Z*K2
+      EXY= E12+2.*Z*K12
+C
+      CALL MAXSTX(IFILE,NPRT,EX,EY,EXY,ISEG,NLAY,I,Z,CS(1,NLAY),
+     1            EMAX(1,M),
+     1            A1T,A2T,EALLOW(1,M),EE1(M),EE2(M),G(M),FNU(M),
+     1            MODE,M,FSSTR,ANGLE(K),
+     1            POSI(1,M),POSIP(1,M),POSTST(1,M),IMOD,ITYPE,
+     1            NODSTA,NODA)
+C
+  140 CONTINUE
+      IS = IS + 1
+      INEXT = ITOT + INTVAL(ISEG)
+      IF (INEXT.GT.IEND) INEXT = IEND
+  200 CONTINUE
+      IF (NWALL(ISEG).EQ.4.OR.NWALL(ISEG).EQ.9) JOLD = JOLD + NLAY
+  300 CONTINUE
+C
+C BEG APR 1992
+      IF (IDIST.EQ.NNDIST) THEN
+         MAXJ = MMAX
+         DO 350 J = 1,MAXJ
+         DO 320 II = 1,5
+         PROD = 0.
+         EMARG(II,J) = 1000.
+         IF (II.LE.5) PROD = EMAX(II,J)*FSSTR
+         IF (PROD.NE.0.) EMARG(II,J)=ABS(1./PROD)
+  320    CONTINUE
+C           WRITE(IFILE4,*)' J, (EMAX(II,J),II=1,5)=...'
+C           WRITE(IFILE4,330) J, (EMAX(II,J),II=1,5)
+C           WRITE(IFILE4,*)' J, (EMARG(II,J)-1.,II=1,6)=...'
+C           WRITE(IFILE4,330) J,(EMARG(II,J)-1.,II=1,6)
+  330    FORMAT(' J, EMARG(J,II),II=1,6)=',I3,1P6E14.4)
+  350    CONTINUE
+C
+C  CONSTRAINT CONDITIONS...
+C
+         IBEG = ICONST + 1
+         CONSTR(IBEG) = 0.
+C
+         CALL CONVRF(FSSTR,CN2)
+         DO 600 J = 1,MAXJ
+            CALL CONVR2(J,CJ)
+            DO 500 I = 1,5
+            DO 355 ILE = 1,51
+  355       POS(ILE:ILE) = POSI(I,J)(ILE:ILE)
+            DO 356 ILE = 1,38
+  356       POSP(ILE:ILE) = POSIP(I,J)(ILE:ILE)
+            INUMTT = INUMTT + 1
+            IF (EMARG(I,J).EQ.1000.) GO TO 500
+            IF (IMOD.EQ.0.AND.EMARG(I,J).LT.MAXCON) THEN
+               ICAR = ICAR + 1
+               GO TO (360,370,380,390,400), I
+  360          CONTINUE
+               IF (ISOMAT(J).EQ.0.OR.ISOEFF(J).EQ.0) PCWORD(ICAR) =
+     1        'fiber tension :'//POSP
+               IF (ISOMAT(J).EQ.1.AND.ISOEFF(J).EQ.1) PCWORD(ICAR) =
+     1        'effect. stress:'//POSP
+               GO TO 408
+  370          CONTINUE
+               PCWORD(ICAR) = 'fiber compres.:'//POSP
+               GO TO 408
+  380          CONTINUE
+               PCWORD(ICAR) = 'transv tension:'//POSP
+               GO TO 408
+  390          CONTINUE
+               PCWORD(ICAR) = 'transv compres:'//POSP
+               GO TO 408
+  400          CONTINUE
+               PCWORD(ICAR) = 'in-plane shear:'//POSP
+               GO TO 408
+  408          CONTINUE
+               CPLOT(ICAR) = EMARG(I,J) - 1.
+               IADDCC(ICAR) = 1
+               FSAFEP(ICAR) = FSSTR
+            ENDIF
+C
+            IF (IMOD.EQ.0.AND.EMARG(I,J).GT.FMAX) GO TO 500
+            IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 500
+            ICONST = ICONST + 1
+            IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+            CONSTR(ICONST) = EMARG(I,J)
+            GO TO (410,420,430,440,450), I
+  410       CONTINUE
+            IF (ISOMAT(J).EQ.0.OR.ISOEFF(J).EQ.0) WORDB(ICONST) =
+     1       'fiber tension :'//POS//'FS='//CN2
+            IF (ISOMAT(J).EQ.1.AND.ISOEFF(J).EQ.1) WORDB(ICONST) =
+     1       'effect. stress:'//POS//'FS='//CN2
+            GO TO 500
+  420       CONTINUE
+            WORDB(ICONST) = 'fiber compres.:'//POS//'FS='//CN2
+            GO TO 500
+  430       CONTINUE
+            WORDB(ICONST) = 'transv tension:'//POS//'FS='//CN2
+            GO TO 500
+  440       CONTINUE
+            WORDB(ICONST) = 'transv compres:'//POS//'FS='//CN2
+            GO TO 500
+  450       CONTINUE
+            WORDB(ICONST) = 'in-plane shear:'//POS//'FS='//CN2
+            GO TO 500
+  500       CONTINUE
+  600    CONTINUE
+C
+         DO 700 I = 1,ICONST
+         IADDB(I) = 0
+         ISUB(I) = 0
+  700    VAR(I) = CONSTR(I) - 1.
+C BEG DEC 2003
+C     CALL OUTVAR(ICONST,VAR,WORDB,IADDB,'MARGINS CORRESPONDING TO CU
+C    1RRENT DESIGN (F.S.= FACTOR OF SAFETY)  ',IFILE,80,0,ISUB,1)
+      ARGSTR = 'MARGINS CORRESPONDING TO CURRENT '//
+     $         'DESIGN (F.S.= FACTOR OF SAFETY)'
+      CALL OUTVAR(ICONST,VAR,WORDB,IADDB,ARGSTR,IFILE,80,0,ISUB,1)
+C END DEC 2003
+C BEG AUG 1999
+      WRITE(IFILE4,770)
+  770 FORMAT(/,' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********')
+      DO 800 I = 1,ICONST
+         STRRAT(I) = CONSTR(I)
+         STRWRD(I) = WORDB(I)
+C BEG DEC 2003
+C BEG DEC 2012
+         WRITE(IFILE4,790) I,STRRAT(I),STRWRD(I)(1:65)
+C END DEC 2012
+  790 FORMAT(I3,1P,E12.4,1X,A)
+C END DEC 2003
+  800 CONTINUE
+      WRITE(IFILE4,810)
+  810 FORMAT(' ****************************************************')
+C END AUG 1999
+      ENDIF
+C END APR 1992
+      RETURN
+      END
+C
+C
+C
+C=DECK      STRINI
+      SUBROUTINE STRINI(FSSTR,IMOD,ITYPE,FMAX,INUMTT,IPOINC,ICONST,
+     1                  CONSTR,EMAX,EMARG)
+C
+C  INITIALIZE CERTAIN PARAMETERS (TEMPORARILY) FOR BOSOR4 STRESS
+C  CONSTRAINTS.  THIS SHOULD BE CHANGED WHEN BOSOR4 IS PUT INTO
+C  AN OPTIMIZATION LOOP.
+C
+      DIMENSION IPOINC(*),CONSTR(*),EMAX(5,20),EMARG(5,20)
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+C BEG NOV 1999
+      COMMON/PLTCDX/ICAR,IADDCC(99),CPLOT(99)
+C END NOV 1999
+      COMMON/FMAXPP/MAXCON
+      REAL MAXCON
+C
+      FSSTR = 1.0
+      FMAX = 10.E+10
+      MAXCON = 10.E+10
+      IMOD = 0
+      ITYPE = 1
+      INUMTT = 0
+      ICONST = 0
+      ICAR = 0
+      DO 10 J = 1,20
+         ISOMAT(J) = 0
+         ISOEFF(J) = 0
+      DO 10 I = 1,5
+         EMAX(I,J) = 0.
+         EMARG(I,J) = 0.
+   10 CONTINUE
+      DO 20 I = 1,99
+      CPLOT(I) = 0.
+   20 CONSTR(I) = 0.
+      DO 30 I = 1,1500
+   30 IPOINC(I) = 0
+      RETURN
+      END
+C
+C
+C
+C=DECK      TMPNON
+      SUBROUTINE TMPNON(INDIC,ILOOP,ISEG,IPOINT,I5,TIO,IDIST,
+     1                  TMPIN,TMPOUT)
+C
+C  PURPOSE IS TO CALCULATE INNER AND OUTER SURFACE TEMPERATURES
+C  AT A POINT ON THE SHELL SURFACE
+C
+      COMMON/TEMTUR/TEMP,DTEMP
+      COMMON/WAVNUM/ITHETA(50),THETA(50),THETAS,THETAM
+      COMMON/NLINS/NSTART,NFIN
+      COMMON/NOHARM/NHARM
+      COMMON/WAVES/N0,N,NMIN,NMAX,INCR
+      COMMON/LOADHM/NLPOS(2950),LAB(2950),IDAB(2950),
+     1              ILPOS(12,2950),PALL(400000)
+      DIMENSION TIO(I5,4)
+C
+      TMPIN = 0.
+      TMPOUT= 0.
+      IF (INDIC.NE.3.AND.INDIC.NE.4) THEN
+         TMPIN  = TIO(IPOINT,1)*TEMP + TIO(IPOINT,3)
+         TMPOUT = TIO(IPOINT,2)*TEMP + TIO(IPOINT,4)
+         RETURN
+      ENDIF
+      IF (INDIC.EQ.3) THEN
+         INDX = ILPOS(9,ISEG)
+         IF (ILOOP.EQ.2) INDX = ILPOS(12,ISEG)
+         IF (INDX.EQ.0) GO TO 400
+C
+         IF (ILOOP.EQ.1) THEN
+            ITIN = 1
+            ITOUT= 2
+         ELSE
+            ITIN = 3
+            ITOUT= 4
+         ENDIF
+         TIN = TIO(IPOINT,ITIN)
+         TOUT= TIO(IPOINT,ITOUT)
+         DO 300 IHARM = 1,NHARM
+            FN = FLOAT(NSTART + (IHARM-1)*INCR)
+            INDX3 = INDX + IHARM - 1
+            THET = THETA(IDIST)
+            FNTHET = ABS(FN*THET)
+            IF (FN.GT.0.) THEN
+               SI = SIN(FNTHET)
+            ELSE
+               SI = COS(FNTHET)
+            ENDIF
+            TMPIN = TMPIN  + TIN*PALL(INDX3)*SI
+            TMPOUT= TMPOUT +TOUT*PALL(INDX3)*SI
+  300    CONTINUE
+  400    CONTINUE
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      MAXSTX
+      SUBROUTINE MAXSTX(IFILE,NPRT,EX,EY,EXY,ISEG,L,I,Z,CS,EMAX,
+     1                A1T,A2T,EALLST,E1,E2,G,U12,MODE,M,FSSTR,ANGLE,
+     1                POSI,POSIP,POSTST,IMOD,ITYPE,NODSTA,NODA)
+C
+C  PURPOSE IS TO FIND STRESS COMPONENTS IN MATERIAL COORDINATES
+C  AT A SINGLE POINT IN THE STRUCTURE, GIVEN EX, EY, EXY, AND POSITION.
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      DIMENSION CS(*),EALLST(*)
+C BEG APR 1992
+      COMMON/MATER7/ISOMAT(20),ISOEFF(20)
+      DIMENSION EMAX(*),POSI(*),POSIP(*),POSTST(*)
+      CHARACTER*4 WROTIP
+      CHARACTER*51 POSI,POSTST
+      CHARACTER*38 POSIP
+C END APR 1992
+      CHARACTER*15 MODE(7)
+      CHARACTER*3 POSNEG
+      CHARACTER*6 STATUS
+C BEG APR 1992
+      WROTIP = '    '
+      ICRACK = 0
+C END APR 1992
+C
+      CALL ROTATE(CS(1),CS(2),EX,EY,EXY,EPS1,EPS2,EPS12)
+C
+      U21 = 0.
+      IF (E2.GT.0.) U21 = U12*E1/E2
+      UD = 1. - U12*U21
+      SIG1 = (    E1*(EPS1-A1T) +U12*E1*(EPS2-A2T))/UD
+      SIG2 = (U12*E1*(EPS1-A1T) +    E2*(EPS2-A2T))/UD
+      SIG12= G*EPS12
+C BEG APR 1992
+C  DETERMINE IF MATERIAL IS ISOTROPIC
+      DIFF1 = 1.
+      DIFF2 = 1.
+      IF (E1.GT.0.) DIFF1 = ABS(E1 - E2)/ABS(E1)
+      GISO = E1/(2.*(1.+U12))
+      IF (G.GT.0.)  DIFF2 = ABS(G - GISO)/ABS(G)
+      IF (DIFF1.LT.0.05.AND.DIFF2.LT.0.1) THEN
+C  MATERIAL IS ISOTROPIC
+         ISOMAT(M) = 1
+         ISOEFF(M) = 1         
+      ENDIF
+C
+C     IF (I.EQ.39) THEN
+C        WRITE(IFILE4,*)' EX,EY,EXY=',EX,EY,EXY
+C        WRITE(IFILE4,*)' EPS1,EPS2=',EPS1,EPS2
+C        WRITE(IFILE4,*)' A1T,A2T  =',A1T,A2T
+C        WRITE(IFILE4,*)' E1,U12,UD=',E1,U12,UD
+C        WRITE(IFILE4,*)' SIG1,SIG2=',SIG1,SIG2
+C     ENDIF
+C BEG APR 1992
+      IF (ISOMAT(M).EQ.1.AND.ISOEFF(M).EQ.1) THEN
+         JMIN    = 3
+         JMAX    = 3
+         SIGEFF  = SQRT(SIG1**2 +SIG2**2 -SIG1*SIG2 +3.*SIG12**2)
+         SIGTST  = SIGEFF
+         RAT = SIGEFF/EALLST(1)
+         EMAX(1) = MAX(RAT,EMAX(1))
+C BEG DEC 2003
+         SDIFF = 1.0
+         IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(1))/RAT)
+C        IF (IMOD.EQ.0.AND.EMAX(1).EQ.RAT) THEN
+         IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+            CALL SETPOS(1,Z,L,I,ISEG,M,POSI(1),POSIP(1),WROTIP,ITYPE)
+            POSTST(1) = POSI(1)
+         ENDIF
+         EMAX(2) = 0.
+         EMAX(3) = 0.
+         EMAX(4) = 0.
+         EMAX(5) = 0.
+         GO TO 5
+      ELSE
+         JMIN    = 1
+         JMAX    = 5
+         SIGTST  = SIG1
+         RAT = SIG1/EALLST(1)
+         EMAX(1) = MAX(RAT,EMAX(1))
+C BEG DEC 2003
+         SDIFF = 1.0
+         IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(1))/RAT)
+C        IF (IMOD.EQ.0.AND.EMAX(1).EQ.RAT) THEN
+         IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+            CALL SETPOS(1,Z,L,I,ISEG,M,POSI(1),POSIP(1),WROTIP,ITYPE)
+            POSTST(1) = POSI(1)
+         ENDIF
+      ENDIF
+C
+      CRACKD = 1.0
+      RATIO  = 1.1
+      IF (SIG2.GT.0.) RATIO = EALLST(3)/SIG2
+      REDCOM = 1.0
+      REDSHR = 1.0
+      IF (RATIO.LT.1.0.AND.ICRACK.EQ.1) THEN
+         CRACKD = RATIO
+         IF (SIG1.LT.0.) THEN
+            REDCOM = 0.5
+            REDSHR = 0.8
+         ENDIF
+      ENDIF
+      RAT = SIG1/(EALLST(2)*REDCOM)
+C
+      EMAX(2) = MIN(RAT,EMAX(2))
+C BEG DEC 2003
+      SDIFF = 1.0
+      IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(2))/RAT)
+C     IF (IMOD.EQ.0.AND.EMAX(2).EQ.RAT) THEN
+      IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+         CALL SETPOS(1,Z,L,I,ISEG,M,POSI(2),POSIP(2),WROTIP,ITYPE)
+         POSTST(2) = POSI(2)
+      ENDIF
+      IF (ICRACK.EQ.0) THEN
+          RAT = SIG2/EALLST(3)
+          EMAX(3) = MAX(RAT,EMAX(3))
+C BEG DEC 2003
+          SDIFF = 1.0
+          IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(3))/RAT)
+C         IF (IMOD.EQ.0.AND.EMAX(3).EQ.RAT) THEN
+          IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+             CALL SETPOS(1,Z,L,I,ISEG,M,POSI(3),POSIP(3),WROTIP,ITYPE)
+             POSTST(3) = POSI(3)
+          ENDIF
+      ENDIF
+      RAT = SIG2/EALLST(4)
+      EMAX(4) = MIN(RAT,EMAX(4))
+C BEG DEC 2003
+      SDIFF = 1.0
+      IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(4))/RAT)
+C     IF (IMOD.EQ.0.AND.EMAX(4).EQ.RAT) THEN
+      IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+         CALL SETPOS(1,Z,L,I,ISEG,M,POSI(4),POSIP(4),WROTIP,ITYPE)
+         POSTST(4) = POSI(4)
+      ENDIF
+      RAT = ABS(SIG12)/(EALLST(5)*REDSHR)
+      EMAX(5) = MAX(RAT,EMAX(5))
+C BEG DEC 2003
+      SDIFF = 1.0
+      IF (RAT.NE.0.0) SDIFF = ABS((RAT-EMAX(5))/RAT)
+C     IF (IMOD.EQ.0.AND.EMAX(5).EQ.RAT) THEN
+      IF (IMOD.EQ.0.AND.SDIFF.LT.0.00001) THEN
+C END DEC 2003
+         CALL SETPOS(1,Z,L,I,ISEG,M,POSI(5),POSIP(5),WROTIP,ITYPE)
+         POSTST(5) = POSI(5)
+      ENDIF
+C
+    5 CONTINUE
+C END APR 1992
+C
+      POSNEG = '   '
+      REDCOM = 1.
+      REDSHR = 1.
+      CRACKD = 1.
+      ISKIP  = 0
+      RATIO  = 1.1
+C
+C  THE FOLLOWING STATEMENTS ARE FOR THE PURPOSE OF LISTING THE
+C  STRESSES EVERYWHERE THEY ARE CALCULATED.
+C
+         DO 200 J = JMIN,JMAX
+C
+            GO TO (30,40,10,20,50),J
+C
+   10       CONTINUE
+            INDEX = 1
+            IF (SIGTST.LE.0.) GO TO 100
+            RATIO = ABS(EALLST(1)/(SIGTST*FSSTR))
+            GO TO 100
+   20       CONTINUE
+            INDEX = 2
+            IF (SIG1.GE.0.) GO TO 100
+            RATIO = ABS(EALLST(2)*REDCOM/(SIG1*FSSTR))
+            GO TO 100
+   30       CONTINUE
+            INDEX = 3
+            IF (SIG2.LE.0.) GO TO 100
+            RATIO = ABS(EALLST(3)/(SIG2*FSSTR))
+            GO TO 100
+   40       CONTINUE
+            INDEX = 4
+            IF (SIG2.GE.0.) GO TO 100
+            RATIO = ABS(EALLST(4)/(SIG2*FSSTR))
+            GO TO 100
+   50       CONTINUE
+            INDEX = 5
+            IF (SIG12.EQ.0.) GO TO 100
+            RATIO = ABS(EALLST(5)*REDSHR/(SIG12*FSSTR))
+C
+  100       CONTINUE
+C
+         INDEXM = INDEX
+         IF (RATIO.GT.1.0.AND.(J.LT.JMAX.OR.ISKIP.EQ.1)) GO TO 200
+         IF (RATIO.LT.1.0) THEN
+            STATUS = 'FAILED'
+            ISKIP  = 1
+         ELSE
+            STATUS = '  OK  '
+            INDEXM  = 6
+         ENDIF
+         IF (NODA.EQ.1.OR.I.EQ.NODSTA) THEN
+            IF (ISOMAT(M).EQ.1.AND.ISOEFF(M).EQ.1
+     1                        .AND.STATUS.EQ.'FAILED') INDEXM=7
+            EALSR = EALLST(INDEX)
+            IF (INDEX.EQ.2) EALSR = EALLST(INDEX)*REDCOM
+            IF (INDEX.EQ.5) EALSR = EALLST(INDEX)*REDSHR
+            IF (ISOMAT(M).EQ.1.AND.ISOEFF(M).EQ.1) THEN
+C BEG JUL 2001
+               WRITE(IFILE4,150) M,ISEG,I,L,Z,ANGLE,SIG1,SIG2,
+     1                          SIG12,MODE(INDEXM),SIGEFF,EALSR
+C END JUL 2001
+            ELSE
+               IF (STATUS.EQ.'FAILED') THEN
+C BEG JUL 2001
+                  WRITE(IFILE4,151) M,ISEG,I,L,Z,ANGLE,SIG1,SIG2,
+     1                             SIG12,MODE(INDEXM),EALSR
+C END JUL 2001
+               ELSE
+C BEG JUL 2001
+                  WRITE(IFILE4,152) M,ISEG,I,L,Z,ANGLE,SIG1,SIG2,
+     1                             SIG12,MODE(INDEXM)
+C END JUL 2001
+               ENDIF
+            ENDIF
+         ENDIF
+  150    FORMAT(I4,I5,I6,I5,1PE10.2,0PF6.1,1P3E12.4,1X,A15,1PE12.4,
+     1          1PE11.4)
+  151    FORMAT(I4,I5,I6,I5,1PE10.2,0PF6.1,1P3E12.4,1X,A15,12X,
+     1          1PE11.4)
+  152    FORMAT(I4,I5,I6,I5,1PE10.2,0PF6.1,1P3E12.4,1X,A15)
+         RATIO = 1.1
+  200    CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SETPOS
+      SUBROUTINE SETPOS(ILOOP,Z,L,I,ISEG,M,POS,POSP,WROTIP,ITYPE)
+C
+C  PURPOSE IS TO CREATE WORD "POS" THAT CONTAINS LOCATION OF MAX.
+C  STRESS COMPONENT.
+C
+      CHARACTER*51 POS
+      CHARACTER*38 POSP
+      CHARACTER*4 WROTIP
+      CHARACTER*9 WRDTMP
+      CHARACTER*2 CL,CI,CISEG,CM
+      CHARACTER*3 CL3,CI3,CISG3,CM3
+      CHARACTER*7 CZ
+      CHARACTER*3 WORD
+      IF (L.LT.100) CALL CONVR2(L,CL)
+      IF (I.LT.100) CALL CONVR2(I,CI)
+      IF (ISEG.LT.100) CALL CONVR2(ISEG,CISEG)
+      IF (M.LT.100) CALL CONVR2(M,CM)
+C     IF (L.GE.100) CALL CONVR3(L,CL3)
+C     IF (I.GE.100) CALL CONVR3(I,CI3)
+      IF (ISEG.GE.100) CALL CONVR3(ISEG,CISG3)
+C     IF (M.GE.100) CALL CONVR3(M,CM3)
+      CALL CONVRF(Z,CZ)
+      IF (ILOOP.EQ.1) WORD = ' A '
+      IF (ILOOP.EQ.2) WORD = ' B '
+      IF (M.EQ.0) CM='AD'
+C
+      WRDTMP = ', node='//CI
+      IF (WROTIP.NE.'    ') WRDTMP = ', at '//WROTIP
+      IF (ISEG.LT.100) THEN
+         POS=' matl='//CM//', '//WORD//', seg='//CISEG//WRDTMP//
+     1    ', layer='//CL//',z='//CZ//';'
+         IF (ITYPE.NE.5)
+     1    POSP=' matl='//CM//','//WORD//',seg='//CISEG//WRDTMP//
+     1    ',layer='//CL//'; '
+         IF (ITYPE.EQ.5) POSP=' matl='//CM//','//WORD//'; '
+         IF (I.EQ.0) THEN
+             POS=' matl='//CM//', '//WORD//', seg='//CISEG//
+     1       ',allnodes, layer='//CL//',z='//CZ//';'
+            IF (ITYPE.NE.5)
+     1       POSP=' matl='//CM//','//WORD//',seg='//CISEG//
+     1       ',allnodes,layer='//CL//';'
+            IF (ITYPE.EQ.5) POSP=' matl='//CM//','//WORD//',allnodes;'
+         ENDIF
+      ELSE
+         POS=' matl='//CM//', '//WORD//', seg='//CISG3//WRDTMP//
+     1    ', layer='//CL//',z='//CZ//';'
+         IF (ITYPE.NE.5)
+     1    POSP=' matl='//CM//','//WORD//',seg='//CISG3//WRDTMP//
+     1    ',layer='//CL//'; '
+         IF (ITYPE.EQ.5) POSP=' matl='//CM//','//WORD//'; '
+         IF (I.EQ.0) THEN
+             POS=' matl='//CM//', '//WORD//', seg='//CISG3//
+     1       ',allnodes, layer='//CL//',z='//CZ//';'
+            IF (ITYPE.NE.5)
+     1       POSP=' matl='//CM//','//WORD//',seg='//CISG3//
+     1       ',allnodes,layer='//CL//';'
+            IF (ITYPE.EQ.5) POSP=' matl='//CM//','//WORD//',allnodes;'
+         ENDIF
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVR2
+      SUBROUTINE CONVR2(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      CHARACTER*2 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100) THEN
+       WRITE(IFILE4,*)' INTEGER TOO LARGE FOR CONVERSION TO CHARACTER.'
+       CALL ERREX
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVR3
+      SUBROUTINE CONVR3(I,CN)
+C
+C  CONVERT I TO CHARACTER, CN
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      CHARACTER*3 CN
+C
+      IF (I.LT.10) WRITE(CN,'(I1)') I
+      IF (I.GE.10.AND.I.LT.100) WRITE(CN,'(I2)') I
+      IF (I.GE.100.AND.I.LT.1000) WRITE(CN,'(I3)') I
+      IF (I.GE.1000) THEN
+       WRITE(IFILE4,*)' INTEGER TOO LARGE FOR CONVERSION TO CHARACTER.'
+       CALL ERREX
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONVRF
+      SUBROUTINE CONVRF(SLOPE,CN)
+C
+C  CONVERT FLOATING POINT NUMBER "SLOPE" TO CHARACTER FORMAT, CN
+C
+      CHARACTER*7 CN,CN2
+C
+      IF (ABS(SLOPE).LT.1.) WRITE(CN,'(F7.4)') SLOPE
+      IF (ABS(SLOPE).GE.1.0.AND.ABS(SLOPE).LT.10.)
+     1                      WRITE(CN,'(F7.4)') SLOPE
+      IF (ABS(SLOPE).GE.10.0.AND.ABS(SLOPE).LE.999.99)
+     1                      WRITE(CN,'(F7.2)') SLOPE
+      IF (ABS(SLOPE).GT.999.99.AND.ABS(SLOPE).LE.9999.9)
+     1                      WRITE(CN,'(F7.1)') SLOPE
+      IF (ABS(SLOPE).GT.9999.9) WRITE(CN,'(F7.0)') SLOPE
+      DO 10 K = 7,1,-1
+         IF (CN(K:K).NE.'0') GO TO 20
+         CN(K:K) = ' '
+   10 CONTINUE
+   20 CONTINUE
+C
+      DO 30 I = 1,7
+         ISTART = I
+         IF (CN(I:I).NE.' ') GO TO 40
+   30 CONTINUE
+   40 CONTINUE
+      CN2 = CN(ISTART: )
+      CN = CN2
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTVAR
+      SUBROUTINE OUTVAR(NVAR,VAR,WORD,IADD,TITLE,IFILE4,LENGTH,IPR,
+     1                  ISUB,ISTART)
+C
+C  PURPOSE IS TO LIST PARAMETERS AND DEFINITIONS
+C
+C  INPUT DATA...
+C
+C  NVAR  = NUMBER OF PARAMETERS
+C   VAR  = VALUE OF PARAMETERS
+C  WORD  = DEFINITIONS OF PARAMETERS
+C  IADD  = ADDRESSES OF PARAMETERS: IADD(IVAR) = ILOOP + 10*ISEG +
+C                                                100*ILAYER
+C TITLE  = TITLE OF LIST
+C
+C  OUTPUT DATA...
+C
+C  NONE
+C
+      DIMENSION VAR(*),IADD(*),WORD(*),ISUB(*)
+      CHARACTER*80 WORD
+      CHARACTER*65 TITLE
+      CHARACTER*80 PHRASE
+      CHARACTER*12 NOTAPP
+C
+      NOTAPP = '   NOT APPLY'
+      ILET  = INDEX(TITLE,'DESCRIBE BEHAVIOR')
+      ILET2 = INDEX(TITLE,'MARGINS')
+C     IF (IFILE4.NE.6) WRITE(IFILE4,5)
+    5 FORMAT(/)
+      WRITE(IFILE4,'(1X,A)') TITLE
+      IF (ILET.EQ.0.AND.ILET2.EQ.0) WRITE(IFILE4,10)
+      IF (ILET.NE.0)  WRITE(IFILE4,11)
+      IF (ILET2.NE.0) WRITE(IFILE4,12)
+   10 FORMAT(/,' VAR.   CURRENT',/,
+     1        ' NO.     VALUE            DEFINITION')
+   11 FORMAT(/,' BEH.   CURRENT',/,
+     1        ' NO.     VALUE            DEFINITION')
+   12 FORMAT(/,' MARGIN CURRENT',/,
+     1        ' NO.     VALUE            DEFINITION')
+C
+      DO 100 I = ISTART,NVAR
+C
+      IF (ISUB(I).EQ.1) GO TO 100
+C
+      DO 15 J = 1,80
+   15 PHRASE(J:J) = WORD(I)(J:J)
+C     CALL BLANKX(PHRASE,ILONG)
+      LENGTX = LEN(PHRASE)
+      DO 17 K = LENGTX,1,-1
+      ILONG = K
+      IF (PHRASE(K:K).NE.' ') GO TO 18
+   17 CONTINUE
+   18 CONTINUE
+      IF (ILONG.GT.80) ILONG = 80
+      IF (IPR.EQ.1) THEN
+         IF ((ILET.NE.0.OR.ILET2.NE.0).AND.VAR(I).EQ.0.) THEN
+            WRITE(IFILE4,20) I,NOTAPP,PHRASE(1:ILONG)
+   20       FORMAT(I3,1X,A12,2X,A)
+         ELSE
+            WRITE(IFILE4,22) I,VAR(I),PHRASE(1:ILONG)
+   22       FORMAT(I3,1X,1PE12.3,2X,A)
+         ENDIF
+      ELSE
+         IF ((ILET.NE.0.OR.ILET2.NE.0).AND.VAR(I).EQ.0.) THEN
+            WRITE(IFILE4,20) I,NOTAPP,PHRASE(1:ILONG)
+         ELSE
+            WRITE(IFILE4,22) I,VAR(I),PHRASE(1:ILONG)
+         ENDIF
+      ENDIF
+  100 CONTINUE
+C
+      RETURN
+      END
+C END APR 1992
+C BEG JUN 2001 (urvec added for bigbosor4)
+
+C
+C
+C
+C=DECK      URVEC
+      subroutine urvec(n, u)
+c
+c  urvec places n pseudo-random numbers, x ~ U(0,1), in vector u
+c
+      integer i, n
+      double precision u
+#if cray
+      double precision ranf
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = ranf()
+   10 continue
+#endif
+#if (sun3 || sun4 || cnvx)
+      double precision drand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = drand(0)
+   10 continue
+#endif
+#if (sgi || rs6k)
+      double precision rand
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = rand()
+   10 continue
+#endif
+#if dec
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RAN(1234567891)
+   10 continue
+#endif
+#if !(cray || sun3 || sun4 || cnvx || sgi || rs6k || dec)
+      real RANDOM
+      dimension u(n)
+c
+      do 10 i = 1, n
+        u(i) = RANDOM(0)
+   10 continue
+#endif
+      return
+      end
+C
+C
+c
+      function RANDOM (start)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+* -------------------------------------------------------------------- *
+*     Linear Congruential Method (LCM) Random Number Generator         *
+*                                                                      *
+*     Values for LCM used here are optimal for 32-bit words.           *
+*     A sequence of M psuedo-random REAL numbers, uniform on the       *
+*     interval [0..1) will be repeated.  A new sequence is started     *
+*     when a non-zero value is passed in via the parameter "start".    *
+*                                                                      *
+*     CAUTION: It is best to use a high-quality random number          *
+*              generator from your FORTRAN system library,             *
+*              if one is available.                                    *
+*                                                                      *
+*     Harold D. Cabiness     December, 1990                            *
+* -------------------------------------------------------------------- *
+      IMPLICIT   NONE
+      REAL       RANDOM
+      INTEGER    start,   seed,   L,   C,   M
+      LOGICAL    init
+      SAVE       init,    seed,   L,   C,   M
+      DATA       init  / .true. /
+
+      if (init) then
+         M = 2**20
+         C = M * (3.0-SQRT(3.0))/6.0
+         C = C + 1 - MOD(C,2)
+         L = 1029
+         init = .false.
+      endif
+
+      if (start .ne. 0) then
+         seed = MOD(ABS(start), M)
+      endif
+
+      seed   = MOD(seed*L+C, M)
+      RANDOM = REAL(seed) / M
+
+      return
+      end
+C
+      integer function lastch(str)
+      character*(*) str
+c lastch returns the index of the last character in a string that is not
+c whitespace.  ASSUMES ASCII CODING SCHEME!
+c input:  str - the string
+c output: lastch
+c ----------------- Declarations -----------------------------------
+#define debug 0
+      integer i, ch
+c ----------------- Executable Code --------------------------------
+      do 10 i = len(str), 1, -1
+        ch = ichar(str(i:i))
+c If character is printing non-whitespace, then end-of-string found.
+        if (ch .ge. 33 .and. ch .le. 126) then
+          go to 20
+        endif
+   10 continue
+   20 lastch = i
+      return
+      end

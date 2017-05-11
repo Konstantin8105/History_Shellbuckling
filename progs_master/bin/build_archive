@@ -1,0 +1,295 @@
+#
+# build_archive is used to create a temporary disk image of the files/directories
+# needed for public distribution of D. Bushnell's programs (BOSOR4, BOSOR5, et.
+# al.)
+
+echo "Please enter the name of the parent directory of D. Bushnell's programs."
+echo "Enter return if directory is $HOME"
+echo -n "Enter directory: "
+set top = $<
+if ($top:q == "") then
+  set top = $HOME
+endif
+
+if ($cwd == $top) then
+  echo "build_archive cannot be run from directory: $top."
+  exit 1
+endif
+
+if (`/bin/ls | wc -l` != '0') then
+  echo "You must create or move to an empty directory before running build_archive."
+  exit 1
+endif
+
+echo ""
+echo "build_archive takes all of David Bushnell's programs (BOSOR4, BOSOR5,"
+echo "PANDA, etc.) and creates a temporary directory structure as it should"
+echo "appear for distribution to the general public on a LINUX file system.  "
+echo "The following items are distributed:"
+echo ""
+echo "       1)  All of the latest sources files"
+echo "       2)  All necessary shell programs for normal program operation"
+echo "       3)  All documentation"
+echo "       4)  Sample cases"
+echo "       5)  Makefiles and Executables for SUN-3, SUN-4, and/or DECstation"
+echo "           3100/5000 environments as requested."
+echo "       6)  Library and Object file directories for each of the three"
+echo "           computing environments.  These directories are empty when"
+echo "           installed, but they are needed by the makefile when"
+echo "           re-making the program."
+echo ""
+echo "   In addition to D. Bushnell's programs, three general-purpose public"
+echo "  domain utility programs are included.  These utilities are used by"
+echo "  Bushnell's programs."
+echo ""
+echo "       1)  xgraph - an x-y plotting program for X-windows"
+echo "       2)  plotps - an x-y plotting program that produces PostScript"
+echo "                    output.  Uses same syntax as xgraph."
+echo "       3)  gawk   - a full-featured version of the more commonly known"
+echo "                    awk text-processing interpreter."
+echo ""
+echo "  The source files for these utilities are included in their own"
+echo "  directories, but the executable versions are placed in the ~/bin"
+echo "  directory."
+echo ""
+echo "  Last, but not least, an install script is included at the top level."
+echo "  This program is to be run by the client on his/her own machine after"
+echo "  D. Bushnell's programs have been successfully de-archived."
+echo ""
+echo "  A word of caution:  You must have at least 700 Mbytes of free disk space"
+echo "  available in your working directory in order to archive all of the"
+echo "  programs in one sitting."
+echo ""
+
+set BIN = ${top}/bin
+set UTIL = ${top}/util
+
+echo "Please enter a list of programs you wish to archive.  If you do not wish"
+echo "to archive one or more of the programs, just press return.  In this case,"
+echo "all of the utilities will be archived, but none of the programs."
+echo "Enter from the list below."
+echo ""
+#echo "        bosor4, bosor5, panda, panda2, genopt, & dewar"
+echo "        bosor4, bigbosor4, bosor5, panda, panda2, & genopt"
+echo ""
+echo -n "Enter program list: "
+set proglist = "$<"
+
+echo ""
+echo "Please enter a list of machines you wish your archive to support.  If"
+echo "you do not wish to support any machines (i.e. you do not want to archive"
+echo "executables), just press return.  PLEASE NOTE THAT NOT ALL PROGRAMS ARE"
+echo "SUPPORTED ON ALL MACHINES. Only the LINUX version is now supported."
+echo ""
+echo "Enter from the list below."
+echo ""
+echo "  sun3 - for SUN-3 workstation"
+echo "  sun4 - for SUN SPARCstation running Sun OS 4.x"
+echo "   sol - for SUN SPARCstation running Sun OS 5.x (a.k.a. Solaris)"
+echo "   dec - for DECstation 3100 or 5000"
+echo " alpha - for DEC Alpha workstation"
+echo " linux - for LINUX operating systems."
+echo "  cray - for CRAY ?MP mainframe"
+echo "   sgi - for Silicon Graphics IRIS workstations"
+echo "  sgi8 - for Silicon Graphics IRIX 6.5 workstations"
+echo " hp700 - for HP 9000/700 workstation"
+echo "  rs6k - for IBM RS-6000 workstation"
+echo "x86_64 - for 64-bit LINUX operating systems."
+echo ""
+echo -n "Enter machine list: "
+set machlist = $<
+echo ""
+
+alias cp cp -p
+
+echo Copy install to $cwd/
+cp ${BIN}/install .
+
+echo Copy xgraph/ to $cwd/
+cp -r ${top}/xgraph .
+
+echo Copy plotps/ to $cwd/
+mkdir plotps
+cp ${top}/plotps/{*.c,*.h,docs,makefile,*.data} plotps
+foreach machine ($machlist)
+  cp ${top}/plotps/*.${machine} plotps
+end
+
+echo Copy gawk/ to $cwd/
+cp -r ${top}/gawk .
+
+echo Make directory $cwd/util/.
+mkdir util
+
+echo "   Copy relevant files to $cwd/util/."
+cd ./util
+# BEG MAR 2008
+#cp ${UTIL}/*.{c,h,f,F} .
+cp ${UTIL}/*.{c,h,f,F,o,dek} .
+# END MAR 2008
+cp ${UTIL}/READ.ME .
+cd ..
+
+echo Make directory $cwd/bin/.
+mkdir bin
+
+echo "   Copy relevant files to $cwd/bin/."
+cd ./bin
+cp ${BIN}/initialize .
+cp ${BIN}/updateobj .
+cp ${BIN}/updatelib .
+cp ${BIN}/build_archive .
+cp ${BIN}/install .
+foreach machine ($machlist)
+  cp ${BIN}/xgraph.$machine .
+  cp ${BIN}/gawk.$machine .
+  cp ${BIN}/plotps.$machine .
+end
+cd ..
+
+foreach program ($proglist)
+
+  echo "Remove directory $program."
+  if (-e $program) /bin/rm -rf $program
+
+  echo "Make $program directory."
+  mkdir $program
+
+  echo "Archive $program."
+  cd ./${program}
+
+  echo "   Copy case/ and doc/ to ${program}/"
+  cp -r ${top}/${program}/case .
+  cp -r ${top}/${program}/doc .
+
+  echo '   Make directories execute, bin, sources, libraries.*, and objects.*'
+  mkdir execute
+  mkdir bin
+  mkdir sources
+  foreach machine ($machlist)
+    mkdir libraries.$machine
+    if ($program == "genopt") then
+      echo "    Program is genopt.  Archive all libraries.${machine}/*.a files."
+      cd libraries.$machine
+      cp ${top}/${program}/libraries.${machine}/* .
+      cd ..
+    endif
+    if (!(-e objects.$machine)) then
+      mkdir objects.$machine
+    endif
+    if ($program == "genopt") then
+      echo "    Program is genopt.  Archive all objects.${machine}/*.a files."
+      cd objects.$machine
+      cp ${top}/${program}/objects.${machine}/* .
+      cd ..
+    endif
+  end
+
+  echo "   Copy relevant executables and makefiles to ${program}/execute."
+  cd ./execute
+  switch ($program)
+    case "panda":
+    case "dewar":
+      foreach machine ($machlist)
+	cp ${top}/${program}/execute/*.$machine .
+        cp ${top}/${program}/execute/*.DAT .
+      end
+      breaksw
+    default:
+      foreach machine ($machlist)
+        cp ${top}/${program}/execute/*.$machine .
+      end
+      cp ${top}/${program}/execute/*.DAT .
+      cp ${top}/${program}/execute/*.HLP . >& /dev/null
+      breaksw
+  endsw
+  if ($machlist:q == "") then
+    cp ${top}/${program}/execute/{makefile,usermake}.* .
+  endif
+  /bin/rm -f clog.* >& /dev/null
+  cd ..
+
+  echo "   Copy relevant shell programs to ${program}/bin."
+  cd ./bin
+  switch ($program)
+    case "panda2":
+    case "genopt":
+    case "dewar":
+      cp ${top}/${program}/bin/*.com .
+      cp ${top}/${program}/bin/*.bat .
+      breaksw
+    case "panda":
+      cp ${top}/${program}/bin/*.com .
+      breaksw
+    case "bosor5":
+    case "bosor4":
+    case "bigbosor4":
+      cp ${top}/${program}/bin/*.com .
+      cp ${top}/${program}/bin/*.bat .
+      cp ${top}/${program}/bin/*.awk .
+      breaksw
+    default:
+      breaksw
+  endsw
+  cd ..
+
+  echo "   Copy relevant sources to ${program}/sources."
+  cd ./sources
+# BEG MAR 2008
+# cp ${top}/${program}/sources/*.src .
+  cp ${top}/${program}/sources/*.* .
+# if ($program:q == "genopt") then
+#   cp ${top}/${program}/sources/*.tmpl .
+# endif
+# END MAR 2008
+
+  cd ..
+
+  cd ..
+
+  if ($program:q == "panda2") then
+    mkdir bosor4
+    cd bosor4
+    mkdir sources
+    foreach machine ($machlist)
+      if (!(-e objects.$machine)) then
+	mkdir objects.$machine
+      endif
+    end
+
+    cd sources
+    cp ${top}/bosor4/sources/{felippa,geom,prompter,rzlg,stoget,wall,util}.src .
+    foreach machine ($machlist)
+      cd ../objects.$machine
+      cp ${top}/bosor4/objects.${machine}/{felippa,geom,prompter,rzlg,stoget,wall,util}.a .
+    end
+
+    cd ..
+    cd ..
+
+  endif # ($program:q == "panda2")
+
+end # foreach
+
+echo ""
+echo "You have now finished creating an image of the actual archive as it will"
+echo "appear on the client's machine.  Now copy the directories you have"
+echo "created to tape or to a file as appropriate using tar or a suitable"
+echo "archive utility."
+echo ""
+echo "If you are creating a file archive for ftp-ing or for writing a disc,"
+echo "give the following command:"
+echo ""
+echo "       tar cvfl {choose_a_name}.tar *"
+echo ""
+echo "In order to install and execute at your facility, do the following:"
+echo ""
+echo " 1. unpack the tar file:"
+echo "    tar xvf {name_you_chose}.tar"
+echo ""
+echo " 2. execute "install" from the parent directory:"
+echo "    <path-to-parent-directory> install"
+echo ""
+echo " 3. source <path-to-parent-directory>/bin/initialize"
+echo ""
+

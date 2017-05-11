@@ -1,0 +1,1512 @@
+C=DECK      BOSPAN
+C
+C  PURPOSE IS TO SET UP BOSOR4 INPUT FILE FOR ENTIRE PANEL, NOT JUST
+C  A MODULE OF THE PANEL.
+C
+      PROGRAM BOSPAN
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C BEG JAN 2010
+      DIMENSION DUMMY(23)
+C END JAN 2010
+C BEG MAR 2009
+      DIMENSION ICX(4),CTOT(6,6),THERMT(6),THCURX(6,5),THCURT(6)
+      DIMENSION THERMX(6,5)
+C END MAR 2009
+C BEG JAN 2005
+      COMMON/CSKINX/CSKIN(6,6),TSKINX(5),TSKINY(5)
+C END JAN 2005
+C BEG FEB 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END FEB 1996
+C BEG JUN 1996 (ELASTIC FOUNDATION)
+      COMMON/XFOUND/EFOUND,HXSIDE,WFOUND(4,2),HEXSID(4,2)
+      COMMON/XSANDW/ISANDW(4,2),ICORE(4,2)
+C END JUN 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C BEG AUG 2006 (dimension increased from 95 to 195 for use with bigbosor4)
+C BEG MAR 2007 (dimension increased from 195 to 295 for use with bigbosor4)
+      DIMENSION DRK(295),DZK(295)
+C END MAR 2007
+C END AUG 2006
+C END MAY 1997
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIFF(2),NLAYER(4,2),NNNN(2),INTEXT(2)
+      COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+C BEG JUNE 1991
+      DIMENSION CX1(6,6,5),NXVAR1(23,8),NYVAR1(23,8),NXYVR1(23,8)
+      COMMON/LINCIJ/CX0(6,6,5),NXVAR0(23,8),NYVAR0(23,8),NXYVR0(23,8)
+      REAL NXVAR0,NYVAR0,NXYVR0,NXVAR1,NYVAR1,NXYVR1
+C END JUNE 1991
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+C BEG JUNE 1990
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+C END JUNE 1990
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+      COMMON/NVARXX/NXVAR(23,8),NYVAR(23,8),NXYVAR(23,8),MAXSEG,KOIT
+C BEG AUG 2006
+C BEG MAR 2007
+      COMMON/BOSEGS/NSEGB5,IPOINT(295)
+C END MAR 2007
+C END AUG 2006
+C BEG MARCH 1990
+      COMMON/GNNSTB/EIGGEN(1),EIGLOC,FNLOC,FBOUND,LENMOD
+C END MARCH 1990
+      COMMON/UNITNO/IU
+C BEG OCT 1989
+      COMMON/THICK/TX(5),TY(5)
+C END OCT 1989
+      DIMENSION NMESH(10),R1(10),Z1(10),R2(10),Z2(10)
+C BEG JUNE 1991
+      DIMENSION NMESH0(10)
+C END JUNE 1991
+C BEG MAR 2007
+      DIMENSION R1TOT(295),Z1TOT(295),R2TOT(295),Z2TOT(295)
+      DIMENSION RCTOT(295),ZCTOT(295),NSHAPE(295),SROT(295)
+C END MAR 2007
+      DIMENSION NTYPEH(10),NX(46),NY(46),NXY(46)
+      REAL LENMOD,NXVAR,NYVAR,NXYVAR,NX,NY,NXY
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5
+C BEG JUNE 1990
+      CHARACTER*4 QUAL
+C END JUNE 1990
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+C BEG UNIX
+      integer lastch
+      common/caseblock/case
+      logical exists
+c
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMX
+      I=INDEX(CASE,' ')
+C BEG JUNE 1990
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.ALL'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.ALL'
+         CASE3=CASE//'.CBL'
+      ENDIF
+C END JUNE 1990
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=14,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=3, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(3)
+#endif
+      else
+        OPEN(UNIT=3, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=14, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(14)
+#endif
+      else
+        OPEN(UNIT=14, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(7)
+#endif
+      else
+        OPEN(UNIT=7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+      IU = 11
+      IFILE = 2
+C BEG JUNE 1990
+      IOUTFL = 3
+      IFIL14 = 14
+C END JUNE 1990
+      IFILE7 = 7
+      CALL GETCOM(IFILE7)
+C
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(6,5)
+    5 FORMAT(//'  ****************  PANEL  *******************'//
+     1'  The purpose of PANEL is to set up an input file, NAME.ALL,'/
+     1'  for a multi-module model of a panel. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BIGBOSOR4 input "deck" used'/
+     1'  by the batch run you launch next via the command BIGBOSORALL.'/
+     1'  ***********************************************'/)
+C END JAN 2010
+C
+C BEG JUNE 1990
+      QUAL = '.PAN'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C END JUNE 1990
+      AR = ABS(R)
+      DIF = ABS(AR - 10000.*SQRT(AXIAL**2 +CIRC**2))/AR
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) DIF = 0.0
+C END MAR 1996
+      CALL DATUM(IFILE,97,1,2,INT,CIRC,CHARAC,IOUT,0,1)
+      IF (DIF.LT.0.5) R = 10000.*SQRT(AXIAL**2 +CIRC**2)
+C     CALL DATUM(IFILE,810,1,2,MODEL,REALL,CHARAC,IOUT,0,1)
+      IMODEL = 2
+      IMESH = 2*IPOINT(1) - 1
+C BEG JULY 1989
+      IF (ISTIFF(1).EQ.5) IMESH = IPOINT(1)
+C END JULY 1989
+C
+C  19 NOVEMBER MODIFICATION:
+      JMESH = (0.5*B(1)/AR)*(180./3.1415927) +1.01
+      IMESH = MAX(IMESH,JMESH)
+C  END 19 NOVEMBER MODIFICATION.
+C
+      CALL DATUM(IFILE,820,1,2,IEDGE,REALL,CHARAC,IOUT,0,1)
+C
+      ISYM = 0
+      IUSTAR = 0
+      IVSTAR = 0
+      IWSTAR = 0
+      IBETA  = 0
+C BEG FEB 1996
+      IF (IEDGE.EQ.0.AND.IBEAM.EQ.0) THEN
+C END FEB 1996
+         CALL DATUM(IFILE,822,1,2,ISYM,REALL,CHARAC,IOUT,0,1)
+         IF (ISYM.EQ.1) THEN
+            IWSTAR = 1
+            IBETA  = 1
+         ENDIF
+         IF (ISYM.EQ.2) THEN
+            IUSTAR = 1
+            IVSTAR = 1
+         ENDIF
+      ENDIF
+C
+C BEG JUNE 1991
+      CALL DATUM(IFILE,825,1,2,ILOCAL,REALL,CHARAC,IOUT,0,1)
+C BEG JAN 2010
+      CALL MOVER(0.,0,DUMMY,1,23)
+C END JAN 2010
+      IF (ILOCAL.EQ.1) THEN
+         CALL MOVER(CX0,1,CX1,1,180)
+         CALL MOVER(NXVAR0,1,NXVAR1,1,184)
+         CALL MOVER(NYVAR0,1,NYVAR1,1,184)
+         CALL MOVER(NXYVR0,1,NXYVR1,1,184)
+      ELSE
+         CALL MOVER(CX,1,CX1,1,180)
+C BEG APR 2009
+         IF (ILOCAL.EQ.-1) CALL MOVER(CY(1,1,5),1,CX1(1,1,1),1,36)
+         IF (ILOCAL.EQ.-1) CALL MOVER(CY(1,1,5),1,CX1(1,1,2),1,36)
+C END APR 2009
+         CALL MOVER(NXVAR,1,NXVAR1,1,184)
+         CALL MOVER(NYVAR,1,NYVAR1,1,184)
+C BEG APR 2009
+         IF (ILOCAL.EQ.-1) CALL MOVER(FNY,0,NYVAR1(1,1),1,23)
+         IF (ILOCAL.EQ.-1) CALL MOVER(FNY,0,NYVAR1(1,2),1,23)
+C END APR 2009
+         CALL MOVER(NXYVAR,1,NXYVR1,1,184)
+      ENDIF
+C END JUNE 1991
+C BEG JULY 1989
+      CALL DATUM(IFILE,827,1,2,NWAVE,REALL,CHARAC,IOUT,0,1)
+C BEG MAR 1996
+      IF (IBEAM.EQ.0) MULT = 1
+C BEG JAN 2007 (With MULT=10 the eigenvalues look okay but the modes look funny))
+      IF (IBEAM.EQ.1) MULT = 10
+C     IF (IBEAM.EQ.1) MULT = 1
+C   Setting MULT = 1 with IBEAM.EQ.1 did not work. The eigenvalues are wrong.
+C   Therefore, leave it as it was before, except for this note.
+C BEG JUL 2010 (we now use the prismatic formulation for panel3)
+C     NWAVE = NWAVE*100*MULT
+      NWAVE = NWAVE*1*MULT
+C END JUL 2010
+C END MAR 1996
+C END JULY 1989
+      CALL DATUM(IFILE,830,1,2,NVEC,REALL,CHARAC,IOUT,0,1)
+C
+C  GET END POINTS OF SEGMENTS IN A SINGLE MODULE OF THE PANEL...
+C
+       ISTIF = ISTIFF(1)
+C
+C BEG OCT 1989
+      IF (ISTIF.LT.4) THEN
+         HEFF = 0.
+C BEG JAN 2005
+         IF (ISTIF.GT.0) HEFF = H(1) + 0.5*TSKINX(2)
+C END JAN 2005
+         CALL RZTJR(IMESH,ISTIF,B(1),B2(1),HEFF,W(1),NSEG,
+C BEG MAY 1997
+     1              NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,IZSTIF(1))
+C END MAY 1997
+      ENDIF
+C END OCT 1989
+C BEG JUNE 1991
+C BEG AUG 1991
+      IFINE = 0
+C BEG NOV 1991
+      NTEST = 6
+      IF (ISTIFF(1).EQ.4.AND.B2(1).GT.W2(1)) NTEST = 8
+      IF (NTEST.LE.6) IFINE = 1
+C END NOV 1991
+C BEG AUG 1992
+      IFINE = 1
+C END AUG 1992
+C  Get NMESH0...
+      IF (ISTIF.EQ.4) CALL RZHAT(IMESH,B(1),B2(1),H(1),W(1),W2(1),NSEG,
+     1                          NMESH0,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IFINE)
+C END AUG 1991
+      IF (ILOCAL.EQ.1.AND.(CIRC/B(1)).LT.4.1) IFINE = 1
+      IF (ISTIF.EQ.4) CALL RZHAT(IMESH,B(1),B2(1),H(1),W(1),W2(1),NSEG,
+     1                           NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IFINE)
+C END JUNE 1991
+C
+C BEG JULY 1989  (ADD TRUSSCORE CONFIGURATION)
+C
+C BEG NOV 1995
+      IF (ISTIF.EQ.5) CALL RZTRUS(IMESH,B(1),B2(1),H(1),NSEG,
+     1                           NMESH,NTYPEH,R1,Z1,R2,Z2,R0)
+C END NOV 1995
+C END JULY 1989
+C BEG JUNE 1991
+      IF (ISTIF.NE.4) THEN
+         DO 9 I = 1,10
+    9    NMESH0(I) = NMESH(I)
+      ENDIF
+C END JUE 1991
+C
+C  DETERMINE THE NUMBER OF STIFFENERS IN THE PANEL...
+C
+   10 CONTINUE
+      NSTIF = CIRC/B(1) + .01
+      B1 = CIRC/FLOAT(NSTIF)
+      B22 = CIRC/FLOAT(NSTIF+1)
+      DIF1 = ABS(B1-B(1))/B(1)
+      DIF2 = ABS(B(1)-B22)/B(1)
+      B(1) = B1
+      IF (DIF2.LT.DIF1) THEN
+         B(1) = B22
+         NSTIF = NSTIF + 1
+      ENDIF
+      IF (IEDGE.EQ.1) NSTIF = NSTIF + 1
+C
+C BEG JUNE 1991
+      FLONG = LENMOD
+      IF (ILOCAL.EQ.1) FLONG = 1.0
+C BEG MAR 1996
+C BEG FEB 2011
+C     RAVE =  100.*FLOAT(MULT)*AXIAL*FLONG/3.1415927
+      RAVE = CIRC
+C END FEB 2011
+C END MAR 1996
+C END JUNE 1991
+C BEG MAR 1996
+C BEG APR 2009
+C BEG FEB 2011
+C     IF (ISTIFF(2).NE.0.AND.ILOCAL.NE.-1)
+C    1       RAVE = 100.0*FLOAT(MULT)*B(2)/3.1415927
+C END FEB 2011
+C END APR 2009
+C END MAR 1996
+      RBEG = RAVE - CIRC/2. + B(1)/2.
+      IF (IEDGE.EQ.1) RBEG = RAVE - CIRC/2. + B2(1)/2.
+      IF ((CIRC/AR).GT.1.5) RBEG = RAVE - 0.707*AR
+C     WRITE(6,*)' NSTIF,RAVE, RBEG, AR=', NSTIF, RAVE, RBEG, AR
+C     WRITE(6,*)' IEDGE,CIRC,AXIAL,LENMOD=',IEDGE,CIRC,AXIAL,LENMOD
+C     WRITE(6,*)' R0,R1(1),Z1(1),R2(1),Z2(1)=',
+C    1            R0,R1(1),Z1(1),R2(1),Z2(1)
+C     WRITE(6,*)' R0,R1(2),Z1(2),R2(2),Z2(2)=',
+C    1            R0,R1(2),Z1(2),R2(2),Z2(2)
+      CALL ALLMOD(IEDGE,ISTIF,R,CIRC,NSTIF,B(1),R0,RBEG,R1,Z1,R2,Z2,
+     1    R1TOT,Z1TOT,R2TOT,Z2TOT,RCTOT,ZCTOT,NSHAPE,SROT,NSEGST,NSEGTL,
+C BEG MAY 1997
+     1    B2(1),W2(1),AXIAL,DRK,DZK)
+C END MAY 1997
+C     WRITE(6,*)' R1TOT(1),RCTOT(1),ZCTOT(1)=',
+C    1            R1TOT(1),RCTOT(1),ZCTOT(1)
+C     WRITE(6,*)' R2TOT(1),Z1TOT(1),Z2TOT(1)=',
+C    1            R2TOT(1),Z1TOT(1),Z2TOT(1)
+C     WRITE(6,*)' R1TOT(2),RCTOT(2),ZCTOT(2)=',
+C    1            R1TOT(2),RCTOT(2),ZCTOT(2)
+C     WRITE(6,*)' R2TOT(2),Z1TOT(2),Z2TOT(2)=',
+C    1            R2TOT(2),Z1TOT(2),Z2TOT(2)
+C
+
+C BEG AUG 2006 (max. allowable NSEGTL increased from 70 to 150)
+C BEG DEC 2006 (max. allowable NSEGTL increased from 150 to 190
+C BEG MAR 2007 (max. allowable NSEGTL increased from 190 to 290
+      IF (NSEGTL.GT.290) THEN
+C BEG AUG 2009
+C        CNEW = CIRC*180./FLOAT(NSEGTL)
+         CNEW = CIRC*290./FLOAT(NSEGTL)
+C END AUG 2009
+         WRITE(6,15) CIRC, NSEGTL, CNEW
+C23456789012345678901234567890123456789012345678901234567890123456789012
+   15    FORMAT(/' TOO MANY SEGMENTS. CURRENT PANEL WIDTH OF',1P,E12.4/
+     1   ' REQUIRES A TOTAL OF'I4,' SEGMENTS. THERE MUST BE LESS THAN'/
+     1   ' 290 SEGMENTS IN THE OVERALL MODEL.  CUT PANEL WIDTH TO LESS'/
+     1   ' THAN',1P,E12.4//)
+C END MAR 2007
+C END DEC 2006
+         REWIND IFILE
+         CALL DATUM(IFILE,97,1,2,INT,CIRC,CHARAC,IOUT,0,1)
+         GO TO 10
+      ENDIF
+C
+C  NOW WRITE TO THE OUTPUT FILE..
+C
+C BEG JUL 2010
+C     WRITE(IFIL14,'(A)')' BOSOR4 INPUT FOR A PANEL'
+      WRITE(IFIL14,'(A)')' BOSOR4 INPUT FOR A PANEL ixprism'
+C BEG FEB 2011
+      IF (ILOCAL.EQ.-1.OR.ILOCAL.EQ.-2)
+     1 WRITE(IFIL14,'(1P,E14.6,A)')
+     1 AXIAL,'      $ AXIALL= length of the prismatic shell'
+      IF (ILOCAL.EQ.0.OR.ILOCAL.EQ.1)
+     1 WRITE(IFIL14,'(1P,E14.6,A)')
+     1 B(2),'      $ AXIALL= length of the prismatic shell'
+C END FEB 2011
+      WRITE(IFIL14,'(A,I4,A)')
+     1 ' 4,1,0,0,', NSEGTL,' $ INDIC,NPRT,ISTRES,IPRE,NSEG'
+C END JUL 2010
+C
+C BEG JULY 1989
+      I2 = 0
+C BEG JUNE 1991
+C BEG JUN 1996
+      IF (IEDGE.EQ.0) THEN
+       EFOUND = 0.
+       IF (ISANDW(1,1).EQ.1.OR.ISANDW(1,1).EQ.NLAYER(1,1))
+     1  EFOUND = WFOUND(1,1)
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+       IF (ISTIF.EQ.5.AND.ILOCAL.NE.1) THEN
+        CALL SEGMNT(IFIL14,1,NMESH(1),R1TOT(1),Z1TOT(1),R2TOT(1),
+     1  Z2TOT(1),RCTOT(1),ZCTOT(1),NSHAPE(1),SROT(1),CX1(1,1,1),
+     1  IPOINT(1),1,DUMMY,DUMMY,DUMMY,I2,NMESH0(1),
+     1  EFOUND)
+       ELSE
+        CALL SEGMNT(IFIL14,1,NMESH(1),R1TOT(1),Z1TOT(1),R2TOT(1),
+     1  Z2TOT(1),RCTOT(1),ZCTOT(1),NSHAPE(1),SROT(1),CX1(1,1,1),
+     1  IPOINT(1),1,NXVAR1(1,1),NYVAR1(1,1),NXYVR1(1,1),I2,NMESH0(1),
+     1  EFOUND)
+       ENDIF
+C END JAN 2010
+      ENDIF
+C END JUN 1996
+C END JUNE 1991
+C
+      IMINUS = 1
+      IF (ISTIF.EQ.5) IMINUS = 0
+C
+      DO 200 JSTIF = 1,NSTIF
+C
+      ITOT = (JSTIF-1)*(NSEGST+ 1)
+      NSEG1 = NSEG - IMINUS
+C END JULY 1989
+C
+      K = ITOT + 1 - IEDGE
+      IF (ISTIF.EQ.0) GO TO 105
+C
+      DO 100 I = 2,NSEG1
+C
+C BEG JULY 1989
+C BEG JUN 2004
+      CALL IDSEG(ISTIF,I,NSEGB5,B2(1),W2(1),J,IFAY)
+C END JUN 2004
+      K = ITOT + I - IEDGE
+C
+C BEG JUN 1996
+      EFOUND = 0.
+      IF (ISANDW(J,1).EQ.1.OR.ISANDW(J,1).EQ.NLAYER(J,1))
+     1  EFOUND = WFOUND(J,1)
+C END JUN 1996
+C BEG JUNE 1991
+      IF (ISTIF.NE.5) THEN
+        CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1   Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CX1(1,1,J),
+     1   2,I,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+C BEG JUN 1996
+     1   NMESH0(I),EFOUND)
+C END JUN 1996
+      ELSE
+C BEG MAR 2009
+        CALL MOVER(CX1(1,1,J),1,CTOT,1,36)
+        CALL MOVER(0.,0,THERMX,1,30)
+        CALL MOVER(THERMX(1,J),1,THERMT,1,6)
+        IF (ISTIF.EQ.5.AND.IFAYT(1).EQ.1
+     1                 .AND.(I.EQ.5.OR.I.EQ.6)) THEN
+           CALL MOVER(0.,0,CTOT,1,36)
+           ICX(1) = J
+           ICX(2) = 2
+           ICX(3) = 0
+           ICX(4) = 0
+           CALL CSTACK(6,I,CX1,THERMX,TX,2,ICX,CTOT,THERMT,
+     1               THCURX,THCURT)
+        ENDIF
+C  "CTOT" instead of CX1(1,1,J) in the second line of "CALL SEGMNT"
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        IF (K.LT.NSEGTL) THEN
+         IF (K.NE.6.OR.B2(1).EQ.0.0) THEN
+          CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1    Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CTOT,
+     1    IPOINT(1),1,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+     1    NMESH0(I),EFOUND)
+         ELSE 
+          IF (ILOCAL.NE.1) THEN
+           CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1     Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CTOT,
+     1     IPOINT(1),1,DUMMY,DUMMY,DUMMY,I2,
+     1     NMESH0(I),EFOUND)
+          ELSE
+           CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1     Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CTOT,
+     1     IPOINT(1),1,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+     1     NMESH0(I),EFOUND)
+          ENDIF
+         ENDIF
+        ELSE
+         IF (ILOCAL.NE.1) THEN
+          CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1    Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CTOT,
+     1    IPOINT(1),1,DUMMY,DUMMY,DUMMY,I2,
+     1    NMESH0(I),EFOUND)
+         ELSE
+          CALL SEGMNT(IFIL14,K,NMESH(I),R1TOT(K),Z1TOT(K),R2TOT(K),
+     1    Z2TOT(K),RCTOT(K),ZCTOT(K),NSHAPE(K),SROT(K),CTOT,
+     1    IPOINT(1),1,NXVAR1(1,I),NYVAR1(1,I),NXYVR1(1,I),I2,
+     1    NMESH0(I),EFOUND)
+         ENDIF
+        ENDIF
+C END JAN 2010
+C END MAR 2009
+      ENDIF
+C END JUNE 1991
+C END JULY 1989
+C
+  100 CONTINUE
+  105 CONTINUE
+C
+      IF (JSTIF.LT.NSTIF.OR.IEDGE.EQ.0) THEN
+C
+         IF (JSTIF.EQ.NSTIF) THEN
+            NCALL = IPOINT(1)
+            DO 110 II = 1,NCALL
+               J = NCALL + 1 - II
+C BEG JUNE 1991
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+C END JUNE 1991
+  110       CONTINUE
+         ELSE
+            NCALL = IMESH
+            IP1   = IPOINT(1)
+            DO 120 II = 1,IP1
+               J = IP1 + 1 - II
+C BEG JUNE 1991
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+  120       CONTINUE
+            DO 130 II = IP1,NCALL
+               J = II + 1 - IP1
+               NX(II) = NXVAR1(J,1)
+               NY(II) = NYVAR1(J,1)
+               NXY(II)= NXYVR1(J,1)
+C END JUNE 1991
+  130       CONTINUE
+         ENDIF
+C
+         M = K + 1
+C
+C BEG JUN 1996
+       EFOUND = 0.
+       IF (ISANDW(1,1).EQ.1.OR.ISANDW(1,1).EQ.NLAYER(1,1))
+     1  EFOUND = WFOUND(1,1)
+C END JUN 1996
+C BEG JUNE 1991
+C BEG JAN 2010
+       IF (ISTIF.NE.5.OR.M.LT.NSEGTL) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        CALL SEGMNT(IFIL14,M,NMESH(1),R1TOT(M),Z1TOT(M),R2TOT(M),
+     1  Z2TOT(M),RCTOT(M),ZCTOT(M),NSHAPE(M),SROT(M),CX1(1,1,1),
+C BEG JUN 1996
+     1  NCALL,1,NX,NY,NXY,I2,NMESH0(1),EFOUND)
+C END JUN 1996
+       ELSE
+        IF (ILOCAL.NE.1) THEN
+         CALL SEGMNT(IFIL14,M,NMESH(1),R1TOT(M),Z1TOT(M),R2TOT(M),
+     1   Z2TOT(M),RCTOT(M),ZCTOT(M),NSHAPE(M),SROT(M),CX1(1,1,1),
+     1   NCALL,1,DUMMY,DUMMY,DUMMY,I2,NMESH0(1),EFOUND)
+        ELSE
+         CALL SEGMNT(IFIL14,M,NMESH(1),R1TOT(M),Z1TOT(M),R2TOT(M),
+     1   Z2TOT(M),RCTOT(M),ZCTOT(M),NSHAPE(M),SROT(M),CX1(1,1,1),
+     1   NCALL,1,NX,NY,NXY,I2,NMESH0(1),EFOUND)
+        ENDIF
+       ENDIF
+C END JAN 2010
+C END JUNE 1991
+C
+      ENDIF
+C
+  200 CONTINUE
+C
+C  ESTABLISH SWITCH FOR BOUNDARY CONDITION AT RIGHTMOST END WHICH
+C  DEPENDS ON THE SLOPE OF THE "TORUS" AT THAT END..
+C
+      DIFRAD = ABS(R2TOT(NSEGTL) - R1TOT(NSEGTL))
+      DIFZED = ABS(Z2TOT(NSEGTL) - Z1TOT(NSEGTL))
+C
+C  CONSTRAINT CONDITION INPUT FOR BOSOR4...
+C
+      WRITE(IFIL14,'(A)')' H $ END OF SEGMENT DATA; GLOBAL DATA BEGINS.'
+      WRITE(IFIL14,'(A)')' 0                           $ geometry plots'
+C BEG JULY 1989
+      WRITE(IFIL14,'(A)') ' N'
+C BEG MAR 1996
+      MFACTR = 100*MULT
+C BEG JUL 2010 (we now use the prismatic formulation in panel3 model)
+C     WRITE(IFIL14,'(4I7,A,I5)')
+C    1     NWAVE,NWAVE,NWAVE,NWAVE,' $ axial halfwaves x',MFACTR
+      WRITE(IFIL14,'(4I7,A)')
+     1     NWAVE,NWAVE,NWAVE,NWAVE,' $ axial halfwaves'
+C END JUL 2010
+C END MAR 1996
+      WRITE(IFIL14,'(2I4,A)')
+     1          NVEC,NSEGTL,' $ no. of eigenvalues,segments'
+C
+      NCOND = 0
+      IF (IEDGE.EQ.0) THEN
+C BEG MAR 1992
+         IUEND = IUSTAR
+         IWEND = IWSTAR
+         IF (ISTIF.EQ.0) THEN
+            DIFR1 = ABS(R2TOT(1) - R1TOT(1))
+            IF ((DIFR1/AR).GE.0.7071) THEN
+               IUEND = IWSTAR
+               IWEND = IUSTAR
+            ENDIF
+         ENDIF
+C BEG JUL 2009
+         IF (ISTIF.NE.5) WRITE(IFIL14,'(A,4I3,A)')
+     1           ' 0,1,1,',IUEND,IVSTAR,IWEND,IBETA,',0,0'
+C BEG JAN 2010
+C        IF (ISTIF.EQ.5) WRITE(IFIL14,'(A,4I3,A)')
+C    1           ' 0,1,6,',IUEND,IVSTAR,IWEND,IBETA,',0,0'
+         IF (ILOCAL.NE.1) THEN
+            IF (ISTIF.EQ.5) WRITE(IFIL14,'(A,3I3,A)')
+     1           ' 0,1,8,',IUEND,IVSTAR,IWEND,',1,0,0'
+         ELSE
+            IF (ISTIF.EQ.5) WRITE(IFIL14,'(A,3I3,A)')
+     1           ' 0,1,1,',IUEND,IVSTAR,IWEND,',1,0,0'
+         ENDIF
+C END JAN 2010
+C END JUL 2009
+C END MAR 1992
+         WRITE(IFIL14,'(A)')' Y'
+         NCOND = NCOND + 1
+         WRITE(IFIL14,'(A)')' N'
+      ENDIF
+C
+         IF (B2(1).GT.W2(1)) THEN
+            IC2 = 2
+            IC3 = 3
+            IC4 = 4
+            IC5 = 5
+            IC6 = 6
+            IC7 = 7
+         ELSE
+            IC2 = 1
+            IC3 = 2
+            IC4 = 3
+            IC5 = 4
+            IC6 = 5
+            IC7 = 6
+         ENDIF
+C
+C
+      DO 400 JSTIF = 1,NSTIF
+C
+      ITOT = (JSTIF-1)*(NSEGST+1)
+C BEG JULY 1989
+      NSEG1= NSEG - IMINUS
+C END JULY 1989
+C
+      K = ITOT + 1 - IEDGE
+      IF (ISTIF.EQ.0) GO TO 305
+C
+      DO 300 I = 2,NSEG1
+C
+      K = ITOT + I - IEDGE
+C BEG NOV 1995
+C BEG MAY 1997
+C BEG JAN 2010
+      IF (ISTIF.NE.5.OR.B2(1).EQ.0.0) THEN
+        IKAY6 = 0
+        WRITE(IFIL14,'(A,I3,A,I3)')
+     1' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF,
+     1';Seg.no.',I
+      ELSE
+        IF (ILOCAL.NE.1) THEN
+         IKAY6 = 0
+         WRITE(IFIL14,'(A,I3,A,I3)')
+     1 ' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF,
+     1 ';Seg.no.',I
+        ELSE
+         IF (K.NE.6.AND.K.NE.(NSEGTL-3)) THEN
+          IKAY6 = 0
+          WRITE(IFIL14,'(A,I3,A,I3)')
+     1  ' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF,
+     1  ';Seg.no.',I
+         ELSE
+          IKAY6 = 1
+          WRITE(IFIL14,'(A,I3,A,I3)')
+     1  ' 0,1  $ no poles, one connect.to ground;STR.no.',JSTIF,
+     1  ';Seg.no.',I
+          IF (K.EQ.6) WRITE(IFIL14,'(A)')
+     1  ' 1   1  1  0  1  0. 0. $ inode, ustar,vstar,wstar,beta,d1,d2'
+          IF (K.EQ.(NSEGTL-3)) WRITE(IFIL14,'(A)')
+     1  ' 1   0  0  0  1  0. 0. $ inode, ustar,vstar,wstar,beta,d1,d2'
+          WRITE(IFIL14,'(A)') ' Y  $ same for prebuckling & buckling'
+         ENDIF
+        ENDIF
+      ENDIF
+C END JAN 2010
+C END MAY 1997
+C END NOV 1995
+      IF (K.EQ.1) THEN
+         WRITE(IFIL14,'(A)') ' N $ no connection to lower-numbered seg.'
+      ELSE
+         WRITE(IFIL14,'(A)') ' Y     $ yes, connection to lower segment'
+C BEG JULY 1989
+         IF (ISTIF.LT.4) THEN
+            INODE = 1
+            IF (ISTIF.EQ.1.AND.I.EQ.4) INODE = NMESH(I)/2 + 1
+C BEG MAY 1997
+            DR = 0.
+            DZ = 0.
+            IF (IZSTIF(1).EQ.1.AND.I.EQ.2) THEN
+               INODE = NMESH(I)/2 + 1
+               DR = -DRK(K)
+               DZ =  DZK(K)
+            ENDIF
+C END MAY 1997
+            JSEG = I - 1
+            KSEG = K - 1
+            IF (KSEG.EQ.0) GO TO 300
+            JNODE = NMESH(JSEG)
+C BEG MAY 1997
+            IF (I.EQ.3.AND.IZSTIF(1).EQ.0) JNODE = NMESH(JSEG)/2 + 1
+            WRITE(IFIL14,'(A,3I4,A,1P,2E14.6)')
+     1          ' 1,',INODE,KSEG,JNODE,',1,1,1,1,',DR,DZ
+C END MAY 1997
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ELSE
+            IF (ISTIF.EQ.4) THEN
+               INODE = 1
+               JSEG = I - 1
+               IF (I.EQ.IC4) JSEG = IC2
+               IF (I.EQ.IC7) JSEG = IC3
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.EQ.IC6) NNODE = 2
+               IF (KSEG.EQ.0.AND.I.EQ.2) GO TO 300
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               WRITE(IFIL14,'(4I4,A)')
+     1               NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.EQ.IC6) THEN
+                  INODE = NMESH(I)
+                  JSEG  = IC3
+                  KSEG = ITOT + JSEG - IEDGE
+                  JNODE = NMESH(JSEG)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                   INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+            ENDIF
+            IF (ISTIF.EQ.5) THEN
+C BEG NOV 1995
+             IF (B2(1).LE.0.0) THEN
+C END NOV 1995
+               INODE = 1
+               JSEG  = I - 1
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.EQ.3.AND.KSEG.GT.3) NNODE = 2
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.EQ.3.AND.NNODE.GT.1) THEN
+                  INODE = 1
+                  JSEG = KSEG - 3
+                  KSEG = JSEG
+                  JNODE = NMESH(3)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                     INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+C BEG NOV 1995
+             ELSE
+               INODE = 1
+               JSEG  = I - 1
+               KSEG = ITOT + JSEG - IEDGE
+               JNODE = NMESH(JSEG)
+               NNODE = 1
+               IF (I.GT.4.AND.KSEG.GT.3) NNODE = 2
+               IF (I.EQ.6.AND.JSTIF.EQ.1) NNODE = 1
+               IF (KSEG.EQ.0) THEN
+                  JNODE = 1
+                  KSEG  = 1
+               ENDIF
+               IF (I.LT.6) WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               IF (I.EQ.6.AND.JSTIF.GT.1) THEN
+                  KSEG = K - 9
+                  JNODE = NMESH(3)
+                  WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               ENDIF
+               IF (I.EQ.6.AND.JSTIF.EQ.1) THEN
+                  INODE = NMESH(I)
+                  KSEG = K - 4
+                  JNODE = NMESH(2)
+                  WRITE(IFIL14,'(4I4,A)')
+     1                     NNODE,INODE,KSEG,JNODE,',1,1,1,1,0,0'
+               ENDIF
+               WRITE(IFIL14,'(A)')' Y'
+               NCOND = NCOND + 1
+               IF (I.GT.4.AND.NNODE.GT.1) THEN
+                  INODE = NMESH(I)
+                  KSEG = K - 4
+                  JNODE = NMESH(1)
+                  WRITE(IFIL14,'(3I4,A)')
+     1                     INODE,KSEG,JNODE,',1,1,1,1,0,0'
+                  WRITE(IFIL14,'(A)')' Y'
+                  NCOND = NCOND + 1
+               ENDIF
+             ENDIF
+C END NOV 1995
+            ENDIF
+C END JULY 1989
+         ENDIF
+C
+      ENDIF
+  300 CONTINUE
+C
+  305 CONTINUE
+C
+C  PROVIDE CONSTRAINT CONDITION FOR THIN SHEET BETWEEN STRINGERS...
+C
+      ISEG = K + 1
+      INODE = NMESH(1)
+      JSEG = ISEG - NSEGST
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) THEN
+         IF (JSTIF.GT.1.OR.IEDGE.EQ.0) JSEG = ISEG - 4
+      ENDIF
+C END MAY 1997
+      IF (ISTIF.EQ.4.AND.B2(1).GT.W2(1)) JSEG = ISEG - 1
+      IF (ISTIF.EQ.0) JSEG = ISEG - 1
+C BEG JULY 1989
+      IF (ISTIF.EQ.5) JSEG = ISEG - 4
+C END JULY 1989
+      MSEG = 2
+      IF (ISTIF.EQ.4.AND.B2(1).GT.W2(1)) MSEG = 7
+      IF (ISTIF.EQ.0) MSEG = 1
+C BEG JULY 1989
+      IF (ISTIF.EQ.5) MSEG = 1
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) MSEG = 1
+C END MAY 1997
+      NNODE = 1
+C BEG NOV 1995
+      IF (ISTIF.EQ.5.AND.B2(1).LE.0.0) NNODE = 2
+C END NOV 1995
+C END JULY 1989
+      JNODE = NMESH(MSEG)
+C BEG MAY 1997
+      DR = 0.
+      DZ = 0.
+      IF (IZSTIF(1).EQ.1.AND.JSTIF.EQ.1.AND.IEDGE.EQ.1) THEN
+         JNODE = NMESH(2)/2 + 1
+         DZ = -DZK(1)
+      ENDIF
+C END MAY 1997
+      IF (JSTIF.LT.NSTIF) THEN
+C BEG NOV 1995
+C BEG MAY 1997
+      WRITE(IFIL14,'(A,I3,A,I3)')
+     1' 0,0  $ no poles, no connect. to ground;STR.no.',JSTIF+1,
+     1';Seg.no.',ISEG-JSTIF*NSEG
+C END MAY 1997
+C END NOV 1995
+       WRITE(IFIL14,'(A)')' Y              $ connection to lower seg.'
+C BEG JULY 1989
+C BEG NOV 1995
+       IF (ISTIF.NE.5.OR.B2(1).LE.0.0) THEN
+C END NOV 1995
+C BEG MAY 1997
+         WRITE(IFIL14,'(I4,A,2I4,A,1P,2E14.6)')
+     1               NNODE,',1,',JSEG,JNODE,',1,1,1,1,',DR,DZ
+C END MAY 1997
+         WRITE(IFIL14,'(A)')' Y'
+         NCOND = NCOND + 1
+C BEG NOV 1995
+       ENDIF
+         IF (NNODE.GT.1.OR.(ISTIF.EQ.5.AND.B2(1).GT.0.0)) THEN
+            ISEGM = 1
+            IF (ISTIF.EQ.5.AND.B2(1).GT.0.0) ISEGM = 3
+            JSEG1 = ISEG - ISEGM
+C END NOV 1995
+            JNODE1= NMESH(4)
+C BEG NOV 1995
+            IF (NNODE.GT.1)
+     1       WRITE(IFIL14,'(A,2I4,A)')' 1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            IF (NNODE.EQ.1.AND.ISTIF.EQ.5.AND.B2(1).GT.0.0)
+     1       WRITE(IFIL14,'(I4,A,2I4,A)')
+     1               NNODE,',1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+C END NOV 1995
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ENDIF
+C END JULY 1989
+      ENDIF
+C
+      IF (IEDGE.EQ.1) GO TO 400
+      IF (JSTIF.EQ.NSTIF) THEN
+C
+C         RIGHTMOST SEGMENT...
+C
+         IUEND = IUSTAR
+         IWEND = IWSTAR
+C BEG MAR 1992
+         IF (ISTIF.NE.0.AND.DIFZED.GT.DIFRAD) THEN
+            IUEND = IWSTAR
+            IWEND = IUSTAR
+         ENDIF
+         IF (ISTIF.EQ.0.AND.(DIFRAD/AR).GT.0.7071) THEN
+            IUEND = IWSTAR
+            IWEND = IUSTAR
+         ENDIF
+C END MAR 1992
+C BEG JULY 1989
+         NNODE = 1
+C BEG NOV 1995
+         IF (ISTIF.EQ.5.AND.B2(1).LE.0.0) NNODE = 2
+C END NOV 1995
+C END JULY 1989
+C
+C BEG JUL 2009
+         IF (ISTIF.NE.5) WRITE(IFIL14,'(A,5I4,A)')
+     1                 ' 0,1,',INODE,IUEND,IVSTAR,IWEND,IBETA,',0,0'
+         IF (ISTIF.EQ.5) THEN
+C BEG JAN 2010
+C           IFASTN = INODE/2 + 1
+            IF (ILOCAL.NE.1) THEN
+               IFASTN = 3
+            ELSE
+               IFASTN = INODE
+            ENDIF
+C
+            IF (ILOCAL.EQ.1) THEN
+C              WRITE(IFIL14,'(A,5I4,A)')
+C    1                 ' 0,1,',IFASTN,IUEND,IVSTAR,IWEND,IBETA,',0,0'
+               WRITE(IFIL14,'(A,4I4,A)')
+     1                 ' 0,1,',IFASTN,IUEND,IVSTAR,IWEND,',1,0,0'
+            ELSE
+               WRITE(IFIL14,'(A,4I4,A)')
+     1                 ' 0,1,',IFASTN,IUEND,IVSTAR,IWEND,',1,0,0'
+            ENDIF
+C END JAN 2010
+         ENDIF
+C END JUL 2009
+         WRITE(IFIL14,'(A)')' Y'
+         NCOND = NCOND + 1
+       WRITE(IFIL14,'(A)')' Y              $ connection to lower seg.'
+C BEG JULY 1989
+C BEG NOV 1995
+         IF (ISTIF.NE.5.OR.B2(1).LE.0.0) THEN
+C END NOV 1995
+           WRITE(IFIL14,'(I4,A,2I4,A)')
+     1                 NNODE,',1,',JSEG,JNODE,',1,1,1,1,0,0'
+           WRITE(IFIL14,'(A)')' Y'
+           NCOND = NCOND + 1
+C BEG NOV 1995
+         ENDIF
+         IF (NNODE.GT.1.OR.(ISTIF.EQ.5.AND.B2(1).GT.0.0)) THEN
+            ISEGP = 3
+            IF (ISTIF.EQ.5.AND.B2(1).GT.0.0) ISEGP = 1
+            JSEG1 = JSEG + ISEGP
+C END NOV 1995
+            JNODE1= NMESH(4)
+C BEG NOV 1995
+            IF (NNODE.GT.1)
+     1       WRITE(IFIL14,'(A,2I4,A)')' 1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+            IF (NNODE.EQ.1.AND.ISTIF.EQ.5.AND.B2(1).GT.0.0)
+     1       WRITE(IFIL14,'(I4,A,2I4,A)')
+     1               NNODE,',1,',JSEG1,JNODE1,',1,1,1,1,0,0'
+C END NOV 1995
+            WRITE(IFIL14,'(A)')' Y'
+            NCOND = NCOND + 1
+         ENDIF
+      ENDIF
+C
+  400 CONTINUE
+C
+      WRITE(IFIL14,'(A)')' N  $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      DO 20 ISEG = 1,NSEGTL
+   20 WRITE(IFIL14,'(A)')' Y'
+      WRITE(IFIL14,'(A)')' N'
+C
+      WRITE(IFIL14,'(A)')' H   $ END OF DATA FOR PANEL '
+C
+C BEG JULY 1989
+      WIDTH1 = CIRC
+      IREDUC= 0
+      NDOF = 3*NCOND + 3*(NSEGTL + 1) + 2*I2
+C BEG AUG 2006 (increase max NDOF from 2000 to 10000 for use with bigbosor4)
+C BEG MAR 2007 (increase max NDOF from 10000 to 20000 for use with bigbosor4)
+      IF (NDOF.GT.20000) THEN
+         REDUCE = 20000./FLOAT(NDOF)
+         WIDTH1  = 0.90*CIRC*REDUCE
+         WRITE(6,450) NDOF,CIRC,WIDTH1
+  450  FORMAT(/' PREBUCKLING NUMBER OF DEGREES IN THIS BOSOR4 MODEL'/
+     1 ' (NDOF=',I5,')'/
+     1 ' EXCEEDS THE MAXIMUM OF 20000 ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' PREBUCKLING ANALYSIS. YOU MUST REDUCE THE WIDTH OF THE PANEL'/
+     1 ' FROM ITS PRESENT VALUE, CIRC=',1P,E12.4/
+     1 ' TO A WIDTH WHICH IS LESS THAN',1P,E12.4/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 PREBUCKLING ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C END MAR 2007
+C END AUG 2006
+C
+      WIDTH2 = CIRC
+      NDOF = 4*NCOND + 4*(NSEGTL + 1) + 3*I2
+C BEG AUG 2006 (increase max NDOF from 3000 to 15000 for use with bigbosor4)
+C BEG MAR 2007 (indrease max NDOF from 15000 to 30000 for use with bigbosor4)
+      IF (NDOF.GT.15000) THEN
+         REDUCE = 30000./FLOAT(NDOF)
+         WIDTH2  = 0.90*CIRC*REDUCE
+         WRITE(6,460) NDOF,CIRC,WIDTH2
+  460  FORMAT(/' BIFURCATION BUCKLING NUMBER OF DEGREES IN THIS BOSOR4'/
+     1 ' MODEL (NDOF=',I5,')'/
+     1 ' EXCEEDS THE MAXIMUM OF 30000 ALLOWED IN BOSOR4 FOR THE BOSOR4'/
+     1 ' BIFURCATION ANALYSIS. YOU MUST REDUCE THE WIDTH OF THE PANEL'/
+     1 ' FROM ITS PRESENT VALUE, CIRC=',1P,E12.4/
+     1 ' TO A WIDTH WHICH IS LESS THAN',1P,E12.4/
+     1 ' IN ORDER TO ACCOMMODATE THE BOSOR4 BIFURCATION ANALYSIS.'/)
+         IREDUC = 1
+      ENDIF
+C END MAR 2007
+C END AUG 2006
+C
+      IF (IREDUC.EQ.1) THEN
+         WIDMIN = MIN(WIDTH1,WIDTH2)
+         WRITE(6,470) WIDMIN
+  470    FORMAT(' RUN "PANEL" AGAIN.  REDUCE THE WIDTH OF THE PANEL'/
+     1' ("length in the L2 direction") TO LESS THAN WIDTH = ',1P,E12.4/)
+         CALL EXIT
+      ENDIF
+C
+C END JULY 1989
+C BEG 26 JAN 1989
+      CLOSE(UNIT=7)
+C     CLOSE(UNIT=0)
+C END 26 JAN 1989
+C
+C BEG JAN 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(6,30) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C BEG FEB 2011
+   30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.ALL = Input data for BIGBOSOR4-type of preprocessor.'/
+     1'           correponding to discretized entire panel.'/
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' Next, give the command BIGBOSOR4LOG followed by BIGBOSORALL.'//
+     1' BIGBOSOR4 to be used to find buckling of the panel with'/
+     1' all stringer parts modelled as flexible shell segments. The'/
+     1' buckling load factors from this rather elaborate model should'/
+     1' be compared with those calculated from PANDA2')
+C END FEB 2011
+C END JAN 2010
+C
+      END
+C
+C
+C
+C=DECK      ALLMOD
+      SUBROUTINE ALLMOD(IEDGE,ISTIF,R,CIRC,NSTIF,B,R0,RBEG,R1,Z1,R2,Z2,
+     1    R1TOT,Z1TOT,R2TOT,Z2TOT,RCTOT,ZCTOT,NSHAPE,SROT,NSEGST,NSEG,
+C BEG MAY 1997
+     1    B2,W2,AXIAL,DRK,DZK)
+C END MAY 1997
+C
+C  PURPOSE IS TO SET UP GEOMETRY (END POINT LOCATIONS) FOR MULTI-
+C  MODULE FLAT OR CURVED PANEL...
+C
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+      COMMON/THICK/TX(5),TY(5)
+      DIMENSION DRK(*),DZK(*)
+C END MAY 1997
+C BEG MAR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END MAR 1996
+      DIMENSION R1(*),Z1(*),R2(*),Z2(*)
+      DIMENSION R1TOT(*),Z1TOT(*),R2TOT(*),Z2TOT(*)
+      DIMENSION RCTOT(*),ZCTOT(*),NSHAPE(*),SROT(*)
+C
+C BEG MAY 1997
+C BEG AUG 2006
+C BEG MAR 2007
+      CALL MOVER(0.,0,DRK,1,295)
+      CALL MOVER(0.,0,DZK,1,295)
+C END MAR 2007
+C END AUG 2006
+C END MAY 1997
+      IEND = 4
+      NSEGST = 3
+      IF (ISTIF.EQ.0) THEN
+         IEND = 2
+         NSEGST = 0
+         R2TOT(1) = RBEG
+         Z2TOT(1) = 0.
+      ENDIF
+      IF (ISTIF.EQ.3) THEN
+         IEND = 3
+         NSEGST = 2
+      ENDIF
+      IF (ISTIF.EQ.4) THEN
+         IF (B2.GT.W2) THEN
+            IEND = 7
+            NSEGST = 6
+         ELSE
+            IEND = 5
+            NSEGST = 4
+         ENDIF
+      ENDIF
+C BEG JULY 1989
+      IF (ISTIF.EQ.5) THEN
+         IEND = 4
+         NSEGST = 3
+C BEG NOV 1995
+         IF (B2.GT.0.0) THEN
+            IEND = 6
+            NSEGST = 5
+         ENDIF
+      ENDIF
+C END JULY 1989
+C
+      NSEG = NSTIF*NSEGST + NSTIF - 1
+      IF (IEDGE.EQ.0) NSEG = NSEG + 2
+C BEG AUG 2006
+C BEG MAR 2007
+      IF (NSEG.GT.295) RETURN
+C END MAR 2007
+C END AUG 2006
+C
+      AR = ABS(R)
+      DIF = ABS(AR - 10000.*SQRT(AXIAL**2 +CIRC**2))/AR
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) DIF = 0.0
+C END MAR 1996
+C
+      DO 200 JSTIF = 1,NSTIF
+C
+      FJ = JSTIF
+      IF (DIF.LT.0.5) THEN
+         PHI = 0.
+         RN  = RBEG + (FJ-1.)*B
+         ZN  = 0.
+         S   = 0.
+         C   = 1.
+      ELSE
+         PHI = (FJ-1.)*B/R
+         S   = SIN(PHI)
+         C   = COS(PHI)
+         RN  = RBEG + R*S
+         ZN  = - R*(1. - C)
+      ENDIF
+C
+      ITOT = (JSTIF-1)*(NSEGST + 1)
+C
+C
+      DO 100 ISEG = 2,IEND
+C
+      K = ITOT + ISEG - IEDGE
+C
+      RDIF = R1(ISEG) - R0
+      R1TOT(K) = RN + (RDIF*C + Z1(ISEG)*S)
+      Z1TOT(K) = ZN + (-RDIF*S + Z1(ISEG)*C)
+      RDIF = R2(ISEG) - R0
+      R2TOT(K) = RN + (RDIF*C + Z2(ISEG)*S)
+      Z2TOT(K) = ZN + (-RDIF*S + Z2(ISEG)*C)
+C
+      RCTOT(K) = 0.
+      ZCTOT(K) = 0.
+      SROT(K)  = 0.
+      NSHAPE(K) = 1
+C
+  100 CONTINUE
+C
+  200 CONTINUE
+C
+C  NEXT, ADD THE THIN SKIN SEGMENTS BETWEEN THE STIFFENERS...
+C
+C  IF (      ) THEN ADDED 18 NOVEMBER, 1988
+      IF (NSTIF.GE.2) THEN
+C  END 18 NOVEMBER, 1988 MODIFICATION
+         DO 300 JSTIF = 2,NSTIF
+C
+         ITOT = (JSTIF-1)*(NSEGST + 1)
+         K = ITOT - IEDGE + 1
+         KM= K - NSEGST
+C BEG JULY 1989
+         IF (ISTIF.GE.4) KM = K - 1
+C BEG NOV 1995
+         IF (ISTIF.EQ.5.AND.B2.GT.0.) KM = K - 3
+C END NOV 1995
+C END JULY 1989
+         IF (ISTIF.EQ.0) KM = K - 1
+C BEG MAY 1997
+         KP = K + 1
+         IF (IZSTIF(1).EQ.1) KM = K - 4
+         R1TOT(K) = R2TOT(KM)
+         Z1TOT(K) = Z2TOT(KM)
+         R2TOT(K) = R1TOT(KP)
+         Z2TOT(K) = Z1TOT(KP)
+         IF (IZSTIF(1).EQ.1) THEN
+            RAVE = 0.5*(R1TOT(KP) + R2TOT(KP))
+            ZAVE = 0.5*(Z1TOT(KP) + Z2TOT(KP))
+            TAVE = 0.5*(TX(1) + TX(2))
+            DRK(KP) = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+            DZK(KP) = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+            TAVE = 0.
+            DR   = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+            DZ   = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+            R2TOT(K) = RAVE + DR
+            Z2TOT(K) = ZAVE - DZ
+            IF (JSTIF.EQ.2) THEN
+               K3 = K - 3
+               RAVE = 0.5*(R1TOT(K3) + R2TOT(K3))
+               ZAVE = 0.5*(Z1TOT(K3) + Z2TOT(K3))
+               TAVE = 0.5*(TX(1) + TX(2))
+               DRK(K3) = TAVE*(Z2TOT(K3) - Z1TOT(K3))/B2
+               DZK(K3) = TAVE*(R2TOT(K3) - R1TOT(K3))/B2
+               TAVE = 0.
+               DR   = TAVE*(Z2TOT(K3) - Z1TOT(K3))/B2
+               DZ   = TAVE*(R2TOT(K3) - R1TOT(K3))/B2
+               R1TOT(K) = RAVE + DR
+               Z1TOT(K) = ZAVE - DZ
+            ENDIF
+         ENDIF
+C END MAY 1997
+C
+         IF (DIF.LT.0.5) THEN
+            RCTOT(K) = 0.
+            ZCTOT(K) = 0.
+            SROT(K)  = 0.
+            NSHAPE(K) = 1
+         ELSE
+            RCTOT(K) = RBEG
+            ZCTOT(K) = -R
+            ASROT = 1.0
+            SROT(K)  = SIGN(ASROT,R)
+            NSHAPE(K) = 2
+         ENDIF
+C
+  300    CONTINUE
+C  "ENDIF" ADDED 18 NOVEMBER, 1988
+      ENDIF
+C  END 18 NOVEMBER, 1988 MODIFICATION
+C
+C  NEXT, ADD BEGINNING AND END SEGMENTS IF STIFFENERS ARE NOT AT EDGE.
+C
+      IF (IEDGE.EQ.1) GO TO 400
+C
+C  STRINGERS ARE NOT AT EDGES:
+C
+      R1TOT(1) = RBEG - B/2.
+      Z1TOT(1) = 0.
+      RCTOT(1) = 0.
+      ZCTOT(1) = 0.
+      SROT(1)  = 0.
+      NSHAPE(1)= 1
+C
+      IF (DIF.GT.0.5) THEN
+         DPHI = 0.5*B/R
+C
+C  ONE STATEMENT ADDED 18 NOVEMBER, 1988
+         R1TOT(1) = RBEG - R*SIN(DPHI)
+C  END 18 NOVEMBER, 1988 MODIFICATION
+         Z1TOT(1) = -R*(1.-COS(DPHI))
+         RCTOT(1) = RBEG
+         ZCTOT(1) = -R
+         ASROT = 1.0
+         SROT(1) = SIGN(ASROT,R)
+         NSHAPE(1) = 2
+      ENDIF
+C BEG MAY 1997
+      KP = 2
+      IF (IZSTIF(1).EQ.1) KP = 5
+      IF (IZSTIF(1).EQ.0.OR.NSTIF.GE.2) THEN
+         R2TOT(1) = R1TOT(KP)
+         Z2TOT(1) = Z1TOT(KP)
+      ELSE
+         KP = 2
+         RAVE = 0.5*(R1TOT(KP) + R2TOT(KP))
+         ZAVE = 0.5*(Z1TOT(KP) + Z2TOT(KP))
+         TAVE = 0.5*(TX(1) + TX(2))
+         DRK(KP) = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+         DZK(KP) = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+         TAVE = 0.
+         DR   = TAVE*(Z2TOT(KP) - Z1TOT(KP))/B2
+         DZ   = TAVE*(R2TOT(KP) - R1TOT(KP))/B2
+         R2TOT(1) = RAVE + DR
+         Z2TOT(1) = ZAVE - DZ
+      ENDIF
+C END MAY 1997
+C
+      ITOT = NSTIF*(NSEGST + 1) + 1
+      ITOTM= ITOT - NSEGST
+C BEG JULY 1989
+      IF (ISTIF.GE.4) ITOTM = ITOT - 1
+C BEG NOV 1995
+      IF (ISTIF.EQ.5.AND.B2.GT.0.0) ITOTM = ITOT - 3
+C END NOV 1995
+C END JULY 1989
+      IF (ISTIF.EQ.0) ITOTM = ITOT - 1
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) ITOTM = ITOT - 4
+C END MAY 1997
+      R1TOT(ITOT) = R2TOT(ITOTM)
+      Z1TOT(ITOT) = Z2TOT(ITOTM)
+      PHIEND = 0.
+C BEG JULY 1989
+      FACTR = 0.
+      IF (ISTIF.EQ.5) FACTR = 1.
+      R2TOT(ITOT) = RBEG + FLOAT(NSTIF)*B - B/2. + FACTR*B
+C BEG NOV 1995
+      IF (ISTIF.EQ.5.AND.B2.GT.0.0) R2TOT(ITOT) = R1TOT(ITOT) + B-B2
+C END NOV 1995
+C END JULY 1989
+      Z2TOT(ITOT) = 0.
+      RCTOT(ITOT) = 0.
+      ZCTOT(ITOT) = 0.
+      SROT(ITOT)  = 0.
+      NSHAPE(ITOT) = 1
+C
+      IF (DIF.GT.0.5) THEN
+C BEG JULY 1989
+         PHIEND = (FLOAT(NSTIF)*B - B/2. + FACTR*B)/R
+C END JULY 1989
+C BEG MAR 2009
+         IF (ISTIF.EQ.5.AND.B2.GT.0.0)
+     1   PHIEND = (FLOAT(NSTIF)*B)/R
+C END MAR 2009
+         S = SIN(PHIEND)
+         C = COS(PHIEND)
+         R2TOT(ITOT) = RCTOT(1) + R*S
+         Z2TOT(ITOT) = -R*(1.- C)
+         RCTOT(ITOT) = RCTOT(1)
+         ZCTOT(ITOT) = -R
+         ASROT = 1.0
+         SROT(ITOT) = SIGN(ASROT,R)
+         NSHAPE(ITOT) = 2
+C
+      ENDIF
+C
+  400 CONTINUE
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) THEN
+         KM = -2
+         IF (IEDGE.EQ.1) KM = -3
+         DO 500 K = 1,NSTIF
+            KM = KM + 4
+            KP = KM + 2
+            DO 450 JSEG = KM,KP
+              R1TOT(JSEG) = R1TOT(JSEG) - DRK(KM)
+              R2TOT(JSEG) = R2TOT(JSEG) - DRK(KM)
+              Z1TOT(JSEG) = Z1TOT(JSEG) + DZK(KM)
+              Z2TOT(JSEG) = Z2TOT(JSEG) + DZK(KM)
+  450       CONTINUE
+  500    CONTINUE
+      ENDIF
+C END MAY 1997
+C
+      RETURN
+      END
+C=DECK      SEGMNT
+C BEG JULY 1989
+C BEG JUNE 1991
+      SUBROUTINE SEGMNT(IOUT,ISEG,NMESH,R1,Z1,R2,Z2,RC,ZC,NSHAPE,
+C BEG JUN 1996
+     1                  SROT,C,NCALL,LOCSEG,NX,NY,NXY,I2,NMESH0,EFOUND)
+C END JUN 1996
+C END JUNE 1991
+C END JULY 1989
+C
+C  PURPOSE IS TO GENERATE BOSOR4-TYPE INPUT FOR A PANEL SEGMENT...
+C
+      DIMENSION NX(*),NY(*),NXY(*),C(6,6),CALOUT(23)
+      REAL NX,NY,NXY
+C BEG JUL 2010
+      DIMENSION NXF(100),NYF(100)
+      REAL NXF,NYF
+C END JUL 2010
+C
+      N2 = NMESH + 2 
+C BEG JULY 1989
+      I2 = I2 + N2
+C END JULY 1989
+C BEG JUNE 1991
+      N2L = NMESH0 + 2
+C END JUNE 1991
+      WRITE(IOUT,'(A,I4)')' H $ BEGINNING OF DATA FOR SEGMENT',ISEG
+      WRITE(IOUT,'(I4,A,I4)') NMESH,',3,',NSHAPE
+      WRITE(IOUT,'(1P,4E14.6,A)') R1,Z1,R2,Z2,' $ END POINTS'
+      IF (NSHAPE.EQ.2) WRITE(IOUT,'(1P,3E14.6,A)')
+     1                          RC,ZC,SROT,' $ CENTER OF CURV.'
+      WRITE(IOUT,'(A)')' 0,3,0'
+C BEG JUN 1996
+C     WRITE(IOUT,'(A)')' N,0,0 $ NO PRINTOUT OF r,etc., no rings, no K'
+      WRITE(IOUT,'(A)')' N,0 $ NO PRINTOUT OF r,etc., no rings'
+      WRITE(IOUT,'(1P,E14.6,A)') EFOUND,' $ ELASTIC FOUNDATION MODULUS'
+C END JUN 1996
+      NSTRES = NCALL
+      WRITE(IOUT,'(I4,A)')
+     1           NSTRES,'   $ NSTRES = number of stations for input'
+      WRITE(IOUT,'(A)')' 0     $ NRLOAD = number of preloaded rings'
+C
+      NTYPE = 3
+      P1 = R1
+      P2 = R2
+      IF (ABS(Z2 - Z1).GT.ABS(R2-R1)) THEN
+         NTYPE = 2
+         P1 = Z1
+         P2 = Z2
+      ENDIF
+      IF (LOCSEG.NE.1) THEN
+         WRITE(IOUT,'(I3,1P,2E14.6,A)')
+     1              NTYPE,P1,P2,'  $ CALLOUT TYPE AND LOCATIONS'
+C BEG JUNE 1991
+         WRITE(IOUT,'(1P,4E14.6,A)')
+     1              NY(1),NY(N2L),NX(1),NX(N2L),'   $ RESULTANTS'
+C END JUNE 1991
+C BEG FEB 2011
+         WRITE(IOUT,'(A)')
+     1    ' 0.  0.  0.  0.   $ FIXED RESULTANTS'
+C END FEB 2011
+      ELSE
+         CALOUT(1) = P1
+         CALOUT(NCALL)= P2
+         NCALL1 = NCALL - 1
+         DCALL = (P2-P1)/FLOAT(NCALL1)
+         DO 10 I = 2,NCALL
+   10    CALOUT(I) = CALOUT(I-1) + DCALL
+         WRITE(IOUT,'(I3,A)')
+     1             NTYPE,'    $ CALLOUT TYPE (2 means Z; 3 means R)'
+         WRITE(IOUT,20) (CALOUT(I), I=1,NCALL)
+   20    FORMAT(1P,4E15.6,' $ CALLOUTS'/
+C BEG MAR 1996
+     1         (1P,5E15.6))
+C END MAR 1996
+         WRITE(IOUT,30) (NY(I),I=1,NCALL)
+   30    FORMAT(1P,4E15.6,' $ TRANSVERSE LOAD'/
+     1         (1P,5E15.5))
+         WRITE(IOUT,40) (NX(I),I=1,NCALL)
+   40    FORMAT(1P,4E15.6,' $ AXIAL LOAD'/
+     1         (1P,5E15.5))
+C BEG JUL 2010
+         DO 50 I = 1,NCALL
+            NXF(I) = 0.0
+            NYF(I) = 0.0
+   50    CONTINUE
+         WRITE(IOUT,60) (NYF(I),I=1,NCALL)
+   60    FORMAT(1P,4E15.6,' $ TRANSVERSE FIXED LOAD'/
+     1         (1P,5E15.5))
+         WRITE(IOUT,70) (NXF(I),I=1,NCALL)
+   70    FORMAT(1P,4E15.6,' $ AXIAL FIXED LOAD'/
+     1         (1P,5E15.5))
+C END JUL 2010
+C
+      ENDIF
+C
+      WRITE(IOUT,'(A)') ' N,1,0                       $ start C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(2,2),C(1,2),C(2,5),C(2,4),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(1,1),C(1,5),C(1,4),C(3,3),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,4E14.6,A)')
+     1              C(5,5),C(4,5),C(4,4),C(6,6),          ' $ C(i,j)'
+      WRITE(IOUT,'(1P,E14.6,A)')
+     1             -C(3,6),' 0                              $ C(i,j)'
+      WRITE(IOUT,'(A)')' N'
+      WRITE(IOUT,'(A)')' N'
+C
+      RETURN
+      END

@@ -1,0 +1,394 @@
+C=DECK      MAINSETUP
+C
+C  PURPOSE IS TO SET UP A FILE, NAME.OPT, TO BE USED AS INPUT FOR BATCH
+C  OPTIMIZATION RUN OR BATCH FIXED DESIGN RUN.
+C
+      PROGRAM MAINS
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+C BEG DEC 1990
+      COMMON/ADDRSS/IADDV(98),IADDP(99),IADDA(99),IADDC(99),IADDD(98)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDC(99),WORDD(98)
+C BEG AUG 2009 (change 20 to 45 in IDLINK and JTERMS)
+      COMMON/OPTVAR/IDV(98),ILV(98),IDLINK(98,45),IEV(98),JTERMS(45)
+C END AUG 2009
+      DIMENSION ISUBP2(98)
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD
+C END DEC 1990
+C BEG SEP 1999
+      DIMENSION ISUBB1(98),ISUBB2(98)
+      COMMON/NUMPR2/ILAR,ICAR,IOAR,NFLAT,NCASES,NPRNTX
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS
+      COMMON/NUMPR3/NCAR0
+      COMMON/WORDS7/WORDB0(99)
+      CHARACTER*80 WORDB0
+C END SEP 1999
+C BEG OCT 1999
+      DIMENSION WRDTMP(99)
+      CHARACTER*80 WRDTMP
+C END OCT 1999
+C BEG OCT 2005
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+C END OCT 2005
+      CHARACTER*4 ANSOUT,CHARAC,ANSWER,QUAL
+      LOGICAL ANSL1     
+      CHARACTER*72 ARGSTR
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      CALL CASSPC(5,CASE)
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPM'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPM'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28
+C END OCT 2005
+C
+      IFILE  = 2
+      IOUT   = 3
+      IFILE7 = 7
+      IFILE8 = 8
+C BEG AUG 1990
+      IOUTFL = 3
+C
+C BEG VMS
+c     OPEN(UNIT=2,FILE='GENOPT:URPROMPT.DAT',STATUS='OLD',READONLY)
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='GENOPT/URPROMPT.DAT',STATUS='OLD')
+C END UNIX
+      OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END AUG 1990
+C
+      QUAL = '.OPT'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C
+      CALL GETCOM(IFILE7)
+C
+      WRITE(6,10) CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,10) CASE(1:NLET),CASE(1:NLET)
+   10 FORMAT(/
+     1' ************************ MAINSETUP ***************************'/
+     1' The purpose of MAINSETUP is to permit you to choose an'/
+     1' analysis mode for the case ',A,'.  The control integer is'/
+     1' called ITYPE.  If ITYPE = 1, then design iterations are to'/
+     1' be performed and the objective function minimized.  If '/
+     1' ITYPE = 2 a simple analysis for a given design is to be'/
+     1' performed (no optimization).  Results will be stored on the'/
+     1' file called ',A,'.OPM.  Please inspect this file before'/
+     1' doing more design iterations.'/
+     1' ************************************************************'/)
+C BEG SEP 1999
+C BEG OCT 1999
+      LODMAX = MAX(1,NCASES)
+      NCARUP = NCAR0/LODMAX
+      DO 125 ILOADS = 1,LODMAX
+C BEG FEB 2008
+         WRITE(6,'(/,A,/,A,I3,A,I3,/,A)')
+     1' ***********************************************************',
+     1' Next, choose behaviors NOT to process for load set,',ILOADS,
+     1' of ',LODMAX,
+     1' ***********************************************************'
+         WRITE(IFILE8,'(/,A,/,A,I3,A,I3,/,A)')
+     1' ***********************************************************',
+     1' Next, choose behaviors NOT to process for load set,',ILOADS,
+     1' of ',LODMAX,
+     1' ***********************************************************'
+C END FEB 2008
+      DO 95 IBEH   = 1,NCARUP
+         IWORD = (IBEH-1)*LODMAX + ILOADS
+         WRDTMP(IBEH) = WORDB0(IWORD)
+   95 CONTINUE
+      CALL MOVER(1,0,ISUBB1,1,NCARUP)
+      CALL MOVER(0,0,ISUBB2,1,NCARUP)
+      IBEH = 0
+      REWIND IFILE
+      CALL DATUM(IFILE,400,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+  100 CONTINUE
+      IF (IBEH.GT.0) THEN
+
+C     CALL OUTVR2(NCARUP,VAR, WRDTMP,   '     LIST OF BEHAVIORS CHOSEN S
+C    1O FAR                            ',6,59,1,ISUBB1,4)
+      ARGSTR = '     LIST OF BEHAVIORS CHOSEN SO'//
+     $         ' FAR                            '
+      CALL OUTVR2(NCARUP,VAR, WRDTMP,ARGSTR,6,59,1,ISUBB1,4)
+
+         IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVR2(NCARUP,VAR, WRDTMP,   '     LIST OF BEHAVIORS CHOSEN S
+C    1O FAR                            ',IPROMP,65,1,ISUBB1,4)
+      ARGSTR = '     LIST OF BEHAVIORS CHOSEN SO'//
+     $         ' FAR                            '
+      CALL OUTVR2(NCARUP,VAR, WRDTMP,ARGSTR,IPROMP,65,1,ISUBB1,4)
+
+         ENDIF
+      ENDIF
+C
+
+C     CALL OUTVR2(NCARUP,VAR, WRDTMP,   '     LIST FROM WHICH AN INDEX M
+C    1UST NOW BE CHOSEN                ',6,59,1,ISUBB2,4)
+      ARGSTR = '     LIST FROM WHICH AN INDEX MU'//
+     $         'ST NOW BE CHOSEN                '
+      CALL OUTVR2(NCARUP,VAR, WRDTMP,ARGSTR,6,59,1,ISUBB2,4)
+
+      IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVR2(NCARUP,VAR, WRDTMP,   '     LIST FROM WHICH AN INDEX M
+C    1UST NOW BE CHOSEN                ',IPROMP,65,1,ISUBB2,4)
+      ARGSTR = '     LIST FROM WHICH AN INDEX MU'//
+     $         'ST NOW BE CHOSEN                '
+      CALL OUTVR2(NCARUP,VAR, WRDTMP,ARGSTR,IPROMP,65,1,ISUBB2,4)
+
+      ENDIF
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,405,1,2,IBEHAV,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (IBEHAV.EQ.0) GO TO 120
+      IF (ISUBB2(IBEHAV).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR ANALYSIS INDEX, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 100
+      ENDIF
+C
+      ISUBB1(IBEHAV) = 0
+      ISUBB2(IBEHAV) = 1
+      IBEH = IBEH + 1
+      CALL DATUM(IFILE,410,1,1,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         DO 110 I = 1,NCAR0
+            IF (ISUBB2(I).EQ.0) GO TO 100
+  110    CONTINUE
+         WRITE(6,*)' NO MORE AVAILABLE ANALYSIS INDEX CANDIDATES.'
+         WRITE(6,*)' NOW PROCEEDING TO NEXT SECTION.'
+      ENDIF
+  120 CONTINUE
+  125 CONTINUE
+C END OCT 1999
+C END SEP 1999
+      REWIND IFILE
+      CALL DATUM(IFILE,700,1,2,NPRINT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      CALL DATUM(IFILE,710,1,2,ITYPE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (ITYPE.EQ.1) THEN
+C BEG JUL 2009
+         CALL DATUM(IFILE,715,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END JUL 2009
+         CALL DATUM(IFILE,720,1,2,ITER,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+         IF (ITER.GT.29) THEN
+            WRITE(6,*)' USE FEWER DESIGN ITERATIONS. MAXIMUM IS 29'
+            CALL EXIT
+         ENDIF
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         CALL DATUM(IFILE,723,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,725,1,2,IDESGN,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END NOV 2005
+C BEG DEC 1990
+         CALL DATUM(IFILE,730,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,740,1,2,IMOVE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,742,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE))
+     1    CALL DATUM(IFILE,743,1,2,INT,RATIO,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,745,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+C BEG AUG 2009
+         IF (ANSL1('N',ANSOUT,INFILE))
+     1      CALL DATUM(IFILE,746,1,2,INT,DX,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,747,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,748,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,749,1,2,IAUTOF,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END AUG 2009
+      ENDIF
+C
+      NSTEPS = 0
+      IF (ITYPE.EQ.3) THEN
+         REWIND IFILE
+         CALL DATUM(IFILE,382,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL MOVER(0,0,ISUBP2,1,NVAR)
+   30    CONTINUE
+
+C     CALL OUTVR2(NVAR,VAR, WORDV,      '   LIST FROM WHICH A VARIABLE M
+C    1UST NOW BE CHOSEN                ',6,59,1,ISUBP2,1)
+      ARGSTR = '   LIST FROM WHICH A VARIABLE MU'//
+     $         'ST NOW BE CHOSEN                '
+      CALL OUTVR2(NVAR,VAR, WORDV,ARGSTR,6,59,1,ISUBP2,1)
+
+         IF (IPROMP.GT.1) THEN
+
+C     CALL OUTVR2(NVAR,VAR, WORDV,      '   LIST FROM WHICH A VARIABLE M
+C    1UST NOW BE CHOSEN                ',IPROMP,65,1,ISUBP2,1)
+      ARGSTR = '   LIST FROM WHICH A VARIABLE MU'//
+     $         'ST NOW BE CHOSEN                '
+      CALL OUTVR2(NVAR,VAR, WORDV,ARGSTR,IPROMP,65,1,ISUBP2,1)
+
+         ENDIF
+C
+         CALL DATUM(IFILE,384,1,2,IBVAR,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+         IF (ILV(IBVAR).NE.0) THEN
+            WRITE(6,*)' THIS IS A LINKED VARIABLE.  TRY ANOTHER.'
+            BACKSPACE(IOUT)
+            GO TO 30
+         ENDIF
+         CALL DATUM(IFILE,386,1,2,INT,VARBEG,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,388,1,2,INT,VAREND,CHARAC,IOUT,0,0,0,IPROMP)
+         CALL DATUM(IFILE,390,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) NSTEPS = 29
+         NSSS = NSTEPS
+         IF (NSSS.EQ.0) THEN
+   35      CONTINUE
+           CALL DATUM(IFILE,392,1,2,NSTEPS,REALL,CHARAC,IOUT,0,0,0,
+     1                IPROMP)
+           IF (NSTEPS.GT.29) THEN
+              WRITE(6,*)' MAX. NUMBER OF STEPS: NSTEPS(MAX) = 29'
+              BACKSPACE(IOUT)
+              GO TO 35
+           ENDIF
+         ENDIF
+      ENDIF
+C END DEC 1990
+C
+      WRITE(6,200) CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET),CASE(1:NLET)
+      IF (IPROMP.GT.1) WRITE(IFILE8,200) CASE(1:NLET),CASE(1:NLET),
+     1                                   CASE(1:NLET),CASE(1:NLET)
+C
+  200 FORMAT(//' DESCRIPTION OF FILES USED AND GENERATED IN THIS RUN:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.CBL = Labelled common blocks for analysis.'/
+     1'            (This is an unformatted sequential file.)'/
+     1 1X,A,'.OPT = This file contains the input data for MAINSETUP'/
+     1'             as well as OPTIMIZE. The batch command OPTIMIZE'/
+     1'             can be given over and over again without having'/
+     1'             to return to MAINSETUP because ',A,'.OPT exists.'/
+     1' URPROMPT.DAT= Prompt file for interactive input.'//
+     1' For further information about files used and generated'/
+     1' during operation of this program, give the command'/
+     1' HELPG FILES.'//
+     1' Menu of commands: OPTIMIZE, SUPEROPT'/)
+C
+      WRITE(6,202)
+C BEG JUL 2009
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  202 FORMAT(
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  "OPTIMIZE"  MANY TIMES DURING AN OPTIMIZATION AND/OR USE'/
+     1' THE "GLOBAL" OPTIMIZING SCRIPT, "SUPEROPT".'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "OPTIMIZE" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' **** "How many design iterations in this run (3 to 25)?" ****'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' *** "5   $ How many design iterations in this run (3 to 25)?"'/)
+C END JUL 2009
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+C
+      END
+C
+C
+C
+C=DECK      OUTVR2
+      SUBROUTINE OUTVR2(NVAR,VAR,WORD,TITLE,IFILE4,LENGTH,IPR,ISUB,IDM)
+C
+C  PURPOSE IS TO LIST PARAMETERS AND DEFINITIONS
+C
+C  INPUT DATA...
+C
+C  NVAR  = NUMBER OF PARAMETERS
+C   VAR  = VALUE OF PARAMETERS
+C  WORD  = DEFINITIONS OF PARAMETERS
+C TITLE  = TITLE OF LIST
+C
+C  OUTPUT DATA...
+C
+C  NONE
+C
+      DIMENSION VAR(*),WORD(*),ISUB(*)
+      CHARACTER*80 WORD
+      CHARACTER*65 TITLE
+      CHARACTER*80 PHRASE
+      CHARACTER*3 STRRNG
+      CHARACTER*12 STTYP
+C
+      IF (IFILE4.NE.6) WRITE(IFILE4,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE4,'(1X,A)') TITLE
+      IF (IDM.EQ.1) WRITE(IFILE4,10)
+   10 FORMAT(' VARIABLE   CURRENT'/
+     1       '  NUMBER     VALUE            DEFINITION')
+      IF (IDM.EQ.2) WRITE(IFILE4,11)
+   11 FORMAT(' MARGIN'/
+     1       ' NUMBER                 DEFINITION')
+      IF (IDM.EQ.3) WRITE(IFILE4,12)
+   12 FORMAT('  LOAD'/
+     1       '  STEP                  DEFINITION')
+      IF (IDM.EQ.4) WRITE(IFILE4,13)
+   13 FORMAT(' BEHAVIOR'/
+     1       '  NUMBER                  DEFINITION')
+      IF (IDM.EQ.5) WRITE(IFILE4,14)
+   14 FORMAT(' MATERIAL   NOMINAL'/
+     1       ' PROPERTY    VALUE         DEFINITION'/
+     1       ' NUMBER')
+      IF (IDM.EQ.6) WRITE(IFILE4,142)
+  142 FORMAT(' MARGIN     MARGIN'/
+     1       ' NUMBER      VALUE         DEFINITION')
+      IF (IDM.EQ.7) WRITE(IFILE4,143)
+  143 FORMAT(' LOCATION'/
+     1       '  NUMBER                  DEFINITION')
+C
+      DO 100 I = 1,NVAR
+C
+      IF (ISUB(I).EQ.1) GO TO 100
+C
+      DO 15 J = 1,80
+   15 PHRASE(J:J) = WORD(I)(J:J)
+        IF (IDM.EQ.1) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+C BEG SEP 1999
+C       IF (IDM.EQ.4) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.4) WRITE(IFILE4,21) I,PHRASE(1:LENGTH)
+C END SEP 1999
+        IF (IDM.EQ.5) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.2) WRITE(IFILE4,21) I,PHRASE(1:LENGTH)
+        IF (IDM.EQ.3) WRITE(IFILE4,21) I-1,PHRASE(1:LENGTH)
+        IF (IDM.EQ.6) WRITE(IFILE4,20) I,VAR(I),PHRASE(1:LENGTH)
+        IF (IDM.EQ.7) WRITE(IFILE4,21) I,PHRASE(1:LENGTH)
+   20   FORMAT(I5,1PE14.4,2X,A)
+   21   FORMAT(I5,2X,A)
+C
+  100 CONTINUE
+C
+      RETURN
+      END

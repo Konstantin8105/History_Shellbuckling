@@ -1,0 +1,167 @@
+#
+# install automates the installation of D. Bushnell's programs on UNIX-based
+# machines and workstations.  Before running this program, you should move the 
+# program directories (or directory) to their (its) final location in the
+# hierarchy.  Make sure "install" is at the top level of the program
+# directories, and that you execute "install" from its directory.
+
+set parentdir = `pwd`
+echo "new parent directory is: $parentdir"
+
+# set proglist = "bosor4 bosor5 panda panda2 genopt dewar"
+set proglist = "bosor4 bigbosor4 bosor5 panda2 genopt"
+set machlist = "alpha cnvx cray dec hp700 i386 linux mac rs6k sgi sol star sun3 sun4 x86_64"
+
+# We want to build a command using SED (Stream Editor) that changes all
+# references to "/home/bush" to $parentdir in the files ./bin/initialize,
+# and ./{program}/makefile.*
+
+echo "Substitute new parent directory for /home/bush"
+set command = "sed s:/home/progs:${parentdir}:g"
+
+# Modify ./bin/initialize
+echo "   in bin/initialize"
+($command:x ./bin/initialize > t && mv -f t ./bin/initialize)
+
+# Modify the makefiles
+foreach program ($proglist)
+
+  if (-e $program) then
+    pushd $program
+    if (-e execute) then
+      pushd execute
+
+      foreach machine ($machlist)
+        if (-e makefile.${machine}) then
+           ($command:x makefile.${machine} > t && mv -f t makefile.${machine})
+        endif
+
+        if ($program:q == "genopt") then
+           if (-e usermake.${machine}) then
+              ($command:x usermake.${machine} > t && mv -f t usermake.${machine})
+           endif
+        endif
+      end # foreach machine
+      popd
+    endif
+    popd
+  endif
+
+end # foreach
+
+cd $parentdir
+
+# Make directory temp
+if (!(-e temp)) then
+  echo "Make directory temp/"
+  mkdir temp
+endif
+
+# Set the modes for all the files and directories so that only the owner can
+# make modifications, but anyone can execute and read the programs.
+echo "Set modes for files and directories"
+
+echo "   top level"
+chmod 700 install
+chmod 755 bin gawk xgraph util
+chmod 777 temp
+
+echo "   inside bin"
+chmod 755 bin/*
+chmod 755 bin/build_archive bin/updatelib bin/updateobj
+
+echo "   inside util"
+chmod 644 util/*
+
+foreach program ($proglist)
+  cd $parentdir
+  if (-e $program) then
+    chmod 755 $program
+    echo "   inside $program"
+    cd $program
+    if (-e execute) then
+      chmod 755 execute
+    endif
+    if (-e bin) then
+      chmod 755 bin
+    endif
+    if (-e sources) then
+      chmod 755 sources
+    endif
+    if (-e doc) then
+      chmod 755 doc
+    endif
+    if (-e case) then
+      chmod 755 case
+    endif
+    chmod 755 {libraries,objects}.*
+
+    if (-e case) then
+      echo "      inside case"
+      foreach file (case/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+    if (-e doc) then
+      echo "      inside doc"
+      foreach file (doc/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+    if (-e sources) then
+      echo "      inside sources"
+      foreach file (sources/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+    if (-e bin) then
+      echo "      inside bin"
+      chmod 755 bin/*.com bin/*.bat
+      chmod 644 bin/*.awk >& /dev/null
+    endif
+
+    if (-e execute) then
+      echo "      inside execute"
+      cd execute
+      chmod 755 *
+      chmod 644 makefile.*
+      if ($program:q != "panda") then
+        chmod 644 *.DAT
+      endif
+      if (($program:q != "panda") && ($program:q != "panda2")) then
+        chmod 644 *.HLP
+      endif
+    endif
+
+  endif
+
+end # foreach
+
+cd $parentdir
+
+echo ""
+echo "Installation complete.  Instruct users of D. Bushnell's programs"
+echo "to type the following command (or insert the following command in"
+echo "their .login file):"
+echo ""
+echo "    source ${parentdir}/bin/initialize"
+echo ""
+echo "This command sets up some aliases and environment variables necessary"
+echo "to run D. Bushnell's programs."
+echo ""
+

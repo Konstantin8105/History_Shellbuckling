@@ -1,0 +1,183 @@
+ WHAT TO DO NEXT (THIS IS REALLY IMPORTANT!):
+ Next, if necessary, provide the algorithms called for in the
+ skeletal subroutines listed in the library BEHAVIOR.NEW. You
+ may find useful routines, such as a linear interpolator,
+ in the library UTIL.NEW.
+
+ And/Or, if necessary, complete the skeletal routines STRUCT
+ and TRANFR.  (You may find useful routines in UTIL.NEW).
+ If you are adding subroutine calls to SUBROUTINE STRUCT or
+ SUBROUTINE TRANFR, store the subroutines themselves in
+ the libraries called ADDCODEn.NEW, n = 1,2,3,...5. (Please
+ list one of the ADDCODEn.NEW libraries for instructions.)
+
+ After you have done all this,  give the command GENPROGRAMS.
+ GENPROGRAMS will generate the absolute elements needed to
+ optimize whatever you have chosen as your objective (see
+ OBJECT routine in BEHAVIOR.NEW) in the presence of whatever
+ behavior or other factors (e.g. clearance) are quantified by
+ user-written subroutines collected in the libraries
+ ADDCODEn.NEW  and/or algorithms added to the skeletal
+ routines in the library BEHAVIOR.NEW .
+
+
+ If an error occurs during GENPROGRAMS, check your FORTRAN
+ coding. If you have to change something and rerun, make sure
+ to save the old version under a different file name so that
+ you can efficiently delete all outdated files with names
+ *.NEW without losing a lot of good coding! The writer had
+ fallen more than once into that trap during development of
+ GENOPT.
+
+ If GENPROGRAMS runs without bombing, try test examples within
+ the class of problems covered by your FORTRAN contributions
+ to GENOPT before assigning specific design development tasks
+ to individuals who may be more naive in the field covered by
+ your FORTRAN contributions to GENOPT than you are!
+
+ Please see the cases under genopt/case for examples and more
+ information.
+
+ USING GENOPT IN GENERAL AND WITH BIGBOSOR4
+
+ Please read the file, ..genopt/doc/getting.started.
+ Please also read the files:
+ ...genopt/case/cylinder/howto.bosdec
+ ...genopt/case/cylinder/howto.struct
+ ...genopt/case/cylinder/howto.behavior
+ ...genopt/case/torisph/howto.stags.pdf
+ ...genopt/case/torisph/readme.equivellipse
+ ...genopt/case/wavycyl/readme.wavycyl
+
+ The main things you must do are the following:
+
+ 1. create a file called ..bosdec/sources/bosdec.src, the
+ purpose of which is to create a BOSOR4 input file, *.ALL .
+ in which "*" represents the users name for the specific case.
+ The file, ..genopt/case/torisph/bosdec.equivellipse is a good
+ example. Make sure to save bosdec.src by copying it into
+ another file. Example: cp bosdec.src bosdec.equivellipse
+
+ 2. Flesh out either or both the libraries, struct.new and/or
+ behavior.new. In the case, ..genopt/case/torisph, only the
+ library struct.new is fleshed out. The library behavior.new is
+ not changed from that created automatically by GENOPT. In the
+ case, genopt/case/cylinder, both struct.new and behavior.new
+ are changed, struct.new in minor ways and behavior.new in
+ major ways. Make sure to save struct.new and behavior.new. For
+ example: cp struct.new   struct.cylinder
+          cp behavior.new behavior.cylinder
+ (You save copies of bosdec.src, struct.new, behavior.new
+  because it usually takes quite a bit of effort to modify
+  the versions automatically created by GENOPT in order to
+  solve your generic class of problems.)
+ See the following files for examples of modified libraries:
+
+
+ genopt/case/torisph/struct.tori    (behavior.new not modified)
+ genopt/case/torisph/struct.ellipse (behavior.new not modified)
+ genopt/case/torisph/struct.equivellipse
+                                    (behavior.new not modified)
+ genopt/case/cylinder/struct.cylinder
+ genopt/case/cylinder/behavior.cylinder
+ genopt/case/wavycyl/struct.wavycyl
+ genopt/case/wavycyl/behavior.wavycyl
+ genopt/case/plate/behavior.plate  (struct.new is not modified)
+ genopt/case/plate/behavior.plate  (struct.new is not modified)
+ genopt/case/sphere/behavior.plate (struct.new is not modified)
+ genopt/case/weldland/behavior.weldland  (tiny mod. struct.new)
+ genopt/case/trusscomp/behavior.trusscomp (tiny mod.struct.new)
+ genopt/case/submarine/behavior.submarine (tiny mod.struct.new)
+ genopt/case/span/behavior.span (tiny modification, struct.new)
+ genopt/case/balloon/behavior.balloon (tiny mod. of struct.new)
+
+ The "tiny modification" of struct.new consists of adding only
+ three lines to struct.new: CALL OPNGEN, CALL RWDGEN, and
+ CALL CLSGEN, added as described on p. 2 of Table 8 of the file
+ ...genopt/case/trusscomp/trusscomp.vol1.pdf (see p. 53 of that
+ file). The three added statements, CALL OPNGEN, CALL RWDGEN,
+ and CALL CLSGEN, open, rewind, and close various files used by
+ BIGBOSOR4. If you plan to optimize some other shell using
+ GENOPT/BIGBOSOR4 you can "flesh out" struct.new in exactly the
+ same way. To find the places in the "skeletal" version of
+ struct.new that is automatically produced by GENTEXT, search
+ for the string, "YOU MAY WANT" in order to find where you
+ should insert the two lines, CALL OPNGEN and CALL RWDGEN.
+ Search for the string, "NCONSX", in order to find where you
+ should insert the line, CALL CLSGEN.
+
+ ************** NOTE ****************** NOTE ******************
+ MAKE SURE ALWAYS TO SAVE COPIES OF struct.new AND behavior.new
+ THAT YOU HAVE PUT A LOT OF EFFORT INTO CREATING.
+ THE struct.new AND behavior.new FILES ARE DESTROYED BY
+ EXECUTION OF "gentext".
+ **************************************************************
+
+ 3. Execute the GENOPT script called GENPROGRAMS. This script
+ "makes" the processors for the user-named generic case. The
+ "makefile" called ..genopt/execute/usermake.linux is used. If
+ GENPROGRAMS compiles everything successfully, which is not
+ likely on your first try because you probably did a lot of
+ FORTRAN coding to create bosdec.src, struct.new, behavior.new,
+ GENPROGRAMS will end with a list like the following:
+
+ Here is a list of all your newly created executables:
+ -rwxr-xr-x  1 bush bush 72012 Oct  8 15:56 autochange.linux
+ -rwxr-xr-x  1 bush bush 139553 Oct  8 15:56 begin.linux
+ -rwxr-xr-x  1 bush bush 124383 Oct  8 15:56 change.linux
+ -rwxr-xr-x  1 bush bush 201104 Oct  8 15:56 chooseplot.linux
+ -rwxr-xr-x  1 bush bush 161231 Oct  8 15:56 decide.linux
+ -rwxr-xr-x  1 bush bush 104222 Oct  8 15:56 mainsetup.linux
+ -rwxr-xr-x  1 bush bush 16920049 Oct  8 15:56 optimize.linux
+ -rwxr-xr-x  1 bush bush 95653 Oct  8 15:56 store.linux
+
+ Next, type the command BEGIN to input data for a new specific case.
+
+ If GENPROGRAMS bombs due to fatal compilation errors, or
+ even if GENPROGRAMS seems to finish successfully, it is best
+ to inspect the file ..genoptcase/usermakelinux.log. If there
+ are compilation errors, revise the appropriate source codes,
+ bosdec.src and/or struct.new and/or behavior.new, and execute
+ GENPROGRAMS again. Keep doing this until everything is okay.
+
+ 4. Next, think up a good name for your specific case and run
+ BEGIN, DECIDE, MAINSETUP, and OPTIMISE (several times) or
+ SUPEROPT. (See the file ..genopt/doc/getting.started and
+ the directories, genopt/case/cylinder and genopt/case/torisph
+ for examples.) Even though you had a successful "make" via
+ GENPROGRAMS in the previous step, something will doubtless not
+ be satisfactory and you will have to or want to make further
+ changes to one or more of the source files, bosdec.src,
+ struct.new, behavior.new.
+
+ THE NEXT STEPS PERTAIN TO THE USE OF GENOPT WITH BIGBOSOR4
+
+ 5. You must have the BIGBOSOR4 software in the directory,
+ ..bosdec/sources. You need to have the following files there:
+ addbosor4.src, b4util.src, opngen.src, prompter.src, gasp.F,
+ gasp_linux.o, bio_linux.c, bio_linux.o, b4plot.src, as well as
+ the bosdec.src file discussed above. (See "getting started".)
+
+ 6. The "make" file, ..genopt/execute/usermake.linux, must
+ include references to the BIGBOSOR4 sofware listed in Step 5.
+ Please see the file ..genopt/execute/usermake.linux, which
+ already exists. (You do not have to do anything about it!)
+
+ 7. Suppose everything compiles correctly during the
+ GENPROGRAMS execution, but when you try to run a specific case
+ the run bombs. Suppose all of your contributed FORTRAN coding
+ is in ..bosdec/sources/bosdec.src and in
+       ..genoptcase/struct.new (..genoptcase/behavior.new did
+ not need to be modified for your case, as is true for the
+ generic case called "equivellipse" in ..genopt/case/torisph).
+ It is very helpful to insert a "CALL EXIT" statement after one
+ of the analyses performed in struct.new, then to execute
+ GENPROGRAMS again to recompile the temporarily changed
+ struct.new. The reason for doing this is explained in the file
+ ..genopt/case/torisph/struct.equivellipse and also in the file
+ ..genopt/doc/getting.started: you want to be able to make a
+ BIGBOSOR4 run to be certain that:
+ a. ..bosdec/sources/bosdec.src created a valid BOSOR4 input
+    file, and,
+ b. the BIGBOSOR4 run did not finish for some reason.
+

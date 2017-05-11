@@ -1,0 +1,1773 @@
+29. March 2008
+
+ADDITION OF SPRINGS IN BIGBOSOR4 CONNECTING A "FAKE" RING TO GROUND
+
+David Bushnell
+
+March 25, 2008
+
+ABSTRACT
+
+Connection of an otherwise unconstrained shell structure to
+ground by means of linear elastic springs pinned at their ends
+simulates a strut-supported structure with pin-ended struts.
+The springs are entered into the BIGBOSOR4 input file as
+discrete elastic structures attached at one end to user-defined discrete
+points around the circumference of a "fake" ring joined to the
+shell and attached at the other end to user-defined discrete points at
+ground. Even so, since BIGBOSOR4 can handle only axisymmetric structures,
+the effect of the springs is "smeared out" by BIGBOSOR4 over the
+circumference where the springs are attached to the "fake" ring.
+Essentially, the springs act as a thick conical shell extending from
+the "fake" ring where the springs are attached to the shell structure
+to ground where the springs are attached to ground. The overall
+extensional and shear stiffnesses of this imaginary conical shell match
+those of the assemblage of springs. In a linear non-axisymmetric
+stress and buckling analysis the springs contribute strain energy
+to the structure only in the n = 0 and n = 1 circumferential
+wave harmonics. The springs thus prevent rigid body displacements
+of the structure. The internal concentrated loads applied
+by the springs to the "fake" ring (and therefore to the
+shell) are computed by BIGBOSOR4 and listed in the BIGBOSOR4 
+output file. These concentrated loads can be applied to the
+same shell structure without springs in a separate and subsequent
+execution of BIGBOSOR4 in order to determine local deformations
+and stresses caused by them and in order to determine
+lowered "effective" spring constants because the springs
+react against a deformable structure, not against a rigid 
+structure. An example is given of a sequence of two
+BIGBOSOR4 runs, the first run involving a spring-supported
+cylindrical shell subjected to an overall static bending moment
+at its top end and the second run involving the same shell
+with the springs replaced by line loads applied to the
+"fake" ring that simulate the concentrated spring reaction loads 
+applied by the springs to the bottom of the cylindrical
+shell in the first execution of BIGBOSOR4.
+
+
+THEORY
+
+The theory is presented in SUBROUTINE SPRING, a copy of which
+follows:
+--------------------------------------------------------------
+C BEG MAR 2008
+C=DECK      SPRING
+      SUBROUTINE SPRING(IFILE4,K,IANGLE,TBAR,U)
+C
+C  March 16, 2008
+C  Purpose is to add strain energy of the IANGLEth spring
+C  attached to ring no. K.
+C
+C  For a complete description of the theory on which
+C  BIGBOSOR4 is based, please see pp.485-508 of the paper:
+C
+C    Bushnell, D.,
+C    "Computerized analysis of shells - governing
+C    equations", Computers & Structures, Vol.18, No. 3,
+C    pp.471-536 (1984)
+C
+C  Then you will understand better what goes on here.
+C
+C  NOTE: This subroutine only works if the springs are
+C        attached to ground.
+C
+C  Meanings of variables:
+C
+C IFILE4 = file for listed output (<casename>.OUT)
+C K      = global ring number
+C IANGLE = number of spring attached to the "fake" ring
+C
+C TBAR   = transformation from ustar,v,wstar,beta to nodal
+C          unknowns, q . Same as "D" in the calling routine.
+C          See Eqs.(155,156) on p.499 of the paper cited below.
+C
+C U      = strain energy matrix divided by pi. The strain energy
+C          of the assemblage of springs connected at this
+C          particular meridional nodal point contributes to
+C          this 7 x 7 local "finite element" stiffness matrix.
+C          See Fig. 24 on p.498 of the paper, Bushnell, D.,
+C          "Computerized analysis of shells - governing
+C          equations", Computers & Structures, Vol.18, No. 3,
+C          pp.471-536 (1984), for a schematic of an assemblage
+C          of these local 7x7 "finite element" stiffness
+C          matrices into the total stiffness matrix of a very
+C          simple structure shown in Fig.20(b) on p. 493 of
+C          the paper just cited.
+C
+C The following are input quantities relating to springs
+C attached to this ring:
+C
+C NTYPAL = index for type of ring (NTYPAL = -1 means
+C          a "fake" ring with springs attached to it.)
+C NGROUN = 1 if springs are attached to ground,
+C          0 if springs are attached to a previous
+C          ring. (NOTE: The coding has not been
+C          written for the NGROUN = 0 option.)
+C NSPRNG = number of springs attached to this ring
+C SPRAXL = global axial coordinate of this ring
+C SPRANG = circumferential angles of the NSPRNG
+C          spring attachment points on this ring
+C SPRKON = spring constant for each of the NSPRNG
+C          springs attached to this ring
+C SPREC1 = radial eccentricity e1 of the attachment
+C          points of all the springs to this ring
+C SPREC2 = axial  eccentricity e2 of the attachment
+C          points of all the springs to this ring
+C SPRAXG = global axial coordinate of the attachment
+C          of all the springs associated with this
+C          ring to ground
+C SPRRAD = radius of spring ground attachment points
+C SPRAGG = circumferential angles of NSPRNG spring
+C          attachment points at ground for springs
+C          associated with this ring.
+C
+C ******************* IMPORTANT NOTE **************************
+C This model essentially smears out the springs. Only the n = 0
+C (axisymmetric up-and-down displacement and/or uniform rolling 
+C about the axis of revolution) and n = 1 (uniform lateral
+C displacement and/or pitching displacement) are predicted accurately.
+C In order to obtain the static response for higher circumferential
+C wavenumbers, n, than n = 0 and/or n = 1, you must include as
+C BIGBOSOR4 input the concentrated forces that the springs apply
+C to the "fake" ring and therefore to the shell where they are
+C attached. 
+C ***************************************************************
+      COMMON/RING4/SPRAXL(198),SPRANG(30,198),SPRKON(30,198),SPRAXG(198)
+      COMMON/RING5/SPREC1(198),SPREC2(198),SPRRAD(198),SPRAGG(30,198)
+      COMMON/RING6/NSPRNG(198),ISPRSG(198),ISPRRG(198),NTYPAL(198)
+      COMMON/RING7/NGROUN(198)
+      COMMON/GGG/ R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION  R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION  TBAR,EBAR,XBAR,FKBAR,U,A,B,C,FKEFF
+      DOUBLE PRECISION  THETRI,THETGI,CTHETR,STHETR,CTHETG,STHETG
+      DOUBLE PRECISION  XRING,YRING,ZRING,XGROUN,YGROUN,ZGROUN
+      DOUBLE PRECISION  FKX,FKXE
+      DIMENSION TBAR(4,7),EBAR(3,4),XBAR(3,3),FKBAR(3,3),U(7,7)
+      DIMENSION FKX(3,3),FKXE(4,4)
+C
+C     WRITE(IFILE4,'(A,2I5)')
+C    1' Entering SUBROUTINE SPRING. K, IANGLE=',K, IANGLE
+C
+C  EBAR is the transformation matrix from axial, circumferential,
+C       and radial displacements, 
+C       ustar(attach pt.), v(attach pt.), wstar(attach pt.)
+C       at the attachment point of the IANGLEth spring to the "fake"
+C       ring to the axial displacement, circumferential displacement,
+C       radial displacement, and meridional rotation at the shell
+C       reference surface:
+C       ustar(shell ref. surf), v(shell ref. surf.),
+C       wstar(shell ref. surf), and beta(merid. rot.):
+C       See Eqs.(152,153) on p.499 of the paper cited above
+C       in connection with the 7 x 7 local stiffness matrix, U.
+C
+C                              3 x 4
+C      |ustar(attach pt.)|   |        | |ustar(shell ref. surf.)  |
+C      |    v(attach pt.)| = |  EBAR  |*|    v(shell ref. surf.)  |
+C      |wstar(attach pt.)|   |        | |wstar(shell ref. surf.)  |
+C                                       |beta(meridional rotation)|
+C
+C   FN is the number of circumferential waves
+C    R is the radius of the parallel circle (at the ref. surface).
+C
+      EBAR(1,1) = 1.
+      EBAR(1,2) = 0.
+      EBAR(1,3) = 0.
+      EBAR(1,4) = -SPREC1(K)
+      EBAR(2,1) = -SPREC2(K)*FN/R
+      EBAR(2,2) = 1. + SPREC1(K)/R
+      EBAR(2,3) = -SPREC1(K)*FN/R
+      EBAR(2,4) = 0.
+      EBAR(3,1) = 0.
+      EBAR(3,2) = 0.
+      EBAR(3,3) = 1.
+      EBAR(3,4) = SPREC2(K)
+C
+C     WRITE(IFILE4,'(/,A)')' EBAR(i,j)='
+C     DO 10 I = 1,3
+C       WRITE(IFILE4,'(1P4E12.4)') (EBAR(I,J),J=1,4)
+C  10 CONTINUE
+C
+C  Next, find the length of each spring.
+      PI = 3.1415927
+      THETRI = SPRANG(IANGLE,K)*PI/180.
+      CTHETR = DCOS(THETRI)
+      STHETR = DSIN(THETRI)
+      XRING  = (R + SPREC1(K))*CTHETR
+      YRING  = SPRAXL(K)
+      ZRING  = (R + SPREC1(K))*STHETR
+      THETGI = SPRAGG(IANGLE,K)*PI/180.
+      CTHETG = DCOS(THETGI)
+      STHETG = DSIN(THETGI)
+      XGROUN = SPRRAD(K)*CTHETG
+      YGROUN = SPRAXG(K)
+      ZGROUN = SPRRAD(K)*STHETG
+      A = XRING - XGROUN
+      B = YRING - YGROUN
+      C = ZRING - ZGROUN
+C
+C     FLONG2 is the square of the undeformed length L of the IANGLEth
+C     spring with spring constant SPRKON(IANGLE,K), where K = global
+C     ring number. Each spring attached to a given ring may have a
+C     different spring constant, SPRKON(IANGLE,K). Originally all the
+C     spring constants at a given ring are the same. However, when we
+C     take into account the softening effect of local shell deformation
+C     on the "effective" stiffness of a spring, each spring may develop
+C     a different "effective" spring constant. Usually the following
+C     will happen: The "effective" stiffnesses of the springs at
+C     circumferential coordinates 0 and 180 degrees will have one
+C     "effective" spring constant and those at 90 and 270 degrees will
+C     have a different "effective" spring constant.
+C
+      FLONG2 = A*A + B*B + C*C 
+C
+C     FKEFF is the "effective" stiffness divided by PI to be
+C           consistent with the shell strain energy. It is also
+C           divided by the square of the undeformed spring length,
+C           L x L, because this quantity is common to all the
+C           elements of the stiffness matrix. The 0.5 factor
+C           comes from the strain energy being of the form,
+C
+C           U(spring) = 0.5*SPRKON(IANGLE,K)*(delta L)**2 .
+C
+C           in which "delta L" is the change in length of the
+C           IANGLEth spring due to reference surface displacements
+C           components, u,v,w, of the shell wall with which the
+C           spring attachment points on the "fake" ring are
+C           linked.
+C
+      FKEFF = 0.5*SPRKON(IANGLE,K)/(PI*FLONG2)
+C
+C     FKBAR is the spring stiffness matrix for the IANGLEth spring
+C           attached to global ring number K. This stiffness matrix
+C           is valid only if one end of each spring is connected to
+C           ground. All springs from a given "fake" ring must be
+C           connected at their other ends to ground at the same
+C           global axial coordinate, SPRAXG(K), and at the same
+C           radial coordinate, SPRRAD(K).
+C
+C     The quantity, (delta L) in the expression for the strain
+C     energy, U(spring), above is given by:
+C
+C     (delta L) =    (A*dx + B*dy + C*dz)/L
+C
+C     in which A, B, and C are the x-direction, y-direction, and
+C     z-direction distances from the ring end of the spring to the
+C     ground end of the spring, and x, y, and z are global cartesian
+C     coordinates, with y containing the axis of revolution of the
+C     shell. The undeformed spring length, L, is the square root
+C     of (A*A + B*B + C*C).
+C
+C     The strain energy of the spring, U(spring), can be expressed
+C     in the form,
+C
+C     U(spring) =
+C     [0.5*SPRKON(IANGLE,K)/(L*L)]*[dx, dy, dz]*| A*A  A*B  A*C | |dx|
+C                                               | A*B  B*B  B*C |*|dy|
+C                                               | A*C  B*C  C*C | |dz|
+C
+C     Accordingly, the 3 x 3 stiffness matrix, FKBAR, is given
+C     as follows:
+C
+      FKBAR(1,1) = FKEFF*A*A
+      FKBAR(1,2) = FKEFF*A*B
+      FKBAR(1,3) = FKEFF*A*C
+      FKBAR(2,1) = FKBAR(1,2)
+      FKBAR(2,2) = FKEFF*B*B
+      FKBAR(2,3) = FKEFF*B*C
+      FKBAR(3,1) = FKBAR(1,3)
+      FKBAR(3,2) = FKBAR(2,3)
+      FKBAR(3,3) = FKEFF*C*C
+C
+C     WRITE(IFILE4,'(/,A)')' FKBAR(i,j)='
+C     DO 20 I = 1,3
+C       WRITE(IFILE4,'(1P3E12.4)') (FKBAR(I,J),J=1,3)
+C  20 CONTINUE
+C
+C     XBAR is the transformation matrix from dx, dy, dz
+C          to ustar(attach pt.), v(attach pt.), wstar(attach pt.),
+C          as follows:
+C
+C  |dx|   | 0.0   -sin(THETRI)  cos(THETRI)|   |ustar(attach pt.)|
+C  |dy| = | 1.0        0.0          0.0    | * |    v(attach pt.)|
+C  |dz|   | 0.0    cos(THETRI)  sin(THETRI)|   |wstar(attach pt.)|
+C
+      XBAR(1,1) = 0.
+      XBAR(1,2) = -STHETR
+      XBAR(1,3) =  CTHETR
+      XBAR(2,1) = 1.
+      XBAR(2,2) = 0.
+      XBAR(2,3) = 0.
+      XBAR(3,1) = 0.
+      XBAR(3,2) =  CTHETR
+      XBAR(3,3) =  STHETR
+C
+C     WRITE(IFILE4,'(/,A)')' XBAR(i,j)='
+C     DO 30 I = 1,3
+C       WRITE(IFILE4,'(1P3E12.4)') (XBAR(I,J),J=1,3)
+C  30 CONTINUE
+C
+C     We need one more transformation: from the
+C     ustar(shell ref. surf.), v(shell ref. surf.)
+C     wstar(shell ref. surf.), beta(meridional rotation)
+C     to the nodal degrees of freedom, which are in this
+C     analysis:
+C
+C      {q} = w(i-1), u(i-1), v(i-1), w(i), u(i), v(i), w(i+1)
+C
+C     That transformation is accomplished via the 4 x 7 matrix,
+C     TBAR, defined near the beginning of this subroutine. TBAR
+C     is the same as the D matrix used previously in SUBROUTINE
+C     STABIL. TBAR is given in Eq.(156) on p.499 of the paper
+C     cited above in connection with the 7 x 7 local stiffness
+C     matrix, U .
+C
+C  Next we must obtain the strain energy, given now in the form:
+C
+C  U = q(transpose) x TBAR(transpose) x EBAR(transpose)
+C       x XBAR(transpose) x FKBAR x XBAR x EBAR x TBAR x q
+C
+C  The next line gets FKX = XBAR(transpose) x FKBAR x XBAR
+C
+      CALL MATMU2(FKBAR,XBAR,FKX,3,3,0)
+C
+C     WRITE(IFILE4,'(/,A)')' FKX(i,j)='
+C     DO 35 I = 1,3
+C       WRITE(IFILE4,'(1P3E12.4)') (FKX(I,J),J=1,3)
+C  35 CONTINUE
+C
+C  The next line gets FKXE = EBAR(transpose) x FKX x EBAR
+C
+      CALL MATMU2(  FKX,EBAR,FKXE,3,4,0)
+C
+C     WRITE(IFILE4,'(/,A)')' FKXE(i,j)='
+C     DO 37 I = 1,4
+C       WRITE(IFILE4,'(1P4E12.4)') (FKXE(I,J),J=1,4)
+C  37 CONTINUE
+C
+C  The next line gets U = TBAR(transpose) x FKXE x TBAR
+C
+      CALL MATMU4(FKXE,TBAR,U,4,7,1)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     WRITE(IFILE4,'(A,I5)')
+C    1' In SUBROUTINE SPRING. strain energy computed for spring no.',
+C    1  IANGLE
+C     WRITE(IFILE4,'(/,A)')' U(i,j)='
+C     DO 40 I = 1,7
+C       WRITE(IFILE4,'(1P7E10.2)') (U(I,J),J=1,7)
+C  40 CONTINUE
+C
+C   To obtain later the force in the spring, we have
+C
+C    (force in the spring) = SPRKON(IANGLE,K) * (delta L),
+C
+C   in which
+C
+C     (delta L) =    (A*dx + B*dy + C*dz)/L
+C
+C   and                                                     |w(i-1)|
+C             3 x 3          3 x 4             4 x 7        |u(i-1)|
+C  |dx|   |          |   |           |   |              |   |v(i-1)|
+C  |dy|   |   XBAR   | * |   EBAR    | * |     TBAR     | * | w(i) |
+C  |dx|   |          |   |           |   |              |   | u(i) |
+C                                        |              |   | v(i) |
+C                                                           |w(i+1)|
+C   in which the w(i-1) etc. are the shell reference
+C   surface nodal degrees of freedom associated with
+C   the shell finite element to which the "fake" ring
+C   that holds one spring end is attached. The force
+C   in each spring is derived later in SUBROUTINES SPOSE
+C   and SUPER and is given by:
+C
+C   F = SPRKON(IANGLE,K) x (delta L)
+C
+      RETURN
+      END
+C
+C END MAR 2008
+----------------------------------------------------------------
+
+The theory outlined above is not quite correct concerning the
+transformation,
+
+
+ and                                                     |w(i-1)|
+           3 x 3          3 x 4             4 x 7        |u(i-1)|
+|dx|   |          |   |           |   |              |   |v(i-1)|
+|dy|   |   XBAR   | * |   EBAR    | * |     TBAR     | * | w(i) |
+|dx|   |          |   |           |   |              |   | u(i) |
+                                      |              |   | v(i) |
+                                                         |w(i+1)|
+
+The actual transformation computations are carried out
+in SUBROUTINE RINGF as follows:
+-----------------------------------------------------------------------
+         UC = ED(1,1)*U + ED(1,2)*V + ED(1,3)*W +ED(1,4)*CHI
+         VC = ED(2,1)*U + ED(2,2)*V + ED(2,3)*W +ED(2,4)*CHI
+         WC = ED(3,1)*U + ED(3,2)*V + ED(3,3)*W +ED(3,4)*CHI
+C
+C   in which U, V, W, CHI are the meridional, circumferential,
+C   and normal shell reference surface displacement components
+C   at the nodal point where the "fake" ring with the springs
+C   attached to it is fastened to the shell reference surface.
+C   CHI is the meridional rotation of the shell reference
+C   surface at the same nodal point. UC, VC, WC are the axial,
+C   circumferential, and radial displacement components of the
+C   circumferential line in the "fake" ring to which the springs
+C   are attached. ED is the matrix which transforms U, V, W, CHI
+C   into UC, VC, WC.
+C
+         ARG = ABS(FN*THETRI)
+         SNTHET = DSIN(ARG)
+         CNTHET = DCOS(ARG)
+C
+C   FN is the number of circumferential waves in the deformation
+C   pattern and THETRI is the value of the circumferential
+C   coordinate of the attachement point of a spring to the "fake"
+C   ring.
+C
+C   DXGLOB, DYGLOB, DZGLOB are the global cartesian coordinate
+C   components of the displacement at the ring-end of the
+C   spring. FN = number of circ. waves in the current harmonic.
+C
+         IF (FN.GT.0.0) THEN
+            DXGLOB(IGROUN,IANGLE) = DXGLOB(IGROUN,IANGLE)
+     1     +XBAR(1,1)*UC*SNTHET +XBAR(1,2)*VC*CNTHET
+     1     +XBAR(1,3)*WC*SNTHET
+C
+            DYGLOB(IGROUN,IANGLE) = DYGLOB(IGROUN,IANGLE)
+     1     +XBAR(2,1)*UC*SNTHET +XBAR(2,2)*VC*CNTHET
+     1     +XBAR(2,3)*WC*SNTHET
+C
+            DZGLOB(IGROUN,IANGLE) = DZGLOB(IGROUN,IANGLE)
+     1     +XBAR(3,1)*UC*SNTHET +XBAR(3,2)*VC*CNTHET
+     1     +XBAR(3,3)*WC*SNTHET
+         ENDIF
+C
+         IF (FN.LT.0.0) THEN
+            DXGLOB(IGROUN,IANGLE) = DXGLOB(IGROUN,IANGLE)
+     1     +XBAR(1,1)*UC*CNTHET +XBAR(1,2)*VC*SNTHET
+     1     +XBAR(1,3)*WC*CNTHET
+C
+            DYGLOB(IGROUN,IANGLE) = DYGLOB(IGROUN,IANGLE)
+     1     +XBAR(2,1)*UC*CNTHET +XBAR(2,2)*VC*SNTHET
+     1     +XBAR(2,3)*WC*CNTHET
+C
+            DZGLOB(IGROUN,IANGLE) = DZGLOB(IGROUN,IANGLE)
+     1     +XBAR(3,1)*UC*CNTHET +XBAR(3,2)*VC*SNTHET
+     1     +XBAR(3,3)*WC*CNTHET
+         ENDIF
+C
+         IF (FN.EQ.0.0) THEN
+            DXGLOB(IGROUN,IANGLE) = DXGLOB(IGROUN,IANGLE)
+     1     +XBAR(1,1)*UC +XBAR(1,2)*VC
+     1     +XBAR(1,3)*WC
+C
+            DYGLOB(IGROUN,IANGLE) = DYGLOB(IGROUN,IANGLE)
+     1     +XBAR(2,1)*UC +XBAR(2,2)*VC
+     1     +XBAR(2,3)*WC
+C
+            DZGLOB(IGROUN,IANGLE) = DZGLOB(IGROUN,IANGLE)
+     1     +XBAR(3,1)*UC +XBAR(3,2)*VC
+     1     +XBAR(3,3)*WC
+         ENDIF
+----------------------------------------------------------------
+
+
+NEW INPUT DATA IN BIGBOSOR4
+
+The BIGBOSOR4 user supplies input data interactively. These
+user-provided data are elicited by means of prompting questions
+and "help" paragraphs that are stored in files called
+"PROMPT.DAT", "PROMPT2.DAT", and "PROMPT3.DAT" located in the
+directory, ...bigbosor4/execute .
+
+The PROMPT2.DAT file was modified to add a section relating to
+springs, as follows:
+
+------- NEW SECTION ADDED TO THE  PROMPT2.DAT FILE --------------
+800.0
+      Input of NTYPER = -1 for ring type means that the ring is
+      a "fake" ring, needed as a place to "hang" springs from.
+      Let us call the end of the springs attached here "Ends 2"
+      and the other ends of the springs "Ends 1". All of the
+      springs attached to this ring must have the same spring
+      constant and the same eccentricities, e1 and e2. The other
+      ends of the springs,"Ends 1", must all be attached to the
+      same previous ring or to ground at a global axial coordinate
+      that is the same for all the springs at Ends 1 and at a
+      radius from the axis of revolution that is the same for all
+      the springs at Ends 1. If Ends 1 of the springs are
+      connected to ground, then these springs are used to
+      simulate elastic, pinned struts upon which the shell of
+      revolution is supported. If Ends 1 of the springs are
+      connected to a previous NTYPER=-1 type of "fake" ring,
+      then these springs are used to represent elastic fasteners
+      that join one part of the shell to another part in an
+      intermittant manner.
+
+      You will next be asked to provide the following input data
+      relating to the attachment of springs to a "fake" ring:
+      1. The global axial coordinate of the line of attachment of
+         one end of the springs to this ring: SPRAXL
+      2. The number of springs attached to this ring: NSPRNG
+      3. The circumferential angles in degrees to the attachment
+         point of each spring to this ring (use 0 to 360 degrees):
+         SPRANG
+      4. The spring constant k of each of the springs attached here:
+         SPRKON
+      5. The radial and axial eccentricities, e1 and e2, of the
+         attachment points of spring to this ring measured
+         from the line of attachment of the ring to the shell
+         reference surface. See Fig. 18 of the paper, "Computerized
+         analysis of shells - Governing equations...",p 490,
+         Computers & Structures, 1984: e1=SPREC1; e2=SPREC2
+      6. Are the other ends (Ends 1) of the springs that are
+         attached to this ring (Ends 2) attached to ground?
+         If yes, then:
+         6a. The global axial coordinate of the attachment of
+             Ends 1 of the springs to ground: SPRAXG
+         6b. The radius from the shell axis of revolution to the
+             circumferential line of attachment of Ends 1 of the
+             springs to ground: SPRRAD
+         6c. The circumferential angles in degrees of the 
+             attachment points of Ends 1 of the springs to ground.
+             Use only positive values from 0 to 360 degrees:
+             SPRAGG
+      7. Are the other ends (Ends 1) of the springs that are
+         attached to this ring (Ends 2) attached to a previously
+         identified NTYPER = -1 type of "fake" ring? If yes, then:
+         7a. The shell segment number to which that previous
+             NTYPER = -1 "fake" ring is attached:    ISPRSG
+         7b. The ring number in that shell segment:  ISPRRG
+
+815.1 Global axial coordinate of ring ends of springs, SPRAXL
+815.2
+      All springs attached here must have the same global
+      axial coordinate. This global axial coordinate may
+      differ from that of the circumferential line of
+      attachment of the "fake" ring to the shell wall
+      reference surface by an amount equal to the axial
+      eccentricity e2. We are concerned here with the
+      global axial coordinate of the ends of the springs
+      that are attached to the ring.
+
+820.1 Number of springs attached to this "fake" ring, NSPRNG
+820.2
+      Don't use more that 30 springs.
+
+825.1 Circumfer.angles to spring attach points at ring, SPRANG
+825.2
+      Provide angles in degrees measured from the origin
+      of the circumferential coordinate, theta. Use only
+      positive values in the interval from 0 to 360 degrees.
+      We are concerned here with the attachment points at
+      the ends of the springs attached to the ring.
+
+830.1 Spring constant (e.g. lb/in) of each spring, SPRKON
+830.2
+      All springs attached here originally probably have the
+      same SPRKON. Each spring attached to a given ring MAY have
+      a different spring constant, SPRKON(IANGLE,K). Originally
+      all the spring constants at a given ring may be the same.
+      However, when we take into account the softening effect of
+      local shell deformation on the "effective" stiffness of a
+      spring, each spring may develop a different "effective"
+      spring constant. Usually the following will happen:
+      The "effective" stiffnesses of the springs at
+      circumferential coordinates 0 and 180 degrees will have
+      one "effective" spring constant and those at 90 and 270
+      degrees will have a different "effective" spring constant.
+      We allow the user to supply a different spring constant
+      for each spring attached to this ring because he/she may
+      later want to account for the "softening" effect that
+      local deformation of the shell at the spring attachment
+      point has on the "effective" spring constant.
+
+835.1 Radial eccentricity of spring attachment point, SPREC1
+835.2
+      SPREC1 is the radial distance measured from the shell
+      wall reference surface at the line of attachment of
+      the "fake" ring to the shell to the attachment point
+      of each spring to the "fake" ring, positive if the spring
+      attachment  point lies at a greater radius from the axis
+      of revolution than that of the shell wall reference surface
+      to which the "fake" ring is attached. See e1 in Fig. 18 in
+      the paper, "Computerized analysis of shells - Governing
+      equations", p. 490, Computers & Structures, 1984
+
+840.1 Axial eccentricity of spring attachment point, SPREC2
+840.2 
+      SPREC2 is the axial distance measured from the shell
+      wall reference surface at the line of attachment of
+      the "fake" ring to the shell to the attachment point
+      of each spring to the "fake" ring, positive if the spring
+      attachment point lies above the line of attachment of
+      the "fake" ring to the shell wall reference surface.
+      See e2 in Fig. 18 in the paper, "Computerized analysis
+      of shells - Governing equations", p 490,
+      Computers & Structures, 1984
+
+845.1 Are the other ends of the springs attached to ground?
+845.2
+      If the other ends of the springs are connected to ground,
+      then these springs are used to simulate elastic, pinned
+      struts upon which the shell of revolution is supported
+      or otherwise constrained. Note: If you answer yes, all
+      the springs attached to this ring must be attached to
+      ground at the same global axial coordinate and at the
+      same radius from the axis of revolution. This global
+      axial coordinate and radius can, of course, differ from
+      those of the ring to which the springs are attached.
+
+850.1 Global axial coordinate of attachment to ground, SPRAXG
+850.2
+      All springs attached at global axial coordinate, SPRAXL,
+      must be attached at their other ends at the same
+      global axial coordinate, SPRAXG. Of course, SPRAXG can
+      be different from SPRAXL and usually is different.
+
+855.1 Radius to the spring attachment point to ground, SPRRAD
+855.2 
+      This is the radius from the axis of revolution to the
+      attachment point of the other ends of the springs to
+      ground. All the springs attached to this ring must have
+      the same SPRRAD. Of course, SPRRAD can differ from the
+      radius of the "fake" ring and usually does differ.
+
+860.1 Circumferential angles to spring attach points, SPRAGG
+860.2 
+      Provide angles in degrees measured from the origin
+      of the circumferential coordinate, theta. These are
+      the circumferential angles of the ends of the springs
+      that are attached to ground. Use only positive
+      values in the interval from 0 to 360 degrees. It is
+      emphasized that we are referring to the circumferential
+      angle for a line from the AXIS OF REVOLUTION to the
+      point at which the ground-ends of the springs are
+      attached to ground, NOT the azimuthal angle of the
+      spring for a line drawn from its attachment point to
+      the ring to its attachment point to ground.
+
+865.1 Are the other ends of the springs at a previous ring?
+865.2 
+      Asked more clearly, are the other ends of the springs
+      attached to a previously identified "fake" ring?
+      If the other ends of the springs are connected to a
+      previously identified NTYPER=-1 type of "fake" ring,
+      then these springs are used to represent elastic fasteners
+      that join one part of the shell to another part in an
+      intermittant manner. Note: If you answer Y, then all
+      the springs at the current ring must be connected to the
+      same previous "fake" ring.
+
+870.1 Previous shell segment number, ISPRSG
+870.2 
+      This is the previous shell segment number to which
+      a previously identified "fake" ring is attached, that
+      is, where the other ends of the springs are attached.
+
+875.1 Ring number in shell segment ISPRSG, ISPRRG
+875.2
+      Rings are numbered consecutively from the beginning of
+      the shell segment to the end of the shell segment. In
+      counting rings, include ALL rings, real and "fake".
+      What is wanted here is the previously identified ring
+      number to which the other ends of the springs are
+      attached.
+------------ End of new section of PROMPT2.DAT------------------
+
+
+
+The section of PROMPT2.DAT just listed is invoked by means of
+a control index, NTYPER (type of ring), as follows:
+------------------------------------------------------------------
+152.1 NTYPER= type (-1 or 0 or 1 or 2 or 4 or 5) of discrete ring no.
+152.2
+      -1 means fake ring, needed as a place to "hang" springs from
+       0 means fake ring, needed as a place to "hang" a line load
+       1 means read in E, A, Iy, Ix, Ixy, E1, E2, GJ, RM (see p.70)
+       2 means read in E, A, Is, In, Isn, ZC, SC, GJ, RM (see fig.)
+       3 do not use
+       4 means read L(1), L(2), L(3),  T(1), T(2), T(3)
+                   E, NU, X1P, Y(1), Y(2), Y(3), and RM (see p.72)
+       5 means read same quantities, but in the (s,n) rather than
+        in the (x,y) axis system (see bottom of p. 70 for the two
+        axis systems.)
+------------------------------------------------------------------
+NOTE: A new option, NTYPER = -1, has been added. In this way, old
+      BIGBOSOR4 input files remain valid.
+
+
+
+A SIMPLE EXAMPLE
+
+As mentioned previously we determine the effect of springs on the
+behavior of a shell structure in two successive BIGBOSOR4 executions:
+
+1. In the first BIGBOSOR4 execution the model includes springs but
+no line loads that represent the concentrated reactions of the springs
+on the shell. Circumferential wavenumbers used for the linear stress
+analysis phase of the computations, that is, NSTART, NFIN, INCR, which
+occur near the beginning of the <casename>.ALL file, have values
+such as the following:
+
+   0      $ NSTART= starting number of circ. waves (lin. stress analysis)
+ -60      $ NFIN  = ending number of circ. waves (linear stress analysis)
+  -1      $ INCR  = step in number of circ. waves (linear stress)
+
+NOTE: n = 0 (axisymmetric up-and-down and/or rolling) and n = -1 
+(lateral and/or tilting) harmonics MUST be included, since these are
+the only two harmonics for which the springs contribute strain energy.
+
+2. In the second BIGBOSOR4 execution the model includes springs WITH 
+ZERO SPRING CONSTANTS, SPRKON(IANGLE,K), and line loads that represent
+approximately (by Fourier series expansion) the concentrated reactions
+from BIGBOSOR4 execution no. 1 of the springs acting on the shell
+to which the springs are attached. The proper BIGBOSOR4 input for
+these concentrated loads is printed out at the end of the
+<casename>.OUT file generated by the first BIGBOSOR4 execution.
+Only circumferential wave numbers the absolute values of which
+are greater than or equal to 2 are explored in the linear stress
+analysis phase of the computations, that is, NSTART, NFIN, INCR, which
+occur near the beginning of the <casename>.ALL file, have values
+such as the following:
+
+  -2      $ NSTART= starting number of circ. waves (lin. stress analysis)
+ -60      $ NFIN  = ending number of circ. waves (linear stress analysis)
+  -1      $ INCR  = step in number of circ. waves (linear stress)
+
+Here the two cases are called "cylspr1" and "cylspr2".
+
+In the relatively simple example explored here a monocoque cylindrical
+shell is modeled as consisting of two segments: the springs occur at the
+bottom of the first segment, and the overall bending load [vertical
+force, V, that varies around the circumference as cos(theta)] is
+applied at the top of the second segment. We need two segments
+because there is a BIGBOSOR4 rule that all rings in a given segment
+that have line loads applied to them must have the same circumferential
+distribution of line load, that is, the same g(theta). Since the
+circumferential distribution, g1(THETA), of the line loads that
+represent the reaction of the springs against the shell is different
+from the simple cos(theta) distribution of the vertical line load, V,
+at the top of the shell, g2(theta), the springs and the overall
+applied moment, Vo x cos(theta), must occur in different shell segments.
+
+
+The BIGBOSOR4 input file for the first of the two runs described above
+is as follows:
+
+------------------------ cylspr1.ALL ---------------------------
+ cylinder with springs                                                  
+         3      $ INDIC = analysis type indicator
+         2      $ NPRT = output options (1=minimum, 2=medium, 3=maximum)
+         0      $ ISTRES= output control (0=resultants, 1=sigma, 2=epsilon)
+         2      $ NSEG  = number of shell segments (less than 195)
+         0      $ NSTART= starting number of circ. waves (lin. stress analysis)
+        -1      $ NFIN  = ending number of circ. waves (linear stress analysis)
+        -1      $ INCR  = step in number of circ. waves (linear stress)
+   180.0000     $ THETAM= range of circumferential Fourier expansion & output
+      H         $
+      H         $ SEGMENT NUMBER    1    1    1    1    1    1    1    1
+      H         $ NODAL POINT DISTRIBUTION FOLLOWS...
+        97      $ NMESH = number of node points (5 = min.; 98 = max.)( 1)
+         1      $ NTYPEH= control integer (1 or 3) for nodal point spacing
+         4      $ NHVALU= number of callouts for nodal point spacing
+         1      $ IHVALU(I)= Ith callout for nodal point spacing, IHVALU( 1)
+        51      $ IHVALU(I)= Ith callout for nodal point spacing, IHVALU( 2)
+        52      $ IHVALU(I)= Ith callout for nodal point spacing, IHVALU( 3)
+        96      $ IHVALU(I)= Ith callout for nodal point spacing, IHVALU( 4)
+  0.2000000     $ HVALU=meridional arc length between nodal points,HVALU( 1)
+  0.2000000     $ HVALU=meridional arc length between nodal points,HVALU( 2)
+   1.000000     $ HVALU=meridional arc length between nodal points,HVALU( 3)
+   1.000000     $ HVALU=meridional arc length between nodal points,HVALU( 4)
+      H         $ REFERENCE SURFACE GEOMETRY FOLLOWS...
+         1      $ NSHAPE= indicator (1,2 or 4) for geometry of meridian
+       100      $ R1     = radius at beginning of segment (see p. 66)
+         0      $ Z1     = global axial coordinate at beginning of segment
+       100      $ R2     = radius at end of segment
+        50      $ Z2     = global axial coordinate at end of segment
+      H         $ IMPERFECTION SHAPE FOLLOWS...
+         0      $ IMP   = indicator for imperfection (0=none, 1=some)
+      H         $ REFERENCE SURFACE LOCATION RELATIVE TO WALL
+         3      $ NTYPEZ= control (1 or 3) for reference surface location
+  0.5000000     $ ZVAL  = distance from leftmost surf. to reference surf.
+      N         $ Do you want to print out r(s), r'(s), etc. for this segment?
+      H         $ DISCRETE RING INPUT FOLLOWS...
+         1      $ NRINGS= number (max=20) of discrete rings in this segment
+         2      $ NTYPE = control for identification of ring location (2=z, 3=r)
+         0      $ Z(I)  = axial coordinate of Ith ring, z( 1)
+        -1      $ NTYPER= type (-1 or 0 or 1 or 2 or 4 or 5) of discrete ring no.( 1)
+         0      $ Global axial coordinate of ring ends of springs, SPRAXL( 1)
+         8      $ Number of springs attached to this "fake" ring, NSPRNG( 1)
+         0      $ Circumfer.angles to spring attach points at ring, SPRANG( 1)
+         0      $ Circumfer.angles to spring attach points at ring, SPRANG( 2)
+        90      $ Circumfer.angles to spring attach points at ring, SPRANG( 3)
+        90      $ Circumfer.angles to spring attach points at ring, SPRANG( 4)
+       180      $ Circumfer.angles to spring attach points at ring, SPRANG( 5)
+       180      $ Circumfer.angles to spring attach points at ring, SPRANG( 6)
+       270      $ Circumfer.angles to spring attach points at ring, SPRANG( 7)
+       270      $ Circumfer.angles to spring attach points at ring, SPRANG( 8)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 1)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 2)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 3)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 4)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 5)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 6)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 7)
+   100000.0     $ Spring constant (e.g. lb/in) of each spring, SPRKON( 8)
+         0      $ Radial eccentricity of spring attachment point, SPREC1( 1)
+         0      $ Axial eccentricity of spring attachment point, SPREC2( 1)
+      Y         $ Are the other ends of the springs attached to ground?
+        20      $ Global axial coordinate of attachment to ground, SPRAXG( 1)
+   150.0000     $ Radius to the spring attachment point to ground, SPRRAD( 1)
+        45      $ Circumferential angles to spring attach points, SPRAGG( 1)
+       -45      $ Circumferential angles to spring attach points, SPRAGG( 2)
+       135      $ Circumferential angles to spring attach points, SPRAGG( 3)
+        45      $ Circumferential angles to spring attach points, SPRAGG( 4)
+       225      $ Circumferential angles to spring attach points, SPRAGG( 5)
+       135      $ Circumferential angles to spring attach points, SPRAGG( 6)
+       315      $ Circumferential angles to spring attach points, SPRAGG( 7)
+       225      $ Circumferential angles to spring attach points, SPRAGG( 8)
+         0      $ K=elastic foundation modulus (e.g. lb/in**3)in this seg.
+      H         $ LINE LOAD INPUT FOLLOWS...
+         0      $ LINAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ DISTRIBUTED LOAD INPUT FOLLOWS...
+         0      $ IDISAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ SHELL WALL CONSTRUCTION FOLLOWS...
+         2      $ NWALL=index (1, 2, 4, 5, 6, 7, 8, 9, 10) for wall construction
+  0.1000000E+08 $ E     = Young's modulus for skin
+  0.3000000     $ U     = Poisson's ratio for skin
+  0.2500000E-03 $ SM =mass density of skin (e.g. alum.=.00025 lb-sec**2/in**4)
+         0      $ ALPHA = coefficient of thermal expansion
+         0      $ NRS  = control (0 or 1) for addition of smeared stiffeners
+         0      $ NSUR   = control for thickness input (0 or 1 or -1)
+      N         $ Do you want to print out ref. surf. location and thickness?
+      N         $ Do you want to print out the C(i,j) at meridional stations?
+      N         $ Do you want to print out distributed loads along meridian?
+      H         $
+      H         $ SEGMENT NUMBER    2    2    2    2    2    2    2    2
+      H         $ NODAL POINT DISTRIBUTION FOLLOWS...
+        97      $ NMESH = number of node points (5 = min.; 98 = max.)( 2)
+         3      $ NTYPEH= control integer (1 or 3) for nodal point spacing
+      H         $ REFERENCE SURFACE GEOMETRY FOLLOWS...
+         1      $ NSHAPE= indicator (1,2 or 4) for geometry of meridian
+       100      $ R1     = radius at beginning of segment (see p. 66)
+        50      $ Z1     = global axial coordinate at beginning of segment
+       100      $ R2     = radius at end of segment
+       100      $ Z2     = global axial coordinate at end of segment
+      H         $ IMPERFECTION SHAPE FOLLOWS...
+         0      $ IMP   = indicator for imperfection (0=none, 1=some)
+      H         $ REFERENCE SURFACE LOCATION RELATIVE TO WALL
+         3      $ NTYPEZ= control (1 or 3) for reference surface location
+  0.5000000     $ ZVAL  = distance from leftmost surf. to reference surf.
+      N         $ Do you want to print out r(s), r'(s), etc. for this segment?
+      H         $ DISCRETE RING INPUT FOLLOWS...
+         1      $ NRINGS= number (max=20) of discrete rings in this segment
+         2      $ NTYPE = control for identification of ring location (2=z, 3=r)
+       100      $ Z(I)  = axial coordinate of Ith ring, z( 1)
+         0      $ NTYPER= type (-1 or 0 or 1 or 2 or 4 or 5) of discrete ring no.( 1)
+         0      $ K=elastic foundation modulus (e.g. lb/in**3)in this seg.
+      H         $ LINE LOAD INPUT FOLLOWS...
+         1      $ LINAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ LINE LOAD INPUT FOR LOAD SET "A" FOLLOWS
+         1      $ LINTYP= indicator (0, 1, 2 or 3) for type of line loads
+         4      $ NTYPEL=index (use 4) for input of nonsymmetric line loads
+         1      $ NLOAD(1)=indicator for axial load or disp.(0=none,1=some)
+         0      $ NLOAD(2)=indicator for shear load or disp.(0=none,1=some)
+         0      $ NLOAD(3)=indicator for radial load or disp.(0 or 1)
+         0      $ NLOAD(4)=indicator for line moment or rotation (0 or 1)
+  -1000.000     $ V(i)=fixed or initial axial load or displacement, V( 1)
+         7      $ NTHETA= number of circumferential callouts for load
+         2      $ NOPT  = control for how g(THETA) is to be input (1,2,or 3)
+         1      $ NODD  = control integer for oddness, evenness, of g(THETA)
+         0      $ THETA = circumferential coordinate, in degrees, THETA( 1)
+        30      $ THETA = circumferential coordinate, in degrees, THETA( 2)
+        60      $ THETA = circumferential coordinate, in degrees, THETA( 3)
+        90      $ THETA = circumferential coordinate, in degrees, THETA( 4)
+       120      $ THETA = circumferential coordinate, in degrees, THETA( 5)
+       150      $ THETA = circumferential coordinate, in degrees, THETA( 6)
+       180      $ THETA = circumferential coordinate, in degrees, THETA( 7)
+   1.000000     $ YPLUS = value of g(THETA) at THETA( 1)
+  0.8660000     $ YPLUS = value of g(THETA) at THETA( 2)
+  0.5000000     $ YPLUS = value of g(THETA) at THETA( 3)
+         0      $ YPLUS = value of g(THETA) at THETA( 4)
+ -0.5000000     $ YPLUS = value of g(THETA) at THETA( 5)
+ -0.8660000     $ YPLUS = value of g(THETA) at THETA( 6)
+  -1.000000     $ YPLUS = value of g(THETA) at THETA( 7)
+      Y         $ Do you want to print out output Fourier expansion of load?
+      H         $ DISTRIBUTED LOAD INPUT FOLLOWS...
+         0      $ IDISAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ SHELL WALL CONSTRUCTION FOLLOWS...
+         2      $ NWALL=index (1, 2, 4, 5, 6, 7, 8, 9, 10) for wall construction
+  0.1000000E+08 $ E     = Young's modulus for skin
+  0.3000000     $ U     = Poisson's ratio for skin
+  0.2500000E-03 $ SM =mass density of skin (e.g. alum.=.00025 lb-sec**2/in**4)
+         0      $ ALPHA = coefficient of thermal expansion
+         0      $ NRS  = control (0 or 1) for addition of smeared stiffeners
+         0      $ NSUR   = control for thickness input (0 or 1 or -1)
+      N         $ Do you want to print out ref. surf. location and thickness?
+      N         $ Do you want to print out the C(i,j) at meridional stations?
+      N         $ Do you want to print out distributed loads along meridian?
+      H         $
+      H         $ GLOBAL DATA BEGINS...
+         1      $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)
+      N         $ Are there any regions for which you want expanded plots?
+         2      $ NDIST = number of circ. stations for meridional output
+   0.000000     $ THETA = circ. stations (in deg.) for meridional output.( 1)
+   90.00000     $ THETA = circ. stations (in deg.) for meridional output.( 2)
+         2      $ NCIRC = number of meridional stations for circ. distibutions
+      1001      $ ITHETA= meridional location for circumferential output( 1)
+      2097      $ ITHETA= meridional location for circumferential output( 2)
+        61      $ NTHETA= number of output points along circ. from 0 to THETAM.
+         0      $ THETAS= Nx & Ny along this meridian used in buckling analysis.
+         0      $ OMEGA  = angular vel. about axis of revolution (rad/sec)
+         1      $ IOMGAB = control for OMEGA as "A" or "B" load (1 or 2)
+      N         $ Do you want response to harmonic forcing (INDIC = 3 or 4)?
+      H         $ CONSTRAINT CONDITIONS FOLLOW....
+         2      $ How many segments in the structure?
+      H         $
+      H         $ CONSTRAINT CONDITIONS FOR SEGMENT NO.    1    1    1    1
+      H         $ POLES INPUT FOLLOWS...
+         0      $ Number of poles (places where r=0) in SEGMENT( 1)
+      H         $ INPUT FOR CONSTRAINTS TO GROUND FOLLOWS...
+         0      $ At how many stations is this segment constrained to ground?
+      H         $ JUNCTION CONDITION INPUT FOLLOWS...
+      N         $ Is this segment joined to any lower-numbered segments?
+      H         $
+      H         $ CONSTRAINT CONDITIONS FOR SEGMENT NO.    2    2    2    2
+      H         $ POLES INPUT FOLLOWS...
+         0      $ Number of poles (places where r=0) in SEGMENT( 2)
+      H         $ INPUT FOR CONSTRAINTS TO GROUND FOLLOWS...
+         0      $ At how many stations is this segment constrained to ground?
+      H         $ JUNCTION CONDITION INPUT FOLLOWS...
+      Y         $ Is this segment joined to any lower-numbered segments?
+         1      $ At how may stations is this segment joined to previous segs.?
+         1      $ INODE = node in current segment (ISEG) of junction, INODE( 1)
+         1      $ JSEG  = segment no. of lowest segment involved in junction
+        97      $ JNODE = node in lowest segmnt (JSEG) of junction
+         1      $ IUSTAR= axial displacement (0=not slaved, 1=slaved)
+         1      $ IVSTAR= circumferential displacement (0=not slaved, 1=slaved)
+         1      $ IWSTAR= radial displacement (0=not slaved, 1=slaved)
+         1      $ ICHI  = meridional rotation (0=not slaved, 1=slaved)
+         0      $ D1    = radial component of juncture gap
+         0      $ D2    = axial component of juncture gap
+      Y         $ Is this constraint the same for both prebuckling and buckling?
+      H         $ RIGID BODY CONSTRAINT INPUT FOLLOWS...
+      N         $ Given existing constraints, are rigid body modes possible?
+      H         $ "GLOBAL3" QUESTIONS (AT END OF CASE)...
+      Y         $ Do you want to list output for segment( 1)
+      Y         $ Do you want to list output for segment( 2)
+      Y         $ Do you want to list forces in the discrete rings, if any?
+------------------------------------------------------------------------
+
+
+The new output from BIGBOSOR4, contained in the cylspr1.OUT file, follows:
+
+----------------------- cylspr1.OUT file (abridged) --------------------------
+ ***************** OUTPUT RELATING TO SPRINGS ****************
+ The following output is for springs attached to ring no.  1
+ *************************************************************
+ The following are input quantities relating
+ to all the springs attached to this ring:
+ NTYPAL =          -1 =index for type of ring (NTYPAL = -1
+           means a ring with springs attached to it.)
+ NGROUN =           1 = 1 if springs are attached to ground,
+           = 0 if springs are attached to a previous
+           ring. (NOTE: The coding has not been
+           written for the NGROUN = 0 option.)
+ NSPRNG =           8 = number of springs attached to this
+                         ring.
+ SPRAXL =  0.0000E+00 = global axial coordinate of this
+                         ring.
+ SPRANG = 8 circumferential angles of spring attachment points on this ring:
+  0.0000E+00  0.0000E+00  9.0000E+01  9.0000E+01  1.8000E+02
+  1.8000E+02  2.7000E+02  2.7000E+02
+ SPRKON = 8 spring constants for the 8 springs attached to this ring:
+  1.0000E+05  1.0000E+05  1.0000E+05  1.0000E+05  1.0000E+05
+  1.0000E+05  1.0000E+05  1.0000E+05
+ SPREC1 =  0.0000E+00 = radial eccentricity e1 of the
+           attachment points of all the springs to this ring.
+ SPREC2 =  0.0000E+00 = axial  eccentricity e2 of the
+           attachment points of all the springs to this ring.
+ SPRAXG =  2.0000E+01 = global axial coordinate of the
+           attachment of all the springs associated with this
+           ring to ground.
+ SPRRAD =  1.5000E+02 = radius of spring ground attachment
+                         points
+ SPRAGG = 8 circumferential angles of spring attachment points to ground:
+  4.5000E+01 -4.5000E+01  1.3500E+02  4.5000E+01  2.2500E+02
+  1.3500E+02  3.1500E+02  2.2500E+02
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+           SPRANG(i)                           SPRKON(i)   SPRFCE(i)
+ SPRING   CIRC. ANGLE   SPRING    CHANGE IN      SPRING     SPRING
+  NO.    OF ATTACHMENT LENGTH, L  LENGTH, dL    CONSTANT     FORCE
+         POINT ON RING
+   1      0.0000E+00  1.0811E+02 -4.1491E+00  1.0000E+05 -4.1491E+05
+   2      0.0000E+00  1.0811E+02 -4.1491E+00  1.0000E+05 -4.1491E+05
+   3      9.0000E+01  1.0811E+02 -2.3729E-01  1.0000E+05 -2.3729E+04
+   4      9.0000E+01  1.0811E+02  2.3729E-01  1.0000E+05  2.3729E+04
+   5      1.8000E+02  1.0811E+02  4.1491E+00  1.0000E+05  4.1491E+05
+   6      1.8000E+02  1.0811E+02  4.1491E+00  1.0000E+05  4.1491E+05
+   7      2.7000E+02  1.0811E+02  2.3729E-01  1.0000E+05  2.3729E+04
+   8      2.7000E+02  1.0811E+02 -2.3729E-01  1.0000E+05 -2.3729E+04
+
+ IN THE FOLLOWING LIST THE CONCENTRATED SPRING LOADS AT RING  1
+ ARE RESOLVED IN THE SHELL COORDINATE DIRECTIONS: RADIAL,
+ CIRCUMFERENTIAL, AND AXIAL. CONCENTRATED LOADS IN THESE
+ SHELL COORDINATE DIRECTIONS MAY BE CALLED FOR AS PART OF THE
+ INPUT DATA IN A SUBSEQUENT BIGBOSOR4 MODEL CONSTRUCTED BY
+ YOU IN ORDER TO DETERMINE THE CONTRIBUTION OF HIGH-CIRCUMFER-
+ ENTIAL-WAVENUMBER HARMONICS TO STRESS AND BUCKLING BEHAVIOR.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ SPRING    AZIMUTHAL  INCLINATION   RADIAL      CIRCUMF.    VERTICAL
+  NO.       ANGLE        ANGLE      FORCE        FORCE       FORCE
+           RELATIVE     RELATIVE   ON RING      ON RING     ON RING
+           TO RING      TO RING
+   1      8.6727E+01  1.0661E+01 -2.3282E+04 -4.0708E+05  7.6761E+04
+   2     -8.6727E+01  1.0661E+01 -2.3282E+04  4.0708E+05  7.6761E+04
+   3      8.6727E+01  1.0661E+01 -1.3315E+03 -2.3282E+04  4.3900E+03
+   4     -8.6727E+01  1.0661E+01  1.3315E+03 -2.3282E+04 -4.3900E+03
+   5      8.6727E+01  1.0661E+01  2.3282E+04  4.0709E+05 -7.6761E+04
+   6     -8.6727E+01  1.0661E+01  2.3282E+04 -4.0708E+05 -7.6761E+04
+   7      8.6727E+01  1.0661E+01  1.3315E+03  2.3282E+04 -4.3900E+03
+   8     -8.6727E+01  1.0661E+01 -1.3315E+03  2.3282E+04  4.3900E+03
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ SPRING    AZIMUTHAL  INCLINATION   FORCES       SPRING 
+  NO.       ANGLE       ANGLE     ON SPRING     CONSTANT
+           RELATIVE    RELATIVE  DERIVED FROM DERIVED FROM
+           TO RING     TO RING   SHELL LOADS  SHELL LOADS
+   1       8.6727E+01  1.0661E+01  4.1491E+05  1.0000E+05
+   2      -8.6727E+01  1.0661E+01  4.1491E+05  1.0000E+05
+   3       8.6727E+01  1.0661E+01  2.3729E+04  1.0000E+05
+   4      -8.6727E+01  1.0661E+01 -2.3729E+04  1.0000E+05
+   5       8.6727E+01  1.0661E+01 -4.1491E+05  1.0000E+05
+   6      -8.6727E+01  1.0661E+01 -4.1491E+05  1.0000E+05
+   7       8.6727E+01  1.0661E+01 -2.3729E+04  1.0000E+05
+   8      -8.6727E+01  1.0661E+01  2.3729E+04  1.0000E+05
+
+ THE SPRINGS MAY BE ARRANGED IN PAIRS THAT MEET AT THE "FAKE"
+ RING. THEREFORE, SOME OF THE SPRING FORCES FROM INDIVIDUAL
+ SPRINGS MAY COMBINE TO CANCEL EACHOTHER OR TO DOUBLE THE
+ LOAD "SEEN" AT A PARTICULAR CIRCUMFERENTIAL LOCATION ON THE
+ "FAKE" RING. THIS COMBINING HAS BEEN ACCOUNTED FOR IN THE
+ FOLLOWING LIST OF CONCENTRATED LOADS RESOLVED IN THE SHELL
+ COORDINATE DIRECTIONS: RADIAL, CIRCUMFERENTIAL, AND AXIAL.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ CIRCUMFERENTIAL  NET RADIAL    NET CIRCUMFER. NET VERTICAL   NET MERIDIONAL
+   COORDINATE    FORCE ON RING  FORCE ON RING FORCE ON RING   MOMENT ON RING
+   0.0000E+00    -4.6563E+04     0.0000E+00     1.5352E+05     0.0000E+00
+   9.0000E+01     2.1973E-03    -4.6563E+04    -1.6602E-02     0.0000E+00
+   1.8000E+02     4.6563E+04     6.2500E-02    -1.5352E+05     0.0000E+00
+   2.7000E+02     1.2207E-04     4.6563E+04     8.7891E-03     0.0000E+00
+
+ ******************* IMPORTANT NOTE **************************
+ This model essentially smears out the springs. Only the n = 0
+ (axisymmetric up-and-down displacement and/or uniform rolling
+ about the axis of revolution) and n = 1 (uniform lateral
+ displacement and/or pitching displacement) are predicted
+ accurately. In order to obtain the static response for higher
+ circumferential wavenumbers, n, than n = 0 and/or n = 1, you
+ must include as BIGBOSOR4 input in another run the
+ concentrated forces that the springs apply to the "fake" ring
+ and therefore to the shell where they are attached.
+ ***************************************************************
+
+ THE FOLLOWING CAN BE USED AS A GUIDE FOR BIGBOSOR4 INPUT FOR
+ LINEAR NON-AXISYMMETRIC STATIC RESPONSE INCLUDING
+ CONCENTRATED LOADS APPLIED BY THE SPRINGS TO THE SHELL. IN
+ THE FOLLOWING OUTPUT THE CONCENTRATED SPRING LOADS ARE
+ MODELED AS LINE LOADS WITH TRIANGULAR-SHAPED "PULSES". THE
+ AREA UNDERNEATH EACH "PULSE" IS EQUAL TO THE CONCENTRATED
+ SPRING LOAD AS RESOLVED IN THE RADIAL, CIRCUMFERENTIAL, AND
+ AXIAL SHELL COORDINATE DIRECTIONS. THESE LINE LOADS ARE THE
+ "H", "S", "V", AND "M" LINE LOADS, INPUT FOR WHICH IS CALLED
+ FOR BY BIGBOSOR4.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ CIRCUMFERENTIAL  RADIAL LINE   CIRCUMFER.LINE VERTICAL LINE  MERIDIONAL LINE
+   COORDINATE     LOAD ON RING   LOAD ON RING  LOAD ON RING   MOMENT ON RING
+   0.0000E+00    -5.3357E+03     0.0000E+00     1.7592E+04     0.0000E+00
+   5.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   8.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.0000E+01     2.5179E-04    -5.3357E+03    -1.9024E-03     0.0000E+00
+   9.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8000E+02     5.3357E+03     7.1620E-03    -1.7592E+04     0.0000E+00
+   1.8500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.6500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.7000E+02     1.3988E-05     5.3357E+03     1.0072E-03     0.0000E+00
+   2.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+
+ FOR EVEN AND ODD DISTRIBUTIONS OF LINE LOAD ABOUT THE ORIGIN
+ OF THE CIRCUMFERENTIAL COORDINATE, theta, BIGBOSOR4 REQUIRES
+ INPUT DATA ONLY IN THE RANGE: 0.0.LE.theta.LE.180. DEGREES.
+ ALSO, IT IS BEST TO SUPPLY THE CIRCUMFERENTIAL DISTRIBUTION
+ OF LINE LOAD AS NORMALIZED, THAT IS, WITH THE PEAK LINE LOAD
+ EQUAL TO UNITY AND THE ENTIRE DISTRIBUTION MULTIPLIED BY THE
+ ACTUAL VALUE OF THE PEAK LINE LOAD. THE FOLLOWING LIST
+ PRESENTS THE CIRCUMFERENTIAL DISTRIBUTION OF SPRING LOADS AT
+ THIS "FAKE" RING IN THIS MANNER.
+
+ IN BIGBOSOR4 THERE IS A RULE THAT THE CIRCUMFERENTIAL
+ DISTRIBUTIONS OF RADIAL LINE LOAD, H, AXIAL LINE LOAD, V, AND
+ MERIDIONAL LINE MOMENT, M, MUST BE THE SAME. THEREFORE, WE
+ TRY TO ARRANGE THE SIGNS OF THE LINE LOAD FACTORS SO THAT
+ THIS IS TRUE FOR THIS CASE. IF ANY CIRCUMFERENTIAL DISTRIBU-
+ TION CONSISTS ENTIRELY OF ZEROES, THAT DOES N0T COUNT.
+ IN THE BIGBOSOR4 INPUT YOU SIMPLY INDICATE THAT THERE IS NO
+ LINE LOAD OF THAT PARTICULAR TYPE. THE CIRCUMFERENTIAL
+ DISTRIBUTION OF THE CIRCUMFERENTIALLY ORIENTED LINE LOAD, S,
+ CAN BE DIFFERENT FROM THAT FOR H, V, AND M. NOTE: IF YOU HAVE
+ MORE THAN ONE RING WITH SPRINGS ATTACHED, MAKE SURE THAT IF
+ THE SPRINGS ARE ARRANGED DIFFERENTLY ON THE TWO RINGS THAT
+ EACH OF THE RINGS IS LOCATED IN A DIFFERENT SHELL SEGMENT.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+                  RADIAL LOAD     CIRC.LOAD     VERT.LOAD     MOMENT LOAD
+                    FACTOR         FACTOR        FACTOR         FACTOR
+                 -5.3357E+03     5.3357E+03     1.7592E+04     1.0000E-07
+
+ CIRCUMFERENTIAL  RADIAL LINE   CIRCUMFER.LINE VERTICAL LINE  MERIDIONAL LINE
+   COORDINATE     LOAD ON RING   LOAD ON RING  LOAD ON RING   MOMENT ON RING
+   0.0000E+00     1.0000E+00     0.0000E+00     1.0000E+00     0.0000E+00
+   5.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   8.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.0000E+01     0.0000E+00    -1.0000E+00     0.0000E+00     0.0000E+00
+   9.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8000E+02    -1.0000E+00     0.0000E+00    -1.0000E+00     0.0000E+00
+
+ ******** NOTE ************* NOTE ************ NOTE *********
+ THE FOLLOWING SAMPLE BOSOR4 INPUT IS VALID ONLY IF:
+ 1. ONLY LOAD SET A EXISTS. THERE IS NO LOAD SET B.
+ 2. THE LINE LOADS, V, H, AND M, ARE EVEN FUNCTIONS OF THETA.
+ 3. THE LINE LOAD, S, IS AN ODD FUNCTION OF THETA.
+ 4. THERE IS ONLY ONE RING IN THIS SHELL SEGMENT WITH ATTACHED SPRINGS.
+ ************************************************************
+
+ BOSOR4 INPUT FOR LINE LOADS CORRESPONDING TO THE OUTPUT JUST LISTED
+ H    $ LINE LOAD INPUT FOLLOWS...
+ 1    $ LINAB=indicator (0, 1, 2 or 3) for load set A and B
+ H    $ LINE LOAD INPUT FOR LOAD SET "A" FOLLOWS
+ 1    $ LINTYP=indicator (0,1,2 or 3) for type of line loads
+ 4    $ NTYPEL=index (use 4) for input of nonsymmetric loads
+ 1    $ NLOAD(1)=indicator for axial load or disp. (1 = some)
+ 1    $ NLOAD(2)=indicator for shear load or disp. (1 = some)
+ 1    $ NLOAD(3)=indicator for radial load or disp.(1 = some)
+ 1    $ NLOAD(4)=indicator for line moment or rot. (1 = some)
+  1.7592E+04 $ V(i)=fixed or initial axial load or disp.  V(1)
+  5.3357E+03 $ S(i)=fixed or initial shear load or disp.  S(1)
+ -5.3357E+03 $ H(i)=fixed or initial radial load or disp. H(1)
+  1.0000E-07 $ M(i)=fixed or initial moment or rotation.  M(1)
+    7 $ NTHETA=number of circumferential callouts for load
+ 2    $ NOPT=control for how g(THETA) is to be input
+ 1    $ NODD=control for the oddness or evenness of g(THETA)
+  0.0000E+00 $ circumferential coordinate, THETA( 1)
+  5.0000E+00 $ circumferential coordinate, THETA( 2)
+  8.5000E+01 $ circumferential coordinate, THETA( 3)
+  9.0000E+01 $ circumferential coordinate, THETA( 4)
+  9.5000E+01 $ circumferential coordinate, THETA( 5)
+  1.7500E+02 $ circumferential coordinate, THETA( 6)
+  1.8000E+02 $ circumferential coordinate, THETA( 7)
+  1.0000E+00 $ YPLUS=value of g(THETA) at THETA( 1)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 2)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 3)
+ -1.0814E-07 $ YPLUS=value of g(THETA) at THETA( 4)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 5)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 6)
+ -1.0000E+00 $ YPLUS=value of g(THETA) at THETA( 7)
+ Y    $ Do you want to print out output Fourier expansion?
+    7 $ NTHETA=number of circumferential callouts for load
+ 2    $ NOPT=control for how g(THETA) is to be input
+ 2    $ NODD=control for the oddness or evenness of g(THETA)
+  0.0000E+00 $ circumferential coordinate, THETA( 1)
+  5.0000E+00 $ circumferential coordinate, THETA( 2)
+  8.5000E+01 $ circumferential coordinate, THETA( 3)
+  9.0000E+01 $ circumferential coordinate, THETA( 4)
+  9.5000E+01 $ circumferential coordinate, THETA( 5)
+  1.7500E+02 $ circumferential coordinate, THETA( 6)
+  1.8000E+02 $ circumferential coordinate, THETA( 7)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 1)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 2)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 3)
+ -1.0000E+00 $ YPLUS=value of g(THETA) at THETA( 4)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 5)
+  0.0000E+00 $ YPLUS=value of g(THETA) at THETA( 6)
+  1.3423E-06 $ YPLUS=value of g(THETA) at THETA( 7)
+ Y    $ Do you want to print out output Fourier expansion?
+
+ JUST LEFT SUBROUTINE OUT2
+--------------- end of abridged cylspr1.OUT file ------------
+
+Note that the end of the cylspr1.OUT file just listed contains
+valid input data for BIGBOSOR4 for the second run in the
+sequence of two runs, that is, for the BIGBOSOR4 run in
+which the springs are replaced by the line loads that are
+approximate representations of the concentrated reaction
+forces of the springs acting at the bottom of the cylindrical
+shell. This second case is called "cylspr2".
+
+
+
+The following file repesents input for the second of the
+two BIGBOSOR4 runs:
+--------------------- cylspr2.ALL ----------------------------
+cylinder with weak springs, with concentrated loads                         
+         3      $ INDIC = analysis type indicator
+         1      $ NPRT = output options (1=minimum, 2=medium, 3=maximum)
+         0      $ ISTRES= output control (0=resultants, 1=sigma, 2=epsilon)
+         2      $ NSEG  = number of shell segments (less than 295)
+         0      $ NSTART= starting number of circ. waves (lin. stress analysis)
+       -60      $ NFIN  = ending number of circ. waves (linear stress analysis)
+        -1      $ INCR  = step in number of circ. waves (linear stress)
+   180.0000     $ THETAM= range of circumferential Fourier expansion & output
+      H         $
+      H         $ SEGMENT NUMBER    1    1    1    1    1    1    1    1
+      H         $ NODAL POINT DISTRIBUTION FOLLOWS...
+        97      $ NMESH = number of node points (5 = min.; 98 = max.)(  1)
+         3      $ NTYPEH= control integer (1 or 3) for nodal point spacing
+      H         $ REFERENCE SURFACE GEOMETRY FOLLOWS...
+         1      $ NSHAPE= indicator (1,2 or 4) for geometry of meridian
+       100      $ R1     = radius at beginning of segment (see p. 66)
+         0      $ Z1     = global axial coordinate at beginning of segment
+       100      $ R2     = radius at end of segment
+        50      $ Z2     = global axial coordinate at end of segment
+      H         $ IMPERFECTION SHAPE FOLLOWS...
+         0      $ IMP   = indicator for imperfection (0=none, 1=some)
+      H         $ REFERENCE SURFACE LOCATION RELATIVE TO WALL
+         3      $ NTYPEZ= control (1 or 3) for reference surface location
+  0.5000000     $ ZVAL  = distance from leftmost surf. to reference surf.
+      N         $ Do you want to print out r(s), r'(s), etc. for this segment?
+      H         $ DISCRETE RING INPUT FOLLOWS...
+         1      $ NRINGS= number (max=20) of discrete rings in this segment
+         2      $ NTYPE = control for identification of ring location (2=z, 3=r)
+         0      $ Z(I)  = axial coordinate of Ith ring, z(  1)
+        -1      $ NTYPER= type (-1 or 0 or 1 or 2 or 4 or 5) of discrete ring no.(  1)
+         0      $ Global axial coordinate of ring ends of springs, SPRAXL(  1)
+         8      $ Number of springs attached to this "fake" ring, NSPRNG(  1)
+         0      $ Circumfer.angles to spring attach points at ring, SPRANG(  1)
+         0      $ Circumfer.angles to spring attach points at ring, SPRANG(  2)
+        90      $ Circumfer.angles to spring attach points at ring, SPRANG(  3)
+        90      $ Circumfer.angles to spring attach points at ring, SPRANG(  4)
+       180      $ Circumfer.angles to spring attach points at ring, SPRANG(  5)
+       180      $ Circumfer.angles to spring attach points at ring, SPRANG(  6)
+       270      $ Circumfer.angles to spring attach points at ring, SPRANG(  7)
+       270      $ Circumfer.angles to spring attach points at ring, SPRANG(  8)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  1)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  2)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  3)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  4)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  5)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  6)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  7)
+   0.000000     $ Spring constant (e.g. lb/in) of each spring, SPRKON(  8)
+         0      $ Radial eccentricity of spring attachment point, SPREC1(  1)
+         0      $ Axial eccentricity of spring attachment point, SPREC2(  1)
+      Y         $ Are the other ends of the springs attached to ground?
+        20      $ Global axial coordinate of attachment to ground, SPRAXG(  1)
+   150.0000     $ Radius to the spring attachment point to ground, SPRRAD(  1)
+        45      $ Circumferential angles to spring attach points, SPRAGG(  1)
+       -45      $ Circumferential angles to spring attach points, SPRAGG(  2)
+       135      $ Circumferential angles to spring attach points, SPRAGG(  3)
+        45      $ Circumferential angles to spring attach points, SPRAGG(  4)
+       225      $ Circumferential angles to spring attach points, SPRAGG(  5)
+       135      $ Circumferential angles to spring attach points, SPRAGG(  6)
+       315      $ Circumferential angles to spring attach points, SPRAGG(  7)
+       225      $ Circumferential angles to spring attach points, SPRAGG(  8)
+         0      $ K=elastic foundation modulus (e.g. lb/in**3)in this seg.
+      H         $ LINE LOAD INPUT FOLLOWS...
+         1      $ LINAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ LINE LOAD INPUT FOR LOAD SET "A" FOLLOWS
+         1      $ LINTYP= indicator (0, 1, 2 or 3) for type of line loads
+         4      $ NTYPEL=index (use 4) for input of nonsymmetric line loads
+         1      $ NLOAD(1)=indicator for axial load or disp.(0=none,1=some)
+         1      $ NLOAD(2)=indicator for shear load or disp.(0=none,1=some)
+         1      $ NLOAD(3)=indicator for radial load or disp.(0 or 1)
+         1      $ NLOAD(4)=indicator for line moment or rotation (0 or 1)
+   17592.00     $ V(i)=fixed or initial axial load or displacement, V(  1)
+   5335.700     $ S(i)=fixed or initial shear load or displacement, S(  1)
+  -5335.700     $ H(i)=fixed or initial radial load or displacement, H(  1)
+  0.1000000E-06 $ M(i)=fixed or initial meridional moment or rot., M(  1)
+         7      $ NTHETA= number of circumferential callouts for load
+         2      $ NOPT  = control for how g(THETA) is to be input (1,2,or 3)
+         1      $ NODD  = control integer for oddness, evenness, of g(THETA)
+   0.000000     $ THETA = circumferential coordinate, in degrees, THETA(  1)
+   5.000000     $ THETA = circumferential coordinate, in degrees, THETA(  2)
+   85.00000     $ THETA = circumferential coordinate, in degrees, THETA(  3)
+   90.00000     $ THETA = circumferential coordinate, in degrees, THETA(  4)
+   95.00000     $ THETA = circumferential coordinate, in degrees, THETA(  5)
+   175.0000     $ THETA = circumferential coordinate, in degrees, THETA(  6)
+   180.0000     $ THETA = circumferential coordinate, in degrees, THETA(  7)
+   1.000000     $ YPLUS = value of g(THETA) at THETA(  1)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  2)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  3)
+ -0.1081400E-06 $ YPLUS = value of g(THETA) at THETA(  4)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  5)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  6)
+  -1.000000     $ YPLUS = value of g(THETA) at THETA(  7)
+      Y         $ Do you want to print out output Fourier expansion of load?
+         7      $ NTHETA= number of circumferential callouts for load
+         2      $ NOPT  = control for how g(THETA) is to be input (1,2,or 3)
+         2      $ NODD  = control integer for oddness, evenness, of g(THETA)
+   0.000000     $ THETA = circumferential coordinate, in degrees, THETA(  1)
+   5.000000     $ THETA = circumferential coordinate, in degrees, THETA(  2)
+   85.00000     $ THETA = circumferential coordinate, in degrees, THETA(  3)
+   90.00000     $ THETA = circumferential coordinate, in degrees, THETA(  4)
+   95.00000     $ THETA = circumferential coordinate, in degrees, THETA(  5)
+   175.0000     $ THETA = circumferential coordinate, in degrees, THETA(  6)
+   180.0000     $ THETA = circumferential coordinate, in degrees, THETA(  7)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  1)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  2)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  3)
+  -1.000000     $ YPLUS = value of g(THETA) at THETA(  4)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  5)
+   0.000000     $ YPLUS = value of g(THETA) at THETA(  6)
+  0.1342300E-05 $ YPLUS = value of g(THETA) at THETA(  7)
+      Y         $ Do you want to print out output Fourier expansion of load?
+      H         $ DISTRIBUTED LOAD INPUT FOLLOWS...
+         0      $ IDISAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ SHELL WALL CONSTRUCTION FOLLOWS...
+         2      $ NWALL=index (1, 2, 4, 5, 6, 7, 8, 9, 10) for wall construction
+  0.1000000E+08 $ E     = Young's modulus for skin
+  0.3000000     $ U     = Poisson's ratio for skin
+  0.2500000E-03 $ SM =mass density of skin (e.g. alum.=.00025 lb-sec**2/in**4)
+         0      $ ALPHA = coefficient of thermal expansion
+         0      $ NRS  = control (0 or 1) for addition of smeared stiffeners
+         0      $ NSUR   = control for thickness input (0 or 1 or -1)
+      N         $ Do you want to print out ref. surf. location and thickness?
+      N         $ Do you want to print out the C(i,j) at meridional stations?
+      N         $ Do you want to print out distributed loads along meridian?
+      H         $
+      H         $ SEGMENT NUMBER    2    2    2    2    2    2    2    2
+      H         $ NODAL POINT DISTRIBUTION FOLLOWS...
+        97      $ NMESH = number of node points (5 = min.; 98 = max.)(  2)
+         3      $ NTYPEH= control integer (1 or 3) for nodal point spacing
+      H         $ REFERENCE SURFACE GEOMETRY FOLLOWS...
+         1      $ NSHAPE= indicator (1,2 or 4) for geometry of meridian
+       100      $ R1     = radius at beginning of segment (see p. 66)
+        50      $ Z1     = global axial coordinate at beginning of segment
+       100      $ R2     = radius at end of segment
+       100      $ Z2     = global axial coordinate at end of segment
+      H         $ IMPERFECTION SHAPE FOLLOWS...
+         0      $ IMP   = indicator for imperfection (0=none, 1=some)
+      H         $ REFERENCE SURFACE LOCATION RELATIVE TO WALL
+         3      $ NTYPEZ= control (1 or 3) for reference surface location
+  0.5000000     $ ZVAL  = distance from leftmost surf. to reference surf.
+      N         $ Do you want to print out r(s), r'(s), etc. for this segment?
+      H         $ DISCRETE RING INPUT FOLLOWS...
+         1      $ NRINGS= number (max=20) of discrete rings in this segment
+         2      $ NTYPE = control for identification of ring location (2=z, 3=r)
+       100      $ Z(I)  = axial coordinate of Ith ring, z(  1)
+         0      $ NTYPER= type (-1 or 0 or 1 or 2 or 4 or 5) of discrete ring no.(  1)
+         0      $ K=elastic foundation modulus (e.g. lb/in**3)in this seg.
+      H         $ LINE LOAD INPUT FOLLOWS...
+         1      $ LINAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ LINE LOAD INPUT FOR LOAD SET "A" FOLLOWS
+         1      $ LINTYP= indicator (0, 1, 2 or 3) for type of line loads
+         4      $ NTYPEL=index (use 4) for input of nonsymmetric line loads
+         1      $ NLOAD(1)=indicator for axial load or disp.(0=none,1=some)
+         0      $ NLOAD(2)=indicator for shear load or disp.(0=none,1=some)
+         0      $ NLOAD(3)=indicator for radial load or disp.(0 or 1)
+         0      $ NLOAD(4)=indicator for line moment or rotation (0 or 1)
+  -1000.000     $ V(i)=fixed or initial axial load or displacement, V(  1)
+         7      $ NTHETA= number of circumferential callouts for load
+         2      $ NOPT  = control for how g(THETA) is to be input (1,2,or 3)
+         1      $ NODD  = control integer for oddness, evenness, of g(THETA)
+         0      $ THETA = circumferential coordinate, in degrees, THETA(  1)
+        30      $ THETA = circumferential coordinate, in degrees, THETA(  2)
+        60      $ THETA = circumferential coordinate, in degrees, THETA(  3)
+        90      $ THETA = circumferential coordinate, in degrees, THETA(  4)
+       120      $ THETA = circumferential coordinate, in degrees, THETA(  5)
+       150      $ THETA = circumferential coordinate, in degrees, THETA(  6)
+       180      $ THETA = circumferential coordinate, in degrees, THETA(  7)
+   1.000000     $ YPLUS = value of g(THETA) at THETA(  1)
+  0.8660000     $ YPLUS = value of g(THETA) at THETA(  2)
+  0.5000000     $ YPLUS = value of g(THETA) at THETA(  3)
+         0      $ YPLUS = value of g(THETA) at THETA(  4)
+ -0.5000000     $ YPLUS = value of g(THETA) at THETA(  5)
+ -0.8660000     $ YPLUS = value of g(THETA) at THETA(  6)
+  -1.000000     $ YPLUS = value of g(THETA) at THETA(  7)
+      Y         $ Do you want to print out output Fourier expansion of load?
+      H         $ DISTRIBUTED LOAD INPUT FOLLOWS...
+         0      $ IDISAB= indicator (0, 1, 2 or 3) for load set A and B
+      H         $ SHELL WALL CONSTRUCTION FOLLOWS...
+         2      $ NWALL=index (1, 2, 4, 5, 6, 7, 8, 9, 10) for wall construction
+  0.1000000E+08 $ E     = Young's modulus for skin
+  0.3000000     $ U     = Poisson's ratio for skin
+  0.2500000E-03 $ SM =mass density of skin (e.g. alum.=.00025 lb-sec**2/in**4)
+         0      $ ALPHA = coefficient of thermal expansion
+         0      $ NRS  = control (0 or 1) for addition of smeared stiffeners
+         0      $ NSUR   = control for thickness input (0 or 1 or -1)
+      N         $ Do you want to print out ref. surf. location and thickness?
+      N         $ Do you want to print out the C(i,j) at meridional stations?
+      N         $ Do you want to print out distributed loads along meridian?
+      H         $
+      H         $ GLOBAL DATA BEGINS...
+         1      $ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)
+      N         $ Are there any regions for which you want expanded plots?
+         2      $ NDIST = number of circ. stations for meridional output
+   0.000000     $ THETA = circ. stations (in deg.) for meridional output.(  1)
+   90.00000     $ THETA = circ. stations (in deg.) for meridional output.(  2)
+         2      $ NCIRC = number of meridional stations for circ. distibutions
+      1001      $ ITHETA= meridional location for circumferential output(  1)
+      2097      $ ITHETA= meridional location for circumferential output(  2)
+        61      $ NTHETA= number of output points along circ. from 0 to THETAM.
+         0      $ THETAS= Nx & Ny along this meridian used in buckling analysis.
+         0      $ OMEGA  = angular vel. about axis of revolution (rad/sec)
+         1      $ IOMGAB = control for OMEGA as "A" or "B" load (1 or 2)
+      N         $ Do you want response to harmonic forcing (INDIC = 3 or 4)?
+      H         $ CONSTRAINT CONDITIONS FOLLOW....
+         2      $ How many segments in the structure?
+      H         $
+      H         $ CONSTRAINT CONDITIONS FOR SEGMENT NO.    1    1    1    1
+      H         $ POLES INPUT FOLLOWS...
+         0      $ Number of poles (places where r=0) in SEGMENT(  1)
+      H         $ INPUT FOR CONSTRAINTS TO GROUND FOLLOWS...
+         1      $ At how many stations is this segment constrained to ground?
+         1      $ INODE = nodal point number of constraint to ground, INODE(  1)
+         0      $ IUSTAR=axial displacement constraint (0 or 1 or 2)
+         0      $ IVSTAR=circumferential displacement(0=free,1=0,2=imposed)
+         0      $ IWSTAR=radial displacement(0=free,1=constrained,2=imposed)
+         0      $ ICHI=meridional rotation (0=free,1=constrained,2=imposed)
+   0.000000     $ D1    = radial component of offset of ground support
+   0.000000     $ D2    = axial component of offset of ground support
+      Y         $ Is this constraint the same for both prebuckling and buckling?
+      H         $ JUNCTION CONDITION INPUT FOLLOWS...
+      N         $ Is this segment joined to any lower-numbered segments?
+      H         $
+      H         $ CONSTRAINT CONDITIONS FOR SEGMENT NO.    2    2    2    2
+      H         $ POLES INPUT FOLLOWS...
+         0      $ Number of poles (places where r=0) in SEGMENT(  2)
+      H         $ INPUT FOR CONSTRAINTS TO GROUND FOLLOWS...
+         0      $ At how many stations is this segment constrained to ground?
+      H         $ JUNCTION CONDITION INPUT FOLLOWS...
+      Y         $ Is this segment joined to any lower-numbered segments?
+         1      $ At how may stations is this segment joined to previous segs.?
+         1      $ INODE = node in current segment (ISEG) of junction, INODE(  1)
+         1      $ JSEG  = segment no. of lowest segment involved in junction
+        97      $ JNODE = node in lowest segmnt (JSEG) of junction
+         1      $ IUSTAR= axial displacement (0=not slaved, 1=slaved)
+         1      $ IVSTAR= circumferential displacement (0=not slaved, 1=slaved)
+         1      $ IWSTAR= radial displacement (0=not slaved, 1=slaved)
+         1      $ ICHI  = meridional rotation (0=not slaved, 1=slaved)
+         0      $ D1    = radial component of juncture gap
+         0      $ D2    = axial component of juncture gap
+      Y         $ Is this constraint the same for both prebuckling and buckling?
+      H         $ RIGID BODY CONSTRAINT INPUT FOLLOWS...
+      Y         $ Given existing constraints, are rigid body modes possible?
+      Y         $ Do you wish to prevent rigid body motion?
+         1      $ ISEG  = segment no. at which to prevent rigid body motion
+         1      $ INODE = node no. at which to prevent rigid body motion
+         1      $ IUSTAR= axial n=0 rigid body constraint (0=none, 1=some)
+         1      $ IVSTAR= circ. n=0 rigid body constraint (usually equals 1)
+         0      $ IWSTAR= radial n=0 rigid body constraint (usually equals 0)
+         0      $ ICHI  = meridional rot. rigid body constraint
+         1      $ IUSTAR= axial n=1 rigid body constraint (usually equals 1)
+         1      $ IVSTAR= circ. n=1 rigid body constraint (usually equals 1)
+         0      $ IWSTAR= radial n=1 rigid body constraint (usually equals 0)
+         0      $ ICHI  = meridional rot. rigid body constraint
+      N         $ Do you want inertial reactions to Load Set A?
+      N         $ Do you want inertial reactions to Load Set B?
+      H         $ "GLOBAL3" QUESTIONS (AT END OF CASE)...
+      Y         $ Do you want to list output for segment(  1)
+      Y         $ Do you want to list output for segment(  2)
+      Y         $ Do you want to list forces in the discrete rings, if any?
+-------------------------------------------------------------------------
+
+NOTE: You can see where the end of the file, cylspr1.OUT, which contains
+the valid line load input for BIGBOSOR4, has been copied into the proper
+location with the input data for shell segment no. 1.
+
+
+
+Abridged output from the case cylspr2.ALL, called cylspr2.OUT, follows:
+------------------------ abridged cylspr2.OUT file ---------------------------
+ ***************** OUTPUT RELATING TO SPRINGS ****************
+ The following output is for springs attached to ring no.  1
+ *************************************************************
+ The following are input quantities relating
+ to all the springs attached to this ring:
+ NTYPAL =          -1 =index for type of ring (NTYPAL = -1
+           means a ring with springs attached to it.)
+ NGROUN =           1 = 1 if springs are attached to ground,
+           = 0 if springs are attached to a previous
+           ring. (NOTE: The coding has not been
+           written for the NGROUN = 0 option.)
+ NSPRNG =           8 = number of springs attached to this
+                         ring.
+ SPRAXL =  0.0000E+00 = global axial coordinate of this
+                         ring.
+ SPRANG = 8 circumferential angles of spring attachment points on this ring:
+  0.0000E+00  0.0000E+00  9.0000E+01  9.0000E+01  1.8000E+02
+  1.8000E+02  2.7000E+02  2.7000E+02
+ SPRKON = 8 spring constants for the 8 springs attached to this ring:
+  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00
+  0.0000E+00  0.0000E+00  0.0000E+00
+ SPREC1 =  0.0000E+00 = radial eccentricity e1 of the
+           attachment points of all the springs to this ring.
+ SPREC2 =  0.0000E+00 = axial  eccentricity e2 of the
+           attachment points of all the springs to this ring.
+ SPRAXG =  2.0000E+01 = global axial coordinate of the
+           attachment of all the springs associated with this
+           ring to ground.
+ SPRRAD =  1.5000E+02 = radius of spring ground attachment
+                         points
+ SPRAGG = 8 circumferential angles of spring attachment points to ground:
+  4.5000E+01 -4.5000E+01  1.3500E+02  4.5000E+01  2.2500E+02
+  1.3500E+02  3.1500E+02  2.2500E+02
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+           SPRANG(i)                           SPRKON(i)   SPRFCE(i)
+ SPRING   CIRC. ANGLE   SPRING    CHANGE IN      SPRING     SPRING
+  NO.    OF ATTACHMENT LENGTH, L  LENGTH, dL    CONSTANT     FORCE
+         POINT ON RING
+   1      0.0000E+00  1.0811E+02  1.6679E+00  0.0000E+00  0.0000E+00
+   2      0.0000E+00  1.0811E+02  1.6679E+00  0.0000E+00  0.0000E+00
+   3      9.0000E+01  1.0811E+02  5.6020E+00  0.0000E+00  0.0000E+00
+   4      9.0000E+01  1.0811E+02 -5.6020E+00  0.0000E+00  0.0000E+00
+   5      1.8000E+02  1.0811E+02 -1.6679E+00  0.0000E+00  0.0000E+00
+   6      1.8000E+02  1.0811E+02 -1.6679E+00  0.0000E+00  0.0000E+00
+   7      2.7000E+02  1.0811E+02 -5.6020E+00  0.0000E+00  0.0000E+00
+   8      2.7000E+02  1.0811E+02  5.6020E+00  0.0000E+00  0.0000E+00
+
+ IN THE FOLLOWING LIST THE CONCENTRATED SPRING LOADS AT RING  1
+ ARE RESOLVED IN THE SHELL COORDINATE DIRECTIONS: RADIAL,
+ CIRCUMFERENTIAL, AND AXIAL. CONCENTRATED LOADS IN THESE
+ SHELL COORDINATE DIRECTIONS MAY BE CALLED FOR AS PART OF THE
+ INPUT DATA IN A SUBSEQUENT BIGBOSOR4 MODEL CONSTRUCTED BY
+ YOU IN ORDER TO DETERMINE THE CONTRIBUTION OF HIGH-CIRCUMFER-
+ ENTIAL-WAVENUMBER HARMONICS TO STRESS AND BUCKLING BEHAVIOR.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ SPRING    AZIMUTHAL  INCLINATION   RADIAL      CIRCUMF.    VERTICAL
+  NO.       ANGLE        ANGLE      FORCE        FORCE       FORCE
+           RELATIVE     RELATIVE   ON RING      ON RING     ON RING
+           TO RING      TO RING
+   1      8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   2     -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   3      8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   4     -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   5      8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   6     -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   7      8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+   8     -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00  0.0000E+00
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ SPRING    AZIMUTHAL  INCLINATION   FORCES       SPRING 
+  NO.       ANGLE       ANGLE     ON SPRING     CONSTANT
+           RELATIVE    RELATIVE  DERIVED FROM DERIVED FROM
+           TO RING     TO RING   SHELL LOADS  SHELL LOADS
+   1       8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   2      -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   3       8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   4      -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   5       8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   6      -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   7       8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+   8      -8.6727E+01  1.0661E+01  0.0000E+00  0.0000E+00
+
+ THE SPRINGS MAY BE ARRANGED IN PAIRS THAT MEET AT THE "FAKE"
+ RING. THEREFORE, SOME OF THE SPRING FORCES FROM INDIVIDUAL
+ SPRINGS MAY COMBINE TO CANCEL EACHOTHER OR TO DOUBLE THE
+ LOAD "SEEN" AT A PARTICULAR CIRCUMFERENTIAL LOCATION ON THE
+ "FAKE" RING. THIS COMBINING HAS BEEN ACCOUNTED FOR IN THE
+ FOLLOWING LIST OF CONCENTRATED LOADS RESOLVED IN THE SHELL
+ COORDINATE DIRECTIONS: RADIAL, CIRCUMFERENTIAL, AND AXIAL.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ CIRCUMFERENTIAL  NET RADIAL    NET CIRCUMFER. NET VERTICAL   NET MERIDIONAL
+   COORDINATE    FORCE ON RING  FORCE ON RING FORCE ON RING   MOMENT ON RING
+   0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.0000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8000E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.7000E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+
+ ******************* IMPORTANT NOTE **************************
+ This model essentially smears out the springs. Only the n = 0
+ (axisymmetric up-and-down displacement and/or uniform rolling
+ about the axis of revolution) and n = 1 (uniform lateral
+ displacement and/or pitching displacement) are predicted
+ accurately. In order to obtain the static response for higher
+ circumferential wavenumbers, n, than n = 0 and/or n = 1, you
+ must include as BIGBOSOR4 input in another run the
+ concentrated forces that the springs apply to the "fake" ring
+ and therefore to the shell where they are attached.
+ ***************************************************************
+
+ THE FOLLOWING CAN BE USED AS A GUIDE FOR BIGBOSOR4 INPUT FOR
+ LINEAR NON-AXISYMMETRIC STATIC RESPONSE INCLUDING
+ CONCENTRATED LOADS APPLIED BY THE SPRINGS TO THE SHELL. IN
+ THE FOLLOWING OUTPUT THE CONCENTRATED SPRING LOADS ARE
+ MODELED AS LINE LOADS WITH TRIANGULAR-SHAPED "PULSES". THE
+ AREA UNDERNEATH EACH "PULSE" IS EQUAL TO THE CONCENTRATED
+ SPRING LOAD AS RESOLVED IN THE RADIAL, CIRCUMFERENTIAL, AND
+ AXIAL SHELL COORDINATE DIRECTIONS. THESE LINE LOADS ARE THE
+ "H", "S", "V", AND "M" LINE LOADS, INPUT FOR WHICH IS CALLED
+ FOR BY BIGBOSOR4.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+ CIRCUMFERENTIAL  RADIAL LINE   CIRCUMFER.LINE VERTICAL LINE  MERIDIONAL LINE
+   COORDINATE     LOAD ON RING   LOAD ON RING  LOAD ON RING   MOMENT ON RING
+   0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   5.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   8.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.0000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8000E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.6500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.7000E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   2.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+
+ FOR EVEN AND ODD DISTRIBUTIONS OF LINE LOAD ABOUT THE ORIGIN
+ OF THE CIRCUMFERENTIAL COORDINATE, theta, BIGBOSOR4 REQUIRES
+ INPUT DATA ONLY IN THE RANGE: 0.0.LE.theta.LE.180. DEGREES.
+ ALSO, IT IS BEST TO SUPPLY THE CIRCUMFERENTIAL DISTRIBUTION
+ OF LINE LOAD AS NORMALIZED, THAT IS, WITH THE PEAK LINE LOAD
+ EQUAL TO UNITY AND THE ENTIRE DISTRIBUTION MULTIPLIED BY THE
+ ACTUAL VALUE OF THE PEAK LINE LOAD. THE FOLLOWING LIST
+ PRESENTS THE CIRCUMFERENTIAL DISTRIBUTION OF SPRING LOADS AT
+ THIS "FAKE" RING IN THIS MANNER.
+
+ IN BIGBOSOR4 THERE IS A RULE THAT THE CIRCUMFERENTIAL
+ DISTRIBUTIONS OF RADIAL LINE LOAD, H, AXIAL LINE LOAD, V, AND
+ MERIDIONAL LINE MOMENT, M, MUST BE THE SAME. THEREFORE, WE
+ TRY TO ARRANGE THE SIGNS OF THE LINE LOAD FACTORS SO THAT
+ THIS IS TRUE FOR THIS CASE. IF ANY CIRCUMFERENTIAL DISTRIBU-
+ TION CONSISTS ENTIRELY OF ZEROES, THAT DOES N0T COUNT.
+ IN THE BIGBOSOR4 INPUT YOU SIMPLY INDICATE THAT THERE IS NO
+ LINE LOAD OF THAT PARTICULAR TYPE. THE CIRCUMFERENTIAL
+ DISTRIBUTION OF THE CIRCUMFERENTIALLY ORIENTED LINE LOAD, S,
+ CAN BE DIFFERENT FROM THAT FOR H, V, AND M. NOTE: IF YOU HAVE
+ MORE THAN ONE RING WITH SPRINGS ATTACHED, MAKE SURE THAT IF
+ THE SPRINGS ARE ARRANGED DIFFERENTLY ON THE TWO RINGS THAT
+ EACH OF THE RINGS IS LOCATED IN A DIFFERENT SHELL SEGMENT.
+
+ QUANTITIES RELATED TO SPRINGS ATTACHED TO RING NO.  1 (LOAD SYSTEM "A")
+
+                  RADIAL LOAD     CIRC.LOAD     VERT.LOAD     MOMENT LOAD
+                    FACTOR         FACTOR        FACTOR         FACTOR
+                  1.0000E-07     1.0000E-07     1.0000E-07     1.0000E-07
+
+ CIRCUMFERENTIAL  RADIAL LINE   CIRCUMFER.LINE VERTICAL LINE  MERIDIONAL LINE
+   COORDINATE     LOAD ON RING   LOAD ON RING  LOAD ON RING   MOMENT ON RING
+   0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   5.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   8.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.0000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   9.5000E+01     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.7500E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+   1.8000E+02     0.0000E+00     0.0000E+00     0.0000E+00     0.0000E+00
+--------------------------------------------------------------------------
+
+
+
+Note that most of the sping-related output is a bunch of zeroes. This is
+because the spring constants, SPRKON(i), i = 1,8, are set equal to zero
+in the input file for the second BIGBOSOR4 case, cylspr2.ALL.
+
+********** IMPORTANT NOTE ************* IMPORTANT NOTE ***************
+The number of circumferential waves starts at -2 and goes to -60 in
+steps of -1 . (Negative wave numbers correspond to V, H, and M line
+loads being even with respect to the circumferential coordinate, THETA).
+We leave out n = 0 and n = -1 because these harmonics were accounted for
+in the first BIGBOSOR4 case, cylspr1.
+**********************************************************************
+
+
+One of the main reasons we wanted to run
+this second case, cylspr2, is to obtain ADDITIONAL shell wall displacement
+components, u, v, w, that represent the displacements that occur at the
+ring-end of each spring that are generated because the cylindrical shell
+is flexible and therefore deforms under the concentrated spring reaction
+loads. These ADDITIONAL displacements, not accounted for in the first
+BIGBOSOR4 case, cylspr1, are now used to compute additional changes
+in length, dL(i), of the springs. The additional lengths, dL(i), i=1,8,
+are used in the computation of "effective" spring constants for each spring.
+
+The "effective" spring constants are less than the original spring constants,
+SPRKON(i), i = 1,8, because each original spring effectively acts in series
+with a second spring: the flexible shell. The "effective" spring stiffnesses
+of the flexible-shell-spring combination may be different for each spring
+because the additional change in length, dL(i), may be different for each
+spring and the spring forces listed in the output from the first BIGBOSOR4
+execution, cylspr1.OUT, are all different.
+
+For two springs in series, the "effective" spring constant of the combination
+can be shown to be given by:
+
+K(effective) = 1/[1/K(shell) + 1/K(spring)]
+
+in which K(spring), the original spring constant, is equal to SPRKON(i),
+and K(shell) is given by:
+
+K(shell) =
+   ABS{[ith spring force, SPRFCE(i)]/[ith additional change in length, dL(i)]}
+
+where the index, i, is the number of the spring attached at the "fake"
+ring. The quantities, SPRFCE(i), are listed in the output from the first case,
+cylspr1.OUT, as follows:
+
+           SPRANG(i)                           SPRKON(i)   SPRFCE(i)
+ SPRING   CIRC. ANGLE   SPRING    CHANGE IN      SPRING     SPRING
+  NO.    OF ATTACHMENT LENGTH, L  LENGTH, dL    CONSTANT     FORCE
+         POINT ON RING
+   1      0.0000E+00  1.0811E+02 -4.1491E+00  1.0000E+05 -4.1491E+05
+   2      0.0000E+00  1.0811E+02 -4.1491E+00  1.0000E+05 -4.1491E+05
+   3      9.0000E+01  1.0811E+02 -2.3729E-01  1.0000E+05 -2.3729E+04
+   4      9.0000E+01  1.0811E+02  2.3729E-01  1.0000E+05  2.3729E+04
+   5      1.8000E+02  1.0811E+02  4.1491E+00  1.0000E+05  4.1491E+05
+   6      1.8000E+02  1.0811E+02  4.1491E+00  1.0000E+05  4.1491E+05
+   7      2.7000E+02  1.0811E+02  2.3729E-01  1.0000E+05  2.3729E+04
+   8      2.7000E+02  1.0811E+02 -2.3729E-01  1.0000E+05 -2.3729E+04
+
+
+The additional changes in length, dL(i), are listed in the output from
+the second case, cylspr2.OUT, as follows:
+
+           SPRANG(i)                           SPRKON(i)   SPRFCE(i)
+ SPRING   CIRC. ANGLE   SPRING    CHANGE IN      SPRING     SPRING
+  NO.    OF ATTACHMENT LENGTH, L  LENGTH, dL    CONSTANT     FORCE
+         POINT ON RING
+   1      0.0000E+00  1.0811E+02  1.6679E+00  0.0000E+00  0.0000E+00
+   2      0.0000E+00  1.0811E+02  1.6679E+00  0.0000E+00  0.0000E+00
+   3      9.0000E+01  1.0811E+02  5.6020E+00  0.0000E+00  0.0000E+00
+   4      9.0000E+01  1.0811E+02 -5.6020E+00  0.0000E+00  0.0000E+00
+   5      1.8000E+02  1.0811E+02 -1.6679E+00  0.0000E+00  0.0000E+00
+   6      1.8000E+02  1.0811E+02 -1.6679E+00  0.0000E+00  0.0000E+00
+   7      2.7000E+02  1.0811E+02 -5.6020E+00  0.0000E+00  0.0000E+00
+   8      2.7000E+02  1.0811E+02  5.6020E+00  0.0000E+00  0.0000E+00
+
+
+We are permitted to use the spring force SPRFCE(i) from the first case, cylspr1,
+because the ith set of two springs act in series. Therefore, the spring force
+in the second spring (the one that represents the flexible shell) is the
+same as the spring force from the first case, cylspr1.
+
+Computing the "effective" spring constants as outlined above, we obtain
+the following values:
+
+ 71327.0, 71327.0, 4063.0, 4063.0, 71327.0, 71327.0, 4063.0, 4063.0
+
+Note that all eight of the original values are the same and equal to 100000.
+
+We see that in this case the original spring constants are considerably
+reduced by the flexibility of the shell.
+

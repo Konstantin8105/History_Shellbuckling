@@ -1,0 +1,130 @@
+#!/bin/tcsh
+# initialize prompts the user for the current machine type from the list and
+# sets some environment variables and aliases.
+
+setenv BUSHNELL  /home/progs
+
+#setenv MACHINE   linux
+setenv MACHINE   x86_64
+
+# Begin MACHINE.
+if (-e ${BUSHNELL}/bin/setmachine) then
+  source ${BUSHNELL}/bin/setmachine
+endif
+
+if !($?MACHINE) then
+  echo ""
+  echo 'Please enter your machine type ($MACHINE) from the list below:'
+  echo "If your machine is not listed, just enter one of the choices."
+  echo ""
+  echo ' "alpha"  - DEC Alpha workstation'
+  echo ' "apol"   - HP Apollo workstation'
+  echo ' "cnvx"   - Convex C120 or C220 mainframe'
+  echo ' "cray"   - CRAY ?MP mainframe'
+  echo ' "dec"    - DECstation 5000 or DECstation 3100'
+  echo ' "hp700"  - HP 9000/700 workstation'
+  echo ' "linux"  - Intel 386/486/586 running Linux'
+  echo ' "mac"    - Macintosh 32-bit running Mac OS-X'
+  echo ' "rs6k"   - IBM RS6000 workstation'
+  echo ' "sgi"    - Silicon Graphics IRIS workstation'
+  echo ' "sgi8"   - Silicon Graphics 64-bit workstation'
+  echo ' "star"   - Stardent P3 computer'
+  echo ' "sun3"   - SUN-3 workstation'
+  echo ' "sun4"   - SUN-4/SPARC running Sun OS 4.x or earlier'
+  echo ' "sol"    - SUN-4/SPARC running SUn OS 5.x or later (Solaris)'
+  echo ' "x86_64" - 386/486/586 Architecture running 64-bit Linux'
+  echo ""
+  echo -n "Machine type is: "
+
+  ENTER_MACHINE:
+  set mach = $<
+  if !(($mach == "alpha") || \
+       ($mach == "apol")  || \
+       ($mach == "cnvx")  || \
+       ($mach == "cray")  || \
+       ($mach == "dec")   || \
+       ($mach == "hp700") || \
+       ($mach == "linux") || \
+       ($mach == "mac")   || \
+       ($mach == "rs6k")  || \
+       ($mach == "sgi")   || \
+       ($mach == "sgi8")  || \
+       ($mach == "star")  || \
+       ($mach == "sun3")  || \
+       ($mach == "sun4")  || \
+       ($mach == "sol")   || \
+       ($mach == "x86_64")   ) then
+    echo -n "That machine name is not valid.  Enter machine: "
+    goto ENTER_MACHINE
+  endif
+  setenv MACHINE $mach
+endif
+# End MACHINE.
+
+setenv MACHINE $MACHINE
+echo ""
+echo "Your current machine type is: >>>>>>>>>>>> $MACHINE <<<<<<<<<<<<<"
+echo ""
+
+# Set USER environment variable.
+if (($MACHINE == "cray") || ($MACHINE == "hp700")) then
+  set u = $LOGNAME
+  setenv USER $u
+  unset u
+endif
+
+# Begin General.
+# Set general environment variables.
+setenv BIN     ${BUSHNELL}/bin
+setenv TEMPDIR ${BUSHNELL}/temp
+# End general.
+
+# Begin BOSOR.
+# Set BOSOR, PANDA, and GENOPT directory environment variables
+setenv BIGBOSOR4  ${BUSHNELL}/bigbosor4
+setenv BOSOR4  ${BUSHNELL}/bosor4
+setenv BOSOR5  ${BUSHNELL}/bosor5
+setenv DEWAR   ${BUSHNELL}/dewar
+setenv GENOPT  ${BUSHNELL}/genopt
+setenv PANDA2  ${BUSHNELL}/panda2
+
+# Set BIGBOSOR4, BOSOR4, BOSOR5, DEWAR, GENOPT and PANDA2 aliases
+alias bigbosor4log  source ${BIGBOSOR4}/bin/bigbosor4.com
+alias bosor4log  source ${BOSOR4}/bin/bosor4.com
+alias bosor5log  source ${BOSOR5}/bin/bosor5.com
+alias dewarlog   source ${DEWAR}/bin/dewar.com
+alias genoptlog  source ${GENOPT}/bin/genprompt.com
+alias panda2log  source ${PANDA2}/bin/panda2.com
+
+alias BIGBOSOR4LOG  bigbosor4log
+alias BOSOR4LOG  bosor4log
+alias BOSOR5LOG  bosor5log
+alias DEWARLOG   dewarlog
+alias GENOPTLOG  genoptlog
+alias PANDA2LOG  panda2log
+# End BOSOR.
+
+# Begin mail.
+# Set mail alias.
+if (${MACHINE} == "sgi") then
+  alias mail Mail
+else if (${MACHINE} == "star") then
+  alias mail mailx
+else if !($MACHINE == "rs6k") then
+  alias mail /usr/ucb/mail
+endif
+# End mail.
+
+# Begin user.message.
+# Print user message if one exists.
+if (-e ${BUSHNELL}/user.message && $USER != "bushnell") then
+  more ${BUSHNELL}/user.message
+endif
+# End user.message.
+
+# Begin BINITed.
+# Set environment variable to show that this file has been "sourced".
+setenv BINITed 1
+# End BINITed.
+
+# end initialize

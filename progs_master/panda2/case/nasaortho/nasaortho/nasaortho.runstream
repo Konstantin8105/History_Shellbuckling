@@ -1,0 +1,1469 @@
+
+nasaortho.runstream
+
+March 31, 2009
+
+            RUN STREAM
+
+RUN STREAM USED TO OBTAIN "nasaortho" and "nasaortho2"
+RESULTS WITH IQUICK = 0 .
+=========================================================
+Most results are obtained with the PANDA2
+"conservativeness index", ICONSV = 1. When
+ICONSV is different from 1 it will be noted.
+For an explanation of the "conservativeness
+index", ICONSV, see Item no. 676 in the file,
+...panda2/doc/panda2.news.
+
+These results are for a metallic internally orthogrid- 
+stiffened cylindrical shell under uniform axial
+compression. The stringers and rings have
+rectangular cross sections. The rings can have
+different height and thickness from those of
+the stringers. The rings and stringers are internal.
+
+NOTE: With PANDA2 always model a complete
+(360-degree) cylindrical shell as a panel
+that subtends 180 degrees.
+
+There are three parts to this investigation:
+
+PART 1: Find the design margins for the
+starting design of the PERFECT shell,
+which has the dimensions and loading and
+boundary conditions of part of the first test
+specimen tested by NASA in 2008: the part
+("acreage") of the shell that is remote from
+the weld lands. Case name = "nasaortho".
+
+PART 2: Optimize an IMPERFECT shell with 
+a general buckling modal imperfection with
+amplitude, Wimp = plus and minus 0.125 inch.
+The starting design is that featured in PART 1.
+The optimized imperfect shell represents a
+proposed design of the shell in the neighborhoods
+of the weld lands because the imperfection
+with amplitude, Wimp = plus and minus 0.125 inch,
+is similar to the amplitude of the largest
+imperfection found in the neighborhoods of
+the weld lands. This part is by far the longest
+because a lot of STAGS models are explored.
+Case name = "nasaortho".
+
+PART 3: Optimize an IMPERFECT shell with
+a general buckling modal imperfection with
+amplitude, Wimp = plus and minus 0.050 inch
+and with the ring spacing, B(RNG), equal to
+that found from PART 2. The optimized imperfect
+shell represents a proposed design of the
+acreage of the shell remote from the weld lands
+because  the smaller imperfection amplitude,
+Wimp = 0.05 inch, is similar to the largest
+imperfection found in the acreage of the test
+specimen remote from the weld lands.
+Case name = "nasaortho2".
+
+Most of the time on this project was spent
+on running various STAGS models of the designs
+obtained by PANDA2. The PANDA2 processor called
+STAGSUNIT was used to generate STAGS models.
+
+No work was done in setting up STAGS models that
+represent a combination of the optimized shells
+developed in PARTS 2 and 3. This task should be
+performed by interested researchers, engineers,
+and designers at NASA or elsewhere.
+
+Assume that the PANDA2 executions are in a directory
+called <panda2workingspace>.
+--------------------------------------------------
+
+
+PART 1 runstream: Evaluate the test 1 configuration,
+                  which is used as the starting design
+                  in nasaortho.BEG in PART 2.
+
+cd .../<panda2workingspace>
+panda2log       (activate panda2 command set)
+begin           table 1
+
+[Note: We used three different material designators even though
+the entire shell is fabricated from only one actual material.
+The panel skin is made of Material 1; the stringers are made of
+Material 2; the rings are made of Material 3 . I did this so
+that there will appear in the list of margins a margin for the
+effective stress in the skin (matl=1), a margin for the effective
+stress in the stringers (matl=2), and a margin for the effective
+stress in the rings (matl=3). By means of this "trick" we can
+learn which part of the shell has the most critical stress margin.]
+
+[Another note: In these configurations there are no faying flanges.
+None the less, in BEGIN PANDA2 asks for the width, B2, of the stringer
+base, which is where the faying flange would be if there were one.
+We make the stringer base width, B2, equal to one third the spacing
+between the stingers, B(STR), for a reason: this is the most
+efficient allocation of width from the point of view of discretization
+of the single skin-stringer module (See Fig. 22b on p. 526 of the
+long 1987 paper on PANDA2: Computers & Structures, Vol. 25, pp 469-605,
+1987, for an example of a discretized single skin-stringer module).
+With B2 = B(STR)/3 the panel skin in the single module is divided into
+three segments of equal width. Therefore, the nodal point spacing in
+the skin is uniform.]
+
+setup
+decide          table 2
+
+[Note: an "equality constraint" is established in DECIDE that during
+optimization cycles the width, B2, of the stringer base will always
+remain equal to one third the spacing, B(STR), between stringers. Hence,
+B2 is not a decision variable but is linked to B(STR) with the linking
+constant equal to 0.3333.]
+
+mainsetup       table 3 (the shell is perfect and ITYPE = 2)
+pandaopt	table 4
+
+(Note that there is a tiny amount of hoop loading, Ny, and a small
+amount of in-plane shear loading, Nxy, that PANDA2 automatically
+adds in order to prevent numerical difficulties in cases for which
+only axial compression is specified by the user.)
+
+(Next, generate a BIGBOSOR4 model in which the part of the
+cylindrical shell BETWEEN ADJACENT RINGS is investigated.
+The cylindrical shell is modeled as part of a huge torus.
+See Appendix 1 for how this is done. The PANDA2
+processor called PANEL is used to generate a valid input
+file for BIGBOSOR4. This file is called nasaortho.ALL).
+
+panel	table 5; purpose is to generate a BIGBOSOR4 huge torus model.
+
+(The "huge torus" model is described in detail in AIAA Paper 2007-2216,
+48th AIAA Structures Meeting, Honolulu, Hawaii, 2007. The relevant
+pages from that paper are reproduced in Appendix 1.)
+
+(The panel length in the plane of the screen is the length around
+part of the circumference of the cylindrical shell. It should be
+equal to an integral number of stringer spacings. PANEL generates
+a valid input file for BIGBOSOR4 called nasaortho.ALL. The panel
+length normal to the plane of the paper in Fig. 1 is equal to the
+spacing between adjacent rings.)
+
+cp nasaortho.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log    (activate the bigbosor4 command set)
+bigbosorall     (produces the nasaortho.OUT.)
+resetup		(input, nasaortho.RES, is top part of Table 6)
+bigrestart	(output, nasaortho.OUT, is bottom part of Table 6)
+
+(We use the BIGBOSOR4 processors, resetup and bigrestart in order
+to get an output file, nasaortho.OUT, which is very small and
+for which it is easy to find the eigenvalues and wave numbers.
+You have to run bigbosorall once, however, before you can use
+resetup/bigrestart, since these are "re-start" processors. You
+don't have to look at the output from bigbosorall.)
+
+bosorplot       (produces Fig. 1, this is inter-ring buckling.)
+bosorplot       (produces Fig. 2, this is sort of like local buckling)
+cleanup         (cleans up bigbosor4 files)
+cd .../<panda2workingspace>
+
+(Next, generate a BIGBOSOR4 model in which the stringers are
+smeared out and the rings are modeled as shell branches. The PANDA2
+processor called PANEL2 is used. The BIGBOSOR4 model includes the
+entire cylindrical shell.)
+
+panel2   table 7; generate a BIGBOSOR4 model of the entire shell.
+
+[Note: the axial length of the shell is taken to be 68.00 inches
+rather than 68.75 inches (the actual length) because there is an
+integral number of ring spacings in the length, 68.00 inches.
+PANEL2 generates a valid input file for BIGBOSOR4, nasaortho.ALL.]
+
+cp nasaortho.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosorall     (produces the nasaortho.OUT. Table 8=abridged file)
+bosorplot       (produces Fig. 3. The shell is clamped top and bottom.)
+cleanup         (cleans up bigbosor4 files)
+
+(Next, set up and run various STAGS models of linear buckling.
+The PANDA2 processor, STAGSUNIT, is used to generate valid
+input files, *.bin and *.inp, for STAGS, in which "*" = "nasaortho".)
+
+(The first STAGS model is a general buckling model and inter-ring
+buckling model. The stringers are smeared out and the rings are
+modeled as shell units.)
+
+stagsunit	table 9; produces *.bin and *.inp files for STAGS.
+
+(Note: there must be an integral number of ring spacings along
+the axial length of the STAGS model and exactly an integral number
+of stringers over the 360-degree circumference of the cylindrical shell.
+The panel length in the plane of the screen that is included in the
+STAGS model must be equal to an integral number of stringer spacings.
+STAGSUNIT produces two STAGS input files: nasaortho.bin and
+nasaortho.inp.)
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho		(generates nasaortho.pdf)
+acroread nasaortho.pdf	(Fig. 4)
+[Edit the nasaortho.pin file to get an end view:
+nasaortho.pin (Table 11).]
+stapl nasaortho		(generates nasaortho.pdf)
+acroread nasaortho.pdf	(Fig. 5)
+
+(Fig. 5 shows a variation of the amplitude of the
+general buckling mode with circumferential coordinate.
+Get rid of this circumferential variation by doing
+the following:)
+
+cd .../<panda2workingspace>
+(Edit the file, nasaortho.STG listed in Table 9 by
+changing the last line: "1       $ Edges normal.....".
+Change the "1" to "0". "0" allows in-plane warping of
+the two straight edges of the STAGS model.)
+
+stagsunit       table 9 with the 1 in the last line changed to 0;
+                produces *.bin & *.inp for STAGS 
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2)
+stapl nasaortho		(Table 11; produces nasaortho.pdf file)
+acroread nasaortho.pdf	(Fig. 6)
+
+cd .../<panda2workingspace>
+
+[Set up a 3 stringer bay x 3 ring bay STAGS model
+for local buckling (buckling between adjacent
+stringers and between adjacent rings)]
+
+stagsunit	Table 12; produces *.bin & *.inp for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+stapl nasaortho         (Table 13; produces nasaortho.pdf file)
+acroread nasaortho.pdf  (Fig. 7; this is a general buckling mode.)
+
+(Edit the nasaortho.bin file to compute multiple eigenvalues
+in order to find one or more local buckling modes. The new
+nasaortho.bin file is listed in Table 14.)
+
+stags -b nasaortho	(execute STAGS; produces *.out2 file)
+(Inspect the nasaortho.out2 file. Abridged version in Table 15)
+stapl nasaortho		(produces nasaortho.pdf file)
+acroread nasaortho.pdf	(Fig. 8; another general buckling mode)
+stapl nasaortho         (produces another nasaortho.pdf file)
+acroread nasaortho.pdf	(Fig. 9; This looks like a local buckling mode.)
+(Get an end view. Edit the nasaortho.pin file: Table 16)
+stapl nasaortho         (produces another nasaortho.pdf file)
+acroread nasaortho.pdf	(Fig. 10; looks more like local than general buckling)
+
+[A NOTE ABOUT STAGS MODELS PRODUCED BY THE PANDA2 PROCESSOR, STAGSUNIT:
+One of the main objectives in the creation of STAGSUNIT was to be able to
+generate automatically STAGS models that occupy any sub-region of the
+complete shell that was previously optimized by PANDA2. Great care was taken
+with boundary conditions to ensure that the "patch" included in the STAGS
+model would represent with reasonable accuracy a piece embedded in the
+actual complete shell structure that was optimized with PANDA2. This
+required great care especially in cases in which significant applied in-plane
+shear loading is present. Being able to extract a small "patch" out of the
+entire shell structure permits accurate determination of the most local
+buckling predicted by PANDA2. We will see more examples of this "patch"
+modeling in Part 2.]
+
+
+(End of PART 1)
+-------------------------------------------------------------------------
+
+
+(Next, optimize an IMPERFECT shell. The imperfection has the
+shape of the general buckling mode with an amplitude,
+Wimp = plus and minus 0.125 inch. In the presence of a general
+buckling modal imperfection there must be at least two load
+cases in the *.OPT file (input for MAINSETUP). The plus Wimp is processed
+in Load Case 1, and the minus Wimp is processed in Load Case 2.
+This shell represents the parts of the shell in the neighborhoods
+of the weld lands where the imperfection amplitude is largest.)
+
+
+
+PART 2 runstream:
+
+cd .../<panda2workingspace>
+panda2log	(activate panda2 command set)
+begin		table 1 
+setup
+decide		table 2
+mainsetup	table 17. Notice the two load cases. 
+superopt	(produces nasaortho.OPP file. Look at it.)
+chooseplot	table 18; produces input files for diplot.
+diplot		(diplot yields nasaortho.5.ps, a
+                 postscript file "plotted" in Fig. 11)
+
+(Edit the nasaortho.OPT file: change ITYPE from 1 to 2)
+
+mainsetup       (table 17, except ITYPE is now equal to 2)
+pandaopt	(produces nasaortho.OPM: abridged version in Table 19)
+
+(Edit the nasaortho.OPT file again, this time eliminating
+the second load set and in the first load set changing the amplitude
+of the initial buckling modal general imperfection from 0.125 to 0.0.
+We do this so that we can compare PANDA2 buckling margins with results
+from BIGBOSOR4 and STAGS for the optimized shell with Wimp set equal
+to zero.)
+
+mainsetup	table 20
+pandaopt	(produces nasaortho.OPM: abridged version in Table 21)
+change		table 22: purpose is to save the optimum design.
+
+(Note: ALWAYS use CHANGE to save your optimized designs. That way
+you can easily "resurrect" these designs at some time in the future.)
+
+(Next, we want to generate tables that show various knockdown
+factors used in PANDA2. There are two kinds of knockdown factors:
+
+1. knockdown factors to compensate for the approximate nature of
+the various theories used in PANDA2. These knockdown factors have
+nothing to do with initial imperfections.
+
+2. knockdown factors because of initial imperfections that
+affect local, inter-ring, and general buckling load factors.)
+
+(Edit the nasaortho.OPT file: change NPRINT from 0 to 2)
+
+mainsetup	table 20, except that NPRINT = 2)
+pandaopt        (produces nasaortho.OPM: abridged versions in Tables 23 & 24)
+
+(Generate Tables 23 and 24 by extracting various parts of
+the long output file, nasaortho.OPM, that includes knockdown factors).
+
+(In order to see how the knockdown factors and margins depend on
+the PANDA2 "conservative index", ICONSV, see Tables 69 and 70.)
+
+(Next, set up and run various BIGBOSOR4 models as was done in Part 1.)
+
+panel	table 25: purpose is to generate a BIGBOSOR4 huge torus model.
+cp nasaortho.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log	(activate the bigbosor4 command set)
+bigbosorall	(produces the nasaortho.OUT file)
+resetup		(input for resetup is in the top part of Table 26)
+bigrestart	(produces the bottom part of Table 26)
+bosorplot	(produces Fig. 12)
+cleanup		(cleans up bigbosor4 files)
+cd .../<panda2workingspace>
+
+panel   table 27: purpose is to generate a BIGBOSOR4 huge torus model.
+cp nasaortho.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log    (activate the bigbosor4 command set)
+bigbosorall     (produces the nasaortho.OUT file)
+resetup         (input for resetup is in the top part of Table 28)
+bigrestart      (produces the bottom part of Table 28)
+bosorplot       (produces Fig. 13)
+cleanup         (cleans up bigbosor4 files)
+cd .../<panda2workingspace>
+
+panel2   table 29: purpose is to generate a BIGBOSOR4 model of shell.
+(Note: the stringers are smeared out and the rings are shell branches.)
+cp nasaortho.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log    (activate the bigbosor4 command set)
+bigbosorall     (produces nasaortho.OUT. Abridged version in Table 30)
+bosorplot       (produces Fig. 14: general buckling)
+bosorplot       (produces Fig. 15: inter-ring buckling)
+cleanup         (cleans up bigbosor4 files)
+
+(Edit the now fully annotated nasaortho.ALL file to change the
+boundary conditions at the top and bottom of the model shown in
+Fig. 14 from clamped to simple support.)
+
+bigbosorall	(produces nasaortho.OUT. Abridged version in Table 31)
+bosorplot       (produces Fig. 16: general buckling)
+bosorplot       (produces Fig. 17: inter-ring buckling)
+cleanup         (cleans up bigbosor4 files)
+
+[NOTE: The buckling load factors from PANDA2 for inter-ring and for
+general buckling (see margins 7 and 13 in the upper part of p. 1 of
+Table 21) are significantly lower than those predicted by BIGBOSOR4
+from the BIGBOSOR4 model produced by PANEL2. This is mostly because
+PANDA2 uses conservative knockdown factors to compensate for the
+approximate nature of the theories used in PANDA2 when the
+"conservativeness index", ICONSV = 1, which is the case here. See
+Table 23 for the values of these knockdown factors.]
+
+cd .../<panda2workingspace>
+
+(Next, we want to run STAGS models of the optimized design.
+We cannot simply use the optimum design listed at the bottom
+of Table 21 and in Table 22 because there has to be an
+integral number of stringers over the 360-degree circumference
+of the cylindrical shell, and there has to be an integral
+number of ring spacings over the length of the cylindrical
+shell. Therefore, we first use CHANGE to change the stringer
+spacing from that for the optimum design (1.85940 inches in
+Table 22) to the CLOSEST spacing that corresponds exactly
+to an integral number of stringers over 360 degrees
+(1.861685 inches in Table 32), and the ring spacing from
+that of the optimum design (11.772 inches in Table 22) to
+the CLOSEST ring spacing that corresponds exactly to an
+integral number of ring spacings over the 68.75-inch length
+of the shell (11.45833 inches in Table 32).
+
+change		table 32
+
+(Produce an input file for MAINSETUP that is the same as
+that listed in Table 17, except that ITYPE = 2 instead of 1).
+
+mainsetup	table 17, except TYPE = 2 instead of 1)
+pandaopt        (produces nasaortho.OPM: abridged version in Table 33a)
+
+[For a rather complete explanation of what calculations PANDA2 performs
+for a "fixed" design (the "STAGSworthy" version of the optimum design
+listed in Table 33a) see Appendix 2. This appendix is very useful for
+PANDA2 users who want to learn more about what goes on inside PANDA2.]
+
+(Edit the nasaortho.OPT file again, this time eliminating
+the second load set and in the first load set changing the amplitude
+of the initial buckling modal general imperfection from 0.125 to 0.0.)
+
+mainsetup	table 20
+pandaopt        (produces nasaortho.OPM: abridged version in Table 33b)
+
+
+(Next, set up and run various STAGS models of linear buckling.
+The PANDA2 processor, STAGSUNIT, is used to generate valid
+input files, *.bin and *.inp, for STAGS, in which "*" = "nasaortho".
+Lots of time on this project was spent on this phase of it. This
+is a long segment of the run stream because many different STAGS
+models were explored.)
+
+(The first STAGS model is a general buckling model. Both stringers
+and rings are smeared out in this model: table 34.)
+
+stagsunit       table 34; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 18)
+[Edit the nasaortho.pin file to get an end view:
+nasaortho.pin (Table 11).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 19)
+
+[The critical general buckling mode predicted by STAGS
+agrees with that predicted by PANDA2 (Table 33b) and
+by BIGBOSOR4 (Fig. 16)]
+
+cd .../<panda2workingspace>
+
+(The next STAGS model is an inter-ring buckling model. The stringers
+are smeared out and the rings are shell units in this model: table 35.)
+
+stagsunit       table 35; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 20)
+[Edit the nasaortho.pin file to get an end view:
+nasaortho.pin (Table 11).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 21)
+
+cd .../<panda2workingspace>
+
+(The next STAGS model is a 3-stringer-bay x 3-ring-bay model.
+Both the stringers and the rings are modeled as shell units
+in this model: table 36.)
+
+stagsunit       table 36; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 22)
+
+cd .../<panda2workingspace>
+
+(The next STAGS model is a 6-stringer-bay x 1-ring-bay model.
+Both the stringers and the rings are modeled as shell units
+in this model: table 37.)
+
+stagsunit       table 37; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 23)
+
+cd .../<panda2workingspace>
+
+[Next, we want to use STAGS to explore the NONLINEAR 
+behavior of the optimized shell (that is, the "STAGSworthy"
+version of the optimized shell listed in Tables 33a & 33b).
+Because of the relatively closely spaced stringers
+(1.861685-inch spacing in Table 32), there are 162
+stringers in the 360 degrees of circumference of the
+cylindrical shell. Therefore, it is impractical to
+include the entire cylindrical shell or even 180 degrees
+of the shell in the STAGS model which treats all
+stringers and rings as shell units. We see from Figs
+18 and 19 that the critical general buckling mode found
+from the model in which all stifferers are smeared has
+three axial half waves and six circumferential
+half waves over 180 degrees of circumference. This
+STAGS prediction agrees with the prediction of
+PANDA2. (See Margin No. 13 on the first page of Table 33b).
+We can predict this critical general buckling mode
+from a STAGS model that includes the entire 68.75-inch
+length of the shell and that includes only 60 degrees
+of circumference, which corresponds to one full
+circumferential wave of the critical general buckling
+mode. (Actually, we need only include one third the
+axial length of the shell and 30 degrees of circumference,
+but more on that model later). Table 38 lists the
+input for the PANDA2 processor, STAGSUNIT, for the
+60-degree STAGS model in which all the stiffeners are
+modeled as shell units. We use this model in a long
+series of STAGS linear buckling runs aimed at finding
+the critical general buckling mode shape and load
+factor. This general buckling mode shape is to be
+used later as an imperfection shape in the nonlinear
+analysis of the shell, with the amplitude of the
+general buckling modal imperfection, Wimp = plus or
+minux 0.125 inch. In retrospect it would have been
+far more efficient to use a smaller STAGS model for
+searching for the general buckling mode, but we were
+optimistic and thought the search wouldn't be as tiresome
+as it turned out to be (Table 44).]
+
+(The first 60-degree STAGS model is a general buckling model.
+Both stringers and rings are smeared out in this model: table 38.)
+
+stagsunit       table 38; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 24)
+[Edit the nasaortho.pin file to get an end view:
+nasaortho.pin (Table 11).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 25)
+
+cd .../<panda2workingspace>
+
+(The next STAGS model is an inter-ring/general buckling model.
+The stringers are smeared out and the rings are shell units
+in this model: table 39.)
+
+stagsunit       table 39; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(An abridged version of the file, nasaortho.out2, is
+listed in Table 40.)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 26)
+[Edit the nasaortho.pin file to get the 4th eigenvector:
+nasaortho.pin (Table 10 with MODE = 4 instead of 1).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 27)
+
+cd .../<panda2workingspace>
+
+(The next 60-degree STAGS model is an inter-ring/general buckling
+model. The stringers are smeared out and the rings are shell units
+in this model. The only change from the previous STAGS model
+is that ILIN has been changed from 0 to 1. Using ILIN = 1
+raises the load factors corresponding to short-wavelength
+eigenvectors more than for long-wavelength eigenvectors: table 41.
+Setting ILIN = 1 is not really necessary for STAGS models in which
+the stringers are smeared out. However, we do it now in order to
+demonstrate its effect on eigenvalues corresponding to inter-ring
+buckling and general buckling.)
+
+stagsunit       table 41; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(An abridged version of the file, nasaortho.out2, is
+listed in Table 42. Compare with Table 40.)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvector. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 28)
+[Edit the nasaortho.pin file to get the 2nd eigenvector:
+nasaortho.pin (Table 10 with MODE = 2 instead of 1).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 29)
+
+cd .../<panda2workingspace>
+
+(In the next 60-degree STAGS model all the stiffeners are
+modeled as shell branches. We use this model to search
+for the general buckling mode that is analogous to that
+displayed in Fig. 29. This is a tedious process because
+there are hundreds of local buckling modes in the spectrum
+that includes the one general buckling mode that we are
+searching for. You have to have a lot of patience while
+you repeatedly run STAGS in a linear buckling option in
+your search for the general buckling mode and eigenvalue.
+You start using an eigenvalue shift close to the most
+accurate value you have so far, which in this case is
+the value, 2.5829, given in Fig. 29. Use ILIN = 1
+for the linear buckling STAGS model used in the search
+for general buckling. For each STAGS linear buckling
+execution use 8 for the number of eigenvalues wanted
+in each run. In retrospect it would have been
+far more efficient to use a smaller STAGS model for
+searching for the general buckling mode, but we were
+optimistic and thought the search wouldn't be as tiresome
+as it turned out to be (Table 44).)
+
+stagsunit       table 43; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found to 8 and to change the
+eigenvalue SHIFT. For example, in this first STAGS linear
+buckling run, we set SHIFT = 2.575, slightly below the
+eigenvalue listed in Fig. 29: 2.5829.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[We use STAPL/acroread to look at each converged mode shape
+to see if it happens to be the sought-after general buckling
+mode analogous to that displayed in Fig. 29. If none of the
+8 modes corresponds to general buckling, we change the
+value of SHIFT near the bottom of the nasaortho.bin file
+and we execute STAGS again. We do this over and over and
+over and over again (VERY tedious) until we either find
+the general buckling mode or get discouraged and do something
+else. The first eight pages of Table 44 (STAGS linear
+buckling runs 2 - 35) lists the results of an extensive and
+most tiresome search that required about 3 days of calandar
+time. We just could not find the general buckling mode!
+The typical mode we encountered during the search was
+similar to that displayed in Fig. 30. During our search
+we encountered several inter-ring buckling modes as
+shown in Figs. 31 - 35. We were expecting the general
+buckling eigenvalue to be slightly lower than than
+listed in Fig. 29. Therefore, most of our search was for
+eigenvalue shifts lower than that. It turns out, as we
+shall see later, that the eigenvalue corresponding to
+general buckling is somewhat higher than that listed
+in Fig. 29, something we did not expect and actually
+do not understand. As a result of our long and still
+unsuccessful search, we decided to use a much smaller
+STAGS model in order to speed up this tedious process.
+This much smaller STAGS model includes only one third
+of the axial length of the cylindrical shell (one half
+axial wavelength of the critical general bucking mode
+displayed in Fig. 29) and only about 30 degrees of circumference
+(close to one half the circumferential extent of the STAGS
+model displayed in Fig. 25). Note that we could not
+use EXACTLY 30 degrees because that corresponds to
+13.5 stringer spacings. STAGSUNIT only permits an
+integral number of stringer spacings. We decided to
+include exactly 14 stringer spacings in our "small" model.]
+
+cd .../<panda2workingspace>
+
+(The first approx.30-degree STAGS model is an inter-ring/general buckling
+model. The stringers are smeared out and the rings are shell units
+in this "small"  model. ILIN = 1 (Table 45)
+
+stagsunit       table 45; produces *.bin and *.inp files for STAGS.
+
+(You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found and the eigenvalue SHIFT.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(An abridged version of the file, nasaortho.out2, is
+listed in Table 46. Compare with Tables 40 and 42.)
+
+[Inspect the nasaortho.out2 file. Search for the strings,
+"roots" and "CONV". Look at the eigenvalues and compare
+with the corresponding buckling eigenvalues from
+PANDA2 (margins) and BIGBOSOR4 (buckling load factors).
+Check to see if any roots have been skipped.]
+
+[Next, get a plot of the critical eigenvectors. First,
+set up an input file for the STAGS postprocessor, STAPL:
+nasaortho.pin (Table 10).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 36)
+[Edit the nasaortho.pin file to get the 2nd eigenvector:
+nasaortho.pin (Table 10 with MODE = 2 instead of 1).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 37)
+[Edit the nasaortho.pin file to get an end view:
+nasaortho.pin (Table 11 with MODE = 2 instead of 1).]
+stapl nasaortho         (generates nasaortho.pdf)
+acroread nasaortho.pdf  (Fig. 38)
+
+cd .../<panda2workingspace>
+
+(In the next approx.30-degree STAGS model all the stiffeners
+are modeled as shell branches. We use this model to search
+for the general buckling mode that is analogous to that
+displayed in Figs. 29 and 38. This is a tedious process because
+there are many, many local buckling modes in the spectrum
+that includes the one general buckling mode that we are
+searching for. You have to have a lot of patience while
+you repeatedly run STAGS in a linear buckling option in
+your search for the general buckling mode and eigenvalue.
+Start explorint with eigenvalue shifts in the lower end
+of the range used in Table 44. Use ILIN = 1 . For each
+STAGS linear buckling execution use 8 for the number of
+eigenvalues wanted in each run.)
+
+stagsunit       table 47; produces *.bin and *.inp files for STAGS.
+
+[You may want to edit the nasaortho.bin file to change the
+number of eigenvalues to be found to 8 and to change the
+eigenvalue SHIFT. For example, in this first STAGS linear
+buckling run, we set SHIFT = 2.4314, which is the eigenvalue
+found from the 60-degree STAGS model that corresponds to
+the critical inter-ring buckling mode. (See STAGS run no.
+26 at the bottom of p. 6 and the top of p. 7 of Table 44.)]
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[We use STAPL/acroread to look at each converged mode shape
+to see if it happens to be the sought-after general buckling
+mode analogous to that displayed in Figs. 29 and 38. If none
+of the 8 modes corresponds to general buckling, we change the
+value of SHIFT near the bottom of the nasaortho.bin file
+and we execute STAGS again. We do this over and over and
+over and over again (VERY tedious) until we either find
+the general buckling mode or get discouraged and do something
+else. Table 48 lists the results of an extensive and
+most tiresome search that required about 1 day of calandar
+time. We finally found the general buckling mode (bottom of
+page 3 of Table 48), and surprisingly its eigenvalue is
+higher than that for the model with smeared stringers.
+(See Fig. 38). The general buckling mode is hidden in a
+"thicket" of local buckling modes of the type shown in
+Fig. 39, inter-ring buckling modes of the types displayed
+in Figs. 40 and 41, and combined local/inter-ring buckling
+modes of the types shown in Figs. 42 and 43. The general
+buckling mode is shown in Figs. 44 and 45.]
+
+cd .../<panda2workingspace>
+
+(Now go back to the 60-degree STAGS model with all stiffeners
+modeled as shell branches. From the 30-degree STAGS model we
+now know that we should extend the search starting at the
+high end of the eigenvalue range explored for the 60-degree
+STAGS model, results for which are listed in Table 44. 
+See STAGS run no. 7 on p. 2 of Table 44.)
+
+stagsunit       table 43; produces *.bin and *.inp files for STAGS.
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[We use STAPL/acroread to look at each converged mode shape
+to see if it happens to be the sought-after general buckling
+mode analogous to that displayed in Figs. 29 and 38. If none
+of the 8 modes corresponds to general buckling, we change the
+value of SHIFT near the bottom of the nasaortho.bin file
+and we execute STAGS again. We do this over and over again
+until we finally discover the general buckling mode. The
+results from this exploration are entered on the last page
+of Table 44 as STAGS runs 36 - 39. We find the general buckling
+mode! (See Figs. 46a and 46b).]
+
+(Next, while still in the STAGS working space, we copy the
+nasaortho.bin and nasaortho.inp files to temporary locations,
+calling them nasa.bin and nasa.inp. Then we delete all "nasaortho"
+files, then restore them. Here are the commands:)
+
+cp nasaortho.bin nasa.bin
+cp nasaortho.inp nasa.inp
+'rm' nasaortho.*
+cp nasa.bin nasaortho.bin
+cp nasa.inp nasaortho.inp
+
+(We edit the nasaortho.bin file so that we have the
+file as listed in Table 49. Then we execute STAGS for
+linear buckling.)
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Executing STAPL with the use of Table 10 as input,
+we again obtain the same general buckling mode as that
+displayed in Figs. 46a and 46b. This general buckling
+mode shape will become the FIRST buckling modal imperfection.)
+
+(We edit the nasaortho.bin file again so that now we have the
+file as listed in Table 50. The eigenvalue shift, 2.431432,
+corresponds to the critical inter-ring buckling mode displayed
+in Fig. 35. Then we execute STAGS for linear buckling (INDIC=1).
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Executing STAPL with the use of Table 10 as input,
+we again obtain the same critical inter-ring  buckling mode as that
+displayed in Fig. 35. This inter-ring buckling
+mode shape will become the SECOND buckling modal imperfection.)
+
+(We edit the nasaortho.bin file a third time so that now we have the
+file as listed in Table 51. We are looking for the lowest
+eigenvalue with ILIN = 1 (which ordinarily we should not do).
+Then we execute STAGS for linear buckling.)
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Executing STAPL with the use of Table 10 as input,
+we obtain the critical local  buckling mode. This
+local buckling mode was found with ILIN = 1, which is
+something that should not be done if the critical local
+buckling mode is to be used as an imperfection shape.
+The critical local buckling mode with ILIN = 1 is
+plotted in Fig. 47. Notice that the eigenvalue is 1.7661.)
+
+(In order to produce a critical local buckling mode that
+may be used as an imperfection shape, we need to re-execute
+STAGSUNIT with ILIN changed from 1 to 0. Note that in any
+nonlinear STAGS analysis ILIN should be set to 0 anyway. We
+do the following:)
+
+cd .../<panda2workingspace>
+stagsunit       table 43 except that ILIN= 0 instead of 1
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[Execute STAPL with Table 10 input. The critical (lowest)
+local buckling mode and eigenvalue appear in Fig. 48. Note
+that the critical eigenvalue, 1.3654, is significantly
+smaller than the critical local buckling eigenvalue determined
+with use of ILIN = 1: 1.7661 in Fig. 47. The first eigenvalue
+(root) does not represent a very good imperfection shape. We
+decide to use the 5th eigenvector shown in Fig. 49 as a local
+buckling imperfection shape instead of the first eigenvector.
+This becomes the THIRD imperfection shape to be used in the
+STAGS nonlinear analysis.]
+
+[Next, perform a nonlinear STAGS analysis (INDIC = 3). The
+input file, nasaortho.bin, is listed in Table 52. The other
+required input file, nasaortho.inp, is obtained by suitably
+editing the nasaortho.inp file used for the linear buckling
+analysis. The portion of the nasaortho.inp file in which
+changes occur is listed in Table 53. There are two places
+where changes must be made:
+
+1. The number of imperfections, NIMPFS, on the B-2 record
+must be changed from 0 to 3, and
+
+2. Three new B-5 records must be introduced as listed in
+Table 53. NOTE: You don't always have to have 3 imperfection
+shapes, of course. We happen to be doing that in this
+example. Also, note that the amplitudes of the inter-ring
+buckling modal imperfection and of the local buckling modal
+imperfection are very, very small. These tiny imperfections
+act as "triggers": their presence tends to keep bifurcation
+points off of the nonlinear equilibrium path, thereby making
+it more likely that the Riks nonlinear continuation will
+retain zero roots as the nonlinear equilibrium path is followed.]
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[An abridged version of nasaortho.out2 is listed in Table 54.
+The STAGS postprocessor, STAPL, is used to generate the plots
+shown in Figs. 50 - 53. Then 2nd and 3rd nonlinear STAGS runs
+are executed. The results are summarized in Table 55, and the
+first nonlinear buckling mode at Load Step no. 17 is displayed
+in Fig. 54. Then a 4th nonlinear STAGS run is executed, with
+results from the nasaortho.out2 file summarized at the bottom
+of Table 56. STAGS was unable to find a converged nonlinear
+solution for a load factor PA higher than 1.27888. (Load Step
+No. 30 at the end of Table 56). The first nonlinear buckling
+mode at Step 30 is shown in Fig. 55, and the equilibrium state
+of the shell at Load Step 30 is shown in Figs. 56 - 60. The
+input for the STAGS postprocessor, STAPL, for inner fiber
+effective stress is listed in Table 57. At Load Step 30 there
+exists significant stringer deformation at the inward lobes
+of the overall deformation pattern.]
+
+[NOTE: In Fig. 51 we see that at the design load, PA = 1.0
+(Nx = -2219 lb/in) STAGS predicts an inward maximum normal
+deflection that is almost twice the maximum outward normal
+deflection, this in spite of the overall Poisson radial
+expansion (positive w) of the axially compressed shell. IT IS
+EMPHASIZED THAT PANDA2 CANNOT PREDICT THIS BEHAVIOR. THE APPROXIMATE
+THEORY USED IN PANDA2 IS BASED ON THE ASSUMPTION THAT AS
+THE SHELL WITH A GENERAL BUCKLING MODAL IMPERFECTION IS
+LOADED IN AXIAL COMPRESSION, THE AMPLITUDE OF THE IMPERFECTION
+SHAPE GROWS HYPERBOLICALLY, that is, w = Wimp/(eigenvalue - 1)
+in which "eigenvalue" is the general buckling load factor.
+(See Equation (13) on p. 494 of the paper "Approximate method...",
+Computers & Structures, Vol 59, pp. 489-527, 1996). In PANDA2 The
+shape of the overall deformation is assumed to remain unchanged
+as the loading is increased. Therefore, since the general
+buckling mode shape is assumed in PANDA2 to vary trigonometrically
+in both the axial and circumferential coordinate directions,
+the outward deflection remains equal to the inward deflection.
+It is obvious from Fig. 51 that this is not a very accurate
+picture of what happens in nature. It is for reasons such as
+this that the PANDA2 user is ALWAYS urged to check his/her
+optimum designs obtained with PANDA2 by running a general-
+purpose program such as STAGS. It is essential that whatever
+general-purpose program is chosen be capable of handling nonlinear
+behavior.]
+
+[Next, we want to plot the sidesway at the tip of one of the
+stringers as a function of the load factor, PA. In order to
+do this, we must have a nodal point number or numbers for which
+to plot the normal displacement w vs. PA. We take the following
+steps:
+
+1. Obtain a "zoomed" plot with only a few of the shell units
+included in the model. Table 58 is the input for STAPL and
+Fig. 61 shows the "zoomed" plot.
+
+2. Note points for which we want to generate plots of normal
+deflection w at the stringer tip. Two such points are indicated
+in Fig. 61. At this time we do not know the nodal point numbers
+corresponding to these two locations, even though the numbers
+are indicated in Fig. 61.
+
+3. Generate a nasaortho.pdf file that has the nodal point
+numbers on it. The input data for STAPL are listed in Table 59.
+We include the three shell units, 15, 16, and 33 [two of the
+central stringers (units 15 and 16) and the central ring (unit 33)]
+in order to know where we are in the structure.
+
+4. Get a "zoomed" plot of the resulting nasaortho.pdf file.
+This plot is displayed in Fig. 62.
+
+5. From Fig. 61 we have determined that the two points where
+the stringer sidesway is maximum lie four mesh intervals from
+the intersection of the stringer (shell unit 16) with the
+central ring (shell unit 33), including the circumferential
+mesh line at the intersection. From Fig. 62 we can see (barely!)
+that the two nodal points we want plots for are Node 19767 and
+Node 19797.]
+
+[Table 60 lists the input data for the STAGS post-processor
+called "xytrans", which is used to generate the "x-y" plot
+of stringer sidesway versus load factor PA. Execution of
+xytrans with this input generates the file called "nasaortho.plt"
+(or "nasaortho.plt.n", n = 1, 2, 3, etc. if we have executed
+xytrans several times in succession). The nasaortho.plt file
+is listed in Table 61. This file is copied to the panda2 case
+working area and suitably edited for plotting with Bill Bushnell's
+excellent "x-y" plot software called ../bin/plotps.linux.
+Table 62 lists typical input data for plotps.linux. The command,
+
+../bin/plotps.linux < nasaortho.input > nasaortho.ps
+
+generates the postscript file, nasaortho.ps, which yields
+the plot displayed in Fig. 63. The sequence of commands to
+generate the desired plot of stringer sidesway v. PA is:]
+
+xytrans		(table 60, nasaortho.pxy,  is input; nasaortho.plt is output)
+cp nasaortho.plt  .../<panda2workingspace> .
+cd .../<panda2workingspace>
+cp nasaortho.plt nasaortho.input
+(Edit the nasaortho.input file to yield Table 62)
+../bin/plotps.linux < nasaortho.input > nasaortho.ps
+gv nasaortho.ps (to see Fig. 63 on your screen)
+
+
+(Next, we want to use STAGSUNIT to generate a STAGS model that
+has a NONUNIFORM MESH. We want to concentrated the mesh in the
+central region of the panel shown in Figs. 46a and 46b.)
+
+stagsunit       table 63 is input. Note that ILIN = 1 
+
+(Edit the nasaortho.bin file. Use as the initial eigenvalue
+shift 2.608979, which is the eigenvalue given in Figs. 46a
+and 46b, the model with uniform mesh.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(We plot the model, that is, the nasaortho_m.pdf file.
+The STAGS model, nasaortho_m.pdf, is shown in Figs. 64 and 65.)
+
+(We use STAPL/acroread to look at each converged mode shape
+to see if it happens to be the sought-after general buckling
+mode analogous to that displayed in Figs. 46a and 46b. If none
+of the 8 modes corresponds to general buckling, we change the
+value of SHIFT near the bottom of the nasaortho.bin file
+and we execute STAGS again. We do this over and over again
+until we finally discover the general buckling mode. The
+results from this exploration are listed in Table 64. The
+general buckling mode corresponds to the eigenvalue, 2.601934.)
+
+(Next, while still in the STAGS working space, we copy the
+nasaortho.bin and nasaortho.inp files to temporary locations,
+calling them nasa.bin and nasa.inp. Then we delete all "nasaortho"
+files, then restore them. Here are the commands:)
+
+cp nasaortho.bin nasa.bin
+cp nasaortho.inp nasa.inp
+'rm' nasaortho.*
+cp nasa.bin nasaortho.bin
+cp nasa.inp nasaortho.inp
+
+(We edit the nasaortho.bin file so that we have the
+file as listed in Table 65. Then we execute STAGS for
+linear buckling.)
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Executing STAPL, we obtain the same general buckling mode and
+eigenvalue as that listed near the bottom of Table 64. The general
+buckling mode shape is plotted in Figs. 66 - 68. This general buckling
+mode shape will become the buckling modal imperfection in the
+nonlinear STAGS run(s) to follow.)
+
+(Next, we want to do a STAGS nonlinear analysis of the shell with
+a linear general buckling modal imperfection shape with amplitude,
+Wimp = -0.125 inch, that is, we want an imperfection shape that
+is the negative of the mode shape displayed in Figs. 66 and 67.
+First, we must go back to the panda2 working space and re-execute
+STAGSUNIT with ILIN changed from 1, as it is in Table 63, to 0,
+as it is in Table 66. It is essential that ILIN = 0 in nonlinear
+STAGS runs. Otherwise the STAGS nonlinear predictions will be
+unconservative.)
+
+cd .../<panda2workingspace>
+stagsunit       table 66 is input for STAGSUNIT 
+
+(Edit the nasaortho.bin file to only find one eigenvalue
+and to set the eigenvalue shift to 1.3).
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(The STAGS linear buckling analysis followed by execution of
+STAPL with Table 10 as input yields Fig. 69).
+
+[Next, we provide a new nasaortho.bin file, the one listed
+in Table 52. Then we edit nasaortho.inp to set the number of
+imperfections NIMPFS to 1 instead of zero and to add the
+following B-5 record:
+
+C Begin B-4, B-5 input data, if any...
+ -0.125   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (1st imperf.)
+
+then we execute the nonlinear (INDIC=3) STAGS case]:
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+[The nonlinear buckling eigenvalue and eigenvector at PA = 1.0 are
+plotted in Fig. 70, Figures 71 and 72 show one of the central
+stringers on which are plotted the inner fiber (Fig. 71) and outer
+fiber (Fig. 72) effective stress.] STAGS predicts a lower
+stress at the stringer tip than does PANDA2:
+
+STAGS  stress at stringer tip = approximately 33000 psi
+
+PANDA2 stress at stringer tip = 55043 psi (ICONSV = 1) 
+PANDA2 stress at stringer tip = 51034 psi (ICONSV = 0)
+PANDA2 stress at stringer tip = 42622 psi (ICONSV =-1)
+
+The values of stress from PANDA2 are computed from the formula:
+
+(actual effective stress) = (max. allowable stress)/[(margin+1) x f.s]
+                   55043  =  70000/[(0.273 + 1)*0.999] for ICONSV = 1
+                   51043  =  70000/[(0.373 + 1)*0.999] for ICONSV = 0
+                   42622  =  70000/[(0.644 + 1)*0.999] for ICONSV =-1
+
+in which the margins, 0.273, 0.373, and 0.644, are listed on p.A16 of Appendix 2
+in the detailed section on CHAPTERS 13 and 14 included in connection with
+Table 33a. STAGS predicts lower stress at the stiffener tip for the
+following reasons:
+
+1. In Fig. 51 STAGS predicts less outward deflection w than is predicted
+by PANDA2: from STAGS, w(outward) = 0.09239; from PANDA2 = 0.1557 (ICONSV= 1)
+           from STAGS, w(outward) = 0.09239; from PANDA2 = 0.1375 (ICONSV= 0)
+           from STAGS, w(outward) = 0.09239; from PANDA2 = 0.0916 (ICONSV=-1)
+
+2. In Figs. 71 and 72 the effective stress is not really the stress at the
+tip of the stringer, but near the tip because the stress is computed at
+the 9 integration points of the STAGS 480 finite element.]
+
+3. The maximum stress from a contour plot underestimates the maximum stress
+from the STAGS postprocessor, xytrans. (Compare the maximum effective stress
+shown in Fig. 85a with that shown in Fig. 87, for example.) 
+
+
+(Next, we want to use STAGSUNIT to generate a STAGS model that
+has the same nonuniform mesh as is shown in Figs. 64 and 65 except
+that there are no stringers with an extra dense mesh, as is the
+case in Table 63. ILIN is again equal to unity to "filter out"
+some local buckling eigenmodes. The new input to STAGSUNIT is
+listed in Table 67.
+
+stagsunit       table 67 is input. Note that ILIN = 1
+
+(Edit the nasaortho.bin file. Use as the initial eigenvalue
+shift 2.601934, which is the eigenvalue given in Figs. 66 
+and 67 corresponding to the model with nonuniform mesh and with
+extra mesh density in four of the central stringers, as shown
+in Figs.71 and 72, for examples.)
+
+cp nasaortho.bin .../<stagsworkingspace> .
+cp nasaortho.inp .../<stagsworkingspace> .
+cd <stagsworkingspace>
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(We use STAPL/acroread to look at each converged mode shape
+to see if it happens to be the sought-after general buckling
+mode analogous to that displayed in Figs. 66 and 67. If none
+of the 8 modes corresponds to general buckling, we change the
+value of SHIFT near the bottom of the nasaortho.bin file
+and we execute STAGS again. We do this over and over again
+until we finally discover the general buckling mode. The
+results from this exploration are listed in Table 68. The
+general buckling mode corresponds to the eigenvalue, 2.607991,
+listed on page 2 of Table 68.)
+
+(Next, while still in the STAGS working space, we copy the
+nasaortho.bin and nasaortho.inp files to temporary locations,
+calling them nasa.bin and nasa.inp. Then we delete all "nasaortho"
+files, then restore them. Here are the commands:)
+
+cp nasaortho.bin nasa.bin
+cp nasaortho.inp nasa.inp
+'rm' nasaortho.*
+cp nasa.bin nasaortho.bin
+cp nasa.inp nasaortho.inp
+
+(We edit the nasaortho.bin file so that we have the
+file as listed in Table 65 except that the eigenvalue shift
+is equal to 2.607991 instead of 2.601934. Then we execute STAGS
+for linear buckling.)
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Executing STAPL, we obtain the same general buckling mode and
+eigenvalue as that listed on page 2 of Table 68. The general
+buckling mode shape is plotted in Figs. 73 and 74. This general buckling
+mode shape will become the negative of the buckling modal imperfection
+in the nonlinear STAGS run(s) to follow. Notice that the general buckling
+mode happens to have the opposite sign of that shown in Figs. 66 and 67.
+Compare Fig. 74 with Fig. 67.)
+
+(Next, we want to do a STAGS nonlinear analysis of the shell with
+a linear general buckling modal imperfection shape with amplitude,
+Wimp = -0.125 inch, that is, we want an imperfection shape that
+is the negative of the mode shape displayed in Figs. 73 and 74.
+First, we must go back to the panda2 working space and re-execute
+STAGSUNIT with ILIN changed from 1, as it is in Table 67, to 0 .
+It is essential that the user set ILIN = 0 in all nonlinear STAGS
+models. Otherwise, STAGS will predict unconservative results.)
+
+cd .../<panda2workingspace>
+stagsunit       table 67, with ILIN = 0 instead of 1, is input for STAGSUNIT
+
+[Next, we provide a new nasaortho.bin file, the one listed
+in Table 52. Then we edit nasaortho.inp to set the number of
+imperfections NIMPFS to 1 instead of zero and to add the
+following B-5 record:
+
+C Begin B-4, B-5 input data, if any...
+ -0.125   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (1st imperf.)
+
+Then we execute the nonlinear (INDIC=3) STAGS case]:
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(STAPL generates the nonlinear deformation at Load Step 12, that is,
+at the design load, PA = 1.0. It is displayed in Fig. 75. Figs. 76,
+77, and 78 show the closest eigenvalue and eigenvector at PA = 1.0. Fig.
+77 and 78 are analogous to Figs. 52 and 53 for the STAGS model with
+the uniform mesh.)
+
+We do a STAGS nonlinear restart at Load Step 12 and continue loading:
+
+stags -b nasaortho      (execute STAGS; produces *.out2 file)
+
+(Figures 79 - 85a and 85b show the state of the shell at Load Step 30, which
+corresponds to load factor, PA = 1.275).
+
+We want to plot the effective stress in the panel skin as a function
+of the load factor, PA.  First, we have to find out for which finite
+element we want the plot. We choose the finite element that exhibits
+the highest effective stress in the entire model at the load factor,
+PA = 1.275. Figure 85b indicates the element for which we want to
+plot the effective stress. This element is in the region of dense
+mesh, and we note that it is located 10 finite elements "up" and 9 
+finite elements "over" from the corner of the dense region closest to
+the bottom of Fig. 85b. As shown in Fig. 86, this is finite element
+number 2912. The STAGS postprocessor, xytrans, is used to generate
+the data in Fig. 87. Figure 87 is generated in a manner that is
+completely analogous to the way in which Fig. 63 is generated. The
+only difference is that with Figure 87 we have to specify a finite
+element, whereas in Figure 63 we had to specify a nodal point. (NOTE:
+Sometimes the nodal points are hard to see in a plot because, for the
+480 finite element in STAGS, there are many more of them than there
+are finite elements.)
+
+
+DEPENDENCE OF RESULTS ON THE "CONSERVATIVENESS INDEX", ICONSV,
+FOR THE OPTIMUM DESIGN LISTED IN TABLE 33b
+
+Table 69 lists inter-ring and general buckling load factors for
+ICONSV = 1 and 0 and the general buckling load factor for ICONSV = -1 .
+(The inter-ring data for ICONSV = -1 are the same as for ICONSV = 0 in
+this particular case).
+
+Table 70 lists the margins for Load Case 1, Subcase 1 corresponding
+to ICONSV = 1, 0, and -1. ICONSV = 1 is the recommended value. However,
+weight can be saved through the use of ICONSV = 0 and ICONSV = -1.
+If the PANDA2 user can verify his designs by application of a general
+purpose computer program such as STAGS to optimum designs previously
+obtained by PANDA2, then he or she is urged to try optimizing with ICONSV = 0
+and ICONSV = -1. In this case the margins increase from ICONSV = 1 to
+ICONSV = 0 to ICONSV = -1 because we are applying these different
+values of ICONSV to the SAME DESIGN: that design optimized with the
+use of the recommended value, ICONSV = 1. 
+
+
+(End of the loooong PART 2)
+-------------------------------------------------------------------------
+
+
+(Next, optimize an IMPERFECT shell again. The imperfection again
+has the shape of the general buckling mode with an amplitude,
+Wimp = plus and minus 0.050 inch. The plus Wimp is processed
+in Load Case 1, and the minus Wimp is processed in Load Case 2.
+This shell represents the acreage remote from any weld land
+because a much smaller imperfection amplitude, Wimp = plus
+and minus 0.050 inch, is specified than that specified in
+Part 2. The name of the case in Part 3 is "nasaortho2".)
+
+
+PART 3 runstream:
+
+cd .../<panda2workingspace>
+panda2log       (activate panda2 command set)
+begin           table 71
+
+(NOTE: use the ring spacing determined in Part 2 because
+we want the rings to be continuous in the regions near and
+away from the weld lands.)
+
+setup
+decide          table 72
+
+(NOTE: Compare with Table 2. Notice that B(RNG) is no longer
+a decision variable.)
+
+mainsetup       table 73 
+pandaopt	produces nasaortho2.OPM and nasaortho2.OPP
+pandaopt        produces nasaortho2.OPM and nasaortho2.OPP
+pandaopt        produces nasaortho2.OPM and nasaortho2.OPP
+(Inspect the nasaortho2.OPP file. See Table 74 for an abridged version)
+chooseplot      table 75; produces input files for diplot.
+diplot          (diplot yields nasaortho2.3.ps, nasaorth2.4.ps, nasaortho2.5.ps,
+                 postscript files "plotted" in Figs. 88, 89, 90)
+chooseplot      table 76; produces input files for diplot.
+diplot          (diplot yields nasaortho2.3.ps and nasaortho2.4.ps,
+                 postscript files "plotted" in Figs. 91 and 92)
+
+superopt        (produces nasaortho2.OPP file. Look at it.)
+chooseplot      table 18; produces an input file for diplot.
+diplot          (diplot yields nasaortho2.5.ps, a
+                 postscript file "plotted" in Fig. 93)
+
+(Edit the nasaortho2.OPT  change ITYPE from 1 to 2)
+
+mainsetup       (table 73, except ITYPE is now equal to 2)
+pandaopt        (produces nasaortho2.OPM: abridged version in Table 77)
+
+(Edit the nasaortho2.OPT file again, this time eliminating
+the second load set and in the first load set changing the amplitude
+of the initial buckling modal general imperfection from 0.050 to 0.0.)
+
+mainsetup       table 20
+pandaopt        (produces nasaortho2.OPM: abridged version in Table 78)
+change          table 79: purpose is to save the optimum design.
+
+(Next, generate a BIGBOSOR4 model in which the part of the
+cylindrical shell BETWEEN ADJACENT RINGS is investigated.
+The cylindrical shell is modeled as part of a huge torus.
+See Appendix 1 for how this is done. The PANDA2
+processor called PANEL is used to generate a valid input
+file for BIGBOSOR4. This file is called nasaortho2.ALL).
+
+panel   table 80: purpose is to generate a BIGBOSOR4 huge torus model.
+cp nasaortho2.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log    (activate the bigbosor4 command set)
+bigbosorall     (produces the nasaortho2.OUT file)
+resetup         (input for resetup is in the top part of Table 81)
+bigrestart      (produces the bottom part of Table 81)
+bosorplot       (produces Fig. 94)
+bosorplot       (produces Fig. 95)
+cleanup         (cleans up bigbosor4 files)
+cd .../<panda2workingspace>
+
+(Next, generate a BIGBOSOR4 model in which the wall properties of
+the shell wall between adjacent rings are smeared out. The PANDA2
+processor called PANEL2 is used. The BIGBOSOR4 model includes the
+entire cylindrical shell. The rings are modeled as shell branches.)
+
+panel2   table 82: purpose is to generate a BIGBOSOR4 model of shell.
+cp nasaortho2.ALL .../<bigbosor4workingspace> .
+cd .../<bigbosor4workingspace>
+bigbosor4log    (activate the bigbosor4 command set)
+bigbosorall     (produces nasaortho2.OUT. Abridged version in Table 83)
+bosorplot       (produces Fig. 96: general buckling)
+bosorplot       (produces Fig. 97: inter-ring buckling)
+cleanup         (cleans up bigbosor4 files)
+========================================================================

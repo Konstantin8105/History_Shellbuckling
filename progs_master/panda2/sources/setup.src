@@ -1,0 +1,1243 @@
+C=DECK      SETUP
+C  PURPOSE IS TO SETUP UP A FILE SUITABLE AS INPUT TO BOSOR4
+C  skin-stringer module and entire panel width.
+C
+      PROGRAM SETUP
+C
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIFF(2),NLAYER(4,2),NNNN(2),INTEXT(2)
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+C BEG JAN 1996
+C BEG DEC 1998
+C BEG JUN 2004
+      COMMON/ISKIPY/ISKIPX(910)
+C END JUN 2004
+C END DEC 1998
+C END JAN 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C BEG AUG 2006 (dimension of IPOINT increased from 95 to 195)
+C BEG APR 2007 (increas dimension of IPOINT from 195 to 295 for use with bigbosor4)
+      COMMON/BOSEGS/NSEGB5,IPOINT(295)
+C END APR 2007
+C END AUG 2006
+      COMMON/GEOM1/AXIAL,CIRC,R
+      DIMENSION NMESH(10),R1(10),Z1(10),R2(10),Z2(10),NTYPEH(10)
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C BEG OCT 1998
+C     IUNAME = 5
+C     CALL CASNAM(IUNAME,CASE)
+C     IUNAME = 12
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C     CLOSE(IUNAME)
+C END OCT 1998
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.ALL'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE4=CASE(:I-1)//'.BOS'
+         CASE5=CASE(:I-1)//'.SET'
+      ELSE
+         CASE2=CASE//'.ALL'
+         CASE3=CASE//'.CBL'
+         CASE4=CASE//'.BOS'
+         CASE5=CASE//'.SET'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2
+      IOUT2 = 3
+      ifile1 = 1
+      IFILE7 = 7
+      ifile14 = 14
+c
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=14,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=1,FILE=CASE4,STATUS='UNKNOWN')
+C     OPEN(UNIT=3,FILE=CASE5,STATUS='SCRATCH')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile14, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile14)
+#endif
+      else
+        OPEN(UNIT=ifile14, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile1, FILE=case4(1:lastch(case4)), STATUS='OLD')
+#if rs6k
+        rewind(ifile1)
+#endif
+      else
+        OPEN(UNIT=ifile1, FILE=case4(1:lastch(case4)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case5(1:lastch(case5)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=iout2, FILE=case5(1:lastch(case5)), STATUS='OLD')
+#if rs6k
+        rewind(iout2)
+#endif
+      else
+        OPEN(UNIT=iout2, FILE=case5(1:lastch(case5)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+C BEG JUNE 1990
+      IOUT = 14
+C END JUNE 1990
+      IOUT1= 1
+C
+      WRITE(6,5)
+C BEG VMS
+C   5 FORMAT(//'  **************   SETUP   ***************'//
+C    1'  The purpose of SETUP is to set up an input data file called'/
+C    1'  NAME.ALL, in which NAME is your name for this case.  This'/
+C    1'  file, NAME.ALL, is a BOSOR4-type of input data file. It is'/
+C    1'  used as input for the next batch run, launched when you give'/
+C    1'  the command BOSMODEL.'//
+C    1'  **********************************************'/)
+C END VMS
+C BEG UNIX
+    5 FORMAT(//'  **************   SETUP   ***************'//
+     1'  The purpose of SETUP is to set up an input data file called'/
+     1'  NAME.ALL, in which NAME is your name for this case.  This'/
+     1'  file, NAME.ALL, is a BOSOR4-type of input data file. It is'/
+     1'  used as input for B4READ.'//
+     1'  **********************************************'/)
+C END UNIX
+C
+      WRITE(6,6)
+C BEG VMS
+C   6 FORMAT(/ 
+C    1'     GENERATING BOSOR4-TYPE DISCRETIZED MODELS'/
+C    1'            FOR A SINGLE PANEL MODULE'/
+C    1' AND FOR THE ENTIRE PANEL WIDTH WITH SMEARED STRINGERS'//
+C    1' The commands  SETUP and BOSMODEL cause templates'/
+C    1' of the stiffness and  load-geometric matrices to'/
+C    1' be set up for the buckling problems involving: '//
+C    1'   1. a single panel module, which is'/
+C    1'      used for: '//
+C    1'        a. local buckling and postbuckling'/
+C    1'           analysis, '/
+C    1'        b. wide column buckling analysis, and '/
+C    1'        c. the nonlinear local static response of'/
+C    1'           an  axially stiffened panel to uniform'/
+C    1'           normal pressure. '/)
+C END VMS
+C BEG UNIX
+    6 FORMAT(/ 
+     1'     GENERATING BOSOR4-TYPE DISCRETIZED MODELS'/
+     1'            FOR A SINGLE PANEL MODULE'/
+     1' AND FOR THE ENTIRE PANEL WIDTH WITH SMEARED STRINGERS'//
+     1' The command SETUP causes templates'/
+     1' of the stiffness and  load-geometric matrices to'/
+     1' be set up for the buckling problems involving: '//
+     1'   1. a single panel module, which is'/
+     1'      used for: '//
+     1'        a. local buckling and postbuckling'/
+     1'           analysis, '/
+     1'        b. wide column buckling analysis, and '/
+     1'        c. the nonlinear local static response of'/
+     1'           an  axially stiffened panel to uniform'/
+     1'           normal pressure. '/)
+C END UNIX
+      WRITE(6,7)
+    7 FORMAT( 
+     1'   2. the entire panel with smeared stiffeners,'/
+     1'      which is used for:'//
+     1'        a. general instability for a panel with'/
+     1'           an axial load that varies across the'/
+     1'           span of the panel, and '//
+     1'        b. the nonlinear overall static response'/
+     1'           of a stiffened panel to uniform'/
+     1'           normal pressure. '//
+     1' Much of the BOSOR4 preprocessor software is used'/
+     1' to do this.  Therefore, in order to use PANDA2'/
+     1' you must have available to you the most recent'/
+     1' version of BOSOR4. '/)
+C
+C     CALL DATUM(IFILE,810,1,2,MODEL,REALL,CHARAC,IOUT2,0,1)
+C BEG 26 JAN 1989
+      IMESH = 9
+C END 26 JAN 1989
+C BEG JUNE 1991
+      IFINE = 0
+C END JUNE 1991
+C BEG NOV 1991
+      NTEST = 6
+      IF (ISTIFF(1).EQ.4.AND.B2(1).GT.W2(1)) NTEST = 8
+      IF (NTEST.LE.6) IFINE = 1
+C END NOV 1991
+C BEG AUG 1992
+      IFINE = 1
+C END AUG 1992
+      MODEL = 1
+C
+C  GET END POINTS OF SEGMENTS IN A SINGLE MODULE OF THE PANEL...
+C
+C  TEMPORARY CARDS FOR CHECKING PURPOSES...
+C
+       ISTIF = ISTIFF(1)
+C BEG AUG 1991
+       IF (ISTIF.EQ.4.AND.IFINE.EQ.0) IMESH = 7
+C END AUG 1991
+C
+      IF (ISTIF.LT.4) CALL RZTJR(IMESH,ISTIF,B(1),B2(1),H(1),W(1),NSEG,
+C BEG MAY 1997
+     1                           NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IZSTIF(1))
+C END MAY 1997
+C BEG JUNE 1991
+      IF (ISTIF.EQ.4) CALL RZHAT(IMESH,B(1),B2(1),H(1),W(1),W2(1),NSEG,
+     1                           NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IFINE)
+C END JUNE 1991
+C
+C BEG JULY 1989  (ADD TRUSSCORE CONFIGURATION)
+C
+C BEG NOV 1995
+      IF (ISTIF.EQ.5) CALL RZTRUS(IMESH,B(1),B2(1),H(1),NSEG,
+C END NOV 1995
+     1                           NMESH,NTYPEH,R1,Z1,R2,Z2,R0)
+C END JULY 1989
+C
+C  NOW WRITE TO THE OUTPUT FILE..
+C
+      WRITE(IOUT,'(A)')' BOSOR4 INPUT FOR A PANEL MODULE'
+      WRITE(IOUT,'(A,I3,A)')
+     1          ' 1,1,0,', NSEG,' $ NUMBER OF SEGS IN PANEL MODULE '
+C
+      NSEGB5 = NSEG
+      DO 10 I = 1,NSEG
+C
+        IPOINT(I) = NMESH(I) + 2
+        CALL OUTSEG(IOUT,I,NMESH(I),NTYPEH(I),R1(I),Z1(I),R2(I),Z2(I))
+C
+   10 CONTINUE
+C
+      WRITE(IOUT,'(A)')' H $ END OF SEGMENT DATA;  GLOBAL DATA BEGINS.'
+      WRITE(IOUT,'(A,I3)')' -1,0,0,0,0,1,0,0,0,0,0,0,', NSEG
+C
+C BEG MAY 1997
+      IF (ISTIF.LT.4) CALL CONTJR(IOUT,ISTIF,NSEG,NMESH,IZSTIF(1))
+C END MAY 1997
+      IF (ISTIF.EQ.4) CALL CONHAT(IOUT,NSEG,NMESH,B2(1),W2(1))
+C
+C BEG JULY 1989
+C BEG NOV 1995
+      IF (ISTIF.EQ.5) CALL CONTRU(IOUT,NSEG,NMESH,B2)
+C END NOV 1995
+C END JULY 1989
+C
+      DO 20 ISEG = 1,NSEG
+   20 WRITE(IOUT,'(A)')' Y'
+      WRITE(IOUT,'(A)')' N'
+C
+      CALL MOVER(B,1,B0,1,10)
+C BEG JAN 1996
+C BEG DEC 1998
+C BEG JUN 2004
+      CALL MOVER(0,0,ISKIPX,1,910)
+C END JUN 2004
+C END DEC 1998
+C END JAN 1996
+C
+C  GENERATE BOSOR4 INPUT FOR ENTIRE PANEL WITH SMEARED STIFFENERS.
+C
+      CALL ENTIRE(AXIAL,CIRC,R,IOUT1)
+C
+      CALL STORCM(IFILE7)
+C
+      CLOSE(UNIT=IFILE7)
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=IOUT1)
+C
+      WRITE(6,30) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C BEG VMS
+C  30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+C    1 1X,A,'.ALL = Input data for BOSOR4-type of preprocessor.'/
+C    1'           correponding to discretized single panel module.'/
+C    1 1X,A,'.BOS = Input data for BOSOR4-type of preprocessor.'/
+C    1'           correponding to discretized entire panel with'/
+C    1'           smeared stiffeners.'/
+C    1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+C    1' For further information about files generated during operation'/
+C    1' of PANDA2 give the command HELPAN FILES.'//
+C    1' Next, give the command   BOSMODEL   .'//
+C    1' This command will cause to be generated matrix templates'/
+C    1' for solution of the local and general buckling eigenvalue'/
+C    1' problems in which the cross section of the panel module is'/
+C    1' discretized and in which the entire panel cross section is'/
+C    1' discretized (smeared stiffeners) according to the conventions'/
+C    1' used in BOSOR4.  After the batch run launched by BOSMODEL is'/
+C    1' finished, you give either the command DECIDE or MAINSETUP.'/)
+C END VMS
+C BEG UNIX
+   30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.ALL = Input data for BOSOR4-type of preprocessor.'/
+     1'           correponding to discretized single panel module.'/
+     1 1X,A,'.BOS = Input data for BOSOR4-type of preprocessor.'/
+     1'           correponding to discretized entire panel with'/
+     1'           smeared stiffeners.'/
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' The next module will cause to be generated matrix templates'/
+     1' for solution of the local and general buckling eigenvalue'/
+     1' problems in which the cross section of the panel module is'/
+     1' discretized and in which the entire panel cross section is'/
+     1' discretized (smeared stiffeners) according to the conventions'/
+     1' used in BOSOR4.'/)
+C
+      close(unit=iout2, status='DELETE')
+C END UNIX
+      END
+C
+C
+C
+C=DECK      RZTJR
+      SUBROUTINE RZTJR(IMESH,ISTIF,B,B2,H,W,NSEG,NMESH,NTYPEH,INTEXT,
+C BEG MAY 1997
+     1                 R1,Z1,R2,Z2,R0,IZSTIF)
+C END MAY 1997
+C
+C  PURPOSE IS TO GET END POINTS OF ALL SEGMENTS IN A PANEL MODULE
+C  FOR N, T, J, AND R TYPE STIFFENERS. Also Z-type (may 1997)
+C
+      DIMENSION NMESH(*),R1(*),Z1(*),R2(*),Z2(*),NTYPEH(*)
+C
+      R0 = 10. + B/2.
+      FACT = 1.0
+      IF (INTEXT.EQ.1) FACT = -1.0
+C  SEGMENT 1 (SAME LOGIC FOR ALL THREE TYPES OF STIFFENER, T, J, & R)
+C
+      R1(1) = R0 - B/2.
+      Z1(1) = 0.
+      NMESH(1) = IMESH
+      NTYPEH(1) = 1
+      R2(1) = (B - B2)/2.  + R1(1)
+C BEG MAY 1997
+      IF (IZSTIF.EQ.1) R2(1) = B/2.  + R1(1)
+C END MAY 1997
+      Z2(1) = 0.
+C
+C  SEGMENT 2 (SAME LOGIC FOR ALL THREE TYPES OF STIFFENER)
+C
+      R1(2) = R2(1)
+      Z1(2) = Z2(1)
+C BEG 26 JAN 1989
+      NMESH(2) = 9
+C END 26 JAN 1989
+      NTYPEH(2) = 1
+      R2(2) = R1(2) + B2
+      Z2(2) = 0.
+C BEG MAY 1997
+      IF (IZSTIF.EQ.1) THEN
+         R1(2) = R2(1) - B2/2.
+         R2(2) = R2(1) + B2/2.
+      ENDIF
+C END MAY 1997
+C
+      IF (ISTIF.EQ.0) THEN
+         NMESH(2) = IMESH
+         R2(2) = R1(1) + B
+         NSEG = 2
+         RETURN
+      ENDIF
+C
+C  SEGMENT 3 (SAME LOGIC FOR ALL THREE TYPES OF STIFFENER)
+C
+      R1(3) = R1(1) + B/2.
+C BEG MAY 1997
+      IF (IZSTIF.EQ.1) R1(3) = R2(2)
+C END MAY 1997
+      Z1(3) = 0.
+C BEG 26 JAN 1989
+      NMESH(3) = 9
+C END 26 JAN 1989
+      NTYPEH(3) = 1
+      R2(3) = R1(3)
+      Z2(3) = Z1(3) + FACT*H
+C
+C  SEGMENT 4  FOR THE T AND J IS THE FLANGE; FOR THE BLADE, SEGMENT 4
+C             IS THE RIGHT-HAND-PART OF THE SKIN (RIGHTMOST THIN PART)
+C
+      IF (ISTIF.EQ.3) THEN
+C
+C  BRANCH FOR BLADE...
+         R1(4) = R2(2)
+         Z1(4) = Z2(2)
+         NMESH(4) = IMESH
+         NTYPEH(4) = 1
+         R2(4) = R1(1) + B
+         Z2(4) = 0.
+         NSEG = 4
+         RETURN
+C
+      ELSE
+C
+C  BRANCH FOR T OR J STIFFENER...
+C
+         IF (ISTIF.EQ.1) R1(4) = R2(3) - W/2.
+         IF (ISTIF.EQ.2) R1(4) = R2(3)
+         Z1(4) = Z2(3)
+C BEG 26 JAN 1989
+         NMESH(4) = 9
+C END 26 JAN 1989
+         NTYPEH(4) = 1
+         R2(4) = R1(4) + W
+         Z2(4) = Z1(4)
+C
+C  SEGMENT 5 (SAME LOGIC FOR BOTH T AND J STIFFENERS...
+C
+         R1(5) = R2(2)
+C BEG MAY 1997
+         IF (IZSTIF.EQ.1) R1(5) = R2(1)
+C END MAY 1997
+         Z1(5) = Z2(2)
+         NMESH(5) = IMESH
+         NTYPEH(5) = 1
+         R2(5) = R1(1) + B
+         Z2(5) = 0.
+         NSEG = 5
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      RZHAT
+C BEG JUNE 1991
+      SUBROUTINE RZHAT(IMESH,B,B2,H,W,W2,NSEG,NMESH,NTYPEH,INTEXT,
+     1                 R1,Z1,R2,Z2,R0,IFINE)
+C END JUNE 1991
+C
+C  PURPOSE IS TO GENERATE GEOMETRY FOR THE HAT MODULE
+C
+      DIMENSION NMESH(*),R1(*),Z1(*),R2(*),Z2(*),NTYPEH(*)
+C
+      R0 = 10. + B/2.
+      FACT = 1.0
+      IF (INTEXT.EQ.1) FACT = -1.0
+C  SEGMENT 1..
+C
+      R1(1) = R0 - B/2.
+      Z1(1) = 0.
+      NMESH(1) = IMESH
+      NTYPEH(1) = 1
+      R2(1) = (B - B2)/2. + R1(1)
+      Z2(1) = 0.
+C
+      IF (B2.GT.W2) THEN
+C
+C  BRANCH FOR HAT ON A THICKENED BASE WIDER THAN W2...
+C
+C
+C  SEGMENT 2..
+C
+      R1(2) = R2(1)
+      Z1(2) = Z2(1)
+      NMESH(2) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(2) = 9
+C END JUNE 1991
+      NTYPEH(2) = 1
+      R2(2) = R1(2) + (B2 - W2)/2.
+      Z2(2) = 0.
+C
+C  SEGMENT 3..
+C
+      R1(3) = R2(2)
+      Z1(3) = Z2(2)
+      NMESH(3) = 7
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(3) = 9
+C END JUNE 1991
+      NTYPEH(3) = 1
+      R2(3) = R1(3) + W2
+      Z2(3) = 0.
+C
+C  SEGMENT 4..
+C
+      R1(4) = R2(2)
+      Z1(4) = Z2(2)
+      NMESH(4) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(4) = 9
+C END JUNE 1991
+      NTYPEH(4) = 1
+      R2(4) = R1(1) + B/2. - W/2.
+      Z2(4) = FACT*H
+C
+C  SEGMENT 5...
+C
+      R1(5) = R2(4)
+      Z1(5) = Z2(4)
+      NMESH(5) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(5) = 9
+C END JUNE 1991
+      NTYPEH(5) = 1
+      R2(5) = R1(5) + W
+      Z2(5) = Z1(5)
+C
+C  SEGMENT 6..
+C
+      R1(6) = R2(5)
+      Z1(6) = Z2(5)
+      NMESH(6) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(6) = 9
+C END JUNE 1991
+      NTYPEH(6) = 1
+      R2(6) = R1(3) + W2
+      Z2(6) = 0.
+C
+C  SEGMENT 7..
+C
+      R1(7) = R2(6)
+      Z1(7) = Z2(6)
+      NMESH(7) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(7) = 9
+C END JUNE 1991
+      NTYPEH(7) = 1
+      R2(7) = R1(7) + (B2-W2)/2.
+      Z2(7) = 0.
+C
+C  SEGMENT 8...
+C
+      R1(8) = R2(7)
+      Z1(8) = Z2(7)
+      NMESH(8) = IMESH
+      NTYPEH(8) = 1
+      R2(8) = R1(1) + B
+      Z2(8) = 0.
+      NSEG = 8
+C
+      ELSE
+C
+C  BRANCH FOR HAT WITH B2 = W2 . . .
+C
+C
+C  SEGMENT 2..
+C
+      R1(2) = R2(1)
+      Z1(2) = Z2(1)
+      NMESH(2) = 7
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(2) = 9
+C END JUNE 1991
+      NTYPEH(2) = 1
+      R2(2) = R1(2) + W2
+      Z2(2) = 0.
+C
+C  SEGMENT 3..
+C
+      R1(3) = R2(1)
+      Z1(3) = Z2(1)
+      NMESH(3) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(3) = 9
+C END JUNE 1991
+      NTYPEH(3) = 1
+      R2(3) = R1(1) + B/2. - W/2.
+      Z2(3) = FACT*H
+C
+C  SEGMENT 4...
+C
+      R1(4) = R2(3)
+      Z1(4) = Z2(3)
+      NMESH(4) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(4) = 9
+C END JUNE 1991
+      NTYPEH(4) = 1
+      R2(4) = R1(4) + W
+      Z2(4) = Z1(4)
+C
+C  SEGMENT 5..
+C
+      R1(5) = R2(4)
+      Z1(5) = Z2(4)
+      NMESH(5) = 5
+C BEG JUNE 1991
+      IF (IFINE.EQ.1) NMESH(5) = 9
+C END JUNE 1991
+      NTYPEH(5) = 1
+      R2(5) = R1(2) + W2
+      Z2(5) = 0.
+C
+C  SEGMENT 6..
+C
+      R1(6) = R2(5)
+      Z1(6) = Z2(5)
+      NMESH(6) = IMESH
+      NTYPEH(6) = 1
+      R2(6) = R1(1) + B
+      Z2(6) = 0.
+C
+      NSEG = 6
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C BEG JULY 1989
+C
+C=DECK      RZTRUS
+C BEG NOV 1995
+      SUBROUTINE RZTRUS(IMESH,B,B2,H,NSEG,NMESH,NTYPEH,
+C END NOV 1995
+     1                 R1,Z1,R2,Z2,R0)
+C
+C  PURPOSE IS TO GENERATE GEOMETRY FOR THE HAT MODULE
+C
+      DIMENSION NMESH(*),R1(*),Z1(*),R2(*),Z2(*),NTYPEH(*)
+C
+      R0 = 10. + B/2.
+C
+C  SEGMENT 1..
+C
+      R1(1) = R0 - B/2.
+      Z1(1) = 0.
+      NMESH(1) = IMESH
+      NTYPEH(1) = 1
+C BEG NOV 1995
+      R2(1) = R1(1) + B - B2
+C END NOV 1995
+      Z2(1) = 0.
+C
+C  SEGMENT 2..
+C
+      R1(2) = R2(1)
+      Z1(2) = 0.
+      NMESH(2) = IMESH
+      NTYPEH(2) = 1
+      R2(2) = R1(1) + B/2.
+      Z2(2) = H
+C
+C  SEGMENT 3..
+C
+      R1(3) = R2(2)
+      Z1(3) = H
+      NMESH(3) = IMESH
+      NTYPEH(3) = 1
+C BEG NOV 1995
+      R2(3) = R1(3) + B - B2
+C END NOV 1995
+      Z2(3) = H
+C
+C  SEGMENT 4..
+C
+      R1(4) = R2(3)
+      Z1(4) = H
+      NMESH(4) = IMESH
+      NTYPEH(4) = 1
+C BEG NOV 1995
+      R2(4) = R2(1) + B2
+C END NOV 1995
+      Z2(4) = 0.
+      NSEG = 4
+C BEG NOV 1995
+      IF (B2.GT.0.0) THEN
+C SEGMENT 5..
+         R1(5) = R2(4)
+         Z1(5) = 0.
+         NMESH(5) = IMESH
+         NTYPEH(5) = 1
+         R2(5) = R2(1)
+         Z2(5) = 0.
+C
+C SEGMENT 6..
+         R1(6) = R1(1) + B/2. - B2
+         Z1(6) = H
+         NMESH(6) = IMESH
+         NTYPEH(6) = 1
+         R2(6) = R1(3)
+         Z2(6) = H
+         NSEG = 6
+      ENDIF
+C END NOV 1995
+C
+      RETURN
+      END
+C
+C END JULY 1989
+C
+C
+C=DECK      OUTSEG
+      SUBROUTINE OUTSEG(IOUT,ISEG,NMESH,NTYPEH,R1,Z1,R2,Z2)
+C
+C  PURPOSE IS TO GENERATE PART OF BOSOR5 DECK RELATED TO SEGMENTS.
+C
+      WRITE(IOUT,'(A,I3)')' H $ BEGINNING OF DATA FOR SEGMENT',ISEG
+      WRITE(IOUT,'(2I4)') NMESH,NTYPEH
+      IF (NTYPEH.EQ.1) THEN
+         WRITE(IOUT,'(A,2I4,A)')' 4,1,2,',NMESH-2,NMESH-1,',2,1,1,2'
+      ENDIF
+      WRITE(IOUT,'(A,1P,4E14.6,A)') ' 1,',R1,Z1,R2,Z2,' $ END POINTS'
+      WRITE(IOUT,'(A)')' 0,3,1'
+      WRITE(IOUT,'(A)')' N,0,0,0,0,2,1,0,0,0,0,0'
+      WRITE(IOUT,'(A)')' N'
+      WRITE(IOUT,'(A)')' N'
+      WRITE(IOUT,'(A)')' N'
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONTJR
+C BEG MAY 1997
+      SUBROUTINE CONTJR(IOUT,ISTIF,NSEG,NMESH,IZSTIF)
+C END MAY 1997
+C
+C  PURPOSE IS TO GENERATE BOUNDARY AND JUNCTURE CONDITION BOSOR5 INPUT.
+C
+      DIMENSION NMESH(*)
+C
+      DO 100 I = 1,NSEG
+C
+      WRITE(IOUT,'(A,I3)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT',I
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+C BEG MAY 1997
+      IF (I.NE.1.AND.I.NE.2.AND.I.NE.NSEG
+     1                     .AND.(I.NE.3.OR.IZSTIF.EQ.0)) THEN
+C END MAY 1997
+         WRITE(IOUT,'(A)')' 0 $ NO GROUNDING'
+      ENDIF
+      IF (I.EQ.1) THEN
+C BEG MAY 1997
+         IF (IZSTIF.EQ.0) WRITE(IOUT,'(A)')' 1,1,0,0,1,1,0,0'
+         IF (IZSTIF.EQ.1) WRITE(IOUT,'(A)')' 2,1,0,0,1,1,0,0'
+         WRITE(IOUT,'(A)')' Y   $ SYMMETRY  APPLIED AT BEGINNING'
+         IF (IZSTIF.EQ.1) THEN
+            INODE = NMESH(I)
+            WRITE(IOUT,'(I3,A)')
+     1      INODE,',0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+            WRITE(IOUT,'(A)')' Y'
+         ENDIF
+C END MAY 1997
+         WRITE(IOUT,'(A)')' N   $ NO CONNECTION TO LOWER SEGMENT'
+      ENDIF
+C BEG MAY 1997
+      IF (I.EQ.2.AND.ISTIF.GT.0.AND.IZSTIF.EQ.0) THEN
+C END MAY 1997
+         INODE = NMESH(I)/2 + 1
+         WRITE(IOUT,'(A,I3,A)')
+     1      ' 1,',INODE,',0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+      ENDIF
+C BEG MAY 1997
+      IF (I.EQ.2.AND.ISTIF.GT.0.AND.IZSTIF.EQ.1) THEN
+         WRITE(IOUT,'(A)')' 0 $ NO GROUNDING'
+      ENDIF
+      IF (I.EQ.3.AND.IZSTIF.EQ.1) THEN
+         WRITE(IOUT,'(A)')
+     1      ' 1,1,0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+      ENDIF
+C END MAY 1997
+      IF (I.EQ.NSEG.AND.ISTIF.GT.0) THEN
+         WRITE(IOUT,'(A,I3,A)')' 1,',NMESH(NSEG),',0,0,1,1,0,0'
+         WRITE(IOUT,'(A)')' Y   $ SYMMETRY  APPLIED AT END'
+      ENDIF
+C
+      IF (I.EQ.NSEG.AND.ISTIF.EQ.0) THEN
+         WRITE(IOUT,'(A)')' 2,1,0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+         WRITE(IOUT,'(I4,A)') NMESH(NSEG),',0,0,1,1,0,0'
+         WRITE(IOUT,'(A)')' Y   $ SYMMETRY  APPLIED AT END'
+      ENDIF
+C
+      IF (I.GT.1) THEN
+       WRITE(IOUT,'(A)')' Y   $ YES, CONNECTION TO LOWER SEG.'
+       NNODE = 1
+       IF (I.EQ.NSEG) NNODE = 2
+       INODE = 1
+       IF (ISTIF.EQ.1.AND.I.EQ.4) INODE = NMESH(I)/2 + 1
+C BEG MAY 1997
+       ECCEN = 0.
+C BEG JAN 2002
+       IF ((ISTIF.EQ.1.OR.ISTIF.EQ.2.OR.ISTIF.EQ.3)
+     1    .AND.IZSTIF.EQ.0.AND.I.EQ.3) ECCEN = 0.00001
+C END JAN 2002
+       IF (IZSTIF.EQ.1.AND.I.EQ.2) THEN
+          INODE =NMESH(I)/2 + 1
+          ECCEN = 0.00001
+       ENDIF
+C END MAY 1997
+C END MAY 1997
+       JSEG = I - 1
+C BEG MAY 1997
+       IF (I.EQ.NSEG.AND.ISTIF.GT.0.AND.IZSTIF.EQ.0) JSEG = 2
+       IF (I.EQ.NSEG.AND.IZSTIF.EQ.1) JSEG = 1
+C END MAY 1997
+       JNODE = NMESH(JSEG)
+C BEG MAY 1997
+       IF (I.EQ.3.AND.IZSTIF.EQ.0) JNODE = NMESH(JSEG)/2 + 1
+C END MAY 1997
+C
+C BEG MAY 1997
+C BEG JAN 2002
+C      IF (IZSTIF.EQ.0)
+C    1    WRITE(IOUT,'(4I4,A)') NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0'
+C      IF (IZSTIF.EQ.1) WRITE(IOUT,'(4I4,A,1P,E10.2)') 
+       WRITE(IOUT,'(4I4,A,1P,E10.2)')
+C END JAN 2002
+     1       NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,',ECCEN
+C END MAY 1997
+       WRITE(IOUT,'(A)')' Y'
+      ENDIF
+C
+  100 CONTINUE
+C
+      INODE = NMESH(NSEG)/2 + 1
+      JNODE = NMESH(1)/2 + 1
+      JSEG  = 1
+      WRITE(IOUT,'(3I4,A)') INODE,JSEG,JNODE,',0,0,0,0,0,0'
+      WRITE(IOUT,'(A)') ' Y'
+C
+      WRITE(IOUT,'(A)')' N   $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      WRITE(IOUT,'(A)')' H   $ END OF DATA FOR PANEL MODULE'
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CONHAT
+      SUBROUTINE CONHAT(IOUT,NSEG,NMESH,B2,W2)
+C
+C  PURPOSE IS TO GENERATE BOUNDARY AND JUNCTURE CONDITIONS FOR HAT
+C
+      DIMENSION NMESH(*)
+C
+         IF (B2.GT.W2) THEN
+            IC2 = 2
+            IC3 = 3
+            IC4 = 4
+            IC5 = 5
+            IC6 = 6
+            IC7 = 7
+         ELSE
+            IC2 = 1
+            IC3 = 2
+            IC4 = 3
+            IC5 = 4
+            IC6 = 5
+            IC7 = 6
+         ENDIF
+C
+      DO 100 I = 1,NSEG
+C
+      WRITE(IOUT,'(A,I3)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT',I
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      IF (I.NE.1.AND.I.NE.IC3.AND.I.NE.NSEG) THEN
+         WRITE(IOUT,'(A)')' 0 $ NO GROUNDING'
+      ENDIF
+      IF (I.EQ.1) THEN
+         WRITE(IOUT,'(A)')' 1,1,0,0,1,1,0,0'
+         WRITE(IOUT,'(A)')' Y   $ SYMMETRY  APPLIED AT BEGINNING'
+         WRITE(IOUT,'(A)')' N   $ NO CONNECTION TO LOWER SEGMENT'
+      ENDIF
+      IF (I.EQ.IC3) THEN
+         INODE = NMESH(I)/2 + 1
+C BEG 26 JAN 1989
+         WRITE(IOUT,'(A)')' 3                 $ NO. OF NODES TO GROUND'
+         WRITE(IOUT,'(A)')' 1,0,0,0,0,0,0         $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+         WRITE(IOUT,'(I4,A)') INODE,',0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+         WRITE(IOUT,'(I4,A)')
+     1      NMESH(I),',0,0,0,0,0,0 $ PLACE TO HANG B.C.'
+         WRITE(IOUT,'(A)')' Y'
+C END 26 JAN 1989
+      ENDIF
+      IF (I.EQ.NSEG) THEN
+         WRITE(IOUT,'(A,I4,A)')' 1,',NMESH(NSEG),',0,0,1,1,0,0'
+         WRITE(IOUT,'(A)')' Y   $ SYMMETRY  APPLIED AT END'
+      ENDIF
+C
+      IF (I.GT.1) THEN
+       WRITE(IOUT,'(A)')' Y   $ YES, CONNECTION TO LOWER SEG.'
+       INODE = 1
+       JSEG = I - 1
+       IF (I.EQ.IC4) JSEG = IC2
+       IF (I.EQ.IC7) JSEG = IC3
+       JNODE = NMESH(JSEG)
+       NNODE = 1
+       IF (I.EQ.IC6) NNODE = 2
+       IF (I.EQ.NSEG) NNODE = 2
+C
+       WRITE(IOUT,'(4I4,A)') NNODE,INODE,JSEG,JNODE,',1,1,1,1,0,0'
+       WRITE(IOUT,'(A)')' Y'
+       IF (I.EQ.IC6) THEN
+          INODE = NMESH(I)
+          JSEG  = IC3
+          JNODE = NMESH(JSEG)
+          WRITE(IOUT,'(3I4,A)') INODE,JSEG,JNODE,',1,1,1,1,0,0'
+          WRITE(IOUT,'(A)')' Y'
+       ENDIF
+      ENDIF
+C
+  100 CONTINUE
+C
+      INODE = NMESH(NSEG)/2 + 1
+      JNODE = NMESH(1)/2 + 1
+      JSEG  = 1
+      WRITE(IOUT,'(3I4,A)') INODE,JSEG,JNODE,',0,0,0,0,0,0'
+      WRITE(IOUT,'(A)') ' Y'
+C
+      WRITE(IOUT,'(A)')' N   $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      WRITE(IOUT,'(A)')' H   $ END OF DATA FOR PANEL MODULE'
+C
+      RETURN
+      END
+C
+C
+C BEG JULY 1989
+C
+C=DECK      CONTRU
+C BEG NOV 1995
+      SUBROUTINE CONTRU(IOUT,NSEG,NMESH,B2)
+C END NOV 1995
+C
+C  PURPOSE IS TO GENERATE BOUNDARY AND JUNCTURE CONDITION BOSOR4 INPUT.
+C  CORE TRUSS CONSTRUCTION.
+C
+      DIMENSION NMESH(*)
+C
+C  CONSTRAINTS FOR SEGMENT 1...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 1'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 1 $ CONSTRAINTS TO GROUND'
+      WRITE(IOUT,'(A)')' 1 $ NODE NO. OF FIRST CONSTRAINT TO GROUND'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' N   $ CLAMPING IN PREBUCKLING; SS IN BIFURC.'
+      WRITE(IOUT,'(A)')' 1,1,0,0 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+      WRITE(IOUT,'(A)')' N   $ NO CONNECTION TO LOWER SEGMENT'
+C
+C  CONSTRAINTS FOR SEGMENT 2...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 2'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 0 $ NO GROUNDING IN SEGMENT 2.'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')' 2 $ TWO CONSTRAINTS TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A,I4,A)')' 1,1,',NMESH(1),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      WRITE(IOUT,'(A)')' 1,1,1        $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')
+     1              ' N $ SAME IN PREBUCKLING; OPPOSITE IN BIFURCATION'
+      WRITE(IOUT,'(A)')' -1,-1,-1,-1 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+C
+C  CONSTRAINTS FOR SEGMENT 3...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 3'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 1 $ CONSTRAINTS TO GROUND'
+      WRITE(IOUT,'(A)')' 1 $ NODE NO. OF FIRST CONSTRAINT TO GROUND'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' N   $ CLAMPING IN PREBUCKLING; SS IN BIFURC.'
+      WRITE(IOUT,'(A)')' 1,1,0,0 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')' 1 $ ONE CONSTRAINT TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A,I4,A)')' 1,2,',NMESH(2),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+C BEG NOV 1995
+      IF (B2.LE.0.0) THEN
+C END NOV 1995
+C
+C  CONSTRAINTS FOR SEGMENT 4...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 4'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 0 $ NO GROUNDING IN SEGMENT 4.'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')
+     1               ' 3 $ THREE CONSTRAINTS TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A,I4,A)')' 1,3,',NMESH(3),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      WRITE(IOUT,'(I4,A,I4,A)')
+     1                   NMESH(4),',1,',NMESH(1),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      WRITE(IOUT,'(A)')' 1,3,1        $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')
+     1               ' N   $ SAME IN PREBUCK.; OPPOSITE IN BIFURCATION'
+      WRITE(IOUT,'(A)')' -1,-1,-1,-1 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+C
+      WRITE(IOUT,'(A)')' N   $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      WRITE(IOUT,'(A)')' H   $ END OF DATA FOR PANEL MODULE'
+C BEG NOV 1995
+      ELSE
+C
+C  CONSTRAINTS FOR SEGMENT 4...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 4'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 0 $ CONSTRAINTS TO GROUND'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')
+     1               ' 2   $ TWO CONSTRAINTS TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A,I4,A)')' 1,3,',NMESH(3),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      WRITE(IOUT,'(A)')' 1,3,1        $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')
+     1               ' N   $ SAME IN PREBUCK.; OPPOSITE IN BIFURCATION'
+      WRITE(IOUT,'(A)')' -1,-1,-1,-1 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+C
+C  CONSTRAINTS FOR SEGMENT 5...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 5'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 1 $ CONSTRAINTS TO GROUND'
+      WRITE(IOUT,'(A)')' 1 $ NODE NO. OF FIRST CONSTRAINT TO GROUND'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' N   $ CLAMPING IN PREBUCKLING; SS IN BIFURC.'
+      WRITE(IOUT,'(A)')' 1,1,0,0 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')' 2 $ TWO CONSTRAINTS TO LOWER-NUMBERED SEGS.'
+      WRITE(IOUT,'(A,I4,A)')' 1,4,',NMESH(4),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      WRITE(IOUT,'(I4,A,I4,A)')
+     1                   NMESH(5),',1,',NMESH(1),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+C
+C  CONSTRAINTS FOR SEGMENT 6...
+C
+      WRITE(IOUT,'(A)')' H $ CONSTRAINT CONDITIONS FOR SEGMENT NO. 6'
+      WRITE(IOUT,'(A)')' 0 $ NUMBER OF POLES'
+      WRITE(IOUT,'(A)')' 1 $ CONSTRAINTS TO GROUND'
+      WRITE(IOUT,'(A)')' 1 $ NODE NO. OF FIRST CONSTRAINT TO GROUND'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' N   $ CLAMPING IN PREBUCKLING; SS IN BIFURC.'
+      WRITE(IOUT,'(A)')' 1,1,0,0 $ IUSTARB,IVSTARB,IWSTARB,ICHIB'
+      WRITE(IOUT,'(A)')' Y $ YES, CONNECTION TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(A)')' 1 $ ONE CONSTRAINT TO LOWER-NUMBERED SEGMENT.'
+      WRITE(IOUT,'(I4,A,I4,A)')
+     1                   NMESH(6),',2,',NMESH(2),' $ INODE,JSEG,JNODE'
+      WRITE(IOUT,'(A)')' 1,1,1,1,0,0 $ IUSTAR,IVSTAR,IWSTAR,ICHI,DI,D2'
+      WRITE(IOUT,'(A)')' Y $ YES, CONSTRAINT SAME FOR PREB. AND BUCK.'
+      ENDIF
+C END NOV 1995
+C
+      WRITE(IOUT,'(A)')' N   $ NO RIGID BODY MODE PREVENTION REQUIRED'
+      WRITE(IOUT,'(A)')' H   $ END OF DATA FOR PANEL MODULE'
+C
+      RETURN
+      END
+C
+C END JULY 1989
+C
+C
+C=DECK      ENTIRE
+      SUBROUTINE ENTIRE(AXIAL,CIRC,R,IOUT)
+C
+C  PURPOSE IS TO SET UP MODEL OF ENTIRE PANEL WIDTH. THIS MODEL IS
+C  USED TO CHECK OUT GENERAL INSTABILITY FOR FOLLOWING CASES:
+C
+C   1. THE PANEL MAY BE CURVED SO THAT THE PANEL MODULE MODEL IS POOR;
+C   2. THE AXIAL LOAD MAY VARY ACROSS THE WIDTH (CIRCUM.) OF THE PANEL.
+C
+C BEG MAR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMXX,XMIN,YMXX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END MAR 1996
+      WRITE(IOUT,'(A)')' BOSOR4 INPUT FOR ENTIRE PANEL WIDTH'
+      WRITE(IOUT,'(A)')' 4,1,0,0,1    $ INDIC,NPRT,ISTRES,IPRE,NSEG'
+C
+      TEST = 10000.*SQRT(AXIAL**2 + CIRC**2)
+      AR = ABS(R)
+      DIFF = ABS(AR - TEST)/AR
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) DIFF = 0.0
+C END MAR 1996
+      CURV1 = 0.
+      IF (DIFF.GT.0.5) CURV1 = 1./R
+C
+      IF (CURV1.EQ.0.) GO TO 10
+C
+C  PANEL IS CURVED...
+C
+      PI = 3.1415927
+      NMESH = 35
+      IF ((CIRC/AR).GT.(PI/4.)) NMESH = 47
+      IF ((CIRC/AR).GT.(PI/2.)) NMESH = 95
+C
+C  FIGURE OUT PANEL ENDPOINTS...
+C
+      R1 = 10.
+      Z1 = 0.
+      THETA = 0.5*CIRC/R
+      R2 = R1 + 2.*R*SIN(THETA)
+      Z2 = 0.
+      RC = R1 +    R*SIN(THETA)
+      ZC = - R*COS(THETA)
+      ASROT= 1.0
+      SROT = SIGN(ASROT,R)
+      NTYPEH = 1
+      NMESH2 = NMESH - 2
+      NMESH1 = NMESH - 1
+      NSHAPE = 2
+C
+C BEG 26 JAN 1989
+      WRITE(IOUT,'(2I4,A,2I4,A)')
+     1            NMESH,NTYPEH,' 4,1,2,', NMESH2,NMESH1,' 2,1,1,2'
+C END 26 JAN 1989
+      WRITE(IOUT,'(I3,1P,4E14.6)') NSHAPE,R1,Z1,R2,Z2
+      WRITE(IOUT,'(1P,3E14.6)')    RC,ZC,SROT
+C
+      GO TO 20
+C
+   10 CONTINUE
+C
+C  PANEL IS FLAT...
+C
+      NMESH = 35
+      R1 = 10.
+      Z1 = 0.
+      R2 = R1 + CIRC
+      Z2 = 0.
+      NTYPEH = 1
+      NMESH2 = NMESH - 2
+      NMESH1 = NMESH - 1
+      NSHAPE = 1
+C
+      WRITE(IOUT,'(2I4,A,2I4,A)')
+     1              NMESH,NTYPEH,' 4,1,2', NMESH2,NMESH1,' 2,1,1,2'
+      WRITE(IOUT,'(I3,1P,4E14.6)') NSHAPE,R1,Z1,R2,Z2
+C
+   20 CONTINUE
+C
+      WRITE(IOUT,'(A)') ' 0,3,0'
+      WRITE(IOUT,'(A)') ' N,0,0,2,0,3'
+C
+      WRITE(IOUT,'(1P,2E14.6,A)')
+     1              R1,R2,' 0,0,0,0   $ CALLOUT POSITIONS, CALLOUTS..'
+      WRITE(IOUT,'(A)')
+     1              ' N,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0  $ NWALL, Cij'
+      WRITE(IOUT,'(A)') ' N'
+      WRITE(IOUT,'(A)') ' N'
+C
+C  NEXT, SUPPLY GLOBAL DATA AND CONSTRAINT CONDITIONS...
+C
+      WRITE(IOUT,'(A)')
+     1             ' -1,0,0,0,1,1  $ NLAST,N0B,NMINB,NMAXB,INCRB,NVEC'
+C
+C   BOUNDARY CONDITIONS...
+C
+      IF (CURV1.EQ.0.) GO TO 30
+C
+C   PANEL IS CURVED...
+C
+      IF ((CIRC/R).GT.(PI/2.)) THEN
+         IUSTAR = 1
+         IVSTAR = 1
+         IWSTAR = 0
+         ICHI   = 0
+      ELSE
+         IUSTAR = 1
+         IVSTAR = 1
+         IWSTAR = 0
+         ICHI   = 0
+      ENDIF
+      GO TO 40
+   30 CONTINUE
+C
+C  PANEL IS FLAT...
+C
+         IUSTAR = 1
+         IVSTAR = 1
+         IWSTAR = 0
+         ICHI   = 0
+   40 CONTINUE
+C
+C BEG 26 JAN 1989
+      WRITE(IOUT,'(A,4I3,A)')
+     1                  ' 1,0,2,1,', IUSTAR,IVSTAR,IWSTAR,ICHI, ' 0,0'
+C END 26 JAN 1989
+      WRITE(IOUT,'(A)')' Y'
+      WRITE(IOUT,'(5I4,A)')    NMESH,IUSTAR,IVSTAR,IWSTAR,ICHI, ' 0,0'
+      WRITE(IOUT,'(A)')' Y'
+C
+      WRITE(IOUT,'(A)') ' N'
+      WRITE(IOUT,'(A)') ' N'
+      WRITE(IOUT,'(A)') ' Y'
+      WRITE(IOUT,'(A)') ' N'
+C
+      RETURN
+      END

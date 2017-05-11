@@ -1,0 +1,168 @@
+C PURPOSE   S.P. SQRT OF SUM OF SQUARES OF X COMPONENTS -- FUNCTION 
+C EQUIPMENT FORTRAN     UNIVAC      CDC         IBM 
+C TEST      TBLAL   
+C VERSION   02 JUL 79   15:11:38
+C VALID     UNIVAC 02/78
+C AUTHOR    BASIC LINEAR ALGEBRA (BLAL) SYSTEM  
+C KEYWORDS  BLAL        NORM 2      VECTOR  
+C BLOCK     USAGE   
+C     CALLING SEQUENCE...    T= SNRM2(N,X,INCX) 
+C   
+C     NAME  TYPE   DESCRIPTION  
+C     ------------------------------------------------------------------
+C     T      R     VECTOR EUCLIDEAN NORM                               P
+C     N      I     NUMBER OF TERMS TO BE REFERENCED                   U 
+C     X      R     REFERENCED ARRAY                                   U 
+C     INCX   I     INDEX INCREMENT FOR X ARRAY (SEE NOTE BELOW)       U 
+C   
+C     X(I) IMPLIES X(1+I*INCX-INCX  )  IF(INCX.GE.0)   (I=1,N)  
+C     ...OR...     X(1+I*INCX-INCX*N)  IF(INCX.LT.0)   (I=1,N)  
+C   
+C     FOR DOUBLE PRECISION, SEE DNRM2   
+C   
+C     CODED BOTH IN FORTRAN AND ASSEMBLY LANGUAGES  
+C END       USAGE   
+C BLOCK     ABSTRACT
+C     BASIC LINEAR ALGEBRA LIBRARY ROUTINE FOR  
+C     DETERMINING THE NORM 2 OF A SINGLE PRECISION VECTOR IN SINGLE 
+C     PRECISION.  SPECIAL PRECAUTIONS ARE TAKEN TO AVOID OVERFLOW   
+C     OR UNDERFLOW. 
+C END       ABSTRACT
+      REAL FUNCTION SNRM2 ( N, SX, INCX)
+      INTEGER          NEXT 
+      REAL   SX(*),  CUTLO, CUTHI, HITEST, SUM, XMAX, ZERO, ONE 
+      DATA   ZERO, ONE /0.0E0, 1.0E0/   
+C   
+C     EUCLIDEAN NORM OF THE N-VECTOR STORED IN SX() WITH STORAGE
+C     INCREMENT INCX .  
+C     IF    N .LE. 0 RETURN WITH RESULT = 0.
+C     IF N .GE. 1 THEN INCX MUST BE .GE. 1  
+C   
+C           C.L.LAWSON, 1978 JAN 08 
+C   
+C     FOUR PHASE METHOD     USING TWO BUILT-IN CONSTANTS THAT ARE   
+C     HOPEFULLY APPLICABLE TO ALL MACHINES. 
+C         CUTLO = MAXIMUM OF  SQRT(U/EPS)  OVER ALL KNOWN MACHINES. 
+C         CUTHI = MINIMUM OF  SQRT(V)      OVER ALL KNOWN MACHINES. 
+C     WHERE 
+C         EPS = SMALLEST NO. SUCH THAT EPS + 1. .GT. 1. 
+C         U   = SMALLEST POSITIVE NO.   (UNDERFLOW LIMIT)   
+C         V   = LARGEST  NO.            (OVERFLOW  LIMIT)   
+C   
+C     BRIEF OUTLINE OF ALGORITHM..  
+C   
+C     PHASE 1    SCANS ZERO COMPONENTS. 
+C     MOVE TO PHASE 2 WHEN A COMPONENT IS NONZERO AND .LE. CUTLO
+C     MOVE TO PHASE 3 WHEN A COMPONENT IS .GT. CUTLO
+C     MOVE TO PHASE 4 WHEN A COMPONENT IS .GE. CUTHI/M  
+C     WHERE M = N FOR X() REAL AND M = 2*N FOR COMPLEX. 
+C   
+C     VALUES FOR CUTLO AND CUTHI..  
+C     FROM THE ENVIRONMENTAL PARAMETERS LISTED IN THE IMSL CONVERTER
+C     DOCUMENT THE LIMITING VALUES ARE AS FOLLOWS.. 
+C     CUTLO, S.P.   U/EPS = 2**(-102) FOR  HONEYWELL.  CLOSE SECONDS ARE
+C                   UNIVAC AND DEC AT 2**(-103) 
+C                   THUS CUTLO = 2**(-51) = 4.44089E-16 
+C     CUTHI, S.P.   V = 2**127 FOR UNIVAC, HONEYWELL, AND DEC.  
+C                   THUS CUTHI = 2**(63.5) = 1.30438E19 
+C     CUTLO, D.P.   U/EPS = 2**(-67) FOR HONEYWELL AND DEC. 
+C                   THUS CUTLO = 2**(-33.5) = 8.23181D-11   
+C     CUTHI, D.P.   SAME AS S.P.  CUTHI = 1.30438D19
+C     DATA CUTLO, CUTHI / 8.232D-11,  1.304D19 /
+C     DATA CUTLO, CUTHI / 4.441E-16,  1.304E19 /
+      DATA CUTLO, CUTHI / 4.441E-16,  1.304E19 /
+C   
+      IF(N .GT. 0) GO TO 10 
+         SNRM2  = ZERO  
+         GO TO 300  
+C   
+   10 CONTINUE
+*     ASSIGN 30 TO NEXT
+      NEXT = 1 
+      SUM  = ZERO
+      NN   = N * INCX 
+C                                                 BEGIN MAIN LOOP   
+      I = 1 
+   20 IF (NEXT .EQ. 1) GOTO  30 
+      IF (NEXT .EQ. 2) GOTO  50 
+      IF (NEXT .EQ. 3) GOTO  70 
+      IF (NEXT .EQ. 4) GOTO 110 
+      WRITE(6,3000) NEXT
+ 3000 FORMAT(/,'SNRM2 ** ERROR ** assign goto NEXT not = 1,2,3 OR 4',
+     $         ',  NEXT = ',I12)
+      STOP 'ERROR'
+C
+   30 IF( ABS(SX(I)) .GT. CUTLO) GO TO 85   
+*     ASSIGN 50 TO NEXT
+      NEXT = 2 
+      XMAX = ZERO   
+C   
+C                        PHASE 1.  SUM IS ZERO  
+C   
+   50 IF( SX(I) .EQ. ZERO) GO TO 200
+      IF( ABS(SX(I)) .GT. CUTLO) GO TO 85   
+C   
+C                                PREPARE FOR PHASE 2.   
+*     ASSIGN 70 TO NEXT
+      NEXT = 3 
+      GO TO 105 
+C   
+C                                PREPARE FOR PHASE 4.   
+C   
+  100 I = J 
+*     ASSIGN 110 TO NEXT
+      NEXT = 4
+      SUM = (SUM / SX(I)) / SX(I)   
+  105 XMAX = ABS(SX(I)) 
+      GO TO 115 
+C   
+C                   PHASE 2.  SUM IS SMALL. 
+C                             SCALE TO AVOID DESTRUCTIVE UNDERFLOW. 
+C   
+   70 IF( ABS(SX(I)) .GT. CUTLO ) GO TO 75  
+C   
+C                     COMMON CODE FOR PHASES 2 AND 4.   
+C                     IN PHASE 4 SUM IS LARGE.  SCALE TO AVOID OVERFLOW.
+C   
+  110 IF( ABS(SX(I)) .LE. XMAX ) GO TO 115  
+         SUM = ONE + SUM * (XMAX / SX(I))**2
+         XMAX = ABS(SX(I))  
+         GO TO 200  
+C   
+  115 SUM = SUM + (SX(I)/XMAX)**2   
+      GO TO 200 
+C   
+C   
+C                  PREPARE FOR PHASE 3. 
+C   
+   75 SUM = (SUM * XMAX) * XMAX 
+C   
+C   
+C     FOR REAL OR D.P. SET HITEST = CUTHI/N 
+C     FOR COMPLEX      SET HITEST = CUTHI/(2*N) 
+C   
+   85 HITEST = CUTHI/FLOAT( N ) 
+C   
+C                   PHASE 3.  SUM IS MID-RANGE.  NO SCALING.
+C   
+      DO 95 J =I,NN,INCX
+      IF(ABS(SX(J)) .GE. HITEST) GO TO 100  
+   95    SUM = SUM + SX(J)**2   
+      SNRM2 = SQRT( SUM )   
+      GO TO 300 
+C   
+  200 CONTINUE  
+      I = I + INCX  
+      IF ( I .LE. NN ) GO TO 20 
+C   
+C              END OF MAIN LOOP.
+C   
+C              COMPUTE SQUARE ROOT AND ADJUST FOR SCALING.  
+C   
+      SNRM2 = XMAX * SQRT(SUM)  
+  300 CONTINUE  
+      RETURN
+      END   
+C
+C
+C

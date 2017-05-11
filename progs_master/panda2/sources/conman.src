@@ -1,0 +1,1215 @@
+C=DECK      CONMAN
+C BEG NOV 2005
+      SUBROUTINE CONMAN(JJJ,KOUNT,XX,XS,WEIGH,WGRD,K,GG,AA,VDOWN,VUP,
+     1 IFIN,ITRIAL,WORDV,IDEC,VARIAB,NVAR,NPRINT,IFILE8,IWARNV,VARDEC,
+     1 ISTIF,GRADMX)
+C END NOV 2005
+C
+C     PURPOSE IS TO DO OPTIMIZATION BY MATH PROGRAMMING TECHNIQUES.
+C     CALLS ADS (VERSION 2.01), WHICH WAS WRITTEN BY VANDERPLATTS (1987)
+C
+C BEG JULY 1995
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/DELIM3/GRDCUR(50,5,2),GRDSIG(5,2),DELCRS(2),GRDMAX(2)
+      COMMON/IBIGAX/IBIGA(2)
+      COMMON/NUMVRX/NUMVAR
+      DIMENSION ISTIF(2)
+C END JULY 1995
+      COMMON/SFACT/SMOVE,SFACTR
+      COMMON/CNMN4/VLB(40),VUB(40),SCAL(40)
+C BEG MAR 2005
+C     DIMENSION WK(11500),IWK(2000)
+      DIMENSION WK(60000),IWK(8000)
+C     DIMENSION X(62),DF(62),G(140),IDG(140),IC(62),A(41,80),XOLD(62)
+      DIMENSION X(152),DF(152),G(140),IDG(140),IC(152),
+     1          A(41,201),XOLD(152)
+C END MAR 2005
+      DIMENSION WGRAD(40),GNOML(140),XSAVE(40)
+C BEG MAR 2005
+C     DIMENSION XX(*),XS(*),WGRD(*),GG(*),AA(41,60),VDOWN(*),VUP(*)
+      DIMENSION XX(*),XS(*),WGRD(*),GG(*),AA(41,150),VDOWN(*),VUP(*)
+C END MAR 2005
+      DIMENSION IDEC(*),VARIAB(*),IWARNV(*),VARDEC(*)
+C BEG NOV 2005
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+      DIMENSION GRDMXX(100),GRADMX(30)
+C END NOV 2005
+      CHARACTER*80 WORDV(50)
+C BEG MAY 2004
+C     CHARACTER*12 VARDEC
+      CHARACTER*16 VARDEC
+C END MAY 2004
+C
+      NDV   = KOUNT
+      NCON  = K
+      NRA = 41
+C BEG MAR 2005
+C     NCOLA = 80
+C     NRWK = 11500
+C     NRIWK=  2000
+      NCOLA = 201 
+      NRWK = 60000 
+      NRIWK=  8000
+C END MAR 2005
+      ISTRAT = 0
+      IOPT   = 5
+      IONED  = 7
+      IPRINT = 0000
+      IF (NPRINT.GE.2) IPRINT = 3550
+C BEG NOV 2005
+      IF (ITRIAL.EQ.0) THEN
+         SMOVE = 0.1
+         IF (ITIGHT.EQ.1) SMOVE = 0.02
+      ENDIF
+C END NOV 2005
+      SFACTR = 0.8
+      CALL MOVER(0,0,IDG,1,NCON)
+      CALL MOVER(0.,0,VLB,1,NDV)
+      CALL MOVER(0.,0,VUB,1,NDV)
+      DO 5 I = 1,NDV
+    5 X(I) = XX(I)/ABS(XX(I))
+C
+C BEG JULY 1995 (FOLLOWING STATEMENTS MOVED UP)
+C BEG AUG 1993
+      IPRINX = 0
+      ITURN = 0
+      DO 27 J = 1,NDV
+      DO 26 I = 1,NCON
+C BEG FEB 1996
+         DEN  = GG(I) + 1.0
+         FNUM = ABS(AA(J,I))
+         QUOT = FNUM
+         IF (DEN.GE.1.0) QUOT = ABS(AA(J,I)/DEN)
+         IF (QUOT.GT.10.) THEN
+C END FEB 1996
+            ITURN = ITURN + 1
+C BEG JULY 1995
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ITURN.EQ.1) THEN
+               IF (ISTIF(2).NE.0.AND.GRDMAX(2).GT.0.3) WRITE(IFILE8,22)
+   22       FORMAT(/' **** WARNING ******* WARNING ****** WARNING ****'/
+     1   ' LARGE GRADIENTS OF BEHAVIORAL CONSTRAINTS EXIST.'/
+     1   ' THESE ARE PROBABLY CAUSED BY THE UNUSUALLY LARGE CHANGE IN'/
+     1   ' OVERALL CIRCUMFERENT. CURVATURE CHANGE FROM THE UNPERTURBED'/
+     1   ' TO THE PERTURBED DESIGN. THIS LARGE CHANGE IS CAUSED BY THE'/
+     1   ' PROXIMITY OF THE GENERAL INSTABILITY LOAD FACTOR TO UNITY.'/
+     1   ' IT MAY BE DIFFICULT TO CONVERGE ON A GLOBAL MINIMUM-WEIGHT'/
+     1   ' DESIGN WITHOUT SETTING THE FACTOR OF SAFETY FOR GENERAL'/
+     1   ' INSTABILITY, "FSGEN", TO A GREATER VALUE. PERHAPS "FSGEN"'/
+     1   ' SHOULD BE SET TO A VALUE OF ABOUT 1.5. AFTER OPTIMIZING'/
+     1   ' FOR A WHILE WITH "FSGEN" RESET TO THE HIGHER VALUE, YOU CAN'/
+     1   ' THEN RESET "FSGEN" AGAIN TO ITS ORIGINAL VALUE AND DO MORE'/
+     1   ' OPTIMIZATION CYCLES WITH "PANDAOPT" OR "SUPEROPT".'/
+     1   ' **** END WARNING ****** END WARNING ****** END WARNING ****')
+C
+               IF (ISTIF(1).NE.0.AND.GRDMAX(1).GT.0.3) WRITE(IFILE8,23)
+   23       FORMAT(/' **** WARNING ******* WARNING ****** WARNING ****'/
+     1   ' LARGE GRADIENTS OF BEHAVIORAL CONSTRAINTS EXIST.'/
+     1   ' THESE ARE PROBABLY CAUSED BY THE UNUSUALLY LARGE CHANGE IN'/
+     1   ' AXIAL CURVATURE CHANGE BETWEEN RINGS FROM THE UNPERTURBED'/
+     1   ' TO THE PERTURBED DESIGN. THIS LARGE CHANGE IS CAUSED BY THE'/
+     1   ' PROXIMITY OF THE INTER-RING BUCKLING LOAD FACTOR TO UNITY.'/
+     1   ' IT MAY BE DIFFICULT TO CONVERGE ON A GLOBAL MINIMUM-WEIGHT'/
+     1   ' DESIGN WITHOUT SETTING THE FACTOR OF SAFETY FOR INTER-RING'/
+     1   ' (CALLED "PANEL") BUCKLING TO A GREATER VALUE. PERHAPS THE'/
+     1   ' FACTORS OF SAFETY, "FSGEN" (if there are no rings) AND/OR'/
+     1   ' "FSPAN" (if there are rings) SHOULD BE SET TO GREATER'/
+     1   ' VALUES, PROBABLY TO ABOUT 1.5. AFTER OPTIMIZING FOR A WHILE'/
+     1   ' WITH "FSGEN" AND/OR "FSPAN" RESET TO THE HIGHER VALUES, YOU'/
+     1   ' CAN THEN RESET THEM AGAIN TO THEIR ORIGINAL VALUES AND DO'/
+     1   ' MORE OPTIMIZATION CYCLES WITH "PANDAOPT" OR "SUPEROPT".'/
+     1   ' **** END WARNING ****** END WARNING ****** END WARNING ****')
+C
+               IF (ISTIF(2).NE.0.AND.GRDMAX(2).GT.1.0) THEN
+                  IBIGA(2) = 1
+                  WRITE(IFILE8,21)
+   21             FORMAT(/
+     1   ' ****** NOTE ******* NOTE ******* NOTE ******** NOTE  ******'/
+     1   ' THE FACTOR OF SAFETY FOR GENERAL BUCKLING, "FSGEN", IS'/
+     1   ' BEING RESET TO THE MAXIMUM OF ITS CURRENT VALUE AND 1.5'/
+     1   ' FOR THE REMAINING ITERATIONS IN THE CURRENT "PANDAOPT"'/
+     1   ' ****** NOTE ******* NOTE ******* NOTE ******** NOTE  ******')
+               ENDIF
+C
+               IF (ISTIF(1).NE.0.AND.GRDMAX(1).GT.1.0) THEN
+                  IF (ISTIF(2).NE.0) THEN
+                     IBIGA(1) = 1
+                     WRITE(IFILE8,19)
+   19                FORMAT(/
+     1   ' ****** NOTE ******* NOTE ******* NOTE ******** NOTE  ******'/
+     1   ' THE FACTOR OF SAFETY FOR INTER-RING BUCKLING, "FSPAN", IS'/
+     1   ' BEING RESET TO THE MAXIMUM OF ITS CURRENT VALUE AND 1.5'/
+     1   ' FOR THE REMAINING ITERATIONS IN THE CURRENT "PANDAOPT"'/
+     1   ' ****** NOTE ******* NOTE ******* NOTE ******** NOTE  ******')
+                  ENDIF
+                  IF (ISTIF(2).EQ.0) THEN
+                     IBIGA(1) = 1
+                     WRITE(IFILE8,21)
+                  ENDIF
+               ENDIF
+               WRITE(IFILE8,24) I,J,AA(J,I)
+            ENDIF
+C END JULY 1995
+   24       FORMAT(/' LARGE GRADIENTS OF BEHAVIORAL CONSTRAINTS EXIST:'/
+     1   '  CONSTRAINT NO.  DECISION VAR. NO.  CONSTRAINT GRADIENT'/
+     1      I9,I19,8X,1PE12.4)
+            IF (ITURN.GT.1) WRITE(IFILE8,25) I,J,AA(J,I)
+   25       FORMAT(I9,I19,8X,1PE12.4)
+            IPRINX = 1
+         ENDIF
+   26 CONTINUE
+   27 CONTINUE
+C END AUG 1993
+C END JULY 1995
+C
+C BEG JUNE 1990
+      CALL VLBVUB(JJJ,NDV,VDOWN,VUP,X,XX,VOX,WORDV,IDEC,VARIAB,NVAR,
+C BEG JULY 1995
+     1            IWARNV,IBIGA)
+C END JULY 1995
+C END JUNE 1990
+C
+C INITIALIZATION CALL TO ADS...
+      IGRAD = 1
+      INFO  = -2
+      CALL ADS(INFO,ISTRAT,IOPT,IONED,IPRINT,IGRAD,NDV,NCON,X,VLB,VUB,
+     1         OBJ,G,IDG,NGT,IC,DF,A,NRA,NCOLA,WK,NRWK,IWK,NRIWK)
+      IF (INFO.EQ.0) THEN
+         WRITE(IFILE8,10)
+   10    FORMAT(/' IN CONMAN: ADS BOMBS DURING INITIALIZATION PHASE.')
+         RETURN
+      ENDIF
+C
+C INITIALIZE SOME PARAMETERS...
+C
+      IWK(3) = 10
+      IWK(2) =  0
+      IWK(4) =  3
+C      WK(3) = -.1
+       WK(4) = -.01
+C
+      WEIGHT = WEIGH
+      OBJ = 1.0
+      DO 20 I = 1,NDV
+      X(I) = XX(I)/ABS(XX(I))
+      WGRAD(I) = WGRD(I)
+      XSAVE(I) = XS(I)/ABS(XX(I))
+      DF(I) = WGRAD(I)/WEIGHT
+   20 CONTINUE
+      DO 30 I = 1,NCON
+      G(I) = -GG(I) + 1.0
+   30 GNOML(I) = GG(I)
+C BEG JULY 1995
+C   STATEMENTS INVOLVING PRINTING OUT OF AA MATRIX MOVED UP BECAUSE
+C   OF POSSIBLE GENERATION OF A SIGNALS, IBIGA(), NEEDED IN
+C   SUBROUTINE VLBVUB
+C END JULY 1995
+C BEG JAN 2005
+C BEG NOV 2005
+C     IF (NPRINT.GE.1.OR.IPRINX.EQ.1) THEN
+      IF (NPRINT.GE.0.OR.IPRINX.EQ.1) THEN
+C END NOV 2005
+C END JAN 2005
+         WRITE(IFILE8,32) NDV,NCON
+   32    FORMAT(/' CONTROL PARAMETERS USED IN ADS...'/
+     1  ' NUMBER OF DECISION VARIABLES,                    NDV =',I4/
+     1  ' NUMBER OF CONSTRAINT CONDITIONS,                NCON =',I4/)
+        WRITE(IFILE8,33)
+        WRITE(IFILE8,331) (VARDEC(I)(1:10),I=1,NDV)
+        WRITE(IFILE8,332)
+   33   FORMAT(/
+     1' CONSTRAINTS AND GRADIENTS OF THEM FROM MAIN (SCALED)...'/
+     1' ================================================================
+     1========================================================='/
+     1' NO.    CON-                    G R A D I E N T S   O F   C O N S
+     1 T R A I N T S'/
+     1'       STRAINT                  D E C I S I O N   V A R I A B L E
+     1   N U M B E R'/
+     1'                    1          2          3          4          5
+     1          6          7          8          9         10')
+  331 FORMAT('                ',A,' ',A,' ',A,' ',A,' ',A,' ',A,' ',A,
+     1' ',A,' ',A,' ',A)
+  332 FORMAT(
+     1'-----------------------------------------------------------------
+     1---------------------------------------------------------')
+C BEG NOV 2005
+        JJ1 = JJJ + 1
+        GRADMX(JJ1) = 0.
+C END NOV 2005
+        DO 35 I = 1,NCON
+           WRITE(IFILE8,34) I,GG(I),(AA(J,I),J=1,NDV)
+C BEG NOV 2005
+C  34      FORMAT(I3,1PE11.2,(1P10E11.2))
+   34      FORMAT(I3,1P11E11.2,/,(14X,1P10E11.2))
+           GRDMXX(I) = 0.
+           DO 342 J = 1,NDV
+              GRDMXX(I) = MAX(GRDMXX(I),ABS(AA(J,I)))
+  342      CONTINUE
+           GRADMX(JJ1) = MAX(GRADMX(JJ1),GRDMXX(I))
+C END NOV 2005
+   35   CONTINUE
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        WRITE(IFILE8,'(/,A,I2,A,I2,A,1P,E12.4,/,A,A,/,(1P,5E12.4))')
+     1' Absolute value of maximum constraint gradient for iteration no',
+     1  JJ1,' = GRADMX(',JJ1,')=',GRADMX(JJ1),
+     1' Absolute values of maximum constraint gradients for each',
+     1' active constraint:',
+     1  (GRDMXX(I),I=1,NCON)
+C END NOV 2005
+      ENDIF
+C     End of (NPRINT.GE.0.OR.IPRINX.EQ.1) condition
+C
+   37 CONTINUE
+      IF (NPRINT.GE.2) THEN
+         WRITE(IFILE8,*)' ********** ENTERING ADS **********'
+         WRITE(IFILE8,38) INFO,NGT,OBJ,(X(I),I=1,NDV)
+   38    FORMAT(' INFO,NGT,OBJ=',2I5,1PE13.5,'; (X(I),I=1,NDV)='/
+     1           (1P,5E15.6))
+C        WRITE(IFILE8,39) NCON, (G(I),I=1,NCON)
+C  39    FORMAT(' NCON = ',I5,'; (G(I),I=1,NCON)='/(1P,5E15.5))
+C        WRITE(IFILE8,392) NDV, (DF(I),I=1,NDV)
+C 392    FORMAT(' NDV  = ',I5,';(DF(I),I=1,NDV )='/(1P,5E15.5))
+      ENDIF
+C
+      CALL ADS(INFO,ISTRAT,IOPT,IONED,IPRINT,IGRAD,NDV,NCON,X,VLB,VUB,
+     1         OBJ,G,IDG,NGT,IC,DF,A,NRA,NCOLA,WK,NRWK,IWK,NRIWK)
+      IF (INFO.EQ.0) GO TO 99
+C
+      OBJ = 1.0
+      DO 40 I = 1,NDV
+        DX = X(I) - XSAVE(I)
+        OBJ = OBJ + DX*WGRAD(I)/WEIGHT
+   40 CONTINUE
+      DO 50 J = 1,NCON
+   50 G(J) = -GNOML(J) + 1.0
+      DO 70 I = 1,NDV
+        DX = X(I) - XSAVE(I)
+        DO 60 J = 1,NCON
+          G(J) = G(J) - DX*AA(I,J)
+   60   CONTINUE
+   70 CONTINUE
+      IF (INFO.EQ.2.AND.NGT.GT.0) THEN
+         DO 90 L = 1,NGT
+           J = IC(L)
+           DO 80 I = 1,NDV
+   80      A(I,L) = -AA(I,J)
+   90    CONTINUE
+         DO 95 I = 1,NDV
+   95    DF(I) = WGRAD(I)/WEIGHT
+      ENDIF
+      GO TO 37
+C
+   99 CONTINUE
+      DO 100 I = 1,NDV
+  100 XX(I) = X(I)*ABS(XX(I))
+      IFIN = 0
+      ERROR = ABS(1. - OBJ)/VOX
+C BEG JUNE 1990
+      IF (ERROR.LT.0.0001) IFIN = 1
+C END JUNE 1990
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      VLBVUB
+      SUBROUTINE VLBVUB(JJJ,NDV,VDOWN,VUP,X,XX,VOX,WORDV,IDEC,
+C BEG JULY 1995
+     1                  VARIAB,NVAR,IWARNV,IBIGA)
+C END JULY 1995
+C
+C     PURPOSE IS TO UPDATE LOWER AND UPPER BOUNDS OF DESIGN VARIABLES.
+C
+      COMMON/GEOMN1/THETA(2),GAMMA(2),FL(2)
+      COMMON/SFACT/SMOVE,SFACTR
+      COMMON/CNMN4/VLB(40),VUB(40),SCAL(40)
+      DIMENSION X(*),XX(*),VDOWN(*),VUP(*),IDEC(*),VARIAB(*),IWARNV(*)
+C BEG JULY 1995
+      DIMENSION IBIGA(*)
+C END JULY 1995
+      CHARACTER*80 WORDV(50)
+C
+      IF (JJJ.GT.0) SMOVE = SMOVE*SFACTR
+      DO 70 I=1,NDV
+      VUB(I)=VUP(I)/XX(I)
+      VLB(I)=VDOWN(I)/XX(I)
+   70 CONTINUE
+      DO 80 I=1,NDV
+      YY=(1.+SMOVE)*X(I)
+      IF(YY.LT.VUB(I)) VUB(I)=YY
+      IF(YY.LT.(X(I)+.0001).AND.(X(I)+.0001).LT.(VUP(I)/XX(I)))
+     1 VUB(I) = X(I) + 0.0001
+      YY=(1.-SMOVE)*X(I)
+      IF(YY.GT.VLB(I).AND.YY.GT..001) VLB(I)=YY
+      IF(YY.GT.(X(I)-.0001).AND.(X(I)-.0001).GT.(VDOWN(I)/XX(I)))
+     1VLB(I)=X(I)-.0001
+   80 CONTINUE
+C
+C     CHECK FOR MOVE LIMITS ON WINDING ANGLES AND LIMIT THEM
+C     TO + OR - 5 DEGREES (XMAX = 5./XX(IDV)) IF JJJ.LE.5;
+C     TO + OR - 2 DEGREES (XMAX = 2./XX(IDV)) IF JJJ.GT.5;
+C     TO + OR - 1 DEGREE  (XMAX = 1./XX(IDV)) IF JJJ.GT.10.
+C
+      IDV = 0
+      DO 85 I = 1,NVAR
+         IF (IDEC(I).EQ.0) GO TO 85
+         ADD = 0.
+         ILET = INDEX(WORDV(I),'winding')
+         IF (ILET.NE.0) ADD = 360.
+         VARTOT = VARIAB(I) + ADD
+         IF (VARTOT.EQ.0.) GO TO 85
+         IDV = IDV + 1
+         IF (ILET.NE.0) THEN
+            XMAX = ABS(5./XX(IDV))
+            IF (JJJ.GT.5)  XMAX = ABS(2./XX(IDV))
+            IF (JJJ.GT.10) XMAX = ABS(1./XX(IDV))
+            XDIF = VUB(IDV) - X(IDV)
+            IF (XDIF.GT.XMAX) VUB(IDV) = X(IDV) + XMAX
+            XDIF = X(IDV) - VLB(IDV)
+            IF (XDIF.GT.XMAX) VLB(IDV) = X(IDV) - XMAX
+         ENDIF
+C
+C  IF ABS(GRADIENT) IS GREATER THAN 5.0 LIMIT THE MOVEMENT EVEN MORE.
+C
+C BEG JULY 1995
+         IF (IBIGA(1).EQ.1.OR.IBIGA(2).EQ.1) IWARNV(I) = 0
+C END JULY 1995
+         IF (IWARNV(I).EQ.1) THEN
+            XMAX = 0.01
+            XDIF = VUB(IDV) - X(IDV)
+            IF (XDIF.GT.XMAX) VUB(IDV) = X(IDV) + XMAX
+            XDIF = X(IDV) - VLB(IDV)
+            IF (XDIF.GT.XMAX) VLB(IDV) = X(IDV) - XMAX
+         ENDIF
+   85 CONTINUE
+C
+C  CHECK TO ENSURE THAT W2 IS LESS THAN B2 IF W2 IS A DECISION VARIABLE.
+C  AND GREATER THAN W, THE WIDTH OF THE OUTSTANDING FLANGE OF THE HAT.
+C
+      IDV = 0
+      J = 0
+      DO 86 I = 1,NVAR
+         ILET = INDEX(WORDV(I),'b2')
+         IF (ILET.NE.0) J = I
+         IF (IDEC(I).EQ.0) GO TO 86
+         IF (VARIAB(I).EQ.0) GO TO 86
+         ILET = INDEX(WORDV(I),'w2')
+         IDV = IDV + 1
+         IF (ILET.NE.0.AND.J.NE.0) THEN
+            IF (VARIAB(I).NE.VARIAB(J)) THEN
+               VUB(IDV) = MIN(VUB(IDV),0.8*VARIAB(J)/XX(IDV))
+            ELSE
+               VUB(IDV) = VARIAB(J)/XX(IDV)
+            ENDIF
+            VLB(IDV) = MAX(VLB(IDV),VARIAB(I-1)/XX(IDV))
+            GO TO 87
+          ENDIF
+   86 CONTINUE
+   87 CONTINUE
+C
+      VNORM = 0.0
+      XNORM = 0.0
+      DO 90 I = 1,NDV
+      VNORM = VNORM + (VUB(I) - VLB(I))**2
+      XNORM = XNORM + X(I)**2
+C     WRITE(8,*)' I, VLB(I), X(I), VUB(I)=', I, VLB(I), X(I), VUB(I)
+   90 CONTINUE
+      VOX = SQRT(VNORM/XNORM)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SETUPC
+C BEG OCT 1996
+      SUBROUTINE SETUPC(NVAR,VAR,ISTIF,NSEG,NLAYER,LTYPE,B,B2,H,W,W2,T,
+     1                  ANGLE,MATL,IZERO,IMOD,NPRT,IFILE8)
+C END OCT 1996
+C
+C  PURPOSE IS TO RECONSTRUCT ARRAYS B,B2,H,W,W2,T,ANGLE FROM
+C  NVAR,VAR,NLAYER,LTYPE,AND STIF
+C
+C BEG JUN 2004
+      COMMON/GEOM2S/BSUBX(2),B2SUBX(2),HSUBX(2),WSUBX(2),W2SUBX(2)
+      COMMON/SUBSTX/TSUB(2,4,2),HSUB(2,4,2),THSUB(2,4,2),
+     1              BSUB(2,4,2)
+      COMMON/ISBSTF/KLAYER(4,2),NSURF(2,4,2),NB2(2,4,2),
+     1              ISOSUB(2,4,2),ISOTYP(2,4,2),MATSUB(2,4,2)
+C END JUN 2004
+      DIMENSION VAR(*),ISTIF(*),NLAYER(4,2),LTYPE(99,5,2),NSEG(*)
+      DIMENSION B(*),B2(*),H(*),W(*),W2(*),MATL(*),T(*),ANGLE(*)
+      COMMON/MATER4/TAPE(20),TMINUM(20),FAILSC(100)
+      COMMON/GEOM4/IWIND(4,2)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDEC(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+C END JULY 1989
+C BEG OCT 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/NUMPAR/NPAR,NVARX,IALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VARX(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/TMATL1/MAXMAT,IPMATL(10)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),DENS(20)
+      COMMON/MATRAN/G13(20),G23(20)
+      COMMON/XFOUND/EFOUND,HXSIDE,WFOUND(4,2),HEXSID(4,2)
+      COMMON/XFOUN2/ECCORE(4,2),GCXP(4,2),GCYP(4,2)
+      COMMON/XFOUN3/THEX(20),HXSIDX(20),ECORE(20),WGLUE(20),FKGLUE(20)
+      COMMON/XFOUN4/ECOREX(20),RHOC(20),GC(20)
+      COMMON/XFOUN5/KCORE(4,2),ISANDM(20),MMATL(4,2)
+      COMMON/XSANDW/ISANDW(4,2),ICORE(4,2)
+      COMMON/BSANDW/GLUFCT(4,2)
+      DIMENSION FOUNDX(20)
+      CHARACTER*1 CM
+      CHARACTER*2 CM2,CM3
+      CHARACTER*3 STRRNG
+      CHARACTER*4 HEXFOM
+      CHARACTER*80 WRDTST
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD
+C END OCT 1996
+C
+      KBIG = 0
+      IVAR = 1
+      DO 100 ILOOP = 1,2
+C
+      IF (ISTIF(ILOOP).EQ.0) GO TO 10
+C
+       B(ILOOP) = VAR(IVAR)
+       IVAR = IVAR + 1
+C BEG JULY 1989
+C BEG NOV 1995
+C      IF (ISTIF(ILOOP).NE.5) THEN
+       B2(ILOOP) = VAR(IVAR)
+       IVAR = IVAR + 1
+C      ENDIF
+C END NOV 1995
+       H(ILOOP) = VAR(IVAR)
+       IVAR = IVAR + 1
+       IF (ISTIF(ILOOP).NE.3.AND.ISTIF(ILOOP).NE.5) THEN
+          W(ILOOP) = VAR(IVAR)
+          IVAR = IVAR + 1
+       ENDIF
+C END JULY 1989
+C
+      IF (ISTIF(ILOOP).EQ.4) THEN
+       W2(ILOOP)= VAR(IVAR)
+       IVAR = IVAR + 1
+      ENDIF
+C
+   10 CONTINUE
+C
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+C BEG JULY 1989
+      IF (ILOOP.EQ.2) THEN
+         ISTART = 2
+         IF (B2(ILOOP).EQ.0.) ISTART = 3
+      ENDIF
+C END JULY 1989
+      IF (ISTART.GT.IEND) GO TO 100
+C
+      DO 60 I = ISTART,IEND
+C
+      IZEROT = IZERO
+      NLAY = NLAYER(I,ILOOP)
+      DO 30 J = 1,NLAY
+C
+      KBIGS = KBIG
+      K = LTYPE(J,I,ILOOP)
+      M = MATL(K)
+      KBIG = MAX(K,KBIGS)
+      IF (K.LE.KBIGS) GO TO 30
+      T(K) = VAR(IVAR)
+      IVAR1 = IVAR
+      IVAR = IVAR + 1
+      IF (TAPE(M).NE.0.0.AND.IZEROT.EQ.1.AND.T(K).GT.0.) THEN
+         IF (IDEC(IVAR1).EQ.1) THEN
+            IF ((T(K)/TAPE(M)).LT.0.25) THEN
+               IZEROT = 0
+               T(K) = 0.
+               VAR(IVAR1) = 0.
+               DO 20 II = 1,NVAR
+                  IF (ILV(II).EQ.0) GO TO 20
+C BEG JULY 1989
+                  IDL = IDLINK(II,1)
+C END JULY 1989
+                  IF (IDL.EQ.IVAR1) VAR(II) = 0.
+   20          CONTINUE
+            ENDIF
+         ENDIF
+      ENDIF
+C
+      IF (IWIND(I,ILOOP).EQ.1) THEN
+         ANGLE(K) = VAR(IVAR)
+         IVAR = IVAR + 1
+      ENDIF
+C
+   30 CONTINUE
+C BEG JUN 2004: provide for substiffeners, if any:
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     IF (NPRT.GE.2) WRITE(8,'(A,/,5I5)')
+C    1' ILOOP,I,KLAYER(I,ILOOP),NB2(1,I,ILOOP),NB2(2,I,ILOOP)=',
+C    1  ILOOP,I,KLAYER(I,ILOOP),NB2(1,I,ILOOP),NB2(2,I,ILOOP)
+      IF (I.EQ.1.AND.ILOOP.EQ.1.AND.KLAYER(I,ILOOP).NE.0) THEN
+         IF (MATSUB(1,I,ILOOP).NE.0) THEN
+           TSUB(1,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           HSUB(1,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           BSUB(1,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           IF (THSUB(1,I,ILOOP).LT.45.0) THEN
+              BSUBX(1) = BSUB(1,I,ILOOP)
+              B2SUBX(1) = 0.1*BSUBX(1)
+              HSUBX(1) = HSUB(1,I,ILOOP)
+           ELSE
+              BSUBX(2) = BSUB(1,I,ILOOP)
+              B2SUBX(2) = 0.0
+              HSUBX(2) = HSUB(1,I,ILOOP)
+           ENDIF
+         ENDIF
+         IF (MATSUB(2,I,ILOOP).NE.0) THEN
+           TSUB(2,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           HSUB(2,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           BSUB(2,I,ILOOP) = VAR(IVAR)
+           IVAR = IVAR + 1
+           IF (THSUB(2,I,ILOOP).LT.45.0) THEN
+              BSUBX(1) = BSUB(2,I,ILOOP)
+              B2SUBX(1) = 0.1*BSUBX(1)
+              HSUBX(1) = HSUB(2,I,ILOOP)
+           ELSE
+              BSUBX(2) = BSUB(2,I,ILOOP)
+              B2SUBX(2) = 0.0
+              HSUBX(2) = HSUB(2,I,ILOOP)
+           ENDIF
+         ENDIF
+      ENDIF
+C END JUN 2004
+   60 CONTINUE
+  100 CONTINUE
+C BEG OCT 1996
+C   add honeycomb core stuff...
+      MBIG = 0
+      ISAND = 0
+      DO 300 ILOOP = 1,2
+        ISTART = 1
+        IEND   = NSEG(ILOOP)
+        IF (ILOOP.EQ.2) THEN
+           ISTART = 2
+           IF (B2(2).EQ.0.) ISTART = 3
+        ENDIF
+        IF (ISTART.GT.IEND) GO TO 300
+        DO 200 I = ISTART,IEND
+          NLAY = NLAYER(I,ILOOP)
+C         WRITE(8,'(A,/,7I5)')
+C    1      ' NPRT,MAXMAT,I,ILOOP,NLAY,ISANDW(I,ILOOP),ICORE(I,ILOOP)=',
+C    1        NPRT,MAXMAT,I,ILOOP,NLAY,ISANDW(I,ILOOP),ICORE(I,ILOOP)
+          IF (ISANDW(I,ILOOP).LE.1.OR.ISANDW(I,ILOOP).EQ.NLAY) GO TO 200
+          ISAND = 1
+          M = ICORE(I,ILOOP)
+          IF (ICORE(I,ILOOP).EQ.0) M = MMATL(I,ILOOP)
+          K = KCORE(I,ILOOP)
+          DENFCT = 1.0
+          FGLFCT = 1.0
+          IF (ICORE(I,ILOOP).NE.0) THEN
+             MBIGS = MBIG
+             MBIG = MAX(M,MBIGS)
+C            WRITE(8,'(A,4I5,1P,E12.4)')' M,K,KBIG,KBIGS,HXSIDX(M)=',
+C    1                                    M,K,KBIG,KBIGS,HXSIDX(M)
+             IF (M.LE.MBIGS) GO TO 120
+             HXSIDX(M) = VAR(IVAR)
+             IVAR = IVAR + 1
+             THEX(M)   = VAR(IVAR)
+             IVAR = IVAR + 1
+  120        CONTINUE
+             TOD = THEX(M)/(1.732*HXSIDX(M))
+             ECORE(M) = (8./3.)*TOD*ECOREX(M)
+C   MIL-HDBK-23 version of transverse shear stiffnesses:
+             G13(M) = (4./3.) *TOD*GC(M)
+             G23(M) = (8./15.)*TOD*GC(M)
+C   Kaechele version of transverse shear stiffnesses (Vinson 1986):
+C            G13(M) = (5./3.) *TOD*GC(M)
+C            G23(M) =   (1.0) *TOD*GC(M)
+C   Kaechele yields closer to Hexcel Corp's tabulated values, but
+C   MIL-HDBK-25 is more conservative.
+             HEXSID(I,ILOOP) = HXSIDX(M)
+             ECCORE(I,ILOOP) = ECORE(M)
+             GCXP(I,ILOOP) = G13(M)
+             GCYP(I,ILOOP) = G23(M)
+             DENFCT = (8./3.)*TOD
+             FGLFCT = 2./(1.732*HXSIDX(M))
+          ENDIF
+          DENS(M)= (DENFCT*RHOC(M)*T(K) + WGLUE(M))/T(K)
+C         WRITE(8,'(A,I2,1P,3E12.4)')' M,FKGLUE(M),FGLFCT,ECORE(M)=',
+C    1                                 M,FKGLUE(M),FGLFCT,ECORE(M)
+          FOUNDX(M) = 1./(1./(FKGLUE(M)*FGLFCT) + 0.5*T(K)/ECORE(M))
+          WFOUND(I,ILOOP) = FOUNDX(M)
+          GLUFCT(I,ILOOP) = FOUNDX(M)*0.5*T(K)/ECORE(M)
+          IF (GLUFCT(I,ILOOP).GT.1.0) GLUFCT(I,ILOOP) = 1.
+          IF (GLUFCT(I,ILOOP).LE.0.0) GLUFCT(I,ILOOP) = 1.
+C         WRITE(8,'(A,2I3,1P,3E12.4)')
+C    1                          ' ISAND,M,G13(M),G23(M),DENS(M)=',
+C    1                            ISAND,M,G13(M),G23(M),DENS(M)
+C         WRITE(8,'(A,/,2I3,1P,5E12.4)')
+C    1      ' ISANDM(M),K,T(K),THEX(M),FOUNDX(M),HXSIDX(M),ECORE(M)=',
+C    1        ISANDM(M),K,T(K),THEX(M),FOUNDX(M),HXSIDX(M),ECORE(M)
+  200   CONTINUE
+  300 CONTINUE
+      IF (ISAND.EQ.0) GO TO 1000
+C  Must correct PAR( ) because G13, G23, DENS might have been changed
+C  if ISANDM(M) GREATER THAN ZERO ....
+      IF (IMOD.NE.0) GO TO 730
+      DO 700 M = 1,MAXMAT
+         IF (ISANDM(M).EQ.0) GO TO 700
+         IF (M.LT.10) THEN
+            CALL CONVR1(M,CM)
+            CM2 = CM//' '
+            CM3 = ' '//CM
+         ENDIF
+         IF (M.GE.10) THEN
+            CALL CONVR2(M,CM2)
+            CM3 = CM2
+         ENDIF
+         DO 650 LPAR = 1,NPAR
+            WRDTST = 'transverse shear modulus,      G13('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G13(M)
+            WRDTST = 'transverse shear modulus,      G13('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G13(M)
+            WRDTST = 'transverse out-of-plane shear  G23('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G23(M)
+            WRDTST = 'transverse out-of-plane shear  G23('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:37))
+            IF (ILET.NE.0) PAR(LPAR) = G23(M)
+            WRDTST =
+     1       'weight density (greater than 0!) of material type('//CM2
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:52))
+            IF (ILET.NE.0) PAR(LPAR) = DENS(M)
+            WRDTST =
+     1       'weight density (greater than 0!) of material type('//CM3
+            ILET = INDEX(WORDP(LPAR), WRDTST(1:52))
+            IF (ILET.NE.0) PAR(LPAR) = DENS(M)
+  650    CONTINUE
+  700 CONTINUE
+C
+  730 CONTINUE
+      IF (NPRT.GE.2) THEN
+C BEG FEB 2007
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' The panel segment is of sandwich wall construction. See',
+     1' Bushnell, D.,',
+     1' "Optimum design via PANDA2 of composite sandwich panels with',
+     1'  honeycomb or foam cores", AIAA Paper 97-1142, Proc. 38th AIAA',
+     1'  Structures, Structural Dynamics and Materials Conference,',
+     1'  pp 2163-2202, April, 1997'
+C END FEB 2007
+       WRITE(IFILE8,710)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  710  FORMAT(/'  PROPERTIES OF ELASTIC FOUNDATIONS AND SANDWICH CORES'/
+     1 ' STR  Segment,  Sandw  Length of  E F F E C T I V E   '
+     1 'E L A S T I C   P R O P E R T I E S'/
+     1 ' or  Layer no., core:  one side of   Founda-    Modulus '
+     1 '   Transverse   Transverse'/
+     1 ' RNG  and Ma-    HEX.  honeycomb      tion     normal to'
+     1 '   shear, G13   shear, G23'/
+     1 '     terial no.   or   core cell     modulus   facesheet'
+     1 ' (axial-normal)(hoop-normal)'/
+     1 '     Iseg L  M   FOAM               (force/    (force/  '
+     1 '  (force/        (force/'/
+     1 '                                    length**3  length**2)'
+     1 '   length**2)    length**2)'/
+     1 '                                   Foundation   C O R E   '
+     1 'OF   S A N D W I C H   W A L L')
+       DO 900 ILOOP = 1,2
+        IF (ILOOP.EQ.1) STRRNG = 'STR'
+        IF (ILOOP.EQ.2) STRRNG = 'RNG'
+        ISTART = 1
+        IEND   = NSEG(ILOOP)
+        IF (ILOOP.EQ.2) THEN
+           ISTART = 2
+           IF (B2(2).EQ.0.) ISTART = 3
+        ENDIF
+        IF (ISTART.GT.IEND) GO TO 900
+        DO 800 I = ISTART,IEND
+         HEXFOM = 'NONE'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICORE(I,ILOOP).EQ.0.AND.ISANDW(I,ILOOP).NE.0) HEXFOM='FOAM'
+         IF (ICORE(I,ILOOP).NE.0) HEXFOM = 'HEX '
+         WRITE(IFILE8,750) STRRNG,I,ISANDW(I,ILOOP),MMATL(I,ILOOP),
+     1          HEXFOM,HEXSID(I,ILOOP),WFOUND(I,ILOOP),ECCORE(I,ILOOP),
+     1          GCXP(I,ILOOP),GCYP(I,ILOOP)
+  750    FORMAT(1X,A,I4,2I3,3X,A,1P,3E12.4,1P,2E13.4)
+  800   CONTINUE
+  900  CONTINUE
+      ENDIF
+ 1000 CONTINUE
+C END OCT 1996
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SETUPX
+      SUBROUTINE SETUPX(NVAR,IDEC,VARIAB,VARLOW,VARHI,X,VLB,VUB,KOUNT,
+     1                  WORDV)
+C
+C   PURPOSE IS TO SET UP THE VECTOR X OF DECISION VARIABLES AND THE
+C   VECTORS VLB AND VUB (LOWER AND UPPER BOUNDS) FROM THE PARAMETER
+C   VECTORS VARIAB, VARLOW, VARHI  AND THE DECISION VARIABLE POINTERS
+C   IDEC.
+C
+C  INPUT DATA...
+C
+C     NVAR = NUMBER OF PARAMETERS IN THE PROBLEM
+C     IDEC = VECTOR OF DECISION VARIABLE INDICATORS:
+C            IDEC(K) = 0 MEANS KTH PARAMETER IS NOT A DECISION VARIABLE
+C            IDEC(K) = 1 MEANS KTH PARAMETER IS     A DECISION VARIABLE
+C
+C   VARIAB = PARAMETER LIST
+C   VARLOW = LOWER BOUNDS OF PARAMETERS
+C   VARHI  = UPPER BOUNDS OF PARAMETERS
+C
+C  OUTPUT DATA...
+C
+C        X = VECTOR OF DECISION VARIABLES
+C      VLB = LOWER BOUND OF DECISION VARIABLES
+C      VUB = UPPER BOUND OF DECISION VARIABLES
+C
+      DIMENSION VARIAB(*),VARLOW(*),VARHI(*),X(*),VLB(*),VUB(*),IDEC(*)
+      CHARACTER*80 WORDV(50)
+C
+      DO 10 I = 1,NVAR
+      VLB(I) = 0.
+      VUB(I) = 0.
+   10 X(I) = 0.
+C
+      KOUNT = 0
+      DO 50 I = 1,NVAR
+      IF (IDEC(I).EQ.0) GO TO 50
+      VAR = VARIAB(I)
+      VARL= VARLOW(I)
+      VARH= VARHI(I)
+      ILET = INDEX(WORDV(I),'winding')
+      IF (ILET.NE.0) THEN
+         VAR = VARIAB(I) + 360.
+         VARL= VARLOW(I) + 360.
+         VARH= VARHI(I)  + 360.
+      ENDIF
+      IF (VAR.EQ.0.) GO TO 50
+      KOUNT = KOUNT + 1
+      X(KOUNT) = VAR
+      VLB(KOUNT) = VARL
+      VUB(KOUNT) = VARH
+   50 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      SETUPV
+C BEG JULY 1989
+      SUBROUTINE SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VARIAB,X,
+     1                  WORDV,CPOWR,JMAX,CLINK0)
+C END JULY 1989
+C
+C   PURPOSE IS TO SET UP THE VECTOR VARIAB OF DESIGN PARAMETERS
+C   FROM THE VECTOR X OF DECISION VARIABLES AND THE DECISION VARIABLE
+C   POINTERS, IDEC.
+C   THE POINTERS, ILV, TO LINKED VARIABLES; "LINKED TO" POINTERS,
+C   IDLINK; AND LINKING CONSTANTS, CLINK; ARE USED ALSO.
+C
+C  INPUT DATA...
+C
+C     NVAR = NUMBER OF PARAMETERS IN THE PROBLEM
+C     IDEC = VECTOR OF DECISION VARIABLE INDICATORS:
+C            IDEC(K) = 0 MEANS KTH PARAMETER IS NOT A DECISION VARIABLE
+C            IDEC(K) = 1 MEANS KTH PARAMETER IS     A DECISION VARIABLE
+C     ILV  = VECTOR OF LINKING VARIABLE INDICATORS:
+C            ILV(K) =  0 MEANS KTH PARAMETER IS NOT A LINKED VARIABLE
+C            ILV(K) =  1 MEANS KTH PARAMETER IS     A LINKED VARIABLE
+C     IDLINK=VECTOR OF "LINKED TO" INDICATORS:
+C            IDLINK(K) = J  MEANS THAT THE KTH PARAMETER IS LINKED TO
+C                           THE JTH PARAMETER.
+C     CLINK =VECTOR OF LINKING CONSTANTS:
+C            VARIAB(K) = SUM(J)[CLINK(K,J)*VARIAB(J)**CPOWR(K,J)]
+C
+C        X = VECTOR OF DECISION VARIABLES
+C
+C  OUTPUT DATA...
+C
+C   VARIAB = PARAMETER LIST
+C
+C BEG JULY 1989
+      DIMENSION VARIAB(*),X(*),IDEC(*),ILV(*),IDLINK(50,5),CLINK(50,5)
+      DIMENSION JMAX(*),CPOWR(50,5),CLINK0(*)
+C END JULY 1989
+      CHARACTER*80 WORDV(50)
+C
+      KOUNT = 0
+      DO 50 I = 1,NVAR
+      IF (IDEC(I).EQ.0) GO TO 50
+      SUB = 0.
+      ILET = INDEX(WORDV(I),'winding')
+      IF (ILET.NE.0) SUB = 360.
+      VAR = VARIAB(I) + SUB
+      IF (VAR.EQ.0) GO TO 50
+      KOUNT = KOUNT + 1
+      VARIAB(I) = X(KOUNT) - SUB
+   50 CONTINUE
+C
+      KOUNT = 0
+      DO 100 I = 1,NVAR
+      IF (ILV(I).EQ.0) GO TO 100
+      KOUNT = KOUNT + 1
+      JEND = JMAX(KOUNT)
+C BEG JUNE 1990
+      IF (JEND.EQ.0) JEND = 1
+C END JUNE 1990
+      VARIAB(I) = 0.0
+      DO 90 J = 1,JEND
+        IDL = IDLINK(I,J)
+C       POWR = CPOWR(I,J)
+C       NPWR = NINT(POWR)
+        VARIAB(I) = VARIAB(I) +CLINK(I,J)*VARIAB(IDL)
+   90 CONTINUE
+        VARIAB(I) = VARIAB(I) + CLINK0(I)
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      NEWY
+C BEG JUNE 1990
+      SUBROUTINE NEWY(NDEC,IDV,IDEC,X,Y,DX,WORDV,NVAR,VARIAB,JJJ,
+     1                IWARDX)
+C END JUNE 1990
+C
+C     PURPOSE IS TO CREATE NEW DESIGN VECTOR Y(I), ONE MEMBER OF WHICH
+C     IS SLIGHTLY DIFFERENT FROM THAT IN THE ORIGINAL VECTOR X(I).
+C
+C      INPUT DATA...
+C
+C      NDEC  = number of decision variables in optimization problem
+C        IDV = decision variable under consideration currently
+C       IDEC = indicator for decision variable, 0, 1  
+C          X = vector of decision variables at current design point
+C     IWARDX = warning index: if it is unity there is a large gradient.
+C
+C      OUTPUT DATA...
+C
+C          Y = modified vector of decision variables
+C         DX = increment in decision variable
+      DIMENSION IDEC(*),X(*),Y(*),VARIAB(*)
+      CHARACTER*80 WORDV(50)
+C
+C BEG JAN 1996
+      FMULT = 1.0
+C END JAN 1996
+      DX = 0.
+      FACT = 1.05
+      IF (JJJ.GT.10)   FACT = 1.01
+C
+C   CHECK TO SEE IF IDVth DECISION VARIABLE IS A WINDING ANGLE, AND
+C   IF IT IS SET FACT ACCORDINGLY...
+C
+      ITESTV = 0
+      DO 85 I = 1,NVAR
+         IF (IDEC(I).EQ.0) GO TO 85
+         ADD = 0.
+         ILET = INDEX(WORDV(I),'winding')
+         IF (ILET.NE.0) ADD = 360.
+         VARTOT = VARIAB(I) + ADD
+         IF (VARTOT.EQ.0.) GO TO 85
+         ITESTV = ITESTV + 1
+         IF (ILET.NE.0.AND.ITESTV.EQ.IDV) THEN
+            FACT = 1.005
+C BEG JAN 1996
+            IF (JJJ.GT.10) FACT = 1.001
+            DVARTT = ABS(.005*VARTOT)
+            IF (ABS(VARIAB(I)).LT.40.) THEN
+               FMULT = 10.
+            ELSE
+               FMULT = ABS(VARTOT/VARIAB(I))
+            ENDIF
+            IF (FMULT.GT.10.) FMULT = 10.
+            IF (FMULT.LT.1.0) FMULT = 1.0
+C END JAN 1996
+            GO TO 87
+         ENDIF
+   85 CONTINUE
+   87 CONTINUE
+C
+C BEG 26 JAN 1989
+C
+C   CHECK TO SEE IF IDVth DECISION VARIABLE IS A STIFFENER SPACING,
+C   AND IF IT IS, RESET FACT ACCORDINGLY...
+C
+      ITESTV = 0
+      DO 95 I = 1,NVAR
+         IF (IDEC(I).EQ.0) GO TO 95
+         ILET = INDEX(WORDV(I),'spacing, b: STR')
+         ITESTV = ITESTV + 1
+         IF (ILET.NE.0.AND.ITESTV.EQ.IDV) THEN
+            FACT = 1.01
+            GO TO 97
+         ENDIF
+   95 CONTINUE
+   97 CONTINUE
+C
+C BEG JUNE 1990
+C BEG MAR 2007 (change too small because of precision?)
+      IF (IWARDX.EQ.1) FACT = 1.005
+C     IF (IWARDX.EQ.1) FACT = 1.01
+C END MAR 2007
+C END JUNE 1990
+      DO 100 I = 1,NDEC
+      Y(I) = X(I)
+      IF (I.NE.IDV) GO TO 100
+      Y(I) = X(I)*FACT
+C BEG JAN 1995
+C     DX   = FACT - 1.0
+      DX   = FMULT*(FACT - 1.0)
+C END JAN 1996
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      GRADG
+C BEG JUNE 1990
+      SUBROUTINE GRADG(IBEG,IEND,IDV,DX,G,GSTAR,A,IFILE,NPRINT,
+     1                 NUMVAR,WORDV,XSAVE,IWARNV,WORDB,VARDEC)
+C
+C     PURPOSE IS TO FIND THE GRADIENT OF THE CONSTRAINT CONDITIONS
+C     WITH RESPECT TO THE IDV TH  DESIGN VARIABLE.
+C
+C BEG DEC 2005
+      DIMENSION GSTAR(*),G(*),A(41,150),WORDB(*),VARDEC(*)
+C END DEC 2005
+      CHARACTER*80 WORDV,WORDB
+C BEG MAY 2004
+C     CHARACTER*12 VARDEC
+      CHARACTER*16 VARDEC
+C END MAY 2004
+C
+      K = IEND - IBEG + 1
+      DO 10 I = 1,K
+      J = I + IBEG - 1
+      A(IDV,J) = (GSTAR(I) - G(I))/DX
+C BEG SEPT 1991
+C BEG APR 1997
+C  Several statements starting with "IF (A(IDV,J).GT.1.0E+10) THEN"
+C  were moved down.
+C END APR 1997
+C END SEPT 1991
+C BEG MAR 2007
+C     IF (NPRINT.GE.2.OR.
+C    1   ((G(I).LT.1.0.OR.GSTAR(I).LT.1.0).AND.ABS(A(IDV,J)).GT.20.))
+      IF (NPRINT.GE.2.OR.
+     1   ((G(I).LT.1.0.OR.GSTAR(I).LT.1.0).AND.ABS(A(IDV,J)).GT.5.))
+C END MAR 2007
+     1 WRITE(IFILE,5) NUMVAR,WORDV(1:79),IBEG,IEND,I,WORDB(I)(1:79),
+     1     IDV,VARDEC(IDV),VARDEC(IDV),DX*100.,GSTAR(I),G(I),J,A(IDV,J)
+C BEG MAR 2007
+      IF (NPRINT.GE.2.OR.
+     1   ((G(I).LT.1.5.OR.GSTAR(I).LT.1.5).AND.ABS(A(IDV,J)).GT.10.))
+     1 WRITE(IFILE,5) NUMVAR,WORDV(1:79),IBEG,IEND,I,WORDB(I)(1:79),
+     1     IDV,VARDEC(IDV),VARDEC(IDV),DX*100.,GSTAR(I),G(I),J,A(IDV,J)
+C END MAR 2007
+    5 FORMAT(//' CONSTRAINT CONDITION GRADIENTS FOR  VARIABLE NO.',I3/
+     1' ',A/
+     1' STARTING CONSTRAINT NO.,IBEG=',I3,' ENDING CONSTRT, IEND=',I3/
+     1' CONSTRAINT CONDITION NUMBER, ICONST =',I3,'   DEFINITION:'/
+     1' ',A/
+     1' DECISION VARIABLE NUMBER,                    IDV=',I3/
+     1' DECISION VARIABLE NAME:                        ',A/
+     1' AMOUNT BY WHICH ',A,'  IS PERTURBED:    DX(PERCENT)=',1PE12.4/
+     1' CONSTRAINT CONDITION FOR PERTURBED DESIGN, GSTAR(I)=',1PE12.4/
+     1' CONSTRAINT CONDITION FOR ORIGINAL  DESIGN,     G(I)=',1PE12.4/
+     1' GLOBAL CONSTRAINT CONDITION NUMBER, J =',I3/
+     1' GLOBAL CONSTRAINT CONDITION GRADIENT,  (GSTAR-G)/DX=',1PE12.4//)
+C
+C BEG APR 1997
+      IF (ABS(A(IDV,J)).GT.5.0) THEN
+         ILET1 = INDEX(WORDB(I), '-MID.')
+         ILET2 = INDEX(WORDB(I), '-RNGS')
+         IF (ILET1.NE.0.OR.ILET2.NE.0) THEN
+C BEG DEC 2003
+          IF (NPRINT.GT.-1)
+C END DEC 2003
+     1     WRITE(IFILE,'(A,/,A,/,A,I2,A,I2,A,1P,E12.4,/,A,/,A)')
+     1  ' ****** NOTE ******** NOTE ******** NOTE ******* NOTE ******',
+     1  ' LARGE GRADIENT OF STRESS AS COMPUTED FROM IQUICK=1 THEORY.',
+     1  ' THE ORIGINAL GRADIENT, A(i=',IDV,',j=',J,') =',A(IDV,J),
+     1  ' IS NOW BEING RESET TO 5*A(i,j)/ABS(A(i,j)).',
+     1  ' ***** END NOTE **** END NOTE **** END NOTE *** END NOTE ****'
+          A(IDV,J) = 5.0*A(IDV,J)/ABS(A(IDV,J))
+         ENDIF
+      ENDIF
+C END APR 1997
+      IF (IWARNV.EQ.0.AND.G(I).LT.1.1.AND.ABS(A(IDV,J)).GT.5.0
+     1               .AND.G(I).GT.0.5) THEN
+C BEG DEC 2003
+         IF (NPRINT.GT.-1) WRITE(IFILE,7) NUMVAR,XSAVE,WORDV(1:79)
+C END DEC 2003
+    7    FORMAT(/' *** WARNING *** WARNING *** WARNING *** WARNING ***'/
+     1' BEHAVIOR IS SENSITIVE TO SMALL CHANGES IN VARIABLE NO.',I2/
+     1' THE UNPERTURBED VALUE OF WHICH IS ',1PE12.4,' DEFINED AS:'/
+     1' ',A/
+     1' THE MOVE LIMITS OF THIS DECISION VARIABLE MAY BE SEVERELY'/
+     1' CONSTRAINED FOR THE REST OF THE ITERATIONS IN THIS RUN.'/
+     1' ****** END WARNING **** END WARNING **** END WARNING ******'/)
+        IWARNV = 1
+C BEG MAR 2007
+        WRITE(IFILE,5) NUMVAR,WORDV(1:79),IBEG,IEND,I,WORDB(I)(1:79),
+     1     IDV,VARDEC(IDV),VARDEC(IDV),DX*100.,GSTAR(I),G(I),J,A(IDV,J)
+C END MAR 2007
+      ENDIF
+C END JUNE 1990
+C BEG APR 1997
+      IF (ABS(A(IDV,J)).GT.1.0E+10) THEN
+         WRITE(IFILE,*)' ******CONSTRAINT GRADIENT .GT. 1.0E+10******'
+         WRITE(IFILE,5) NUMVAR,WORDV(1:79),IBEG,IEND,I,WORDB(I)(1:79),
+     1     IDV,VARDEC(IDV),VARDEC(IDV),DX*100.,GSTAR(I),G(I),J,A(IDV,J)
+         WRITE(IFILE,*)' ******CONSTRAINT GRADIENT .GT. 1.0E+10******'
+         WRITE(IFILE,*)' GRADIENT BEING SET EQUAL TO 5.0; CONTINUING'
+         A(IDV,J) = 5.0
+         IWARNV = 1
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG DEC 2003
+      IF (NPRINT.GT.-1.AND.(G(I).LT.1.0.OR.GSTAR(I).LT.1.0)
+     1        .AND.ABS(A(IDV,J)).GE.5.0) WRITE(IFILE,8) WORDB(I)(1:79)
+C END DEC 2003
+C BEG MAR 2007
+      IF (NPRINT.GT.-1.AND.(G(I).LT.1.5.OR.GSTAR(I).LT.1.5)
+     1        .AND.ABS(A(IDV,J)).GE.10.0) WRITE(IFILE,8) WORDB(I)(1:79)
+C END MAR 2007
+    8    FORMAT(/
+     1 ' ********  NOTE  *********  NOTE  ********  NOTE  ********',/,
+     1 ' ******** ADVICE ********* ADVICE ******** ADVICE ********',/,
+     1 ' YOU HAVE A HIGH GRADIENT OF A CONSTRAINT THAT IS',/,
+     1 ' CRITICAL. THE CONSTRAINT DEFINITION IS:',/,A,/,
+     1 ' LARGE GRADIENTS OF CRITICAL OR ALMOST CRITICAL CONSTRAINTS',/,
+     1 ' MAY PREVENT THE FINDING OF A GLOBAL OPTIMUM DESIGN BECAUSE',/,
+     1 ' THEY GREATLY SHRINK THE "WINDOW" OF PERMITTED EXCURSION OF',/,
+     1 ' DECISION VARIABLES (SEE FIG. 83 ON PAGE 582 OF THE LONG',/,
+     1 ' 1987 PAPER ON PANDA2). IN ORDER TO AVOID THIS "SHRINKAGE"',/,
+     1 ' YOU MAY WANT TO RAISE THE LOWER BOUNDS OF ONE OR MORE OF',/,
+     1 ' THE DECISION VARIABLES THAT MOST AFFECT THIS CONSTRAINT.',/,
+     1 ' ******** ADVICE ********* ADVICE ******** ADVICE ********',/)
+C END APR 1997
+   10 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      ESCAPE
+C BEG NOV 1994
+      SUBROUTINE ESCAPE(IFAIL,NVAR,NDEC,NCON,ISCAPE,VARIAB,VARHI,G,
+     1                  IESCAP,ILOADS,JACTIV,WORDB)
+C END NOV 1994
+C
+C  PURPOSE IS TO PUSH DESIGN TOWARD FEASIBLE REGION IF ADS CAN'T
+C  HANDLE IT.
+C
+C  INPUT DATA...
+C
+C   IFAIL = 0 IF ADS CHANGED DESIGN, 1  IF ADS FAILED
+C    NVAR = NUMBER OF DESIGN PARAMETERS
+C    NDEC = NUMBER OF DECISION VARIABLES
+C    NCON = NUMBER OF CONSTRAINT CONDITIONS
+C  ISCAPE = ARRAY OF INDICATORS FOR SUITABILITY OF DESIGN PARAMETER AS
+C           AN ESCAPE PARAMETER
+C  VARIAB = ARRAY OF DESIGN PARAMETERS
+C   VARHI = UPPER BOUND OF DESIGN PARAMETER
+C       G = DESIGN MARGINS
+C   WORDB = CONSTRAINT CONDITION PHRASES
+C
+C  OUTPUT DATA...
+C
+C  IESCAP = 0 IF NO ESCAPE IS NECESSARY; 1  IF  ESCAPE IS NECESSARY
+C
+C BEG NOV 1994
+      DIMENSION ISCAPE(*),VARIAB(*),VARHI(*),G(*),WORDB(*)
+      CHARACTER*80 WORDB
+C END NOV 1994
+C
+      IESCAP = 0
+      IF (ILOADS.EQ.1) JACTIV = 0
+      ICLOSE = 1
+C
+C   TEST FOR ACTIVE BEHAVIORAL CONSTRAINTS...
+C
+      DO 10 I = 1,NCON
+C BEG NOV 1994
+C BEG APR 1997
+C     ILET = INDEX(WORDB(I),'**(')
+      ILET = INDEX(WORDB(I),'^')
+C END APR 1997
+      IF (ILET.NE.0) GO TO 10
+      ILET = INDEX(WORDB(I),'Stringer spacing')
+C END NOV 1994
+      IF (ILET.NE.0) GO TO 10
+      GI = -G(I) + 1.
+      IF (GI.LT.-0.1) GO TO 10
+      COMPAR = 0.95
+      COMPAR = 0.80
+C BEG JULY 1989
+      IF (IFAIL.EQ.1) COMPAR = 0.05
+C END JULY 1989
+      IF (GI.GE.COMPAR) IESCAP = 1
+C BEG AUG 1990
+      IF (GI.GT.0.03) ICLOSE = 0
+C END AUG 1990
+      JACTIV = JACTIV + 1
+C     WRITE(8,'(A,5I4,1P,2E12.4)')
+C    1  ' IFAIL,I,JACTIV,IESCAP,ICLOSE,GI,COMPAR=',
+C    1    IFAIL,I,JACTIV,IESCAP,ICLOSE,GI,COMPAR
+   10 CONTINUE
+C
+      IF (IESCAP.EQ.1) GO TO 30
+C BEG MAY 1993
+      GO TO 100
+C     IF (NDEC.GE.JACTIV.OR.IFAIL.EQ.0) GO TO 100
+C     IF (ICLOSE.EQ.1) GO TO 100
+C END MAY 1993
+C
+C     ONE OF THE BEHAVIORAL CONSTRAINTS IS BADLY VIOLATED (GI.GT.0.95)
+C     OR THE NUMBER OF ACTIVE CONSTRAINTS, JACTIV, IS GREATER THAN OR
+C     EQUAL TO THE NUMBER, NDV, OF DECISION VARIABLES.  IT IS NECESSARY
+C     TO MODIFY THE DESIGN AND AVOID ADS ITERATIVELY UNTIL
+C     (NDV .GT. JACTIV)...
+C
+   30 CONTINUE
+C BEG JAN 1996
+C     FMULT = 1.1
+      FMULT = 1.3
+C END JAN 1996
+      IFLAG = 0
+      DO 40 I = 1,NVAR
+C     WRITE(8,*)
+C    1' DO 40 LOOP: NVAR,I,ISCAPE(I),IFLAG,VARIAB(I),VARHI(I)=',
+C    1              NVAR,I,ISCAPE(I),IFLAG,VARIAB(I),VARHI(I)
+      IF (ISCAPE(I).EQ.0) GO TO 40
+      IF (VARIAB(I).GE.VARHI(I) ) GO TO 40
+      VARIAB(I) = VARIAB(I)*FMULT
+      IFLAG = 1
+   40 CONTINUE
+C
+      IESCAP = 1
+      IF (IFLAG.EQ.0) IESCAP = 0
+  100 CONTINUE
+      RETURN
+      END

@@ -1,0 +1,193 @@
+C BEG JUN 2004
+C=DECK      SETUP3
+C  PURPOSE IS TO SETUP UP A FILE SUITABLE AS INPUT TO BOSOR4
+C  Substringer-skin module (analogous to SETUP)
+C
+      PROGRAM SETUP3
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/GEOM0S/B0(2),B20(2),H0(2),W0(2),W20(2)
+      COMMON/GEOM2S/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3S/ISTIFF(2),NLAYER(4,2),NNNN(2),INTEXT(2)
+      COMMON/INDAT/INFILE
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/IZSTIX/IZSTIF(2)
+C BEG AUG 2006 (increase dimension of IPOINT from 95 to 195 for use with bigbosor4)
+C BEG APR 2007 (increas dimension of IPOINT from 195 to 295 for use with bigbosor4)
+      COMMON/BOSEG2/NSEGB5,IPOINT(295)
+C END APR 2007
+C END AUG 2006
+      COMMON/GEOM1/AXIAL,CIRC,R
+      DIMENSION NMESH(10),R1(10),Z1(10),R2(10),Z2(10),NTYPEH(10)
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.AL3'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE5=CASE(:I-1)//'.SET'
+      ELSE
+         CASE2=CASE//'.AL3'
+         CASE3=CASE//'.CBL'
+         CASE5=CASE//'.SET'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2
+      IOUT2 = 3
+      ifile1 = 1
+      IFILE7 = 7
+      ifile14 = 14
+C
+C BEG UNIX
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile14, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile14)
+#endif
+      else
+        OPEN(UNIT=ifile14, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case5(1:lastch(case5)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=iout2, FILE=case5(1:lastch(case5)), STATUS='OLD')
+#if rs6k
+        rewind(iout2)
+#endif
+      else
+        OPEN(UNIT=iout2, FILE=case5(1:lastch(case5)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+C END UNIX
+C
+      CALL GETCOM(IFILE7)
+      IOUT = 14
+      IOUT1= 1
+C
+      WRITE(6,5)
+C BEG UNIX
+    5 FORMAT(//'  **************   SETUP3  ***************'//
+     1' The purpose of SETUP3 is to set up an input data file called'/
+     1' NAME.AL3, in which NAME is your name for this case.  This'/
+     1'  file, NAME.AL3, is a BOSOR4-type of input data file. It is'/
+     1'  used as input for B4READ. (skin-substringer module-2004).'//
+     1'  **********************************************'/)
+C END UNIX
+C
+      WRITE(6,6)
+C BEG UNIX
+    6 FORMAT(/ 
+     1'     GENERATING BOSOR4-TYPE DISCRETIZED MODEL'/
+     1'     FOR A SINGLE PANEL MODULE (skin+substringer)'/
+     1' The command SETUP3 causes templates'/
+     1' of the stiffness and  load-geometric matrices to'/
+     1' be set up for the buckling problem involving'/
+     1' a single panel module with skin and substringer,'/
+     1' which is used for local buckling analysis. '/)
+C END UNIX
+      IMESH = 9
+      IFINE = 0
+      NTEST = 6
+      IF (ISTIFF(1).EQ.4.AND.B2(1).GT.W2(1)) NTEST = 8
+      IF (NTEST.LE.6) IFINE = 1
+      IFINE = 1
+      MODEL = 1
+C
+C  GET END POINTS OF SEGMENTS IN A SINGLE MODULE OF THE PANEL...
+C
+C  TEMPORARY CARDS FOR CHECKING PURPOSES...
+C
+       ISTIF = ISTIFF(1)
+       IF (ISTIF.EQ.4.AND.IFINE.EQ.0) IMESH = 7
+C
+      IF (ISTIF.LT.4) CALL RZTJR(IMESH,ISTIF,B(1),B2(1),H(1),W(1),NSEG,
+     1                           NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IZSTIF(1))
+      IF (ISTIF.EQ.4) CALL RZHAT(IMESH,B(1),B2(1),H(1),W(1),W2(1),NSEG,
+     1                           NMESH,NTYPEH,INTEXT(1),R1,Z1,R2,Z2,R0,
+     1                           IFINE)
+C
+      IF (ISTIF.EQ.5) CALL RZTRUS(IMESH,B(1),B2(1),H(1),NSEG,
+     1                           NMESH,NTYPEH,R1,Z1,R2,Z2,R0)
+C
+C  NOW WRITE TO THE OUTPUT FILE..
+C
+      WRITE(IOUT,'(A)')' BOSOR4 INPUT FOR A PANEL MODULE'
+      WRITE(IOUT,'(A,I3,A)')
+     1          ' 1,1,0,', NSEG,' $ NUMBER OF SEGS IN PANEL MODULE '
+C
+      NSEGB5 = NSEG
+      DO 10 I = 1,NSEG
+C
+        IPOINT(I) = NMESH(I) + 2
+        CALL OUTSEG(IOUT,I,NMESH(I),NTYPEH(I),R1(I),Z1(I),R2(I),Z2(I))
+C
+   10 CONTINUE
+C
+      WRITE(IOUT,'(A)')' H $ END OF SEGMENT DATA;  GLOBAL DATA BEGINS.'
+      WRITE(IOUT,'(A,I3)')' -1,0,0,0,0,1,0,0,0,0,0,0,', NSEG
+      IF (ISTIF.LT.4) CALL CONTJR(IOUT,ISTIF,NSEG,NMESH,IZSTIF(1))
+      IF (ISTIF.EQ.4) CALL CONHAT(IOUT,NSEG,NMESH,B2(1),W2(1))
+      IF (ISTIF.EQ.5) CALL CONTRU(IOUT,NSEG,NMESH,B2)
+      DO 20 ISEG = 1,NSEG
+   20 WRITE(IOUT,'(A)')' Y'
+      WRITE(IOUT,'(A)')' N'
+      CALL MOVER(B,1,B0,1,10)
+C
+      CALL STORCM(IFILE7)
+C
+      CLOSE(UNIT=IFILE7)
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=IOUT1)
+C
+      WRITE(6,30) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C BEG UNIX
+   30 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.AL3 = Input data for BOSOR4-type of preprocessor.'/
+     1'           correponding to discretized single panel module'/
+     1'           consisting of skin and substringer.'/
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' The next module will cause to be generated matrix templates'/
+     1' for solution of the local buckling eigenvalue problem'/
+     1' in which the cross section of the panel module is'/
+     1' discretized (skin+substringer) according to the conventions'/
+     1' used in BOSOR4.'/)
+C
+      close(unit=iout2, status='DELETE')
+C END UNIX
+      END

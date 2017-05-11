@@ -1,0 +1,895 @@
+C=DECK      DIPLOT
+      PROGRAM DIPLOT
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C     ******************************************************************
+C     *                                                                *
+C     *         DIPLOT IS A GENERAL PURPOSE PLOTTING ROUTINE           *
+C     *         FOR DISPLAYING DATA FROM VARIOUS FILES. IT WAS         *
+C     *         ORIGINALLY WRITTEN BY KAREN NEIER AND MODIFIED         *
+C     *         ON 8 NOVEMBER, 1988 BY DAVID BUSHNELL FOR SPECIFIC     *
+C     *         APPLICATION TO PLOTTING DESIGN MARGINS, PARAMETERS,    *
+C     *         AND OBJECTIVE v. DESIGN ITERATIONS.  DIPLOT USES       *
+C     *         DISSPLA PLOTWARE.                                      *
+C     *                                                                *
+C     ******************************************************************
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/C1/IDRAW
+      COMMON/C2/NPTS(100),IDEV,PLAB(18,100),PARRAY(2000,100)
+      COMMON/C3/ALEG(500)
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1          NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,
+     1          NSTRNS,NPLTST,NABSCI,IDIAG,IMISCL(9)
+      COMMON/GEOMN4/ICURV,FNXPLT(30),FNYPLT(30),FNXYPL(30),
+     1              FNX0P,FNY0P,FNXY0P
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN,NITER,NTIT(5,2)
+      COMMON/NUMPAR/NPAR,NVARR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      DIMENSION NARRAY(5,100),ISTART(100),NVAR(100)
+      DIMENSION NAME(4),NV1(10),YTIT(10),IPLTST(10),TTIT(20)
+      DIMENSION IIN(10),IINA(10),IINAR(10),IINARR(10),IINARRA(10)
+      DIMENSION TITLE0(10)
+      CHARACTER*40 FILENM(100)
+      CHARACTER*1 FLNM(2000)
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE7,CASE8
+      CHARACTER*4 QUAL,ANSOUT
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+C END JUNE 1995
+      CHARACTER*80 TITLE0, TTIT, ALEG, YTIT, PTIT
+      LOGICAL EROR,ANSL1
+      EQUIVALENCE(FLNM,FILENM)
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C
+C
+C  WRITTEN BY KAREN NEIER; MODIFIED BY D. BUSHNELL, NOV. 8, 1988 -
+C  MARCH 1989...
+C
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE7=CASE(:I-1)//'.CBL'
+         CASE8=CASE(:I-1)//'.ODI'
+      ELSE
+         CASE7=CASE//'.CBL'
+         CASE8=CASE//'.ODI'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ioutfl)
+#endif
+      else
+	OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case7(1:lastch(case7)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+	OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+C
+      WRITE(0,4) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.ODI FILE ******************'
+      WRITE(IFILE8,4) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET),CASE(1:NLET)
+    4 FORMAT(//' ***************** DIPLOT  *******************'/
+     1' The purpose of DIPLOT is to permit you to plot the data'/
+     1' which you just chose in CHOOSEPLOT.  DIPLOT was written by'/
+     1' Karen Neier of Lockheed and modified by D. Bushnell.'/
+     1' DIPLOT requires as input one or more of the seven files:'//
+     1' ',A,'.PL3, ',A,'.PL4, ',A,'.PL5, ',A,'.PL6, ',A,'.PL7,'/
+     1' ',A,'.PL8, ',A,'.PL9, ',A,'.PL10,'//
+     1' which are described briefly at the end of this run.'/
+     1' DIPLOT uses DISSPLA plotware.'/
+     1' ****************************************************'/)
+C
+      CALL GETCOM(IFILE7)
+      CLOSE(UNIT=IFILE7)
+C
+      IDEV = 6
+C
+      EROR = .FALSE.
+C 
+C     INITIALIZE GRAFMAKER AND DISSPLA
+C 
+      CALL DINIT(IDEV)
+C
+C   CALCULATE INPUT DATA...
+C
+      CALL MOVER(0,0,IPLTST,1,10)
+      IF (NMARGN.GT.0) IPLTST(1) = 1
+      IF (NPLT.GT.0)   IPLTST(2) = 1
+      IF (ITYPE.EQ.1.AND.NOBJ.GT.0)   IPLTST(3) = 1
+      IF (ITYPE.EQ.4.AND.NOBJ.GT.0)   IPLTST(3) = 1
+      IF (ITYPE.EQ.5.AND.NOBJ.GT.0)   IPLTST(3) = 1
+      IF (ITYPE.EQ.3.AND.NCROSS.GT.0) IPLTST(3) = 1
+      IF (ITYPE.EQ.3.AND.ILAYPL.EQ.1) IPLTST(4) = 1
+      IF (ITYPE.EQ.3.AND.N3DPLT.EQ.1) IPLTST(5) = 1
+      IF (ITYPE.EQ.3.AND.NPLTST.GT.0) THEN
+         IPLTST(6) = 1
+         IPLTST(7) = 1
+         IPLTST(8) = 1
+      ENDIF
+      FILENM(1) = CASE(1:NLET)//'.PL3'
+      FILENM(2) = CASE(1:NLET)//'.PL4'
+      FILENM(3) = CASE(1:NLET)//'.PL5'
+      FILENM(4) = CASE(1:NLET)//'.PL6'
+      FILENM(5) = CASE(1:NLET)//'.PL7'
+      FILENM(6) = CASE(1:NLET)//'.PL8'
+      FILENM(7) = CASE(1:NLET)//'.PL9'
+      FILENM(8) = CASE(1:NLET)//'.PL10'
+      NV1(1)    = NMARGN
+      NV1(2)    = NPLT
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) NV1(3)    = NOBJ
+      IF (ITYPE.EQ.5) THEN
+         IPLTST(2) = 1
+         NV1(2) = NMARGN
+         NV1(4) = 0
+         NV1(5) = 0
+      ENDIF
+      IF (ITYPE.EQ.3) NV1(3) = NCROSS
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4) NV1(4) = 0
+      IF (ITYPE.EQ.3) NV1(4) = KMAX
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4) NV1(5) = 0
+      IF (ITYPE.EQ.3) NV1(5) = 2
+      IF (ITYPE.EQ.3) THEN
+         NV1(6) = NPLTST
+         NV1(7) = NPLTST
+         NV1(8) = NPLTST
+      ENDIF
+      YTIT(1) = 'DESIGN MARGINS'
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4) THEN
+          YTIT(2) = 'DESIGN PARAMETERS'
+          YTIT(3) = 'OBJECTIVE'
+      ENDIF
+      IF (ITYPE.EQ.5) THEN
+         IF (ICURV.EQ.1.OR.ICURV.EQ.2) THEN
+            YTIT(2) = 'AXIAL LOAD, Nx/Nxcr'
+            YTIT(3) = 'AXIAL LOAD, Nx'
+         ENDIF
+         IF (ICURV.EQ.3) THEN
+            YTIT(2) = 'HOOP LOAD, Ny/Nycr'
+            YTIT(3) = 'HOOP LOAD, Ny'
+         ENDIF
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+          YTIT(2) = 'PANEL BEHAVIORS'
+          YTIT(3) = 'PANEL MODULE'
+          YTIT(4) = 'PANEL MODULE'
+          YTIT(5) = 'PANEL MODULE'
+          IF (IDIAG.EQ.1) THEN
+             YTIT(6) = 'AXIAL STRAIN'
+             YTIT(7) = 'HOOP STRAIN'
+             YTIT(8) = 'SHEAR STRAIN'
+          ELSE
+             YTIT(6) = '+45deg. NORMAL STRAIN'
+             YTIT(7) = '-45deg. NORMAL STRAIN'
+             YTIT(8) = '45 deg. SHEAR STRAIN'
+          ENDIF
+      ENDIF
+C
+      IDF = 10
+C
+  5   CONTINUE
+      IFILE = 7
+      ISTOP = 0
+      DO 35 M = 1,IDF
+         IF (IPLTST(M).EQ.0) GO TO 35
+ 7       CONTINUE
+         OPEN(UNIT=IFILE,STATUS='OLD',
+     1        FILE=FILENM(M)(1:lastch(filenm(m))),ERR=7)
+         READ(IFILE,960) TITLE0(M)
+         TTIT(M) = TITLE0(M)
+         READ(IFILE,*) NVAR(M)
+         ISTART(M) = ISTOP + 1
+         IF(ISTART(M).GT.100) GO TO 800
+         ISTOP = ISTART(M)+NVAR(M)-1
+         IF(ISTOP.GT.100) GO TO 800
+         DO 10 I=ISTART(M),ISTOP
+            READ(IFILE,910)(PLAB(N,I),N=1,18)
+10       CONTINUE
+         DO 20 I=1,2000
+            READ(IFILE,920,END=30) (PARRAY(I,N),N=ISTART(M),ISTOP)
+            NPTS(M) = I
+20       CONTINUE
+         write(0,*) ' MAXIMUM NUMBER OF ENTRIES PER VARIABLE IS 2000.'
+         write(0,*) ' CONTINUING TO PLOT WITH 2000 FROM THIS FILE'
+30       CONTINUE
+         CLOSE(UNIT=IFILE)
+35    CONTINUE
+      DO 100 M = 1,IDF
+         IF (IPLTST(M).EQ.0) GO TO 100
+         DO 8 I = 1,20
+         I1 = I - 1
+         IF (TTIT(I).EQ.'    ') GO TO 9
+    8    CONTINUE
+    9    CONTINUE
+         NTTIT = 4*I1
+         NCURVE = 0
+         NV = NV1(M)
+      IF(NV.LE.0.OR.NV.GT.100) GO TO 999
+      DO 50 I=1,NV
+40       CONTINUE
+41       CONTINUE
+         NARRAY(5,I) = M
+         ISTOP = ISTART(M) + NVAR(M) - 1
+         IF (I.EQ.1) THEN
+            DO 36 IJK = ISTART(M),ISTOP
+               write(0,930) IJK-ISTART(M)+1,(PLAB(N,IJK),N=1,18)
+               WRITE(IFILE8, 930) IJK-ISTART(M)+1,(PLAB(N,IJK),N=1,18)
+36          CONTINUE
+         ENDIF
+42       CONTINUE
+         NARRAY(1,I) = 1
+         IF (ITYPE.EQ.3.AND.YTIT(M).EQ.'PANEL MODULE') then
+           NARRAY(1,I) = 2*I - 1
+         endif
+         IF (ITYPE.EQ.5.AND.M.EQ.2) NARRAY(1,I) = 2*I - 1
+46       CONTINUE
+         NARRAY(2,I) = I + 1
+         IF (ITYPE.EQ.3.AND.YTIT(M).EQ.'PANEL MODULE') then
+           NARRAY(2,I) = 2*I
+         endif
+         IF (ITYPE.EQ.5.AND.M.EQ.2) NARRAY(2,I) = 2*I
+         IBIG = 0
+         IF(NARRAY(1,I).GT.NVAR(NARRAY(5,I)).OR.
+     1      NARRAY(2,I).GT.NVAR(NARRAY(5,I))) IBIG = 1
+         IF(IBIG.EQ.1) then
+           write(0,*) ' NOT IN THIS DATA FILE. CALLING EXIT.'
+         endif
+         IF(IBIG.EQ.1) CALL EXIT
+         NARRAY(1,I)=NARRAY(1,I)+ISTART(NARRAY(5,I))-1
+         NARRAY(2,I)=NARRAY(2,I)+ISTART(NARRAY(5,I))-1
+43       CONTINUE
+         NARRAY(3,I) = 0
+         IF (M.EQ.5) THEN
+            NARRAY(3,1) = 1
+            NARRAY(3,2) = 0
+         ENDIF
+         IF(IDEV.EQ.9.AND.NARRAY(3,I).GT.0) NARRAY(3,I) = NARRAY(3,I)+4
+44       CONTINUE
+         NARRAY(4,I) = I
+         IF (M.EQ.5) NARRAY(4,I) = 0
+50    CONTINUE
+      CALL AFRAME(NV,NARRAY,PTIT,NCHARS,IDF,YTIT(M),NCURVE,IFILE8,
+     1            TTIT(M),NTTIT,ITYPE,XMAX,XMIN,YMAX,YMIN,M,NABSCI,
+     1            ICURV)
+C
+C TYPE WARNING TO USER...
+C
+      IF (NCURVE.GT.50.AND.M.NE.5) THEN
+         WRITE(0,98) NCURVE
+ 98   FORMAT(/' *********** WARNING  WARNING  WARNING ***********'/
+     1' BECAUSE OF A "BUG" IN DISSPLA, FOR SOME REASON THE LEGENDS'/
+     1' AT THE TOP OF THE PLOT ARE IMPROPERLY PRODUCED IF THERE ARE'/
+     1' MORE THAN 50 DISTINCT "CURVES" ON THE PLOT.  IN THIS CASE'/
+     1' THE NUMBER OF DISTINCT "CURVES" IS: NCURVE=',I3,'.  THE PLOTS'/
+     1' THEMSELVES ON THIS FRAME ARE OK; IT"S JUST THE LEGENDS THAT'/
+     1' ARE WRONG.  IF YOU WANT CORRECT LEGENDS, YOU WILL HAVE TO'/
+     1' EXPAND AND PLOT A SUBREGION.  KEEP EXPANDING UNTIL THE'/
+     1' LEGENDS COME OUT OKAY.  SORRY ABOUT THIS. THERE"S NOTHING'/
+     1' WE CAN DO, SINCE WE DO NOT HAVE ACCESS TO DISSPLAY SOURCE'/
+     1' CODE.'/
+     1' ******************  END WARNING  ************************'/)
+      ENDIF
+C
+100   CONTINUE
+800   CONTINUE
+999   CONTINUE
+      CALL DONEPL 
+C
+      WRITE(0,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(0,4001)
+     1             CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1             CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,4001)
+     1             CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1             CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(0,401)
+      WRITE(IFILE8,401)
+C
+  400 FORMAT(//' DESCRIPTION OF FILES GENERATED AND USED BY DIPLOT:'//
+     1 1X,A,'.ODI = List output from DIPLOT. (A very small file).'/
+     1 1X,A,'.PL3 = Input file for margin plots via DIPLOT'/
+     1 1X,A,'.PL4 = Input file for design parameter (ITYPE = 1)'/
+     1'            or behavior plots (ITYPE=3) via DIPLOT')
+ 4001 FORMAT(
+     1 1X,A,'.PL5 = Input file for objective plot (ITYPE=1 or 4)'/
+     1'            or panel module plots (ITYPE=3) via DIPLOT'//
+     1 1X,A,'.PL6 = File for plot of layup of skin-stringer module'/
+     1'             (ITYPE=3).'/
+     1 1X,A,'.PL7 = File for "3-D" plot of deformed skin-stringer'/
+     1'            module (ITYPE=3).'/
+     1 1X,A,'.PL8 = File for extreme fiber AXIAL or +45deg. strains'/
+     1'            skin-stringer module (ITYPE=3).'/
+     1 1X,A,'.PL9 = File for extreme fiber  HOOP or -45deg. strains'/
+     1'            skin-stringer module (ITYPE=3).'/
+     1 1X,A,'.PL10= File for extreme fiber 0deg or 45deg SHEAR strains'/
+     1'            in skin-stringer module (ITYPE=3).'/)
+C
+  401   FORMAT(
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' Menu of possible commands when DIPLOT is finished:'/
+     1'   CHOOSEPLOT, PANDAOPT, MAINSETUP, DECIDE, CHANGE   .'/)
+C
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.ODI FILE ******************'
+C
+C
+c Added 11/90 to clear IEEE FPE warnings
+      call ieeexx
+c End 11/90
+      STOP
+900   FORMAT(I4)
+910   FORMAT(18A4)
+915   FORMAT(20A4)
+911   FORMAT(4A4,'$')
+920   FORMAT(8E12.5)
+930   FORMAT(1X,I2,'.',2X,18A4)
+940   FORMAT(18A4)
+950   FORMAT(' TRACE NUMBER',I3)
+960   FORMAT(A)
+970   FORMAT (A23,'$')
+      END
+C
+C
+C
+C=DECK      ADRAW2
+      SUBROUTINE ADRAW2(XIN,YIN,N,NLIT,IMARG,NCURVE)
+C     ************************************************************
+C     *                                                          *
+C     *           SET UP PLOT ARRAYS FOR CALL TO DISSPLA         *
+C     *           ROUTINE - CURVE.                               *
+C     *     INPUTS                                               *
+C     *       XIN,YIN- ARRAYS CONTAINING N POINTS TO PLOT.       *
+C     *       NLIT   - LINE TYPE                                 *
+C     *                                                          *
+C     ************************************************************
+      DIMENSION XIN(1),YIN(1)
+C
+      IF (NLIT.EQ.1) CALL DASH
+      IF (NLIT.EQ.2) CALL DOT
+      IF (NLIT.EQ.3) CALL CHNDSH
+      IF (NLIT.EQ.4) CALL CHNDOT
+      IF (NLIT.EQ.-1) THEN
+          CALL MARKER(4)
+          IF (IMARG.EQ.0) THEN
+             NCURVE = NCURVE + 1
+             CALL CURVE(XIN,YIN,N,-1)
+          ELSE
+             IARG = -1
+             CALL CURVE2(XIN,YIN,N,IARG,NCURVE)
+          ENDIF
+          CALL MARKER(0)
+      ELSE
+          IF (IMARG.EQ.0) THEN
+             NCURVE = NCURVE + 1
+             CALL CURVE(XIN,YIN,N,0)
+          ELSE
+             IARG = 0
+             CALL CURVE2(XIN,YIN,N,IARG,NCURVE)
+          ENDIF
+      ENDIF
+      CALL LINE
+C
+ 999  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      ADRAW3
+      SUBROUTINE ADRAW3(XIN,YIN,N,NLIT,NINT,IMARG,NCURVE)
+C     ************************************************************
+C     *                                                          *
+C     *           SET UP PLOT ARRAYS FOR CALL TO DISSPLA         *
+C     *           ROUTINE - CURVE.                               *
+C     *     INPUTS                                               *
+C     *       XIN,YIN- ARRAYS CONTAINING N POINTS TO PLOT.       *
+C     *       NLIT   - LINE TYPE                                 *
+C             NINT   - SYMBOL TYPE                               *
+C     *                                                          *
+C     ************************************************************
+      DIMENSION XIN(1),YIN(1)
+C
+      CALL MARKER(NINT)
+      IF (NLIT.EQ.1) CALL DASH
+      IF (NLIT.EQ.2) CALL DOT
+      IF (NLIT.EQ.3) CALL CHNDSH
+      IF (NLIT.EQ.4) CALL CHNDOT
+      IF (NLIT.EQ.-1)THEN
+          IF (IMARG.EQ.0) THEN
+             NCURVE = NCURVE + 1
+             CALL CURVE(XIN,YIN,N,-1)
+          ELSE
+             IARG = -1
+             CALL CURVE2(XIN,YIN,N,IARG,NCURVE)
+          ENDIF
+      ELSE
+          IF (IMARG.EQ.0) THEN
+             NCURVE = NCURVE + 1
+             CALL CURVE(XIN,YIN,N,1)
+          ELSE
+             IARG = 1
+             CALL CURVE2(XIN,YIN,N,IARG,NCURVE)
+          ENDIF
+      ENDIF
+      CALL MARKER(0)
+      CALL LINE
+C
+ 999  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      CURVE2
+      SUBROUTINE CURVE2(XIN,YIN,N,IARG,NCURVE)
+C
+C  PURPOSE IS TO SET UP SECTIONS OF PLOT (SUBPLOTS) WHICH ARE NON-ZERO.
+C  THIS ROUTINE IS CALLED ONLY IF DESIGN MARGINS ARE BEING
+C  PLOTTED (IMARG = 1)
+C
+C BEG NOV 2005
+      DIMENSION XIN(*),YIN(*),XSUB(500),YSUB(500)
+C END NOV 2005
+C
+      ICURVE = 0
+      ISUB = 0
+      DO 100 I = 1,N
+         IF (YIN(I).NE.0.) THEN
+            ISUB = ISUB + 1
+            YSUB(ISUB) = YIN(I)
+            XSUB(ISUB) = XIN(I)
+            GO TO 100
+         ELSE
+            IF (I.EQ.1) GO TO 100
+            I1 = I-1
+            IF (YIN(I1).NE.0.) THEN
+               ICURVE = ICURVE + 1
+               NCURVE = NCURVE + 1
+C              WRITE(8,75) N,I,ICURVE,NCURVE,ISUB,XSUB(ISUB),YSUB(ISUB)
+C  75          FORMAT(' N,I,ICURVE,NCURVE,ISUB,XSUB,YSUB=',5I4,1P2E12.4)
+               CALL CURVE(XSUB,YSUB,ISUB,IARG)
+               call markersub
+               IF (ICURVE.GT.1) then
+                 CALL DELLEG(NCURVE)
+                 ncurve = ncurve - 1
+               endif
+               ISUB = 0
+            ENDIF
+         ENDIF
+  100 CONTINUE
+      IF (YIN(N).NE.0.) THEN
+         ICURVE = ICURVE + 1
+         NCURVE = NCURVE + 1
+         CALL CURVE(XSUB,YSUB,ISUB,IARG)
+         call markersub
+         IF (ICURVE.GT.1) then
+           CALL DELLEG(NCURVE)
+           ncurve = ncurve - 1
+         endif
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      AFRAME
+      SUBROUTINE AFRAME(NOUT,NARRAY,PTIT,NPP,IDF,YTIT,NCURVE,IFILE8,
+     1                  TTIT,NTTIT,ITYPE,XMAX,XMIN,YMAX,YMIN,MPLOT,
+     1                  NABSCI,ICURV)
+      COMMON/C1/IDRAW
+      COMMON/C2/NPTS(100),IDEV,PLAB(18,100),PARRAY(2000,100)
+      COMMON/C3/ALEG(500)
+      common/axisdim/XAXIS, YAXIS
+C     ******************************************************************
+C     *                                                                *
+C     *        LABELS AXES AND PLOT, CALLS AXIS MARKING ROUTINE        *
+C     *        AND ADRAW3                                              *
+C     *        NOUT   = NUMBER OF TRACES ON THE PAGE                   *
+C     *        NARRAY = NUMBER OF ABSCISSA AND ORDINATE FOR EACH       *
+C     *                 TRACE                                          *
+C     *        PTIT   = PLOT TITLE OF NPP CHARACTERS                   *
+C     *                 CONTAINS NAMES OF FILES BEING PLOTTED          *
+C     *                                                                *
+C     ******************************************************************
+      DIMENSION NARRAY(5,100),P1(2000),P2(2000)
+      DIMENSION XPTIT(10),YPTIT(10)
+      DIMENSION X(2),Y(2),CC(5),AKB(3),BKB(3),CKB(3),
+     :          DKB(3),EKB(3),FKB(3),IPAK(20000)
+      DIMENSION APTIT(10)
+      DATA PLTDUM/'    '/
+      LOGICAL EROR
+      DATA IFIRST / 0/
+      CHARACTER*9 CDATE,CTIME
+      character*80 TTIT, ALEG, YTIT, XTIT, PTIT
+      character IPAK
+      IFIRST = IFIRST+1
+      EROR = .FALSE.
+      XL = 1.E35
+      XR = -XL
+      YB = XL
+      YT = XR
+      DO 15 I=1,NOUT
+         DO 10 N=1,NPTS(NARRAY(5,I))
+            NP1 = NARRAY(1,I)
+            NP2 = NARRAY(2,I)
+            XL = AMIN1(XL,PARRAY(N,NP1))
+            XR = AMAX1(XR,PARRAY(N,NP1))
+            YB = AMIN1(YB,PARRAY(N,NP2))
+            YT = AMAX1(YT,PARRAY(N,NP2))
+10       CONTINUE
+15    CONTINUE
+      IF (ITYPE.EQ.3.AND.YTIT.EQ.'PANEL MODULE') THEN
+C
+C  THE PLOTS ARE "PICTURES" OF THE PANEL MODULE, SO THE Y-SCALE AND
+C  X-SCALE MUST BE THE SAME...
+C
+         IF (MPLOT.EQ.4) THEN
+            YT = YMAX
+            YB = YMIN
+            XR = XMAX
+            XL = XMIN
+         ENDIF
+         IF (MPLOT.EQ.3.OR.MPLOT.EQ.5) THEN
+            XDIF = XR - XL
+            YDIF = YT - YB
+            DDIF = MAX(XDIF,YDIF)
+            YAVE = 0.5*(YT + YB)
+            YT = YAVE + 0.5*DDIF
+            YB = YAVE - 0.5*DDIF
+            XAVE = 0.5*(XL + XR)
+            XR = XAVE + 0.5*DDIF
+            XL = XAVE - 0.5*DDIF
+         ENDIF
+      ENDIF
+20    CONTINUE
+      IGRD = 1
+21    CONTINUE
+      IXLOG = 0
+25    CONTINUE
+      IYLOG = 0
+26    CONTINUE
+      ISCALE = 1
+   38 CONTINUE
+      if (iscale .eq. 1) then
+        IF(IXLOG.EQ.0)CALL GRIDAR(XL,XR,DX)
+        IF(IYLOG.EQ.0)CALL GRIDAR(YB,YT,DY)
+      endif
+   39 CONTINUE
+ 45   ISAV = 10
+      NCHARS = (ISAV-1)*4
+      IF (ITYPE.EQ.1) THEN
+         XTIT = 'DESIGN ITERATIONS'
+      ENDIF
+      IF (ITYPE.EQ.4) THEN
+         XTIT = 'DESIGN VARIABLE'
+      ENDIF
+      IF (ITYPE.EQ.5) THEN
+         IF (MPLOT.GT.1) THEN
+            IF (ICURV.EQ.1) THEN
+               IF (MPLOT.EQ.2) THEN
+                  XTIT = 'HOOP LOAD, Ny/Nycr'
+               ELSE
+                  XTIT = 'HOOP LOAD, Ny'
+               ENDIF
+            ENDIF
+            IF (ICURV.EQ.2.OR.ICURV.EQ.3) THEN
+               IF (MPLOT.EQ.2) THEN
+                  XTIT = 'SHEAR LOAD, Nxy/Nxycr'
+               ELSE
+                  XTIT = 'SHEAR LOAD, Nxy'
+               ENDIF
+            ENDIF
+         ELSE
+            XTIT = 'LOAD COMBINATION NUMBER'
+         ENDIF
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         IF (YTIT.NE.'PANEL MODULE') THEN
+            GO TO (502,503,504,505,506,507,508),NABSCI
+  502       CONTINUE
+            XTIT = 'AXIAL LOAD, Nx'
+            GO TO 510
+  503       CONTINUE
+            XTIT = 'HOOP LOAD, Ny'
+            GO TO 510
+  504       CONTINUE
+            XTIT = 'SHEAR LOAD Nxy'
+            GO TO 510
+  505       CONTINUE
+            XTIT = 'AXIAL MOMENT, Mx'
+            GO TO 510
+  506       CONTINUE
+            XTIT = 'HOOP MOMENT, My'
+            GO TO 510
+  507       CONTINUE
+            XTIT = 'PRESSURE, P'
+            GO TO 510
+  508       CONTINUE
+            XTIT = 'TEMPERATURE MULTIPLIER'
+  510       CONTINUE
+         ELSE         
+            XTIT = 'PANEL MODULE'
+         ENDIF
+      ENDIF
+ 55   ISAV = 10
+      NX = (ISAV-1)*4
+ 65   isav = 10
+      NY = (ISAV-1)*4
+C
+C         NX - NUMBER OF CHARACTERS IN ABSCISSA LABEL
+C         NY - NUMBER OF CHARACTERS IN ORDINATE LABEL
+C         NCHARS - NUMBER OF CHARACTERS IN PLOT TITLE
+C
+      CALL AXISMK(XL,XR,DX,YB,YT,DY,XTIT,NX,
+     :  YTIT,NY,IXLOG,IYLOG,PTIT,NCHARS,MPLOT)
+      CALL MESSAG(TTIT,NTTIT,0.0,-1.0)
+         IF( IGRD .EQ. 1) THEN
+             CALL GRID(1,1)
+         ENDIF
+100   FORMAT(A,' ',A)
+200   FORMAT(5A4)
+      IMARG = 0
+      IF (YTIT.EQ.'DESIGN MARGINS'.OR.YTIT.EQ.'PANEL MODULE')
+     1   IMARG = 1
+      IF (ITYPE.EQ.5.AND.MPLOT.EQ.2) IMARG = 1
+      IF (ITYPE.EQ.3) IMARG = 1
+      NCURSV = 1
+      NCURVE = 0
+      MAXLEG = 73
+      DO 90 N=1,NOUT
+         NP1=NARRAY(1,N)
+         NP2=NARRAY(2,N)
+         DO 80 I = 1,NPTS(NARRAY(5,N))
+            P1(I)=PARRAY(I,NP1)
+            P2(I)=PARRAY(I,NP2)
+80       CONTINUE
+         IF(NARRAY(4,N).NE.0)CALL ADRAW3(P1,P2,NPTS(NARRAY(5,N)),
+     :      NARRAY(3,N),NARRAY(4,N),IMARG,NCURVE)
+         IF(NARRAY(4,N).EQ.0)CALL ADRAW2(P1,P2,NPTS(NARRAY(5,N)),
+     :      NARRAY(3,N),IMARG,NCURVE)
+
+C
+C       PUT ORDINATE LABEL IN LEGEND
+C
+         IPLEG = NARRAY(2,N)
+         DO 89 IC = NCURSV,NCURVE
+c          ENCODE(MAXLEG,911,ALEG(IC))  (PLAB(MM,IPLEG),MM=1,18)
+           write(ALEG(IC), 911) (PLAB(MM,IPLEG), MM=1,18)
+ 89      CONTINUE
+         NCURSV = NCURVE + 1
+ 90   CONTINUE
+      MAXLEG = 73
+      NL = LINEST(IPAK,3000,MAXLEG)
+        DO 99 NPP = 1,NCURVE
+          CALL LINES(ALEG(NPP),IPAK,NPP)
+ 99     CONTINUE
+      call XLEGND(XW,IPAK,NCURVE)
+      call YLEGND(YW,IPAK,NCURVE)
+      YL = YAXIS - YW -.7
+      CALL MYLEGN( '        $',100)
+      NCURVS = 0
+      IF (NCURVE.GT.50) THEN
+         NCURVS = NCURVE
+         NCURVE = 50
+      ENDIF
+c commented out 1/4/96
+c     IF ( IFIRST .EQ. 1) THEN
+c       YOFF = YAXIS + 0.75
+c     ELSE
+c       YOFF = YAXIS + 0.75 - .1875
+c     ENDIF
+c commented out 1/4/96
+      YOFF = YAXIS + 0.25
+      if (MPLOT.NE.5) then
+        CALL LEGEND(IPAK,NCURVE,0.0,YOFF)
+      endif
+      IF (NCURVS.GT.50) NCURVE = NCURVS
+      CALL JPAUSE(IDEV)
+ 999  CONTINUE
+      RETURN
+900   FORMAT(5A2)
+910   FORMAT(1X,I2,1X)
+911   FORMAT(18A4,'$')
+970   FORMAT(8A4)
+      END
+C
+C
+C
+C=DECK      AXISMK
+      SUBROUTINE AXISMK(XL,XR,DX,YB,YT,DY,XTIT,NX,YTIT,NY,
+     :      IX,IY,TTIT,IT,MPLOT)
+      COMMON/C1/IDRAW
+      COMMON/C2/NPTS(100),IDEV,PLAB(18,100),PARRAY(2000,100)
+      common/axisdim/XAXIS, YAXIS
+C      ********************************************************
+C      *                                                      *
+C      *   THIS SUBROUTINE DRAWS THE X AND Y AXES, PLACES TIC *
+C      *   MARKS, AND LABELS THE AXES AND THE PLOT.           *
+C      *   USAGE -                                            *
+C      *   XL,XR,DX  - MINIMUM, MAXIMUM, AND TIC MARK         *
+C      *               SPACING OF HORIZONTAL AXIS             *
+C      *   YB,YT,DY  - MINIMUM, MAXIMUM, AND TIC MARK         *
+C      *               SPACING OF VERTICAL AXIS               *
+C      *   XTIT      - ARRAY OF NX WORDS CONTAINING           *
+C      *               HORIZONTAL AXIS LABEL                  *
+C      *   YTIT      - ARRAY OF NY WORDS CONTAINING           *
+C      *               VERTICAL AXIS LABEL                    *
+C      *   TTIT      - ARRAY OF IT WORDS CONTAINING           *
+C      *               PLOT AXIS LABEL                        *
+C      *   IX        - O LINEAR X    1 LOG X                  *
+C      *   IY        - 0 LINEAR Y    1 LOG Y                  * 
+C      *                                                      *
+C      ********************************************************
+      character*80 YTIT, XTIT, TTIT
+C
+        XAXIS = 6.5
+        YAXIS = 6.0
+        IF (MPLOT.EQ.5) YAXIS = 6.5
+        XORIG = XL
+        XSTEP = DX
+        XCYCLE = DX
+        YORIG = YB
+        YSTEP = DY
+        YCYCLE = DY
+C
+C     Draw grids and labels
+C
+      CALL TITLE(TTIT,IT,XTIT,-1*NX,YTIT,-1*NY,XAXIS,YAXIS)
+      IF (IX .EQ. 0) THEN
+         IF (IY .EQ. 0) THEN
+           CALL GRAF(XL,DX,XR,YB,DY,YT)
+         ELSE
+           CALL YLOG(XORIG,XSTEP,YORIG,YCYCLE)
+         ENDIF
+      ELSE
+         IF (IY .EQ. 0) THEN
+           CALL XLOG(XORIG,XCYCLE,YORIG,YSTEP)
+         ELSE 
+           CALL LOGLOG(XORIG,XCYCLE,YORIG,YCYCLE)
+         ENDIF
+      ENDIF
+ 999  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      DINIT
+      SUBROUTINE DINIT(IDEV)
+C
+C     ********************************************************
+C     *                                                      *
+C     *  Initialize device                                  *
+C     *                                                      *
+C     ********************************************************
+C
+      GO TO (10,2,3,4,5,6),IDEV
+C VT-100 RETROGRAPHICS
+   2    CALL TEKALL(4014,960,0,1,0)
+        CALL HEIGHT(.20) 
+        GO TO 10
+C TEK 4114
+    3   CALL TEKALL(4014,960,0,1,0)
+        CALL HEIGHT(.22) 
+        GO TO 10
+C TEK 4105
+   4    CALL TK41(4105)
+        CALL HEIGHT(.22) 
+        GO TO 10
+C TEK 4107
+   5    CALL TK41(4107)
+        CALL HEIGHT(.22) 
+        GO TO 10
+C QMS LASERPRINTER
+   6    CONTINUE
+        CALL COMPRS
+C
+C  10  CALL NOCHEK
+c 10  CALL SETDEV(99,99)
+  10  CALL NOBRDR
+C
+ 999  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      GRIDAR
+      SUBROUTINE GRIDAR(XL,XR,DX)
+C     ****************************************************************
+C     *                                                              *
+C     *   FIND REASONABLE MINIMUM (XL), MAXIMUM (XR), AND DELTA (DX) *
+C     *     FOR LABELLING A PLOT AXIS                                *
+C     *                                                              *
+C     ****************************************************************
+      XD=ABS(XR-XL)
+      IF(XD.LE.0.0) XD=5.0
+      DX=10.0**(IFIX(ALOG10(XD))-1)
+      IF(XD/DX.LT.5.0) DX=DX/2.0
+      IF(XD/DX.GT.10.0) DX=2.0*DX
+      IF(XD/DX.GT.10.0) DX=5.0*DX/2.0
+      IF(XD/DX.GT.10.0) DX=2.0*DX
+      XL1=DX*AINT(XL/DX)
+C     IF(XL1.LT.0.0) XL1=1.0001*XL1
+      IF(XL1.GT.XL) XL1=XL1-DX
+      XL=XL1
+      XR1=DX*AINT(XR/DX)
+C     IF(XR1.GT.0.0) XR1=1.0001*XR1
+      IF(XR1.LT.XR) XR1=XR1+DX
+      XR=XR1
+ 999  CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      JPAUSE
+      SUBROUTINE JPAUSE(IDEV)
+C
+C      EMPTY PLOT BUFFER AND PAUSE
+C
+      CHARACTER*1 DUM
+      CALL ENDPL(0)
+      IF(IDEV.NE.6) READ(*,1) DUM
+    1 FORMAT (A)
+C
+      RETURN
+      END

@@ -1,0 +1,1114 @@
+
+
+
+submarine.runstream
+
+RUNSTREAM USED TO PRODUCE THE OPTIMUM DESIGN
+OF THE DEEP SUBMERGENCE TANK 
+
+[In this case the GENOPT user (the writer) selected
+ "submarine" for the GENERIC case name and "doer"
+ for the SPECIFIC case name. The case is run in the
+ directory, ../home/progs/genoptcase, in which
+ "/home/progs" is the PARENT directory of GENOPT,
+ BIGBOSOR4, PANDA2, etc. At your facility, replace
+ the string, /home/progs, with whatever directory is
+ the PARENT directory of GENOPT, BIGBOSOR4, etc. where
+ you are using GENOPT.]
+
+cd /home/progs/genoptcase
+
+genoptlog	(activate GENOPT command set)
+
+(The command, "genoptlog", produces the following screen:
+--------------------------------------------------------------
+GENOPT commands have been activated.
+
+  gentext      GENOPT user generates a prompt file.
+  genprograms  GENOPT user generates (makes) executables:
+               begin, decide, mainsetup, optimize,
+               change, chooseplot, and diplot.
+  begin        End user provides starting data.
+  decide       End user chooses decision variables, bounds,
+               linked variables, and inequality constraints.
+  mainsetup    End user sets up strategy parameters.
+  optimize     End user performs optimization.
+  change       End user changes some parameters.
+  autochange   New values for decision variables randomly
+  superopt     End user find global optimum (autochange/optimize)...
+  chooseplot   End user chooses which variable to plot vs.
+               iterations.
+  diplot       End user plots variables vs. iterations.
+  insert       GENOPT user adds parameters to the problem.
+  cleangen     GENOPT user cleans up GENeric case files.
+  cleanspec    End user cleans up SPECific case files.
+----------------------------------------------------------------
+
+gentext		[provide generic case name ("submarine"),
+		 variable names, roles, one-line definitions,
+		 "help" paragraphs, etc. The input data from
+                 the long GENTEXT interactive session are saved
+                 in the file, "submarine.INP" (Table 5). Also, see
+                 the files produced by GENTEXT called "submarine.DEF"
+                 (the first part of Table 9, Table 6) and
+                  "submarine.PRO" (Table 7).]
+
+************* A SMALL DIGRESSION FROM THE RUN STREAM ***************
+ After execution of GENTEXT the following "submarine" files
+ exist in the directory where GENTEXT was executed, that is,
+ in the directory, /home/progs/genoptcase :]
+------------------------------------------------------------------
+-rw-r--r--  1 bush bush  1973 Jun 23 09:21 submarine.CHA
+-rw-r--r--  1 bush bush   736 Jun 23 09:21 submarine.COM (common blocks)
+-rw-r--r--  1 bush bush  2885 Jun 23 09:21 submarine.CON
+-rw-r--r--  1 bush bush 29294 Jun 23 09:21 submarine.DAT
+-rw-r--r--  1 bush bush 29611 Jun 23 09:21 submarine.DEF (documentation)
+-rw-r--r--  1 bush bush 29300 Jun 23 09:21 submarine.INP (input for GENTEXT)
+-rw-r--r--  1 bush bush 11757 Jun 23 09:21 submarine.NEW
+-rw-r--r--  1 bush bush 11067 Jun 23 09:21 submarine.PRO (prompting file)
+-rw-r--r--  1 bush bush   849 Jun 23 09:21 submarine.REA
+-rw-r--r--  1 bush bush   556 Jun 23 09:21 submarine.SET
+-rw-r--r--  1 bush bush  8789 Jun 23 09:21 submarine.SUB
+-rw-r--r--  1 bush bush   849 Jun 23 09:21 submarine.WRI
+----------------------------------------------------------------
+
+ The contents of these files is described in the submarine.DEF file.
+ See pages 2 and 3 of Table 6 of [4], for example.
+
+ Next, create software that computes the design constraints
+ and the objective. In this example create bosdec.submarine (Table 10),
+ which generates valid input files for the BIGBOSOR4 preprocessor,
+ B4READ, and "flesh out" the skeletal behavior.new file and the
+ struct.new file that are automatically created by GENOPT. That is,
+ create behavior.submarine (Table 9) from behavior.new and
+ struct.submarine (Table 8) from struct.new. The "fleshing out" of struct.new
+ is very simple in this "submarine" application: only THREE lines
+ are added to the version of struct.new created automatically
+ by GENOPT. These three added lines are indicated below:
+
+ The following is part of the "fleshed out" version of the struct.new file:
+----------------------------------------------------------------------
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+C
+      CALL OPNGEN  <--added by the GENOPT user (the writer)
+      CALL RWDGEN  <--added by the GENOPT user (the writer)
+C
+----------------------------------------------------------------------
+
+ and
+
+ The following is part of the struct.new file:
+----------------------------------------------------------------------
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='weight/area of the truss-core sandwich wall'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'weight/area of the truss-core sandwich wall')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN  <--added by the GENOPT user (the writer)
+C
+      RETURN
+      END
+---------------------------------------------------------------------
+
+ The three added statements, CALL OPNGEN, CALL RWDGEN, and CALL CLSGEN,
+ open, rewind, and close various files used by BIGBOSOR4. If you
+ plan to optimize some other shell using GENOPT/BIGBOSOR4 you can
+ "flesh out" struct.new in exactly the same way. To find the places
+ in the "skeletal" version of struct.new that is automatically
+ produced by GENTEXT, search for the string, "YOU MAY WANT" in order
+ to find where you should insert the two lines, CALL OPNGEN and
+ CALL RWDGEN. Search for the string, "NCONSX", in order to find
+ where you should insert the line, CALL CLSGEN. If you want to see
+ what struct.new looks like, see Table 8 . Sometimes, in
+ your other applications of GENOPT, you may want to add more coding
+ to the "skeletal" version of struct.new, as was done in [2] and [3],
+ especially in [3], where all of the computations are done in struct.new
+ and the "skeletal" version of behavior.new produced automatically
+ by GENOPT remains unchanged.
+
+ Most of the work in this project was the creation by the GENOPT user
+ (the writer of this report) of the file, bosdec.submarine (Table 10).
+ Some effort was also required to "flesh out" the skeletal "behavior.new"
+ file automatically created by GENOPT. The "fleshed out" version is
+ called "behavior.submarine" (Table 9). There are two "behavior"
+ subroutines: BEHX1 and BEHX2. The GENOPT user must also
+ "flesh out" the subroutine that computes the objective, SUBROUTINE
+ OBJECT. The "BEHXi", i = 1,2, subroutines compute the following:
+ SUBROUTINE BEHX1 computes the buckling load.
+ SUBROUTINE BEHX2 computes the effective stress in the shell wall 
+ SUBROUTINE OBJECT computes the objective, which in this case
+                   is the weight of the deep submersible tank.
+
+ ************************ NOTE ************************************
+ If you plan to use GENOPT in combination with BIGBOSOR4 for
+ optimizing other shells of revolution which have buckling
+ behavior, you can use the list of SUBROUTINE BEHX1
+ here as a guide. This is what the writer did
+ in the present "submarine" case. The writer simply took the
+ coding he had added to the "skeletal" version of SUBROUTINE BEHX1
+ listed in Table 10 of [4] (the "weldland" case) and
+ inserted that coding where it says "INSERT SUBROUTINE STATEMENTS HERE"
+ in the "skeletal" BEHX1 subroutine in the "submarine" case.
+ Then he edited that "weldland" coding appropriately in order to make
+ it applicable to the buckling behavior in the "submarine" case.
+
+ SUBROUTINE BEHX2, which computes the maximum effective stress in
+ Shell segment number JCOL, was "fleshed out" as listed on page 9
+ of Table 9. BIGBOSOR4 computes the maximum effective stress in
+ each shell segment of a multi-segment model and stores it in the
+ array, SKNMAX(i), i = 1, 2, ... number of segments in the BIGBOSOR4
+ model. SKNMAX is stored in the BIGBOSOR4 labelled common block
+ called "STRCON". Therefore we need to include that labelled
+ common block in SUBROUTINE BEHX2. Also, we need the other BIGBOSOR4
+ labelled common blocks listed in SUBROUTINE BEHX2 following the
+ line that reads, "INSERT SUBROUTINE STATEMENTS HERE". which is
+ where the GENOPT user is supposed to "flesh out" each of the
+ skeletal BEHXi, i = 1,2,...,routines automatically produced by
+ GENTEXT. The last statement in SUBROUTINE BEHX2:
+      STRESS(ILOADX,JCOL) = SKNMAX(JCOL)
+ is where the relevant quantity obtained from BIGBOSOR4 is
+ stored in the array, STRESS(ILOADX,JCOL), which is an array
+ established by the GENOPT user during the GENTEXT interactive
+ session.
+ ********************* END NOTE ***********************************]
+
+ NOTE: make it a habit to develop the "behavior", "struct", and
+ "bosdec" files using different suffices than ".new" or ".src".
+ By this practice you will not lose work should you execute
+ GENTEXT again after you have already added FORTRAN coding to behavior.new
+ and to struct.new, which are over-written by GENTEXT. In this
+ "submarine" case the writer INITIALLY copied behavior.new
+ and struct.new (the "skeletal" versions created automatically by
+ GENOPT after completion of the GENTEXT interactive session) to
+ behavior.submarine and struct.submarine, then "fleshed out"
+ the behavior.submarine and struct.submarine files. Also, the
+ writer developed his version of "bosdec" in a file called
+ "bosdec.submarine". Then, just before execution of "genprograms",
+ the writer did the following:
+-----------------------------------------------------------------------------------
+ cp behavior.submarine behavior.new  (behavior.submarine and struct.submarine are
+ cp struct.submarine struct.new       developed in the directory: /home/progs/genoptcase)
+ cd /home/progs/bosdec/sources       (NOTE: "bosdec" is stored in a different directory)
+ cp bosdec.submarine bosdec.src
+ cd /home/progs/genoptcase           (return to the "genoptcase" directory before
+                                      executing "genprograms")
+----------------------------------------------------------------------------------
+************* END OF A SMALL DIGRESSION FROM THE RUN STREAM **********
+
+
+genprograms	(compiles the software created by GENOPT and
+		 "fleshed out" and added by the GENOPT user)
+
+
+*********** ANOTHER SMALL DIGRESSION FROM THE RUN STREAM *************
+ If compilation is successful, the following is listed on
+ your computer screen:
+--------------------------------------------------------------
+Congratulations!  Your code compiled successfully.  You should
+now check to make sure that you get correct results from a
+simple test case with a known answer before attempting a more
+complicated case.
+
+Here is a list of all your newly created executables:
+-rwxr-xr-x  1 bush bush 83839 Jun 12 11:17 autochange.linux
+-rwxr-xr-x  1 bush bush 190917 Jun 12 11:17 begin.linux
+-rwxr-xr-x  1 bush bush 135079 Jun 12 11:17 change.linux
+-rwxr-xr-x  1 bush bush 157882 Jun 12 11:17 chooseplot.linux
+-rwxr-xr-x  1 bush bush 160553 Jun 12 11:17 decide.linux
+-rwxr-xr-x  1 bush bush 105947 Jun 12 11:17 mainsetup.linux
+-rwxr-xr-x  1 bush bush 1603626 Jun 17 14:24 optimize.linux
+-rwxr-xr-x  1 bush bush 124325 Jun 12 11:17 store.linux
+
+Next, type the command BEGIN to input data for a new SPECIFIC case.
+--------------------------------------------------------------
+ NOTE: You may see the lines above even when you still have errors
+       in your newly "fleshed out" and created FORTRAN coding. You
+       will doubtless discover additional errors when you first execute
+       "OPTIMIZE". Make your corrections to the behavior.submarine,
+       struct.submarine, and bosdec.submarine files, then again copy
+       them to behavior.new, struct.new, and bosdec.src as specified
+       above, and then give the command, "genprograms" again. Keep
+       doing this until you are satisfied that there are no more
+       errors in your FORTRAN coding. Go through this "error
+       elimination loop"  before you try to do any optimization.
+       That is, specify ITYPE = 2 and NPRINT = 2 in the *.OPT
+       file (input for MAINSETUP, listed below) while you are in this
+       error elimination phase of your work. Only when you are satisfied
+       that behavior.submarine, struct.submarine, and bosdec.submarine
+       are correct should you attempt to do any optimization (ITYPE = 1
+       and NPRINT = 0 in the *.OPT file).
+
+ 
+ Concerning the use of the GENOPT processor called "INSERT":
+
+ It may well happen that, after you have already developed
+ behavior.submarine, struct.submarine, and bosdec.submarine as just
+ described, you may want to add one or more variables to your generic
+ case. You can use "INSERT" to do this. However, note that if you add
+ (or take away) any variables, the labelled common blocks produced
+ automatically by GENTEXT will change. These new common blocks will be
+ present in the new "skeletal" versions of behavior.new and struct.new
+ generated automatically by your re-run of GENTEXT. Also, if you add
+ one or more "behaviors", GENTEXT creates additional FORTRAN coding in
+ the behavior.new and struct.new libraries.
+
+
+ Concerning "behavior" and "struct" after you use "insert" or
+ otherwise change the *.INP file:
+
+ With regard to the "behavior" and the "struct" libraries, You now have
+ a choice between the following item 1 or item 2:
+
+ 1. You can add your "fleshed out" FORTRAN coding now contained only in
+ behavior.submarine, struct.submarine, to the latest "skeletal" versions,
+ behavior.new and struct.new, then type the commands:
+
+ cp behavior.new behavior.submarine  (Be careful! you may be destroying
+ cp struct.new struct.submarine       your previous work if you have not
+                                      updated behavior.new and/or
+                                      struct.new correctly.)
+
+ This is almost always the best choice, as explained next in item 2.
+
+ 2. You can replace the old, GENTEXT-created, common blocks with the
+ new common blocks located in the file, *.COM (e.g. "*" = "submarine")
+ in your behavior.submarine and struct.submarine files. This is NOT 
+ generally the best choice because you may have added new "behaviors".
+ In that case it is not just the common blocks that change but also
+ the GENTEXT-created FORTRAN coding in behavior.new and struct.new.
+ Also, you may have changed the wording in one or more of the one-line
+ definitions of the variables. These changes in wording of the one-line
+ definitions of the variables exist only in the new "skeletal" behavior.new
+ and struct.new files. Therefore, it is almost always best to port your
+ "fleshed out" FORTRAN coding from your behavior.submarine and struct.submarine
+ files to the new "skeletal" behavior.new and struct.new files produced
+ automatically by GENTEXT, then (only after you are certain that you
+ have done everything correctly!) copy the new "fleshed out" behavior.new into
+ behavior.submarine and the new "fleshed out" struct.new into struct.submarine.
+
+
+ Concerning correcting "bosdec" after changing submarine.INP:
+
+ In the case of the file, /home/progs/bosdec/sources/bosdec.submarine,
+ You have to copy the new GENTEXT-created common blocks, located in
+ submarine.COM, into the proper place in the bosdec.submarine file and
+ then remove the old GENTEXT-created common blocks. Since bosdec.submarine
+ contains only FORTRAN code produced by you, you don't have to worry about
+ any new GENTEXT-created FORTRAN code there.
+
+
+ Concerning modification of only the "help" paragraphs in the file *.INP
+ (submarine.INP):
+
+ After you run BEGIN you will probably come to the conclusion that the
+ end user will need more "help" information than you have provided. You
+ can do this by editing the *.INP (submarine.INP) file. Just be sure to
+ follow the pattern that exists in the *.INP file. For example, for each
+ new line of a "help" paragraph there exists a following line:
+
+        y         $ Are there more lines in the "help" paragraph?
+
+ As you add new "help" lines make sure in your editing that you follow
+ each new "help" line with the line printed above. The last line in
+ the "help" input is always followed by the line:
+
+        n         $ Are there more lines in the "help" paragraph?
+
+ You can, in the same way, add a new "help" paragraph where there was
+ none previously. You would change the line:
+
+        n         $ Do you want to include a "help" paragraph?
+
+ to
+
+        y         $ Do you want to include a "help" paragraph?
+
+ and then proceed as is done elsewhere in the *.INP file for variables
+ that have "help" paragraphs.
+*********************** END OF SMALL DIGRESSION *************************
+
+
+begin		{provide starting design, material, loading,
+		 allowables and factors of safety for the
+                 following "behaviors":
+		  1. buckling (computed in SUBROUTINE BEHX1)
+		  2. JCOLth stress constraint, in which JCOL
+		     is the shell segment number 
+		     (computed in SUBROUTINE BEHX2)
+		 As a starting design, use the design listed in
+		 Table 16 of the document, "The user of BIGBOSOR4
+		 to obtain predictions of stress and buckling of
+		 deep submergence shells", D. Bushnell, June 23, 2009 [13].
+		 BEGIN saves your interactive input in the file, doer.BEG
+		 (Table 13). NOTE: The "end user" named the SPECIFIC
+		 case "doer".}
+
+(The command, BEGIN, starts an interactive session, the beginning
+ of which presents the following to your computer screen:)
+------------------------------------------------------------------
+ THE NAME OF THE PROMPT FILE ASKED FOR NEXT
+ IS THE NAME OF THE CLASS OF PROBLEMS THAT THE GENOPT-USER
+ HAS CHOSEN, NOT THE NAME OF THE PARTICULAR CASE BEING
+ STUDIED HERE. IT IS THE "NAME" PART OF "NAME".PRO.
+
+  ENTER THE GENERIC CASE NAME: submarine 
+
+ FROM HERE ON, WHENEVER THE CASE NAME IS REQUESTED,
+ YOU PROVIDE THE NAME OF THE PARTICULAR INSTANCE IN THE CLASS
+ OF PROBLEMS THAT YOU ARE NOW STUDYING.  THIS NAME MUST BE
+ DIFFERENT FROM THE NAME YOU HAVE JUST PROVIDED ABOVE.
+
+  ENTER THE SPECIFIC CASE NAME: doer 
+
+
+ ****************   BEGIN   ******************
+
+ Purpose of BEGIN is to permit you to provide a starting design
+ in an interactive mode. You give starting dimensions, material
+ properties, allowables. The interactive session is stored on
+ a file called doer.BEG, in which doer is a name that you
+ have chosen for the specific case. (The name, doer, must
+ remain the same as you use BEGIN, DECIDE, MAINSETUP, OPTIMIZE,
+ and CHANGE.)  In future runs of the same or a
+ slightly modified case, you will find it convenient to use the
+ file doer.BEG as input.  Rather than answer all the questions
+ interactively, you can use doer.BEG or an edited version of
+ doer.BEG as input to BEGIN.  BEGIN also generates an output
+ file called doer.OPB. OPB lists a summary of the case, and if
+ you choose the tutorial option, the questions, helps, and your
+ answers for each input datum.
+
+ *************************************************
+------------------------------------------------------------------
+
+[When you have completed BEGIN you will have the file, doer.BEG,
+ which can be used in any future execution of BEGIN. (Table 13)]
+
+decide		(provide decision variables, bounds, equality
+		 constraints (linking expressions), and inequality
+		 constraints. DECIDE saves your interactive input
+		 in the file, doer.DEC (Table 14)).
+
+mainsetup	{provide strategy, analysis type, etc.. MAINSETUP
+		 saves your interactive input in the file, doer.OPT (Table 15).
+                 Initially, set ITYPE = 2 (analysis of fixed design,
+                 NOT optimization.
+
+optimize	(Start the "batch" run that computes results for the
+		 fixed design, the design listed in Table 16 of the
+                 document, "The user of BIGBOSOR4 to obtain predictions
+                 of stress and buckling of deep submergence shells"[13].
+                 These results are listed in the file, doer.OPM (Table 16).
+		 The GENOPT processor, "OPTIMIZE", when executed in the
+                 ITYPE = 2 mode, produces two files that contain valid
+		 input for BIGBOSOR4:
+		 doer.BEHX1 = BIGBOSOR4 input file for buckling (INDIC = 1)
+                 doer.BEHX2 = BIGBOSOR4 input file for stress (INDIC = 0).
+		 Just below in this runstream doer.BEHX1 and doer.BEHX2
+		 are used, as you will see next.)
+
+(Next, we want to execute BIGBOSOR4 to obtain plots corresponding to
+ buckling and stress. First, copy the two files,
+ doer.BEHX1 and doer.BEHX2, into a directory from which you want to
+ execute BIGBOSOR4:)
+
+cp doer.BEHX1 /home/progs/bigbosor4/workspace/.    (buckling input,INDIC=1)
+cp doer.BEHX2 /home/progs/bigbosor4/workspace/.    (stress input,  INDIC=2)
+
+(Go to the directory where you want to run BIGBOSOR4.)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log	(activate BIGBOSOR4 commands)
+
+(The command, "bigbosor4log", presents the following to
+ your screen:)
+---------------------------------------------------------
+The BIGBOSOR4 commands, in the general order in which
+you would probably use them (except in GENOPT applications), are:
+
+help4           (get information on BOSOR4.)
+input           (you provide segment-by-seg. input)
+assemble        (concatenates segment data files)
+bigbosorall     (batch run of pre, main, post proc.)
+bosorplot       (batch run for generating plot files)
+resetup         (input for restart run, same model)
+bigrestart              (batch run of main & postprocessors)
+cleanup         (delete all except for .DOC file)
+getsegs         (generate segment files from .DOC)
+modify          (modify a segment file)
+-----------------------------------------------------------
+
+
+(Copy the BIGBOSOR4 input file for buckling (INDIC=1), doer.BEHX1,
+ into doer.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp doer.BEHX1 doer.ALL
+
+bigbosorall	(Start "batch" run for buckling. The output
+		 file that you want to inspect is called doer.OUT.
+		 This will be a fairly long file, so search specifically
+		 for the string, "EIGENVALUE(", typed with the
+		 "(" at the end of the string. You will find the
+		 following output there:
+-----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.8904E+00; NO. OF CIRC. WAVES, NWVCRT=    3
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    5.1170E+00(   0)
+    5.0881E+00(   1)
+    2.3019E+00(   2)
+    1.8904E+00(   3) <--critical buckling
+    2.9298E+00(   4)
+    4.4143E+00(   5)
+    5.6151E+00(   6)
+    6.1995E+00(   7)
+    7.0420E+00(   8)
+    8.1151E+00(   9)
+    9.3925E+00(  10)
+ =======================================
+------------------------------------------------------------------
+
+(The critical buckling mode has 3 circumferential waves around
+ the circumference of the deep submergence tank, and the critcal
+ buckling load factor is 1.890. The buckling mode is shown in Fig. 3.)
+
+
+bosorplot	(obtain a plot of the critical buckling mode.
+		 The postscript file is called "metafile.ps" (Fig. 3).)
+
+(execution of bosorplot presents the following to your computer
+ screen:)
+----------------------------------------------------------------
+Please enter the BIGBOSOR4 case name: doer 
+
+Do you want to use Xgraph or create a PostScript file? (Choose X or P) p
+
+One, maybe Two moments please...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      doer..R,Z_EIGENMODE_1--N_0
+2)      doer..R,Z_EIGENMODE_1--N_1
+3)      doer..R,Z_EIGENMODE_1--N_10
+4)      doer..R,Z_EIGENMODE_1--N_2
+5)      doer..R,Z_EIGENMODE_1--N_3
+6)      doer..R,Z_EIGENMODE_1--N_4
+7)      doer..R,Z_EIGENMODE_1--N_5
+8)      doer..R,Z_EIGENMODE_1--N_6
+9)      doer..R,Z_EIGENMODE_1--N_7
+10)     doer..R,Z_EIGENMODE_1--N_8
+11)     doer..R,Z_EIGENMODE_1--N_9
+12)     doer..R,Z_RingLocation
+CR)     to QUIT
+Please choose the number of the file you wish to plot: 5
+Plotting: Undeformed & Deformed Axial Station as a function of Radius
+
+The PostScript file, metafile.ps, has been created.
+Please choose one of the three options below:
+
+   1) Rename the PostScript file.  This is useful if
+      you don't have access to a PostScript printer on your
+      machine, but you wish to save to a file so you can later
+      transfer it to a different machine for printing.
+
+         Example:  mv metafile.ps plot1.ps
+
+   2) Enter an "lpr" command.  This is useful if your default
+      printer is not PostScript, but there is a PostScript
+      printer available on your system.
+
+         Example:  lpr -PApplelaser metafile.ps
+
+   3) Press the return key.  This executes the command:
+
+                   lpr metafile.ps
+
+      This assumes that your default printer is a PostScript
+      printer.
+
+Enter your command> <CR>
+Printing PostScript plot on the default printer...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      doer..R,Z_EIGENMODE_1--N_0
+2)      doer..R,Z_EIGENMODE_1--N_1
+3)      doer..R,Z_EIGENMODE_1--N_10
+4)      doer..R,Z_EIGENMODE_1--N_2
+5)      doer..R,Z_EIGENMODE_1--N_3
+6)      doer..R,Z_EIGENMODE_1--N_4
+7)      doer..R,Z_EIGENMODE_1--N_5
+8)      doer..R,Z_EIGENMODE_1--N_6
+9)      doer..R,Z_EIGENMODE_1--N_7
+10)     doer..R,Z_EIGENMODE_1--N_8
+11)     doer..R,Z_EIGENMODE_1--N_9
+12)     doer..R,Z_RingLocation
+CR)     to QUIT
+Please choose the number of the file you wish to plot: <CR>
+---------------------------------------------------------------------
+
+(In order to view the plot of the local buckling mode, type
+ the command:)
+
+gv metafile.ps
+
+("gv" stands for "ghost view" a LINUX utility which presents
+ the postscript file, metafile.ps, as a plot on your screen.
+ If you do not have "ghost view", just send the postscript
+ file to your printer with whatever command is appropriate at
+ your facility for obtaining plots from postscript files.)
+
+(Next, "clean up" the BIGBOSOR4 files:)
+
+cleanup		(deletes unneeded BIGBOSOR4 files and
+		 generates a properly annotated doer.ALL
+		 file (Table 11) and a properly annotated doer.DOC file.)
+
+
+(Next, we wish to obtain a plot of the axisymmetric prebuckled 
+ state of the shell from execution of BIGBOSOR4 and BOSORPLOT:)
+
+(Copy the BIGBOSOR4 input file for stress (INDIC=0), doer.BEHX2,
+ into doer.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp doer.BEHX2 doer.ALL
+
+bigbosorall     (Start "batch" run for stress (INDIC=0). The output
+                 file that you want to inspect is called doer.OUT.
+                 This will be a fairly long file, so search specifically
+                 for the string, "STRMAX". You will find the following
+                 output there:
+-----------------------------------------------------------------
+ ****** MAXIMUM EFFECTIVE STRESS IN ISOTROPIC WALL ******
+ STRMAX=  1.2234E+05
+ ******************************************************
+
+ (lines skipped to save space)
+
+ Local skin and smeared stiffener buckling and stress, Seg.   1
+ Skin buckling load factor,                     BUCMIN=  0.0000E+00 at nodal point  0
+ Smeared stringer/isogrid buckling load factor, BUCMNS=  0.0000E+00 at nodal point  0
+ Smeared ring buckling load factor,             BUCMNR=  0.0000E+00 at nodal point  0
+ Smeared stringer/isogrid maximum eff. stress,  STFMXS=  0.0000E+00 at nodal point  0
+ Smeared ring maximum effective stress,         STFMXR=  0.0000E+00 at nodal point  0
+ Shell skin maximum effective stress,           SKNMAX=  1.2234E+05 at nodal point 38
+
+ Local skin and smeared stiffener buckling and stress, Seg.   2
+ Skin buckling load factor,                     BUCMIN=  0.0000E+00 at nodal point  0
+ Smeared stringer/isogrid buckling load factor, BUCMNS=  0.0000E+00 at nodal point  0
+ Smeared ring buckling load factor,             BUCMNR=  0.0000E+00 at nodal point  0
+ Smeared stringer/isogrid maximum eff. stress,  STFMXS=  0.0000E+00 at nodal point  0
+ Smeared ring maximum effective stress,         STFMXR=  0.0000E+00 at nodal point  0
+ Shell skin maximum effective stress,           SKNMAX=  1.0877E+05 at nodal point 18
+
+ Skin buckling load factor,           BUCSKN=  1.0000E+17
+ Stiffener buckling load factor,      BUCSTF=  1.0000E+17
+ Skin maximum effective stress,       STRMAX=  1.2234E+05
+ Stiffener maximum effective stress,  STRSTF=  0.0000E+00
+ Normal displacement of shell at apex, ENDUV=  1.4438E-01
+-----------------------------------------------------------------
+
+
+bosorplot       (obtain a plot of the axisymmetric prebuckling deformation.
+                 The postscript file is called "metafile.ps"(Fig. 2).)
+
+(execution of bosorplot presents the following to your computer
+ screen:)
+----------------------------------------------------------------
+Please enter the BIGBOSOR4 case name: doer 
+
+Do you want to use Xgraph or create a PostScript file? (Choose X or P) p
+
+One, maybe Two moments please...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      doer..AXISYM_LOADSTEP_1
+2)      doer..R,Z_LOADSTEP_1
+3)      doer..R,Z_RingLocation
+4)      doer..STRESS_LOADSTEP_1
+CR)     to QUIT
+Please choose the number of the file you wish to plot: 2
+Plotting: Undeformed & Deformed Axial Station as a function of Radius
+
+etc. etc. (as above in the buckling example).
+-----------------------------------------------------------------------
+
+[NOTE: If you choose "3" in response to the bosorplot prompt,
+ "Please choose the number of the file you wish to plot:"
+ You get the plot displayed in Fig. 1.]
+
+bosorplot       (obtain plots of the meridional, circumferential, and
+                 effective stress for inner and outer fibers. Use the
+                 the "X" option, not the "P" option. Click on "postscript",
+                 "file", and name the file something. then click on "ok".
+                 Do the same for the next two plots. See Fig. 4 for a
+		 plot of effective stress vs Arc length.)
+
+(execution of bosorplot presents the following to your computer
+ screen:)
+----------------------------------------------------------------
+Please enter the BIGBOSOR4 case name: doer
+
+Do you want to use Xgraph or create a PostScript file? (Choose X or P) x
+
+One, maybe Two moments please...
+
+Text file(s) have been created containing plot data.  The names of the
+files explain to a greater or lesser extent what the data represent.
+Some plot files contain data for more than one plot.
+1)      doer..AXISYM_LOADSTEP_1
+2)      doer..R,Z_LOADSTEP_1
+3)      doer..R,Z_RingLocation
+4)      doer..STRESS_LOADSTEP_1
+CR)     to QUIT
+Please choose the number of the file you wish to plot: 4
+3 plots...
+Plot 1: Merid. Stress in Left & Right fibers as a func. of Arc Length
+Plot 2: Circumf. Stress in Left & Right fibers as a func. of Arc Length
+Plot 3: Effective Stress in Left & Right fibers as a func. of Arc Length
+
+etc. etc. (as above in the buckling example).
+-----------------------------------------------------------------------
+
+
+(Next, "clean up" the BIGBOSOR4 files:)
+
+cleanup         (deletes unneeded BIGBOSOR4 files and
+                 generates  properly annotated doer.ALL
+                 and doer.DOC files.)
+
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "doer".)
+
+cd /home/progs/genoptcase
+
+mainsetup	(provide input for an optimization. The
+		 interactive input for MAINSETUP is saved
+		 in the file, doer.OPT (Table 17).)
+
+superopt        (obtain a "global" optimum design. Use
+                 5 "OPTIMIZEs" per AUTOCHANGE. This computer
+                 run takes about 3 hours on my LINUX machine.)
+
+(About 3 hours later, when the SUPEROPT run is finished,
+ inspect the doer.OPP file)
+
+chooseplot      (choose what to plot vs design iterations. The
+                 interactive CHOOSEPLOT session is saved in the
+                 file, doer.CPL, which is as follows in this
+		 particular example:)
+---------------------------------------------------------------------------
+      n         $ Do you want a tutorial session and tutorial output?
+      n         $ Any design variables to be plotted v. iterations (Y or N)?
+      n         $ Any design margins to be plotted v. iterations (Y or N)?
+      n         $ Do you want to get more plots before your next "SUPEROPT"?
+---------------------------------------------------------------------------
+
+[Note that following a complete SUPEROPT run (about 470 design iterations)
+ we make no attempt to plot design variables or margins vs design iterations.
+ The plots would be too messy because there are so many design iterations.
+ We therefore obtain only a plot of the objective vs design iterations.]
+
+diplot          [obtain the postscript file, doer.5.ps (design
+                 objective vs design iterations)]
+
+xprw doer.5.ps	(obtain a hard copy of the postscript plot, doer.5.ps (Fig.5).
+
+(Edit the doer.OPT file in order to obtain the analysis of a fixed
+ design, that is, change ITYPE from 1 to 2 and change NPRINT from 1 to 2)
+
+mainsetup       (set up a run for the fixed, previously optimized, design.
+		 see the top part of Table 18)
+
+optimize        (obtain the doer.OPM file (Table 18) corresponding to the
+                 optimized design.]
+
+change          (Use the processor, CHANGE, to save the optimum design.
+                 The interactive CHANGE session is saved in the file,
+                 doer.CHG (Table 19).)
+
+[With IDESIGN = 2 SUPEROPT accepts an "ALMOST FEASIBLE" or "FEASIBLE"
+ design. An "ALMOST FEASIBLE" design is a design for which the minimum
+ margin is greater than -0.05. In this case the accepted design has
+ the following margins:]
+----------------------------------------------------------------------------
+ MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1    3.380E-03  (BUCKL(1 )/BUCKLA(1 )) / BUCKLF(1 )-1; F.S.=  1.30
+  2   -4.738E-02  (STRESSA(1 ,1 )/STRESS(1 ,1 )) / STRESSF(1 ,1 )-1; F.S.=1.0
+  3   -2.880E-02  (STRESSA(1 ,2 )/STRESS(1 ,2 )) / STRESSF(1 ,2 )-1; F.S.=1.0
+-----------------------------------------------------------------------------
+
+[The corresponding "behaviors" (buckling, maximum effective stress in shell
+ segment 1, and maximum effective stress in shell segment 2) are:]
+---------------------------------------------------------------------
+ BEH.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    1.304E+00    tank buckling eigenvalue: BUCKL(1 )
+  2    1.260E+05    effective stress in shell segment: STRESS(1 ,1 )
+  3    1.236E+05    effective stress in shell segment: STRESS(1 ,2 )
+-----------------------------------------------------------------------
+
+[We would like to obtain an optimum design with a somewhat smaller
+ maximum effective stress. Therefore, we do the following:]
+
+cleanspec	(clean up the files with the SPECIFIC name, "doer")
+begin		(restart the specific case, "doer". Use Table 13 as input.)
+change		(resurrect the optimum design listed in Table 18. Use
+		 Table 19 as input)
+decide		(use Table 14 as input)
+
+[Edit the doer.OPT file for input to MAINSETUP. Increase the number of
+ design iterations from 5 to 15; change IDESIGN from 2 to 1: change
+ IMOVE from 1 to 3. IDESIGN = 1 means that "OPTIMIZE", running in the
+ optimization mode (ITYPE = 1), accepts only designs that are defined
+ by GENOPT as being "FEASIBLE". This means that OPTIMIZE only accepts
+ designs the minimum margin for which is greater than -0.01. IMOVE = 3
+ means that the move limits of the decision variables during design
+ iterations are severely restricted.]
+
+mainsetup	(use Table 20 as input)
+
+optimize	(execute OPTIMIZE. Note: we do not use SUPEROPT for
+		 this run because here we are not making a general
+		 search over a wide region of design space, but we
+		 are only refining the design in the immediate
+		 neighborhood of an optimum design that we have
+                 already determined: the design listed in Table 18.)
+
+[This execution of OPTIMIZE leads to the following (abridged) output
+ in the doer.OPP file:]
+--------------------------------------------------------------------
+ *********** MARGINS FOR  12 ITERATIONS **********
+ (BUCKL(1 )/BUCKLA(1 )) / BUCKLF(1 )-1; F.S.=  1.30 =
+  3.3780E-03  2.7912E-02  4.3949E-02  5.9787E-02  7.2828E-02
+  8.3299E-02  9.1773E-02  8.7449E-02  9.2898E-02  9.7283E-02
+  1.0081E-01  1.0364E-01
+ (STRESSA(1 ,1 )/STRESS(1 ,1 )) / STRESSF(1 ,1 )-1; F.S.=  1.00 =
+ -4.7406E-02 -1.6747E-02 -2.4211E-02 -2.2346E-02 -2.1052E-02
+ -1.9973E-02 -1.9140E-02 -1.8501E-02 -1.7996E-02 -1.7600E-02
+ -1.7289E-02 -1.7042E-02
+ (STRESSA(1 ,2 )/STRESS(1 ,2 )) / STRESSF(1 ,2 )-1; F.S.=  1.00 =
+ -2.8801E-02 -2.1182E-02 -1.2836E-02 -7.8496E-03 -4.4315E-03
+ -1.1914E-03  1.4168E-03 -1.0403E-03  6.3443E-04  1.9782E-03
+  3.0552E-03  3.9189E-03
+
+(many lines skipped to save space)
+
+ ==============================================================
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         1.3688E+03     ALMOST FEASIBLE         3
+     2         1.3787E+03     ALMOST FEASIBLE         3
+     3         1.3822E+03     ALMOST FEASIBLE         3
+     4         1.3875E+03     ALMOST FEASIBLE         2
+     5         1.3919E+03     ALMOST FEASIBLE         2
+     6         1.3954E+03     ALMOST FEASIBLE         2
+     7         1.3982E+03     ALMOST FEASIBLE         2
+     8         1.3975E+03     ALMOST FEASIBLE         2
+     9         1.3993E+03     ALMOST FEASIBLE         2
+    10         1.4008E+03     ALMOST FEASIBLE         2
+    11         1.4019E+03     ALMOST FEASIBLE         2
+    12         1.4029E+03     ALMOST FEASIBLE         2  <--We want this design.
+ ================================================================
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO ALMOST FEASIBLE DESI
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.250E-01  location of ref. surf. in the dome: ZREFSP(1 )
+  2    6.250E-01  location of ref. surf. in the dome: ZREFSP(2 )
+  3    6.669E-01  location of ref. surf. in the dome: ZREFSP(3 )
+  4    6.444E-01  location of ref. surf. in the dome: ZREFSP(4 )
+  5    7.748E-01  location of ref. surf. in the dome: ZREFSP(5 )
+  6    1.250E+00  wall thickness in the dome: THKSPH(1 )
+  7    1.250E+00  wall thickness in the dome: THKSPH(2 )
+  8    1.309E+00  wall thickness in the dome: THKSPH(3 )
+  9    1.250E+00  wall thickness in the dome: THKSPH(4 )
+ 10    1.568E+00  wall thickness in the dome: THKSPH(5 )
+ 11    9.942E-01  location of the ref. surf. in the cylinder: ZREFCY(1 )
+ 12    1.095E+00  location of the ref. surf. in the cylinder: ZREFCY(2 )
+ 13    8.384E-01  location of the ref. surf. in the cylinder: ZREFCY(3 )
+ 14    1.090E+00  location of the ref. surf. in the cylinder: ZREFCY(4 )
+ 15    1.090E+00  location of the ref. surf. in the cylinder: ZREFCY(5 )
+ 16    1.905E+00  thickness of the cylindrical shell: THKCYL(1 )
+ 17    2.116E+00  thickness of the cylindrical shell: THKCYL(2 )
+ 18    1.954E+00  thickness of the cylindrical shell: THKCYL(3 )
+ 19    2.180E+00  thickness of the cylindrical shell: THKCYL(4 )
+ 20    2.180E+00  thickness of the cylindrical shell: THKCYL(5 )
+
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    3.378E-03  (BUCKL(1 )/BUCKLA(1 )) / BUCKLF(1 )-1; F.S.=  1.30
+  2   -4.741E-02  (STRESSA(1 ,1 )/STRESS(1 ,1 )) / STRESSF(1 ,1 )-1; F.S.=  1.
+  3   -2.880E-02  (STRESSA(1 ,2 )/STRESS(1 ,2 )) / STRESSF(1 ,2 )-1; F.S.=  1.
+
+ ******************** DESIGN OBJECTIVE *******************
+  CORRESPONDING VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    1.369E+03  weight of the BIGBOSOR4 model: WEIGHT
+ ******************** DESIGN OBJECTIVE *******************
+----------------------------------------------------------------------
+
+[Notice that in the above list there are no "FEASIBLE" designs,
+ only "ALMOST FEASIBLE" designs. This is because the minimum
+ margin, the margin for effective stress in shell segment 1,
+ (STRESSA(1,1)/STRESS(1,1))/STRESSF(1,1)-1;F.S.=1.0= -1.7042E-02 ,
+ is greater than -0.05, the lower limit for "ALMOST FEASIBLE",
+ but less than -0.01, the lower limit for "FEASIBLE". Therefore,
+ the design in the doer.OPP file listed above, for which the
+ weight is 1369 lb, is not the design we want but the same
+ "ALMOST FEASIBLE" design that is listed in Table 18. In this
+ particular case we want the design that corresponds to the
+ last design iteration listed above, that is, the design
+ corresponding to Iteration No. 12:
+    12         1.4029E+03     ALMOST FEASIBLE  
+ which is associated with design margin, -1.7042E-02.
+ We can find this design near the end of the doer.OPM file.
+ It is listed in Table 22.]
+
+[Next, get plots of design margins, design variables, and the
+ objective corresponding to the postSUPEROPT execution of
+ OPTIMIZE in the ITYPE=1 (optimization) mode.]
+
+chooseplot	(choose what to plot. The input for CHOOSEPLOT
+		 is listed in the doer.CPL file, Table 21.]
+
+diplot		(get the following postscript files:
+		 doer.3.ps = design margins   vs iterations: Fig.6,
+                 doer.4.ps = design variables vs iterations: Fig.7,
+                 doer.5.ps = design objective vs iterations: Fig.8)
+
+ 
+[Edit the doer.OPT file to do a fixed design analysis (ITYPE=2),
+ then execute "OPTIMIZE" in the ITYPE = 2 mode.]
+
+mainsetup	(execute MAINSETUP; input at the top of Table 22)
+optimize	(execute OPTIMIZE and generate Table 22)
+
+[Figs. 9 and 10 show the distribution of shell wall material
+ with respect to the reference surface of the optimized shell.]
+
+[Next, execute CHANGE in order to save the best design determined
+ after completion of the "postSUPEROPT" optimization. This best
+ design is listed in Table 22.]
+
+change          (Use for input the doer.CHG file listed in Table 23)
+
+
+(Next, we want to execute BIGBOSOR4 to obtain plots corresponding to
+ buckling (INDIC=1) and stress (INDIC=0) for the optimized case.
+ First, copy the two files,
+ doer.BEHX1 and doer.BEHX2, into a directory from which you want to
+ execute BIGBOSOR4:)
+
+cp doer.BEHX1 /home/progs/bigbosor4/workspace/.    (buckling input, INDIC=1)
+cp doer.BEHX2 /home/progs/bigbosor4/workspace/.    (stress input,   INDIC=0)
+
+(Go to the directory where you want to run BIGBOSOR4.)
+
+cd /home/progs/bigbosor4/workspace
+
+bigbosor4log    (activate BIGBOSOR4 commands)
+
+(First, we wish to obtain a plot of the critical
+ buckling mode from execution of BIGBOSOR4 and BOSORPLOT)
+
+(Copy the BIGBOSOR4 input file for buckling, doer.BEHX1,
+ into doer.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp doer.BEHX1 doer.ALL
+
+bigbosorall     (Start "batch" run for buckling. The output
+                 file that you want to inspect is called doer.OUT.
+                 This will be a long file, so search specifically
+                 for the string, "EIGENVALUE(", typed with the
+                 "(" at the end of the string. You will find the
+                 following output there:
+----------------------------------------------------------------
+ **** CRITICAL EIGENVALUE AND WAVENUMBER ****
+ EIGCRT=  1.4347E+00; NO. OF CIRC. WAVES, NWVCRT=    3
+ ****************************************************
+
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    5.0469E+00(   0)
+    5.0282E+00(   1)
+    1.9429E+00(   2)
+    1.4347E+00(   3)
+    2.1787E+00(   4)
+    3.2639E+00(   5)
+    4.4859E+00(   6)
+    5.2346E+00(   7)
+    5.7873E+00(   8)
+    6.5147E+00(   9)
+    7.4054E+00(  10)
+ =======================================
+-----------------------------------------------------------------
+
+
+bosorplot       (obtain a plot of the critical buckling mode.
+		 The postscript file is called "metafile.ps"(Fig.12).)
+
+cleanup		(clean up BIGBOSOR4 files called "doer" and
+		 generate the version of doer.ALL and doer.DOC
+		 with proper annotation throughout.)
+
+[NOTE: An appropriate factor of safety for buckling of the
+ spherical dome is between 3 and 4, whereas an appropriate
+ factor of safety for buckling of the cylindrical shell is
+ between 1.2 and 1.5. We know that the cylindrical shell is
+ ok for buckling because the critical buckling load factor is
+ 1.4347 (n=3 circ.waves) from the eigenvalues just listed.
+ However, we do not yet know whether the spherical dome is
+ safe.]
+
+[In order to determine whether or not the spherical shell
+ is safe, we have to find the lowest buckling load factor
+ corresponding to a buckling mode in which the spherical
+ dome deforms significantly. We do two things:
+
+ 1. Look at the buckling modes corresponding to circumferential
+ waves n = 2 - 5 (the values of n for which the lowest
+ eigenvalue is less than 4.0) to make certain these modes
+ mainly involve buckling of the cylindrical shell. Suppose
+ that they all do. (Actually, they all do; I checked.)
+
+ 2. Next we need to look for the lowest eigenvalue that
+ corresponds to buckling of the spherical dome. In order to
+ do this we need to edit the doer.ALL file and change
+ the input relating to the number of eigenvalues NVEC to be
+ computed per circumferential wave number. We do this and
+ get the following input lines in the doer.ALL file:]
+------------------------------------------------------------------
+   2   $ N0B   = starting number of circ. waves (buckling analysis)
+   2   $ NMINB = minimum number of circ. waves  (buckling analysis)
+   5   $ NMAXB = maximum number of circ. waves  (buckling analysis)
+   1   $ INCRB = increment in number of circ. waves (buckling)
+   3   $ NVEC  = number of eigenvalues for each wave number
+------------------------------------------------------------------
+
+[Then we execute bigbosorall again:]
+
+bigbosorall
+
+[We obtain the following lines in the doer.OUT file (edited somewhat):]
+------------------------------------------------------
+ CIRCUMFERENTIAL WAVE NUMBER, N =       2
+ EIGENVALUES =
+    1.94287E+00    5.00331E+00    5.56276E+00
+
+ CIRCUMFERENTIAL WAVE NUMBER, N =       3
+ EIGENVALUES =
+    1.43475E+00    4.99944E+00    5.49431E+00
+
+ CIRCUMFERENTIAL WAVE NUMBER, N =       4
+ EIGENVALUES =
+    2.17870E+00    4.90940E+00    5.19972E+00
+
+ CIRCUMFERENTIAL WAVE NUMBER, N =       5
+ EIGENVALUES =
+    3.26393E+00    5.02135E+00    5.23608E+00
+--------------------------------------------------------
+
+[We already checked the first eigenvalues for N = 2 to 5, and
+ all of them correspond to buckling primarily of the cylindrical
+ shell, for which the factor of safety between 1.3 and 1.5
+ applies. The lowest 2nd eigenvalue in the range from N = 2 to 5
+ corresponds to N = 4 circumferential waves, and the eigenvalue
+ is 4.90940. Already we know, without even looking at the buckling
+ mode shape, that the spherical dome is safe. We know it is safe
+ because there is no eigenvalue less than 4.0 corresponding to
+ buckling of the spherical shell. Out of curiousity, we execute
+ bosorplot to see what the 2nd eigenvector for N = 4 looks like]
+
+bosorplot	(The 2nd mode for N = 4 is indeed buckling of
+		 the spherical dome, Fig. 13).
+
+
+(Next, we wish to obtain a plot of the axisymmetric prebuckled
+ state from execution of BIGBOSOR4 and BOSORPLOT)
+
+(Copy the BIGBOSOR4 input file for stress, doer.BEHX2,
+ into doer.ALL because BIGBOSOR4 input files must always have
+ the three-letter suffix, ".ALL":)
+
+cp doer.BEHX2 doer.ALL
+
+bigbosorall     (Start "batch" run for stress. The output
+                 file that you want to inspect is called doer.OUT.
+                 This will be a rather long file, so search specifically
+                 for the string, "STRMAX". You will find the
+                 following output there:
+---------------------------------------------------------------------------
+ ****** MAXIMUM EFFECTIVE STRESS IN ISOTROPIC WALL ******
+ STRMAX=  1.2208E+05
+ ******************************************************
+--------------------------------------------------------------------------
+
+
+bosorplot       (obtain a plot of the axisymmetric prebuckled state.
+                 The postscript file is called "metafile.ps"(Fig. 11).)
+
+bosorplot       (obtain plots of the meridional, circumferential, and
+		 effective stress for inner and outer fibers. Use the
+		 the "X" option, not the "P" option. Click on "postscript",
+		 "file", and name the file something. then click on "ok".
+		 Do the same for the next two plots. See Figs. 14-16.)
+
+cleanup		(clean up BIGBOSOR4 files called "doer.*)
+
+
+(Next, return to the "genoptcase" directory, and continue
+processing the SPECIFIC case called "doer".)
+
+cd /home/progs/genoptcase
+
+[Next, we optimize using 10 callout stations in each of Segment 1
+ and Segment 2 for the reference surface location relative to the
+ leftmost surface and for the thickness. We edit doer.BEG and
+ doer.DEC to reflect this change. Also, we use 91 nodal points
+ in the cylindrical shell instead of 51 and we narrow the search
+ for the critical buckling load from n = 0 to 10 circumferential
+ waves to n = 0 to 5 circumferential waves. The new doer.BEG and
+ doer.DEC files are listed in Tables 24 and 25.]
+
+begin		(supply starting design, etc. Table 24 is input)
+decide		(choose decision variables, etc. Table 25 is input)
+mainsetup	(choose analysis type, etc. Table 17 is input)
+superopt	(find "global" optimum design)
+chooseplot	(choose to plot the objective vs design iterations)
+diplot		(get the postscript file, doer.5.ps: Fig. 17)
+[Edit the doer.OPT file to do analysis of fixed design: ITYPE=2]
+mainsetup	(set up analysis of fixed design]
+optimize	(perform the analysis of the fixed design. The
+		 output is listed in Table 26)
+
+[This optimum design is of questionable value. Specification of
+ 10 callout points for ZVAL and TVAL in each of shell segments
+ 1 (the spherical shell) and 2 (the cylindrical shell) is too
+ many for such a thick shell. The optimum design obtained with
+ the use of 5 callout points in each of the two shell segments
+ makes more sense.]

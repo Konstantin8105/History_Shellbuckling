@@ -1,0 +1,161 @@
+# ========================================================================
+# prior to running this script, one must edit the script "/bin/initialize"
+# to establish the correct "root directory" called BUSHNELL and MACHINE ID
+#
+# having done so, then  type the following commands
+#
+#    set parentdir = `pwd`
+#    source ${parentdir}/bin/initialize
+#
+# one must also edit Makefile.in for the correct MACHINE
+# ========================================================================
+
+if ((${BUSHNELL} == "") || (${MACHINE} == "")) then
+  echo "you must first edit ./bin/initialize for home directory (BUSHNELL)
+  echo "and for machine type (MACHINE)"
+  echo "you must also  edit ./Makefile.in for machine type (MACHINE = *****)"
+  exit
+endif
+
+
+# ===========================================================================
+# install automates the installation of D. Bushnell's programs on LINUX-based
+# machines/workstations.  Before running this program, you should move the 
+# program directory (prog) to its final location in the hierarchy.  Make sure
+# "install" is at the top level of the program directory (prog), and that you
+# execute "install" from this directory.
+# ===========================================================================
+
+set parentdir = `pwd`
+echo "new parent directory is: $parentdir"
+
+set proglist = "bigbosor4 bosor4 bosor5 dewar genopt panda2"
+set machlist = "alpha cnvx cray dec hp700 i386 linux mac rs6k sgi sol star sun3 sun4 x86_64"
+
+# We want to build a command using SED (Stream Editor) that changes all
+# references to "/home/progs" to $parentdir in the file ./bin/initialize
+# ----------------------------------------------------------------------
+
+echo "Substitute new parent directory for /home/progs"
+set command = "sed s:/home/progs:${parentdir}:g"
+echo "   in bin/initialize"
+($command:x ./bin/initialize > t && mv -f t ./bin/initialize)
+
+# Make directory temp
+# -------------------
+if (!(-e temp)) then
+  echo "Make directory temp/"
+  mkdir temp
+endif
+
+# Set the modes for all the files and directories so that only the owner
+# can make modifications, but anyone can execute and read the programs.
+# ----------------------------------------------------------------------
+echo "Set modes for files and directories"
+
+echo "   top level"
+chmod 700 install
+chmod 755 bin plotps util xgraph
+chmod 777 temp
+
+echo "   inside bin"
+chmod 755 bin/*
+chmod 755 bin/build_archive bin/updatelib bin/updateobj
+
+echo "   inside util"
+chmod 644 util/*
+
+foreach program ($proglist)
+  cd $parentdir
+  if (-e $program) then
+    chmod 755 $program
+    echo "   inside $program"
+    cd $program
+    if (-e bin) then
+      chmod 755 bin
+    endif
+    if (-e case) then
+      chmod 755 case
+    endif
+    if (-e doc) then
+      chmod 755 doc
+    endif
+    if (-e execute) then
+      chmod 755 execute
+    endif
+#   chmod 755 {libraries,objects}.*
+    if (-e sources) then
+      chmod 755 sources
+    endif
+
+#   set the mode for all files within the programs directories
+
+    if (-e bin) then
+      echo "      inside bin"
+      chmod 755 bin/*.com bin/*.bat
+      chmod 644 bin/*.awk >& /dev/null
+    endif
+
+    if (-e case) then
+      echo "      inside case"
+      foreach file (case/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+    if (-e doc) then
+      echo "      inside doc"
+      foreach file (doc/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+    if (-e execute) then
+      echo "      inside execute"
+      cd execute
+      chmod 755 *
+      chmod 644 makefile.*
+      if ($program:q != "panda") then
+        chmod 644 *.DAT
+      endif
+      if ($program:q != "panda2") then
+        chmod 644 *.HLP
+      endif
+    endif
+
+    if (-e sources) then
+      echo "      inside sources"
+      foreach file (sources/*)
+	if (-d $file) then
+	  chmod 755 $file
+	  chmod 644 ${file}/*
+	endif
+	if (-f $file) chmod 644 $file
+      end # foreach
+    endif
+
+  endif
+
+end # foreach
+
+cd $parentdir
+
+echo ""
+echo "Installation complete.  Instruct users of D. Bushnell's programs"
+echo "to type the following command (or insert the following command in"
+echo "their .login file):"
+echo ""
+echo "    source ${parentdir}/bin/initialize"
+echo ""
+echo "This command sets up some aliases and environment variables necessary"
+echo "to run D. Bushnell's programs."
+echo ""
+

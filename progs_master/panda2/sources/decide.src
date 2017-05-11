@@ -1,0 +1,1384 @@
+C=DECK      DECIDE
+C  PURPOSE IS TO CHOOSE TYPE OF ANALYSIS AND IF OPTIMIZATION, TO
+C  CHOOSE DECISION VARIABLES AND LINKED VARIABLES
+C
+      PROGRAM DECIDE
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+C BEG APR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAXXX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IONEST,IMISCL(4)
+C END APR 1996
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+      COMMON/PARAM2/CPWR(50,5),CLINK0(50)
+C END JULY 1989
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/WORDS2/WORDL(50),WORDE(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+C END JULY 1989
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      DIMENSION ISUBD1(50),ISUBD2(50),ISUBL1(50),ISUBL2(50)
+      DIMENSION ISUBE1(50),ISUBE2(50)
+      DIMENSION ISUBT(50)
+C BEG 26 JAN 1989
+      COMMON/WORDS3/WORDIQ(20)
+C BEG JULY 1995  The 10s were 5s in the next three lines.
+      COMMON/PARAM3/CINEQ(10,20),DPWREQ(10,20)
+      COMMON/PARAM4/IDINEQ(10,20),NINEQ,JINEQ(20),IEQTYP(20)
+      DIMENSION ISUBIQ(50),TERM(10,20),TERMC(10,20),IENDTJ(10)
+C END JULY 1995
+C BEG JAN 1997
+      COMMON/PARAM6/CCROSS(10,20)
+      COMMON/PARAM7/IDINQ1(10,20),IDINQ2(10,20),JCROSS(20)
+      COMMON/PARAM8/WCROSS(20)
+      CHARACTER*80 WCROSS
+      CHARACTER*2 CJDL
+      CHARACTER*1 NPWRP
+      DIMENSION IECROS(10),ISUBQ2(50)
+C END JAN 1997
+C BEG JAN 1991
+      CHARACTER*80 WORDIQ,TERM,TERMC,WRDVTP
+C END JAN 1991
+      CHARACTER*7 CLINKP,CPWRP,C0P
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      CHARACTER*4 WLTGT
+      CHARACTER*2 CIDL,CIVAR
+C END 26 JAN 1989
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE,PHRASE
+      CHARACTER*4 ANSOUT,ANSWER,QUAL
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+      CHARACTER*72 ARGSTR
+C END UNIX
+      LOGICAL ANSL1     
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPD'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPD'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE4= 4
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=4,FILE='PANDA2:TUTORDEC.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      OPEN(UNIT=ifile4,FILE='TUTORDEC.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ioutfl)
+#endif
+      else
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+C END UNIX
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPD FILE ******************'
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET),CASE(1:NLET)
+    5 FORMAT(//' *****************   DECIDE   *******************'//
+     1' The purpose of DECIDE is to permit you to choose decision'/
+     1' variables, linked variables, and escape variables for the'/
+     1' optimization run or runs to follow. The results of the'/
+     1' interactive session are saved in a file called ',A,'.DEC, in'/
+     1' which ',A,' is your name for the case. You may find this file'/
+     1' useful for future runs of DECIDE in which you want to avoid'/
+     1' answering many questions interactively. DECIDE also generates'/
+     1' a file called ',A,'.OPD.  ',A,'.OPD contains a summary of'/
+     1' optimization parameters. If you choose the tutorial option,'/
+     1' ',A,'.OPD contains a complete list of the interactive session,'/
+     1' including prompting questions, all "help" paragraphs, your'/
+     1' responses to the prompting questions, and evolving lists'/
+     1' of optimization parameters as they are chosen by you.'//
+     1' ****************************************************'/)
+C
+      QUAL = '.DEC'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C
+      IF (IPROMP.GT.1) THEN
+         CALL DATUM(IFILE4,200,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE4,210,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE4,220,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE4,230,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C END JULY 1989
+C
+      CALL GETCOM(IFILE7)
+C
+      ITYPE = 1
+C
+      IF (NVAR.GT.50) THEN
+         WRITE(6,*)' TOO MANY CANDIDATES FOR DECISION VARIABLES.'
+         WRITE(6,*)' PLEASE MAKE PROBLEM SMALLER. (FEWER LAYER TYPES)'
+         CALL ERREX
+      ENDIF
+C
+      CALL MOVER(0,0,IDV,1,NVAR)
+      CALL MOVER(0,0,ILV,1,NVAR)
+C BEG JULY 1989
+      CALL MOVER(0,0,IDLINK,1,250)
+      CALL MOVER(0,0,IEV,1,NVAR)
+      CALL MOVER(0.,0,CLINK,1,250)
+      CALL MOVER(0.,0,CPWR,1,250)
+      CALL MOVER(0.,0,CLINK0,1,50)
+C END JULY 1989
+      CALL MOVER(0.,0,VUB,1,NVAR)
+      CALL MOVER(0.,0,VLB,1,NVAR)
+      CALL MOVER(0.,0,VBV,1,99)
+      CALL MOVER(1,0,ISUBD1,1,NVAR)
+      CALL MOVER(0,0,ISUBD2,1,NVAR)
+C BEG APR 1996
+      IF (IONEST.EQ.1) ISUBD2(1) = 1
+C END APR 1996
+      CALL MOVER(1,0,ISUBL1,1,NVAR)
+      CALL MOVER(0,0,ISUBL2,1,NVAR)
+      CALL MOVER(1,0,ISUBE1,1,NVAR)
+      CALL MOVER(1,0,ISUBE2,1,NVAR)
+      CALL MOVER(1,0,ISUBT,1,NVAR)
+C BEG 26 JAN 1989
+      CALL MOVER(0,0,ISUBIQ,1,NVAR)
+C BEG JULY 1995  200s were 100s
+      CALL MOVER(0,0,IDINEQ,1,200)
+      CALL MOVER(0,0,IEQTYP,1,20)
+      CALL MOVER(0,0,JINEQ,1,20)
+      CALL MOVER(0.,0,CINEQ,1,200)
+      CALL MOVER(0.,0,DPWREQ,1,200)
+C END JULY 1995
+C BEG JAN 1997
+      CALL MOVER(0,0,IDINQ1,1,200)
+      CALL MOVER(0,0,IDINQ2,1,200)
+      CALL MOVER(0.,0,CCROSS,1,200)
+      CALL MOVER(0,0,JCROSS,1,20)
+      CALL MOVER(0,0,ISUBQ2,1,NVAR)
+C END JAN 1997
+C END 26 JAN 1989
+C
+      DO 7 IVAR = 1,NVAR
+         ADD = 0.
+         ILET = INDEX(WORDV(IVAR),'winding')
+         IF (ILET.NE.0) ADD = 360.
+         VARTOT = VAR(IVAR) + ADD
+         IF (VARTOT.EQ.0.) THEN
+            ISUBD2(IVAR) = 1
+            ISUBL2(IVAR) = 1
+         ENDIF
+    7 CONTINUE
+C
+      ILINK = 0
+      IDEC = 0
+C BEG JULY 1989
+      IDMAX = 40
+C END JULY 1989
+      ICONST = 0
+   10 CONTINUE
+      IF (IDEC.GT.0) THEN
+         ARGSTR = '           DECISION VARIABLES CHO'//
+     $            'SEN SO FAR                      '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBD1)
+C
+         IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+            ARGSTR = '           DECISION VARIABLES CHO'//
+     $               'SEN SO FAR                      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBD1)
+C END 26 JAN 1989
+         ENDIF
+      ENDIF
+C
+      ARGSTR = 'PARAMETERS FROM WHICH A DECISION '//
+     $         'VARIABLE MUST NOW BE CHOSEN     '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBD2)
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+         ARGSTR = 'PARAMETERS FROM WHICH A DECISION '//
+     $            'VARIABLE MUST NOW BE CHOSEN     '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBD2)
+C END 26 JAN 1989
+      ENDIF
+C
+      IF (IDEC.EQ.0) THEN
+C        IF (IPROMP.GT.1)
+C    1   CALL DATUM(IFILE4,240,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C BEG NOV 1992
+C        CALL DATUM(IFILE,505,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,506,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END NOV 1992
+         IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+   15       CONTINUE
+            DO 16 IVAR = 1,NVAR
+            ILET = INDEX(WORDV(IVAR),'thickness')
+            IF (ILET.NE.0) ISUBT(IVAR) = 0
+            IF (ISUBD1(IVAR).EQ.0) ISUBT(IVAR) = 1
+            ADD = 0.
+            ILET2 = INDEX(WORDV(IVAR),'winding')
+            IF (ILET2.NE.0) ADD = 360.
+            VARTOT = VAR(IVAR) + ADD
+            IF (VARTOT.EQ.0.) ISUBT(IVAR) = 1
+            IF (ISUBL1(IVAR).EQ.0) ISUBT(IVAR) = 1
+   16       CONTINUE
+            ARGSTR = 'LAYER INDEX TYPES FROM WHICH A RA'//
+     $               'NGE MUST NOW BE CHOSEN          '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBT)
+            IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+              ARGSTR = 'LAYER INDEX TYPES FROM WHICH A RA'//
+     $                 'NGE MUST NOW BE CHOSEN          '
+              CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBT)
+C END 26 JAN 1989
+            ENDIF
+C
+            CALL DATUM(IFILE,507,1,2,ILOW,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,508,1,2,IHIGH,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG NOV 1992
+            CALL DATUM(IFILE,509,1,2,INT,TMAX,CHARAC,IOUT,0,IPROMP)
+C BEG APR 1993
+            TMIN = 0.
+            CALL DATUM(IFILE,522,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,523,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+               CALL DATUM(IFILE,524,1,2,INT,TMIN,CHARAC,IOUT,0,IPROMP)
+               IF (TMIN.LT.0.0) THEN
+                  WRITE(6,*)' LOWER BOUND MUST BE ZERO OR POSITIVE.'
+                  CALL ERREX
+               ENDIF
+            ENDIF
+            REWIND IFILE
+            CALL DEFDEC(ILOW,IHIGH,ISUBD1,ISUBD2,ISUBL1,ISUBL2,ISUBE1,
+     1                  ISUBE2,IDEC,ICONST,ILINK,TMAX,TMIN)
+C END APR 1993
+C END NOV 1992
+             ARGSTR = '           DECISION VARIABLES CHO'//
+     $                'SEN SO FAR                      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBD1)
+            IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+               ARGSTR = '           DECISION VARIABLES CHO'//
+     $                  'SEN SO FAR                      '
+               CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,
+     $                     ISUBD1)
+C END 26 JAN 1989
+            ENDIF
+C BEG JULY 1989
+      IDMORE = IDMAX - IDEC
+      WRITE(6,*)' '
+      WRITE(6,'(I4,A)') IDEC,
+     1                   ' decision variables have now been identified.'
+      WRITE(6,'(I4,A)') IDMAX, ' decision variables are permitted.'
+      WRITE(6,'(I4,A)') IDMORE,
+     1                   ' additional decision variables are allowed.'
+      WRITE(6,*)' '
+      IF (IDMORE.LT.0) THEN
+         WRITE(6,*)
+     1    ' YOU HAVE TOO MANY DECISION VARIABLES. REDEFINE THE PROBLEM.'
+         CALL ERREX
+      ENDIF
+C END JULY 1989
+C
+            ARGSTR = 'PARAMETERS FROM WHICH A DECISION '//
+     $               'VARIABLE MUST NOW BE CHOSEN     '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBD2)
+            IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+               ARGSTR = 'PARAMETERS FROM WHICH A DECISION '//
+     $                  'VARIABLE MUST NOW BE CHOSEN     '
+               CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,
+     $                     ISUBD2)
+C END 26 JAN 1989
+            ENDIF
+C
+            CALL DATUM(IFILE,510,1,2,INT,REALL,ANSWER,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSWER,INFILE)) THEN
+               REWIND IFILE
+               GO TO 15
+            ENDIF
+C BEG JUNE 1992
+            GO TO 29
+C END JUNE 1992
+         ENDIF
+      ENDIF
+C
+      REWIND IFILE
+C BEG NOV 1992
+      CALL DATUM(IFILE,511,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+C END NOV 1992
+      IF (ISUBD2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR DECISION VARIABLE, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 10
+      ENDIF
+C
+      DO 20 J = 1,46
+   20 PHRASE(J:J) = WORDV(IVAR)(J:J)
+      FVAR = IVAR
+      IDV(IVAR) = 1
+      ISUBD1(IVAR) = 0
+      ISUBD2(IVAR) = 1
+      ISUBL2(IVAR) = 1
+      ILET = INDEX(WORDV(IVAR),'thickness')
+      IF (ILET.NE.0) ISUBE2(IVAR) = 0
+C
+      CALL GETVAR(0,FVAR,0,0,0,IDEC,DEC,WORDD,IADDD)
+C BEG JUNE 1992
+   21 CONTINUE
+      CALL DATUM(IFILE,520,1,1,INT,VLB(IVAR),CHARAC,IOUT,IVAR,IPROMP)
+      ILETA = INDEX(WORDV(IVAR),'winding')
+      IF (ILETA.NE.0.AND.VLB(IVAR).LT.-90.) THEN
+         WRITE(6,22) IVAR,VAR(IVAR),VLB(IVAR)
+   22    FORMAT(/' ILLEGAL INPUT FOR LOWER BOUND OF WINDING ANGLE:'/
+     1 ' Minimum lower bound for winding angle is -90 degrees.'/
+     1 '  This is variable number ',I2,', Current value=',1PE12.4/
+     1 '  Your input for the lower bound               =',1PE12.4/
+     1 '  PANDA2 is setting the lower bound equal to -90 degrees.')
+         VLB(IVAR) = -90.
+      ENDIF
+C BEG NOV 1992
+      IF (ILETA.EQ.0.AND.VAR(IVAR).LT.0.9999*VLB(IVAR)) THEN
+C END NOV 1992
+         WRITE(6,23) IVAR,VAR(IVAR),VAR(IVAR),VAR(IVAR),VLB(IVAR)
+   23    FORMAT(/' BAD VALUE FOR LOWER BOUND OF VARIABLE NO.',I3/
+     1  ' Value must be less than the variable established in'/
+     1  ' BEGIN or CHANGE. (variable = ',1PE12.4,'). Try again.'/
+     1  ' Set the value of the lower bound less than',1PE12.4/
+     1  ' or use CHANGE to raise the value of the variable from'/
+     1   1PE12.4,' to the lower bound, which is',1PE12.4,'.'/)
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 21
+      ENDIF
+      IF (VLB(IVAR).EQ.0.) VLB(IVAR) = 0.01*VAR(IVAR)
+      CALL GETVAR(IVAR,VLB(IVAR),0,0,0,ICONST,CONST,WORDC,IADDC)
+      VBV(ICONST) = FVAR
+C
+   24 CONTINUE
+      CALL DATUM(IFILE,530,1,1,INT,VUB(IVAR),CHARAC,IOUT,IVAR,IPROMP)
+      IF (ILETA.NE.0.AND.VUB(IVAR).GT.90.) THEN
+         WRITE(6,25) IVAR,VAR(IVAR),VUB(IVAR)
+   25    FORMAT(/' ILLEGAL INPUT FOR UPPER BOUND OF WINDING ANGLE:'/
+     1 ' Maximum upper bound for winding angle is 90 degrees.'/
+     1 '  This is variable number ',I2,', Current value=',1PE12.4/
+     1 '  Your input for the upper bound               =',1PE12.4/
+     1 '  PANDA2 is setting the upper bound equal to 90 degrees.')
+         VUB(IVAR) = 90.
+      ENDIF
+C BEG NOV 1992
+      IF (ILETA.EQ.0.AND.VAR(IVAR).GT.1.0001*VUB(IVAR)) THEN
+C END NOV 1992
+         WRITE(6,26) IVAR,VAR(IVAR),VAR(IVAR),VAR(IVAR),VUB(IVAR)
+   26    FORMAT(/' BAD VALUE FOR UPPER BOUND OF VARIABLE NO.',I3/
+     1  ' Value must be greater than the variable established in'/
+     1  ' BEGIN or CHANGE. (variable = ',1PE12.4,'). Try again.'/
+     1  ' Set the value of the upper bound greater than',1PE12.4/
+     1  ' or use CHANGE to lower the value of the variable from'/
+     1   1PE12.4,' to the upper bound, which is',1PE12.4,'.'/)
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 24
+      ENDIF
+C END JUNE 1992
+      CALL GETVAR(IVAR,VUB(IVAR),0,0,0,ICONST,CONST,WORDC,IADDC)
+      VBV(ICONST) = FVAR
+C BEG JUNE 1992
+   29 CONTINUE
+C END JUNE 1992
+C BEG JULY 1989
+      IDMORE = IDMAX - IDEC
+      IF (IDMORE.LT.IDEC) THEN
+         WRITE(6,*)' '
+         WRITE(6,'(I4,A)') IDEC,
+     1                   ' decision variables have now been identified.'
+         WRITE(6,'(I4,A)') IDMAX, ' decision variables are permitted.'
+         WRITE(6,'(I4,A)') IDMORE,
+     1                   ' additional decision variables are allowed.'
+         WRITE(6,*)' '
+      ENDIF
+      IF (IDMORE.LT.0) THEN
+         WRITE(6,*)
+     1    ' YOU HAVE TOO MANY DECISION VARIABLES. REDEFINE THE PROBLEM.'
+         CALL ERREX
+      ENDIF
+C END JULY 1989
+      CALL DATUM(IFILE,540,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+C BEG JULY 1989
+      IDMORE = IDMAX - IDEC
+      IF (IDMORE.GE.IDEC) THEN
+         WRITE(6,*)' '
+         WRITE(6,'(I4,A)') IDEC,
+     1                   ' decision variables have now been identified.'
+         WRITE(6,'(I4,A)') IDMAX, ' decision variables are permitted.'
+         WRITE(6,'(I4,A)') IDMORE,
+     1                   ' additional decision variables are allowed.'
+         WRITE(6,*)' '
+      ENDIF
+C END JULY 1989
+      NDEC = IDEC
+      NCONST = ICONST
+C
+C BEG 26 JAN 1989
+      ARGSTR = '        DECISION VARIABLES FOR TH'//
+     $         'E OPTIMIZATION PROBLEM          '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUBD1)
+C END 26 JAN 1989
+C
+      ARGSTR = 'LOWER AND UPPER BOUNDS OF THE DEC'//
+     $         'ISION VARIABLES                  '
+      CALL OUTV2(IFILE8,0,NCONST,VBV,CONST,WORDC,ARGSTR)
+C
+C BEG JULY 1989
+      IDMORE = IDMAX - IDEC
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(I4,A)') IDEC,
+     1                   ' decision variables have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IDMAX, ' decision variables are permitted.'
+      WRITE(IFILE8,'(I4,A)') IDMORE,
+     1                   ' additional decision variables are allowed.'
+      WRITE(IFILE8,*)' '
+C
+C  NEXT, CHOOSE LINKED VARIABLES...
+      CALL DATUM(IFILE,548,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,550,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 70
+C
+      KOUNT = 0
+C
+   30 CONTINUE
+C
+      KOUNT = KOUNT + 1
+C
+      JJ = 1
+      IF (ILINK.GT.0) THEN
+         ARGSTR = '             LINKED VARIABLES CHO'//
+     $            'SEN SO FAR                      '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBL1)
+         IF (IPROMP.GT.1) THEN
+            ARGSTR = '             LINKED VARIABLES CHO'//
+     $               'SEN SO FAR                      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBL1)
+         ENDIF
+      ENDIF
+C
+      ARGSTR = 'PARAMETERS FROM WHICH A LINKED VA'//
+     $         'RIABLE MUST NOW BE CHOSEN       '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBL2)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'PARAMETERS FROM WHICH A LINKED VA'//
+     $            'RIABLE MUST NOW BE CHOSEN       '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBL2)
+      ENDIF
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,560,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISUBL2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR LINKED VARIABLE, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         KOUNT = KOUNT - 1
+         GO TO 30
+      ENDIF
+C
+      CALL CONVR2(IVAR,CIVAR)
+      DO 40 J = 1,46
+   40 PHRASE(J:J) = WORDV(IVAR)(J:J)
+      FVAR = IVAR
+      ILV(IVAR) = 1
+      ISUBL1(IVAR) = 0
+      ISUBL2(IVAR) = 1
+      ISUBE2(IVAR) = 1
+C
+      CALL GETVAR(0,FVAR,0,0,0,ILINK,VLINK,WORDL,IADDD)
+   43 CONTINUE
+      ARGSTR = 'LINKED VARIABLE MUST BE LINKED TO'//
+     $         ' ONE OF THE  DECISION VARIABLES '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBD1)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'LINKED VARIABLE MUST BE LINKED TO'//
+     $            ' ONE OF THE  DECISION VARIABLES '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBD1)
+      ENDIF
+C
+   45 CONTINUE
+      CALL DATUM(IFILE,570,1,2,IDLINK(IVAR,JJ),REALL,CHARAC,
+     1           IOUT,0,IPROMP)
+      IDL = IDLINK(IVAR,JJ)
+      IF (IDV(IDL).NE.1) THEN
+         WRITE(6,*)' VARIABLE MUST BE A DECISION VARIABLE. TRY AGAIN.'
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 45
+      ENDIF
+C
+      CALL DATUM(IFILE,580,1,2,INT,CLINK(IVAR,JJ),CHARAC,
+     1           IOUT,0,IPROMP)
+C     CALL DATUM(IFILE,584,1,2,INT,CPWR(IVAR,JJ),CHARAC,
+C    1           IOUT,0,IPROMP)
+      CALL CONVRF(CLINK(IVAR,JJ),CLINKP)
+C     CALL CONVRF(CPWR(IVAR,JJ),CPWRP)
+      CALL CONVR2(IDL,CIDL)
+      DO 32 I = 1,80
+      TERM(JJ,KOUNT)(I:I) = ' '
+   32 CONTINUE
+C BEG JAN 1997
+      TERM(JJ,KOUNT) = ' +'//CLINKP//'*V('//CIDL//')'
+C END JAN 1997
+      CALL BLANKX(TERM(JJ,KOUNT),IENDT)
+      IENDTJ(JJ) = IENDT
+      IF (JJ.EQ.1) THEN
+         CALL BLANKX(WORDV(IVAR),IENDW)
+         WRITE(6,'(A,A,/,A,A)')
+     1   ' ',WORDV(IVAR)(1:IENDW),'   =',TERM(1,KOUNT)(1:IENDT)
+         IF (IPROMP.GT.1) WRITE(IFILE8,'(A,A,/,A,A)')
+     1   ' ',WORDV(IVAR)(1:IENDW),'   =',TERM(1,KOUNT)(1:IENDT)
+         GO TO 54
+      ENDIF
+      DO 50 I= 2,JJ
+      IENDT = IENDTJ(I)
+      WRITE(6,'(10X,A)') TERM(I,KOUNT)(1:IENDT)
+      IF (IPROMP.GT.1) WRITE(IFILE8,'(10X,A)') TERM(I,KOUNT)(1:IENDT)
+   50 CONTINUE
+   54 CONTINUE
+      JTERMS(KOUNT) = JJ
+      CALL DATUM(IFILE,587,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         JJ = JJ + 1
+         IF (JJ.GT.5) THEN
+             WRITE(6,*)' MAXIMUM OF 5 TERMS ALLOWED.'
+             IF (IPROMP.GT.1)
+     1          WRITE(IFILE8,*)' MAXIMUM OF 5 TERMS ALLOWED.'
+             CALL EXIT
+         ENDIF
+         REWIND IFILE
+         GO TO 43
+      ENDIF
+      CALL DATUM(IFILE,588,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE))
+     1  CALL DATUM(IFILE,589,1,2,INT,CLINK0(IVAR),CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,590,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         DO 60 I = 1,NVAR
+            IF (ISUBL2(I).EQ.0) GO TO 30
+   60    CONTINUE
+         WRITE(6,*)' NO MORE AVAILABLE LINKED VARIABLE CANDIDATES.'
+         WRITE(6,*)' NOW PROCEEDING TO NEXT SECTION.'
+      ENDIF
+C
+      NLINK = ILINK
+      ARGSTR = '          LINKED VARIABLES FOR TH'//
+     $         'E OPTIMIZATION PROBLEM          '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUBL1)
+C
+C  END OF SECTION ON LINKED VARIABLES.
+C
+C END JULY 1989
+C
+   70 CONTINUE
+C
+C BEG 26 JAN 1989            (NEW SECTION FROM GENOPT--INEQUALITY CONSTRAINTS)
+C
+C  NEXT, ESTABLISH INEQUALITY CONSTRAINTS AMONG VARIABLES THAT
+C  ARE DECISION VARIABLES OR CANDIDATES TO BE DECISION VARIABLES.
+C  THE INEQUALITY CONSTRAINTS HAVE EITHER OF THE TWO FORMS:
+C  1.O < f(v1,v2,v3,...)    or    1.0 > f(v1,v2,v3,...)
+C  IN WHICH f(v1,v2,v3,...) = C0 +C1*V1**D1 + C2*V2**D2 + . . .
+C
+C  NEXT, ESTABLISH INEQUALITY RELATIONS AMONG VARIABLES...
+      IF (IPROMP.GT.1) WRITE(IFILE8,*)
+     1' START BUILDING THE INEQUALITY CONSTRAINTS BASED ON DIMENSIONS.'
+      CALL DATUM(IFILE,595,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,600,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 700
+C
+      CALL DATUM(IFILE,601,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE))
+     1   CALL DATUM(IFILE,602,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C
+      KOUNT = 0
+C
+  300 CONTINUE
+C
+      KOUNT = KOUNT + 1
+      IF (KOUNT.GT.10) THEN
+         WRITE(6,*)' YOU ARE ALLOWED ONLY 10 INEQUALITY RELATIONSHIPS.'
+         IF (IPROMP.GT.1)
+     1   WRITE(IFILE8,*)
+     1 ' YOU ARE ALLOWED ONLY 10 INEQUALITY RELATIONSHIPS.'
+         CALL EXIT
+      ENDIF
+C
+      REWIND IFILE
+      IF (IPROMP.GT.1) WRITE(IFILE8,*) 
+     1' **************** INEQUALITY CONSTRAINT NO. ', KOUNT
+      CALL DATUM(IFILE,603,1,2,IEQTYP(KOUNT),REALL,CHARAC,IOUT,
+     1           0,IPROMP)
+      CALL DATUM(IFILE,604,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,605,1,2,INT,CINEQ(1,KOUNT),CHARAC,IOUT,
+     1           0,IPROMP)
+C BEG JAN 1997
+      IF (IEQTYP(KOUNT).EQ.1) THEN
+         WLTGT = ' 1 <'
+      ELSE
+         WLTGT = ' 1 >'
+      ENDIF
+      ICROSS = 0
+      CALL DATUM(IFILE,606,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) ICROSS = 1
+      ICANON = 1
+      IF (ICROSS.EQ.1) THEN
+         CALL DATUM(IFILE,607,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) ICANON = 0
+      ENDIF
+      IF (ICANON.EQ.0) THEN
+         JINEQ(KOUNT) = 1
+         CALL CONVRF(CINEQ(1,KOUNT),C0P)
+         DO 303 I = 1,80
+  303    WORDIQ(KOUNT) = ' '
+         WORDIQ(KOUNT)(1:11) = WLTGT//C0P
+         GO TO 572
+      ENDIF
+C END JAN 1997
+C
+      ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $         'MUST NOW CHOOSE ANY ONE         '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBIQ)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $            'MUST NOW CHOOSE ANY ONE         '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBIQ)
+      ENDIF
+C
+      CALL DATUM(IFILE,608,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+C
+      IDINEQ(1,KOUNT)  = 0
+      DPWREQ(1,KOUNT)  = 0.
+      IDINEQ(2,KOUNT) = IVAR
+      CALL DATUM(IFILE,610,1,2,INT,CINEQ(2,KOUNT),CHARAC,
+     1           IOUT,0,IPROMP)
+      CALL DATUM(IFILE,620,1,2,INT,DPWREQ(2,KOUNT),CHARAC,
+     1           IOUT,0,IPROMP)
+      CALL CONVRF(CINEQ(1,KOUNT),C0P)
+      CALL CONVRF(CINEQ(2,KOUNT),CLINKP)
+      CALL CONVRF(DPWREQ(2,KOUNT),CPWRP)
+C BEG JAN 1997
+      NPWR = DPWREQ(2,KOUNT)
+      CALL CONVR1(NPWR,NPWRP)
+C END JAN 1997
+      CALL CONVR2(IVAR,CIDL)
+      DO 320 I = 1,80
+      TERM(1,KOUNT)(I:I) = ' '
+      TERM(2,KOUNT)(I:I) = ' '
+      TERMC(2,KOUNT)(I:I)= ' '
+  320 CONTINUE
+      TERM(1,KOUNT) = C0P
+C BEG JAN 1997
+      IF (CINEQ(2,KOUNT).GE.0.0.AND.CINEQ(2,KOUNT).NE.1.0)
+     1   TERM(2,KOUNT) = C0P//'+'//CLINKP//'V('//CIDL//')^'//NPWRP
+      IF (CINEQ(2,KOUNT).EQ.1.0)  TERM(2,KOUNT) = 
+     1                               C0P//'+V('//CIDL//')^'//NPWRP
+      IF (CINEQ(2,KOUNT).LT.0.0.AND.CINEQ(2,KOUNT).NE.-1.0)
+     1   TERM(2,KOUNT) = C0P//CLINKP//'V('//CIDL//')^'//NPWRP
+      IF (CINEQ(2,KOUNT).EQ.-1.0) TERM(2,KOUNT) = 
+     1                               C0P//'-V('//CIDL//')^'//NPWRP
+C END JAN 1997
+      K = 1
+      DO 325 I = 1,80
+      IF (TERM(2,KOUNT)(I:I).EQ.' ') GO TO 325
+      TERMC(2,KOUNT)(K:K) = TERM(2,KOUNT)(I:I)
+      K = K + 1
+  325 CONTINUE
+      CALL BLANKX(TERMC(2,KOUNT),IENDT)
+      IENDTJ(2) = IENDT
+C BEG JAN 1997 (LINES INVOLVING WLTGT MOVED UP)
+C   5 LINES DELETED HERE AND MOVED UP.
+C END JAN 1997
+      WRITE(6,'(A,A,A)') WLTGT,TERMC(2,KOUNT)(1:IENDT),' + ...'
+      IF (IPROMP.GT.1)
+     1 WRITE(IFILE8,'(A,A,A)') WLTGT,TERMC(2,KOUNT)(1:IENDT),' + ...'
+      JJ = 2
+  430 CONTINUE
+      REWIND IFILE
+      CALL DATUM(IFILE,630,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 560
+      JJ = JJ + 1
+C BEG JULY 1995
+      IF (JJ.GT.10) THEN
+         WRITE(6,*)' MAXIMUM OF 10 TERMS,INCLUDING C0, ALLOWED.'
+         IF (IPROMP.GT.1)
+     1    WRITE(IFILE8,*)' MAXIMUM OF 10 TERMS,INCLUDING C0, ALLOWED.'
+         CALL EXIT
+      ENDIF
+C END JULY 1995
+      ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $         'MUST NOW CHOOSE ANY ONE         '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBIQ)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $            'MUST NOW CHOOSE ANY ONE         '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBIQ)
+      ENDIF
+C
+      CALL DATUM(IFILE,635,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IDINEQ(JJ,KOUNT) = IVAR
+      CALL DATUM(IFILE,640,1,2,INT,CINEQ(JJ,KOUNT),CHARAC,
+     1           IOUT,0,IPROMP)
+      CALL DATUM(IFILE,645,1,2,INT,DPWREQ(JJ,KOUNT),CHARAC,
+     1           IOUT,0,IPROMP)
+      CALL CONVRF(CINEQ(JJ,KOUNT),CLINKP)
+      CALL CONVRF(DPWREQ(JJ,KOUNT),CPWRP)
+C BEG JAN 1997
+      NPWR = DPWREQ(JJ,KOUNT)
+      CALL CONVR1(NPWR,NPWRP)
+C END JAN 1997
+      CALL CONVR2(IVAR,CIDL)
+      DO 330 I = 1,80
+      TERM(JJ,KOUNT)(I:I) = ' '
+      TERMC(JJ,KOUNT)(I:I) = ' '
+  330 CONTINUE
+C BEG JAN 1997
+      IF (CINEQ(JJ,KOUNT).GE.0.0.AND.CINEQ(JJ,KOUNT).NE.1.0)
+     1 TERM(JJ,KOUNT) = '+'//CLINKP//'V('//CIDL//')^'//NPWRP
+      IF (CINEQ(JJ,KOUNT).EQ.1.0)
+     1 TERM(JJ,KOUNT) = '+V('//CIDL//')^'//NPWRP
+      IF (CINEQ(JJ,KOUNT).LT.0.0.AND.CINEQ(JJ,KOUNT).NE.-1.0)
+     1 TERM(JJ,KOUNT) = CLINKP//'V('//CIDL//')^'//NPWRP
+      IF (CINEQ(JJ,KOUNT).EQ.-1.0)
+     1 TERM(JJ,KOUNT) = '-V('//CIDL//')^'//NPWRP
+C END JAN 1997
+      K = 1
+      DO 335 I = 1,80
+      IF (TERM(JJ,KOUNT)(I:I).EQ.' ') GO TO 335
+      TERMC(JJ,KOUNT)(K:K) = TERM(JJ,KOUNT)(I:I)
+      K = K + 1
+  335 CONTINUE
+      CALL BLANKX(TERMC(JJ,KOUNT),IENDT)
+      IENDTJ(JJ) = IENDT
+      WRITE(6,'(1X,A)') WLTGT
+      IF (IPROMP.GT.1) WRITE(IFILE8,'(1X,A)') WLTGT
+      DO 500 I= 2,JJ
+      IENDT = IENDTJ(I)
+      WRITE(6,'(5X,A)') TERMC(I,KOUNT)(1:IENDT)
+      IF (IPROMP.GT.1) WRITE(IFILE8,'(5X,A)') TERMC(I,KOUNT)(1:IENDT)
+  500 CONTINUE
+      GO TO 430
+  560 CONTINUE
+      JINEQ(KOUNT) = JJ
+      DO 565 I = 1,80
+  565 WORDIQ(KOUNT) = ' '
+      WORDIQ(KOUNT) = WLTGT
+      IENDW = 4
+C BEG JULY 1995
+      IALL = 0
+C END JULY 1995
+      DO 570 I = 2,JJ
+      IENDT = IENDTJ(I)
+C BEG JAN 1991
+      WRDVTP = WORDIQ(KOUNT)
+C BEG JULY 1995
+      IENDT2 = 80 - IENDT
+      IF (IENDW.LE.IENDT2) THEN
+         WORDIQ(KOUNT) = WRDVTP(1:IENDW)//TERMC(I,KOUNT)(1:IENDT)
+      ELSE
+         IENDT3 = 80 - IENDW
+         IF (IENDT3.GT.0)
+     1      WORDIQ(KOUNT) = WRDVTP(1:IENDW)//TERMC(I,KOUNT)(1:IENDT3)
+         IALL = 1
+      ENDIF
+C END JAN 1991
+      CALL BLANKX(WORDIQ(KOUNT),IENDW)
+      IF (IALL.EQ.1) GO TO 572
+  570 CONTINUE
+  572 CONTINUE
+C BEG JAN 1997
+C  allow for presence of cross-product terms (aero.ufl.edu request):
+C
+      DO 665 I = 1,80
+  665 WCROSS(KOUNT) = ' '
+      IF (ICROSS.EQ.0) GO TO 673
+      IF (ICROSS.EQ.1)
+     1   CALL DATUM(IFILE,649,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      JJ = 0
+  630 CONTINUE
+      IF (JJ.GT.0) THEN
+         REWIND IFILE
+         CALL DATUM(IFILE,651,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) GO TO 660
+      ENDIF
+      JJ = JJ + 1
+C BEG JULY 1995
+      IF (JJ.GT.10) THEN
+         WRITE(6,*)' MAXIMUM OF 10 TERMS,INCLUDING C0, ALLOWED.'
+         IF (IPROMP.GT.1)
+     1    WRITE(IFILE8,*)' MAXIMUM OF 10 TERMS,INCLUDING C0, ALLOWED.'
+         CALL EXIT
+      ENDIF
+C END JULY 1995
+      ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $         'MUST NOW CHOOSE ANY ONE         '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBQ2)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $            'MUST NOW CHOOSE ANY ONE         '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBQ2)
+      ENDIF
+      CALL DATUM(IFILE,652,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IDINQ1(JJ,KOUNT) = IVAR
+C
+      CALL MOVER(0,0,ISUBQ2,1,NVAR)
+      ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $         'MUST NOW CHOOSE ANY ONE         '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBQ2)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = 'LIST OF VARIABLES FROM WHICH YOU '//
+     $            'MUST NOW CHOOSE ANY ONE         '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBQ2)
+      ENDIF
+      CALL DATUM(IFILE,654,1,2,JVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IDINQ2(JJ,KOUNT) = JVAR
+      CALL DATUM(IFILE,656,1,2,INT,CCROSS(JJ,KOUNT),CHARAC,
+     1           IOUT,0,IPROMP)
+      CALL CONVRF(CCROSS(JJ,KOUNT),CLINKP)
+      CALL CONVR2(IVAR,CIDL)
+      CALL CONVR2(JVAR,CJDL)
+      DO 631 I = 1,80
+      TERM(JJ,KOUNT)(I:I) = ' '
+      TERMC(JJ,KOUNT)(I:I) = ' '
+  631 CONTINUE
+      IF (CCROSS(JJ,KOUNT).GE.0.0.AND.CCROSS(JJ,KOUNT).NE.1.0)
+     1 TERM(JJ,KOUNT) = '+'//CLINKP//'V('//CIDL//')V('//CJDL//')'
+      IF (CCROSS(JJ,KOUNT).EQ.1.0)
+     1 TERM(JJ,KOUNT) = '+V('//CIDL//')V('//CJDL//')'
+      IF (CCROSS(JJ,KOUNT).LT.0.0.AND.CCROSS(JJ,KOUNT).NE.-1.0)
+     1 TERM(JJ,KOUNT) = CLINKP//'V('//CIDL//')V('//CJDL//')'
+      IF (CCROSS(JJ,KOUNT).EQ.-1.0)
+     1 TERM(JJ,KOUNT) = '-V('//CIDL//')V('//CJDL//')'
+      K = 1
+      DO 635 I = 1,80
+      IF (TERM(JJ,KOUNT)(I:I).EQ.' ') GO TO 635
+      TERMC(JJ,KOUNT)(K:K) = TERM(JJ,KOUNT)(I:I)
+      K = K + 1
+  635 CONTINUE
+      CALL BLANKX(TERMC(JJ,KOUNT),IENDT)
+      IECROS(JJ) = IENDT
+      DO 636 I= 1,JJ
+      IENDT = IECROS(I)
+      WRITE(6,'(5X,A)') TERMC(I,KOUNT)(1:IENDT)
+      IF (IPROMP.GT.1) WRITE(IFILE8,'(5X,A)') TERMC(I,KOUNT)(1:IENDT)
+  636 CONTINUE
+      GO TO 630
+  660 CONTINUE
+      JCROSS(KOUNT) = JJ
+      IALL2 = 0
+      IENDW = 0
+      DO 670 I = 1,JJ
+      IENDT = IECROS(I)
+      WRDVTP = WCROSS(KOUNT)
+      IENDT2 = 80 - IENDT
+      IF (IENDW.LE.IENDT2) THEN
+         WCROSS(KOUNT) = WRDVTP(1:IENDW)//TERMC(I,KOUNT)(1:IENDT)
+      ELSE
+         IENDT3 = 80 - IENDW
+         IF (IENDT3.GT.0)
+     1      WCROSS(KOUNT) = WRDVTP(1:IENDW)//TERMC(I,KOUNT)(1:IENDT3)
+         IALL2 = 1
+      ENDIF
+      CALL BLANKX(WCROSS(KOUNT),IENDW)
+      IF (IALL2.EQ.1) GO TO 672
+  670 CONTINUE
+  672 CONTINUE
+  673 CONTINUE
+      IALL = 0
+      IALL2 = 0
+      CALL DATUM(IFILE,660,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END JAN 1997
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 300
+      NINEQ = KOUNT
+      WRITE(IFILE8,573) NINEQ
+  573 FORMAT(/I5,' INEQUALITY CONSTRAINTS WHICH MUST BE SATISFIED'/)
+      DO 580 I = 1,NINEQ
+C BEG JAN 1997
+      WRITE(IFILE8,'(1X,A,/,1X,A)') WORDIQ(I),WCROSS(I)
+  580 CONTINUE
+      DO 590 I = 1,NINEQ
+         CALL BLANKX(WORDIQ(I),IENDW1)
+         CALL BLANKX(WCROSS(I),IENDW2)
+         IENDW3 = 80 - IENDW1
+         IF (IENDW2.LE.IENDW3.AND.IENDW2.GE.1)
+     1      WORDIQ(I) = WORDIQ(I)(1:IENDW1)//WCROSS(I)(1:IENDW2)
+         IF (IENDW2.GT.IENDW3.AND.IENDW3.GE.1)
+     1      WORDIQ(I) = WORDIQ(I)(1:IENDW1)//WCROSS(I)(1:IENDW3)
+         WRITE(IFILE8,'(A,I2,A)')
+     1   ' PHRASE FOR INEQUALITY CONSTRAINT NO.',I,' USED FOR MARGIN:'
+         WRITE(IFILE8,'(1X,A)') WORDIQ(I)
+  590 CONTINUE
+C END JAN 1997
+C
+C   END OF GENERATION OF INEQUALITY CONSTRAINTS AMONG VARIABLES.
+C
+  700 CONTINUE
+C
+      IF (IPROMP.GT.1) WRITE(IFILE8,*)
+     1' *********** END OF INPUT FOR ',KOUNT,'  INEQUALITY CONSTRAINTS.'
+C
+C END 26 JAN 1989
+      IESCAP = 0
+C BEG 26 JAN 1989
+      CALL DATUM(IFILE,680,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END 26 JAN 1989
+
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 100
+C BEG 26 JAN 1989
+      CALL DATUM(IFILE,682,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END 26 JAN 1989
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         DO 78 I = 1,NVAR
+            IF (ISUBE2(I).EQ.0) THEN
+               DO 72 J = 1,46
+   72          PHRASE(J:J) = WORDV(I)(J:J)
+               FVAR = I
+               IEV(I) = 1
+               ISUBE1(I) = 0
+               ISUBE2(I) = 1
+               CALL GETVAR(0,FVAR,0,0,0,IESCAP,ESC,WORDE,IADDD)
+            ENDIF
+   78    CONTINUE
+         GO TO 95
+      ENDIF
+C
+   80 CONTINUE
+      IF (IESCAP.GT.0) THEN
+         ARGSTR = '             ESCAPE VARIABLES CHO'//
+     $            'SEN SO FAR                      '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBE1)
+         IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+            ARGSTR = '             ESCAPE VARIABLES CHO'//
+     $               'SEN SO FAR                      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBE1)
+C END 26 JAN 1989
+         ENDIF
+      ENDIF
+C
+      ARGSTR = 'PARAMETERS FROM WHICH AN ESCAPE V'//
+     $         'ARIABLE MUST NOW BE CHOSEN       '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBE2)
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+         ARGSTR = 'PARAMETERS FROM WHICH AN ESCAPE V'//
+     $            'ARIABLE MUST NOW BE CHOSEN       '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBE2)
+C END 26 JAN 1989
+      ENDIF
+C
+      REWIND IFILE
+C BEG 26 JAN 1989
+      CALL DATUM(IFILE,685,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+C END 26 JAN 1989
+      IF (ISUBE2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR ESCAPE VARIABLE; TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 80
+      ENDIF
+C
+      DO 90 J = 1,46
+   90 PHRASE(J:J) = WORDV(IVAR)(J:J)
+      FVAR = IVAR
+      IEV(IVAR) = 1
+      ISUBE1(IVAR) = 0
+      ISUBE2(IVAR) = 1
+C
+      CALL GETVAR(0,FVAR,0,0,0,IESCAP,ESC,WORDE,IADDD)
+C BEG 26 JAN 1989
+      CALL DATUM(IFILE,687,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END 26 JAN 1989
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 80
+   95 CONTINUE
+      NESCAP = IESCAP
+      ARGSTR = '          ESCAPE VARIABLES FOR TH'//
+     $         'E OPTIMIZATION PROBLEM          '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,6,46,1,ISUBE1)
+      IF (IPROMP.GT.1) THEN
+C BEG 26 JAN 1989
+         ARGSTR = '          ESCAPE VARIABLES FOR TH'//
+     $            'E OPTIMIZATION PROBLEM          '
+         CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IPROMP,80,1,ISUBE1)
+C END 26 JAN 1989
+      ENDIF
+C
+C BEG 26 JAN 1989
+      ARGSTR = '          ESCAPE VARIABLES FOR TH'//
+     $         'E OPTIMIZATION PROBLEM          '
+      CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUBE1)
+C END 26 JAN 1989
+C
+  100 CONTINUE
+C
+      CALL OUTOPT(IFILE8,NVAR,IDV,IEV,ILV,CLINK,IDLINK,VLB,VUB,VAR,WORDV
+     1,'         SUMMARY OF INFORMATION FOR OPTIMIZATION ANALYSIS       
+     1  ',57)
+C
+  110 CONTINUE
+      CALL STORCM(IFILE7)
+C BEG 26 JAN 1989
+      CLOSE(UNIT=IOUT)
+C BEG JULY 1989
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+C END JULY 1989
+      CLOSE(UNIT=7)
+C END 26 JAN 1989
+C
+      WRITE(6,200) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,200) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET)
+  200 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.DEC = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of DECIDE.'//
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1 1X,A,'.OPD = Output from DECIDE. Please list this file and'/
+     1'          inspect it and the ',A,'.DEC file carefully before'/
+     1'          proceeding.'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' Next, give either command  CHOOSETEMP or MAINSETUP   .')
+C
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPD FILE ******************'
+      CLOSE(UNIT=8)
+C END JULY 1989
+C
+      END
+C
+C
+C
+C=DECK      DEFDEC
+C BEG APR 1993
+      SUBROUTINE DEFDEC(ILOW,IHIGH,ISUBD1,ISUBD2,ISUBL1,ISUBL2,ISUBE1,
+     1                  ISUBE2,IDEC,ICONST,ILINK,TMAX,TMIN)
+C END APR 1993
+C
+C  PURPOSE IS TO CHOOSE CERTAIN OF THE THICKNESSES AS DECISION
+C  VARIABLES AND CERTAIN OTHERS OF THEM AS LINKED VARIABLES
+C  BY DEFAULT. SAVES THE USER FROM DOING IT INTERACTIVELY, WHICH MAY
+C  BE QUITE A CHORE IF THERE ARE MANY POSSIBLE DECISION VARIABLES
+C  AMONG MULTITUDINOUS LAYER TYPES.
+C
+      DIMENSION ISUBD1(*),ISUBD2(*),ISUBL1(*),ISUBL2(*),ISUBE1(*)
+      DIMENSION ISUBE2(*)
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/ADDRSS/IADDV(50),IADDP(99),IADDA(50),IADDC(99),IADDD(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/WORDS2/WORDL(50),WORDE(50)
+C BEG JULY 1989
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+      COMMON/PARAM2/CPWR(50,5),CLINK0(50)
+C END JULY 1989
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE,PHRASE
+      CHARACTER*2 LAYTYP,LAYW,LAYCOM
+C
+      DO 100 IVAR = 1,NVAR
+C
+         IF (VAR(IVAR).EQ.0.) GO TO 100
+         ILET = INDEX(WORDV(IVAR),'thickness')
+         IF (ILET.EQ.0) GO TO 100
+C        THIS IS A THICKNESS VARIABLE...
+         ILET = INDEX(WORDV(IVAR),'no.(')
+         L4   = ILET+4
+         L5   = ILET+5
+         LAYTYP = WORDV(IVAR)(L4:L5)
+         I1 = ICHAR(LAYTYP(1:1)) - 48
+         IF (LAYTYP(2:2).EQ.' ') LAYIND = I1
+         IF (LAYTYP(2:2).NE.' ') THEN
+            I2 = ICHAR(LAYTYP(2:2)) - 48
+            LAYIND = I2 + 10*I1
+         ENDIF
+C
+         IF (LAYIND.LT.ILOW.OR.LAYIND.GT.IHIGH) GO TO 100
+         LVAR  = IVAR
+C
+C        NOW SEARCH FOR THE WINDING ANGLE CORRESPONDING TO LAYTYP...
+C
+C        FIRST, SEARCH THE FILE OF DECISION VARIABLE CANDIDATES...
+C
+         DO 10 JVAR = 1,NVAR
+             ILET = INDEX(WORDV(JVAR),'winding')
+             IF (ILET.EQ.0) GO TO 10
+C            THIS IS A WINDING ANGLE VARIABLE...
+             ILET = INDEX(WORDV(JVAR),'no.(')
+             L4   = ILET+4
+             L5   = ILET+5
+             LAYW = WORDV(JVAR)(L4:L5)
+             IF (LAYW.EQ.LAYTYP) THEN
+                ANGLE = VAR(JVAR)
+                GO TO 30
+             ENDIF
+   10    CONTINUE
+C
+C        NEXT, SEARCH THE FIXED PARAMETER FILE FOR THE WINDING ANGLE...
+C
+         DO 20 JVAR = 1,NPAR
+             ILET = INDEX(WORDP(JVAR),'winding')
+             IF (ILET.EQ.0) GO TO 20
+C            THIS IS A WINDING ANGLE VARIABLE...
+             ILET = INDEX(WORDP(JVAR),'no.(')
+             L4   = ILET+4
+             L5   = ILET+5
+             LAYW = WORDP(JVAR)(L4:L5)
+             IF (LAYW.EQ.LAYTYP) THEN
+                ANGLE = PAR(JVAR)
+                GO TO 30
+             ENDIF
+   20    CONTINUE
+C
+         WRITE(6,*)' SORRY. YOU CANNOT USE DEFAULT DECISION VARIABLES'
+         WRITE(6,*)' IN THIS CASE. PLEASE RUN DECIDE AGAIN.'
+         CALL ERREX
+C
+   30    CONTINUE
+C
+C        NOW DECIDE WHETHER THICKNESS SHOULD BE A DECISION VARIABLE OR
+C        A LINKED VARIABLE...
+C
+         IF (ANGLE.EQ.0.0.OR.ANGLE.EQ.90.0) GO TO 80
+C
+C        ANGLE IS NOT 0 OR 90. THEREFORE WE HAVE TO DO MORE LOOKING
+C        TO SEE IF THE CORRESPONDING THICKNESS SHOULD BE A DECISION
+C        VARIABLE OR A LINKED VARIABLE...
+C
+         IF (ANGLE.GT.0.) THEN
+            IF (LAYIND.LT.10) WRITE(LAYCOM,'(I1)') LAYIND
+            IF (LAYIND.GE.10) WRITE(LAYCOM,'(I2)') LAYIND
+            GO TO 80
+         ENDIF
+C
+C        NOW SEARCH FOR THE WINDING ANGLE CORRESPONDING TO LAYCOM...
+C
+C        FIRST, SEARCH THE FILE OF DECISION VARIABLE CANDIDATES...
+C
+         DO 40 JVAR = 1,NVAR
+             ILET = INDEX(WORDV(JVAR),'winding')
+             IF (ILET.EQ.0) GO TO 40
+C            THIS IS A WINDING ANGLE VARIABLE...
+             ILET = INDEX(WORDV(JVAR),'no.(')
+             L4   = ILET+4
+             L5   = ILET+5
+             LAYW = WORDV(JVAR)(L4:L5)
+             IF (LAYW.EQ.LAYCOM) THEN
+                ANGCOM = VAR(JVAR)
+                GO TO 60
+             ENDIF
+   40    CONTINUE
+C
+C        NEXT, SEARCH THE FIXED PARAMETER FILE FOR THE WINDING ANGLE...
+C
+         DO 50 JVAR = 1,NPAR
+             ILET = INDEX(WORDP(JVAR),'winding')
+             IF (ILET.EQ.0) GO TO 50
+C            THIS IS A WINDING ANGLE VARIABLE...
+             ILET = INDEX(WORDP(JVAR),'no.(')
+             L4   = ILET+4
+             L5   = ILET+5
+             LAYW = WORDP(JVAR)(L4:L5)
+             IF (LAYW.EQ.LAYCOM) THEN
+                ANGCOM = PAR(JVAR)
+                GO TO 60
+             ENDIF
+   50    CONTINUE
+C
+         WRITE(6,*)' SORRY. YOU CANNOT USE DEFAULT DECISION VARIABLES'
+         WRITE(6,*)' IN THIS CASE. PLEASE RUN DECIDE AGAIN.'
+         CALL ERREX
+C
+   60    CONTINUE
+C
+         IF (ANGCOM.NE.-ANGLE) GO TO 80
+C
+C        THE THICKNESS CORRESPONDING TO LAYER TYPE LAYTYP SHOULD BE
+C        LINKED TO THAT CORRESPONDING TO LAYER TYPE LAYCOM...
+C
+C        SEARCH THE FILE OF DECISION VARIABLE CANDIDATES FOR THE
+C        CORRECT THICKNESS VARIABLE...
+         DO 70 JVAR = 1,NVAR
+             ILET = INDEX(WORDV(JVAR),'thickness')
+             IF (ILET.EQ.0) GO TO 70
+C            THIS IS A THICKNESS VARIABLE...
+             ILET = INDEX(WORDV(JVAR),'no.(')
+             L4   = ILET+4
+             L5   = ILET+5
+             LAYW = WORDV(JVAR)(L4:L5)
+             IF (LAYW.EQ.LAYCOM) THEN
+                KVAR  = JVAR
+                GO TO 90
+             ENDIF
+   70    CONTINUE
+C
+         WRITE(6,*)' SORRY. YOU CANNOT USE DEFAULT DECISION VARIABLES'
+         WRITE(6,*)' IN THIS CASE. PLEASE RUN DECIDE AGAIN.'
+         CALL ERREX
+C
+   80    CONTINUE
+C
+C        THE THICKNESS IS A DECISION VARIABLE....
+C
+         DO 85 J = 1,46
+   85    PHRASE(J:J) = WORDV(LVAR)(J:J)
+         FVAR = LVAR
+         IDV(LVAR) = 1
+         ISUBD1(LVAR) = 0
+         ISUBD2(LVAR) = 1
+         ISUBL2(LVAR) = 1
+         ISUBE2(LVAR) = 0
+C
+         CALL GETVAR(0,FVAR,0,0,0,IDEC,DEC,WORDD,IADDD)
+         VLB(LVAR) = 0.01*VAR(LVAR)
+C BEG APR 1993
+         IF (TMIN.GT.0.0) VLB(LVAR) = TMIN
+C END APR 1993
+C BEG NOV 1992
+C        VUB(LVAR) = 100.*VAR(LVAR)
+         VUB(LVAR) = TMAX
+C END NOV 1992
+         IBLANK = 27
+         PHRASE = 'lower bound of variable no.'
+         CALL GETVAR(IVAR,VLB(IVAR),0,0,0,ICONST,CONST,WORDC,IADDC)
+         VBV(ICONST) = FVAR
+         PHRASE = 'upper bound of variable no.'
+         CALL GETVAR(IVAR,VUB(IVAR),0,0,0,ICONST,CONST,WORDC,IADDC)
+         VBV(ICONST) = FVAR
+         GO TO 100
+C
+   90    CONTINUE
+C
+C     LINKED VARIABLE...
+C
+         DO 95 J = 1,46
+   95    PHRASE(J:J) = WORDV(LVAR)(J:J)
+         FVAR = LVAR
+         ILV(LVAR) = 1
+         ISUBD1(LVAR) = 1
+         ISUBD2(LVAR) = 1
+         ISUBL1(LVAR) = 0
+         ISUBL2(LVAR) = 1
+         ISUBE2(LVAR) = 1
+C
+         CALL GETVAR(0,FVAR,0,0,0,ILINK,VLINK,WORDL,IADDD)
+C BEG JULY 1989
+         IDLINK(LVAR,1) = KVAR
+         CLINK(LVAR,1)  = 1.0
+         CPWR(LVAR,1)   = 1.0
+         CLINK0(LVAR)    = 0.0
+C END JULY 1989
+C
+  100 CONTINUE
+C
+      NDEC = IDEC
+      NCONST = ICONST
+      NLINK  = ILINK
+C
+      RETURN
+      END

@@ -1,0 +1,3283 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "span"
+C
+      SUBROUTINE BOSDEC(INDX,IFIL14,IMODX,ILOADX,INDIC)
+C  Insert labelled common blocks: span9.COM
+      COMMON/IV01/NSEG,MLOWGS,MHIGHGS,MLOWGA,MHIGHGA,MLOWL,MHIGHL,IELMNT
+      INTEGER NSEG,MLOWGS,MHIGHGS,MLOWGA,MHIGHGA,MLOWL,MHIGHL,IELMNT
+      COMMON/IV09/NSUBSEG(19),INSUBSE
+      INTEGER NSUBSEG
+      COMMON/IV10/UPDOWN(19)
+      INTEGER UPDOWN
+      COMMON/IV11/UPDWNS(50,19),IUPDWNS,JUPDWNS
+      INTEGER UPDWNS
+      COMMON/FV07/THICK(19),ITHICK 
+      REAL THICK
+      COMMON/FV08/SUBWID(19),PHISEG(19),PHISUB(19)
+      REAL SUBWID,PHISEG,PHISUB
+      COMMON/FV11/YPLATE(20),IYPLATE
+      REAL YPLATE
+      COMMON/FV13/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV16/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV19/BUKSYM(20),BUKSYMA(20),BUKSYMF(20)
+      REAL BUKSYM,BUKSYMA,BUKSYMF
+      COMMON/FV22/BUKASY(20),BUKASYA(20),BUKASYF(20)
+      REAL BUKASY,BUKASYA,BUKASYF
+      COMMON/FV25/CYLBUK(20,19),JCYLBUK,CYLBUKA(20,19),CYLBUKF(20,19)
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV28/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/FV01/WIDTH,LENGTH,FACLEN,EMOD,NU,DENSTY,PHIBIG,WEIGHT
+      REAL WIDTH,LENGTH,FACLEN,EMOD,NU,DENSTY,PHIBIG,WEIGHT
+      COMMON/IV12/UPDNBIG
+      INTEGER UPDNBIG
+C  end of span9.COM
+C
+C BEG FEB 28, 2014
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+C END FEB 28, 2014
+      COMMON/IBCASY/IBOUND
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      DIMENSION R1(295),R2(295),Z1(295),Z2(295)
+      DIMENSION RC(295),ZC(295),SROT(295)
+      DIMENSION FOUND(295),NSUR(295),UPDNAL(295),RADIUS(295)
+      DIMENSION NSHAPE(295),NNODES(295),NRING(295)
+      DIMENSION IDISP(295,4),JPREV(295,2),JNODPV(295,2)
+      DIMENSION NPREV(295),NODPRV(295,2),NGRND(295),NODGRD(295,2)
+      DIMENSION NTYPE(295),DHIGH(295),PHI(295),ALPHA(295)
+      DIMENSION RAD(295),ZAD(295),RPC(295),ZPC(295),FMULT(295)
+      DIMENSION RP1(295),RP2(295),ZP1(295),ZP2(295),SARC(295)
+      DIMENSION THKALL(295)
+      COMMON/RADII/RPLATE(295),RSUBSEG(20,295)
+      DIMENSION GAMMAS(50),THETA1(50),THETA2(50),ISMOOTH(50)
+      DIMENSION DANGLE(50),ANGLE1(50),ANGLE2(50),UPDOWNS(50)
+      INTEGER UPDOWNS, UPDWNS0
+      DIMENSION NNODESN(50),THKALLN(50),RNEW1(50),ZNEW1(50)
+      DIMENSION RNEW2(50),ZNEW2(50),RCNEW1(50),ZCNEW1(50)
+      DIMENSION SROTN(50)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/AREAX/AREA,SIG1
+C
+      INTEGER UPDNAL
+C
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a corrugated panel. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+      IF (INDX.EQ.1) THEN
+         RBEG = RBIGL
+      ENDIF
+      IF (INDX.GT.1) THEN
+         RBEG = RBIGG
+      ENDIF
+C
+      RBEG = 0.000001
+C     RBEG = 10.0
+      CALL MOVER(0.,0,FOUND,1,295)
+      CALL MOVER(1, 0,IDISP,1,1180)
+      CALL MOVER(0, 0,JPREV,1,590)
+      CALL MOVER(0, 0,JNODPV,1,590)
+      CALL MOVER(0, 0,NPREV,1,295)
+      CALL MOVER(0, 0,NODPRV,1,590)
+      CALL MOVER(0, 0,NGRND,1,295)
+      CALL MOVER(0, 0,NODGRD,1,590)
+      CALL MOVER(2, 0,NSHAPE,1,295)
+      CALL MOVER(1, 0,NTYPE,1,295)
+      CALL MOVER(61, 0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.2) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.2.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.3.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.3) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.4.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.4) CALL MOVER(91,0,NNODES,1,295)
+      CALL MOVER(0, 0,NRING,1,295)
+      CALL MOVER(0, 0,NSUR,1,295)
+      CALL MOVER(0., 0,FOUND,1,295)
+C
+C   ZVAL   = distance from the leftmost shell segment surface
+C            to the shell segment reference surface as we
+C            "travel" along the shell segment
+C   NSHAPE = BIGBOSOR4 index for shape of shell segment:
+C            NSHAPE = 1 means cone, cylinder, flat plate
+C            NSHAPE = 2 means toroidal, spherical
+C   NSUR   = BIGBOSOR4 index for location of reference surface
+C            in a shell segment:
+C            NSUR = 0 means middle surface is the ref. surf.
+C            NSUR = 1 means rightmost surface is the ref. surf.
+C            NSUR = -1 means reference surface is the inner surface
+C                      or is at an arbitrary location relative
+C                      to the shell wall material in the shell seg.
+C   R1(i),R2(i),Z1(i),Z2(i) =
+C                 (r,z) end points for the ith shell segment
+C   RC(i),ZX(i) = center of meridional curvature of ith segment
+C   SROT(i) = +1 for clockwise, -1 for anti-clockwise
+C                travel along the ith segment.
+C
+C   NTYPE  = type of callout used for the location of ring
+C            attachment point to the ith shell segment.
+C            NOTE: NTYPE(i) = 1 is always used in this project.
+C            NTYPE(i) = 1 means that the location of the ring
+C            attachment point to the shell segment is identified
+C            by its nodal point number within that shell segment.
+C            BIGBOSOR4 had to be modified to do this. Until now
+C            BIGBOSOR4 only permitted callout locations to be
+C            identified by either radial (r) or axial (z) numbers.
+C            The modification to BIGBOSOR4 was needed to avoid input
+C            errors in BIGBOSOR4 caused by lack of monotonicity
+C            of r-values or z-values within a single shell segment.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  First, added to the (x,z) plane is an overall constant curvature
+C  that spans the entire width of the domain. The shape of the
+C  curved plate is always prismatic, that is, it does not vary in
+C  the z-direction. The z-direction is the direction along which the
+C  uniform end shortening (compression) is applied.
+C
+      PI = 3.1415927
+      RADBIG = 0.5*WIDTH/SIN(PHIBIG*PI/180.)
+      CPHI = COS(PHIBIG*PI/180.)
+      SFLAT = 0.
+      DHIGH(1) = 0.
+      NSEG1 = NSEG + 1
+      RSIGN = 1.0
+      IF (UPDNBIG.EQ.2) RSIGN = -1.0
+      DHIGH(NSEG1) = RSIGN*RADBIG*(1. -CPHI)
+      IF (NSEG.GT.1) THEN
+         DO 25 I = 2,NSEG
+            I1 = I - 1
+            SFLAT = SFLAT + SUBWID(I1)
+            DHIGH(I)=
+     1         RSIGN*(SQRT(RADBIG**2-(SFLAT-0.5*WIDTH)**2)-RADBIG*CPHI)
+   25    CONTINUE
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(/,A,/,A)')
+     1   ' Seg.no.    Height     Meridional      ARC angle       ARC ',
+     1   '  ISEG       DHIGH      radius           PHI         LENGTH'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  MAJOR segment data...
+C
+C  Next, derive the geometry for each of the NSEG shell segments
+C  These are the MAJOR segments, before we deal with subsegments.
+C
+      NRLOAD = 0
+      R1(1) = RBEG
+      Z1(1) = YPLATE(1) 
+C
+      DO 100 ISEG = 1,NSEG
+         I = ISEG
+         I1 = ISEG + 1
+         ISEG1 = ISEG + 1
+         IF (ISEG.GT.1) THEN
+            ISEGM = ISEG - 1
+            R1(ISEG) = R2(ISEGM)
+            Z1(ISEG) = Z2(ISEGM)
+         ENDIF
+         R2(ISEG) = R1(ISEG) + SUBWID(ISEG)
+         Z2(ISEG) = YPLATE(ISEG1) +DHIGH(ISEG1)
+         FMULT(ISEG) = -1.0
+         IF (UPDOWN(ISEG).EQ.2) FMULT(ISEG) = 1.0
+         DTOTL1 = DHIGH(I) + YPLATE(I)
+         DTOTL2 = DHIGH(I1)+ YPLATE(I1)
+         TWODEE = SQRT(SUBWID(I)**2 +(DTOTL2-DTOTL1)**2)
+         RPLATE(I) = 0.5*TWODEE/SIN(PHISEG(I)*PI/180.)
+         CPHI = COS(PHISEG(ISEG)*PI/180.)
+         RATIO2 = (Z2(ISEG) -Z1(ISEG))/(R2(ISEG) -R1(ISEG))
+         ALPHA(ISEG) = ATAN(RATIO2)
+         PI = 3.1415927
+         ANGLE = PI/2. -PHISEG(ISEG)*PI/180. -ALPHA(ISEG)
+         SANGLE = SIN(ANGLE)
+         CANGLE = COS(ANGLE)
+         IF (UPDOWN(ISEG).EQ.2) THEN
+            RC(ISEG) = R2(ISEG) - RPLATE(ISEG)*CANGLE
+            ZC(ISEG) = Z2(ISEG) + RPLATE(ISEG)*SANGLE
+         ELSE
+            RC(ISEG) = R1(ISEG) + RPLATE(ISEG)*CANGLE
+            ZC(ISEG) = Z1(ISEG) - RPLATE(ISEG)*SANGLE
+         ENDIF
+         IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(I5,1P,3E14.4)')
+     1   I,DHIGH(I),RPLATE(I),PHISEG(ISEG)
+  100 CONTINUE
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(I5,1P,E14.4)')
+     1 NSEG1,DHIGH(NSEG1)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) THEN 
+          WRITE(IFILE4,'(/,A,A)')
+     1' ISEG       R1         Z1        R2         Z2         RC      ',
+     1'     ZC'
+         DO 120 I = 1,NSEG
+            WRITE(IFILE4,'(I4,1P6E12.4)')
+     1    I,R1(I),Z1(I),R2(I),Z2(I),RC(I),ZC(I)
+  120    CONTINUE 
+      ENDIF
+C
+C  Next, do subsegments...
+C
+      KOUNT = 1
+      RAD(1) = R1(1)
+      ZAD(1) = Z1(1)
+C
+      DO 200 ISEG = 1,NSEG
+C
+         NSUB = NSUBSEG(ISEG)
+         IF (NSUB.LE.1) THEN
+C  There are no subsegments in this MAJOR segment...
+            KOUNT = KOUNT + 1
+            KSEG = KOUNT - 1
+            RP1(KSEG) = R1(ISEG)
+            ZP1(KSEG) = Z1(ISEG)
+            RP2(KSEG) = R2(ISEG)
+            ZP2(KSEG) = Z2(ISEG)
+            RPC(KSEG) = RC(ISEG)
+            ZPC(KSEG) = ZC(ISEG)
+            SROT(KSEG) = -FMULT(ISEG)
+            SARC(KSEG) = 2.*RPLATE(ISEG)*PHISEG(ISEG)*PI/180.
+            UPDNAL(KSEG) = UPDOWN(ISEG)
+            RADIUS(KSEG) = RPLATE(ISEG)
+            THKALL(KSEG) = THICK(ISEG)
+            GO TO 200
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         CSEG = 2.0
+C
+C  Next, loop over subsegments...
+C
+         DO 150 JSEG = 1,NSUB
+C
+            KOUNT = KOUNT + 1
+            KSEG = KOUNT - 1
+            IF (JSEG.LT.NSUB) THEN
+C  We compute the (r,z) coordinates of the end of the JSEGth subsegment
+C  within the ISEGth MAJOR segment...
+               FJSEG = FLOAT(JSEG)
+               FNSUB = FLOAT(NSUB)
+               GAMMA = FJSEG*CSEG*PHISEG(ISEG)*(PI/180.)/FNSUB
+               IF (UPDOWN(ISEG).EQ.2) THEN
+                  ANGLE = PI/2. -ALPHA(ISEG) +PHISEG(ISEG)*PI/180.
+     1                                                         -GAMMA
+                  SANGLE = SIN(ANGLE)
+                  CANGLE = COS(ANGLE)
+                  RAD(KOUNT) = RC(ISEG) +RPLATE(ISEG)*CANGLE
+                  ZAD(KOUNT) = ZC(ISEG) -RPLATE(ISEG)*SANGLE
+               ELSE
+                  ANGLE = PI/2. -ALPHA(ISEG) -PHISEG(ISEG)*PI/180.
+     1                                                         +GAMMA
+                  SANGLE = SIN(ANGLE)
+                  CANGLE = COS(ANGLE)
+                  RAD(KOUNT) = RC(ISEG) -RPLATE(ISEG)*CANGLE
+                  ZAD(KOUNT) = ZC(ISEG) +RPLATE(ISEG)*SANGLE
+               ENDIF
+            ELSE
+               RAD(KOUNT) = R2(ISEG)
+               ZAD(KOUNT) = Z2(ISEG)
+            ENDIF
+C
+            IF (JSEG.EQ.1) THEN
+               RAD(KSEG) = R1(ISEG)
+               ZAD(KSEG) = Z1(ISEG)
+            ENDIF
+C
+            RP1(KSEG) = RAD(KSEG)
+            ZP1(KSEG) = ZAD(KSEG)
+            RP2(KSEG) = RAD(KOUNT)
+            ZP2(KSEG) = ZAD(KOUNT)
+C
+C  Next, compute the center of meridional curvature, RPC, ZPC.
+C  Also, compute the subsegment arc length, SARC(KSEG)...
+            D2DEE = SQRT((RP2(KSEG) - RP1(KSEG))**2
+     1                  +(ZP2(KSEG) - ZP1(KSEG))**2)
+            RSUBSEG(JSEG,ISEG) = 0.5*D2DEE/SIN(PHISUB(ISEG)*PI/180.)
+C
+            OMEGA = PHISUB(ISEG)*PI/180.
+            SARC(KSEG) = 2.*OMEGA*RSUBSEG(JSEG,ISEG)
+            RATIO2 = (ZP2(KSEG)-ZP1(KSEG))/(RP2(KSEG)-RP1(KSEG))
+            CHI = ATAN(RATIO2)
+            ANGLE = PI/2. - OMEGA -CHI
+            IF (RP2(KSEG).LT.RP1(KSEG)) ANGLE = -PI/2. - CHI - OMEGA
+            SANGLE = SIN(ANGLE)
+            CANGLE = COS(ANGLE)
+            IF (UPDWNS(JSEG,ISEG).EQ.2) THEN
+               RPC(KSEG) = RP2(KSEG) -RSUBSEG(JSEG,ISEG)*CANGLE
+               ZPC(KSEG) = ZP2(KSEG) +RSUBSEG(JSEG,ISEG)*SANGLE
+               SROT(KSEG) = -1.0
+            ELSE
+               RPC(KSEG) = RP1(KSEG) +RSUBSEG(JSEG,ISEG)*CANGLE
+               ZPC(KSEG) = ZP1(KSEG) -RSUBSEG(JSEG,ISEG)*SANGLE
+               SROT(KSEG) = 1.0
+            ENDIF
+            UPDNAL(KSEG) = UPDWNS(JSEG,ISEG)
+            RADIUS(KSEG) = RSUBSEG(JSEG,ISEG)
+            THKALL(KSEG) = THICK(ISEG)
+  150    CONTINUE
+  200 CONTINUE
+C
+      MSEG = KSEG
+C
+      DPHI = 0.
+      IF (UPDNAL(MSEG).EQ.1) THEN
+         IF (ZP2(MSEG).LT.ZPC(MSEG)) THEN
+            RATIO4 = ABS((ZPC(MSEG) - ZP2(MSEG))/RADIUS(MSEG))
+            IF (RATIO4.GT.1.0) RATIO4 = 1.0
+            DPHI = ASIN(RATIO4)
+            ZP2(MSEG) = ZPC(MSEG) + RADIUS(MSEG)*SIN(DPHI)
+         ENDIF
+      ELSE
+         IF (ZP2(MSEG).GT.ZPC(MSEG)) THEN
+            RATIO4 = ABS((ZP2(MSEG) - ZPC(MSEG))/RADIUS(MSEG))
+            IF (RATIO4.GT.1.0) RATIO4 = 1.0
+            DPHI = ASIN(RATIO4)
+            ZP2(MSEG) = ZPC(MSEG) - RADIUS(MSEG)*SIN(DPHI)
+         ENDIF
+      ENDIF
+      SARC(MSEG) = SARC(MSEG) - 2.*RADIUS(MSEG)*DPHI
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) THEN
+         DO 210 J = 1,NSEG
+           NSUB = NSUBSEG(J)
+           WRITE(IFILE4,'(/,A,I3,A,/,(5I6))')
+     1   ' ISEG= ',J,' UPDWNS(i,ISEG)=',(UPDWNS(I,J),I=1,NSUB)
+  210    CONTINUE
+         WRITE(IFILE4,'(/,A,A)')
+     1' ISEG       RP1        ZP1       RP2        ZP2        RPC     ',
+     1'    ZPC        SARC'
+         DO 220 I = 1,MSEG
+            WRITE(IFILE4,'(I4,1P7E12.4)')
+     1    I,RP1(I),ZP1(I),RP2(I),ZP2(I),RPC(I),ZPC(I),SARC(I)
+  220    CONTINUE
+      ENDIF
+C
+C     CALL EXIT
+C
+         AREA = 0.
+         DO 300 I = 1,MSEG
+            AREA = AREA + THKALL(I)*SARC(I)
+  300    CONTINUE
+C
+      DO 350 I = 1,MSEG
+         MTHICK = SARC(I)/THKALL(I)
+         IF (MTHICK.LT.61) NNODES(I) = MTHICK
+         IF (NNODES(I).LT.5) NNODES(I) = 5
+  350 CONTINUE
+C
+      SIG1 = TOTLOD(ILOADX)/(2.0*AREA)
+C
+      FN101 = 0.0
+      FN102 = 0.0
+C
+C
+C  Next, we generate a valid input data file, *.ALL, for BIGBOSOR4
+C
+C  Global input before segment data...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG FEB 2014
+C BEG FEB 10, 2014
+C BEG MAR 2014
+      IF (INDX.EQ.0) WRITE(IFIL14,'(A,I2,A)')
+     1 ' maximum effective stress (INDIC=',INDIC,')'
+      IF (INDX.EQ.1) WRITE(IFIL14,'(A,I2,A)')
+     1 ' local buckling (INDIC=',INDIC,')'
+      IF (INDX.EQ.2) WRITE(IFIL14,'(A,I2,A)')
+     1 ' general symmetric buckling (INDIC=',INDIC,')'
+      IF (INDX.EQ.3) WRITE(IFIL14,'(A,I2,A)')
+     1 ' general antisymmetric buckling (INDIC=',INDIC,')'
+C END MAR 2014
+C END FEB 10, 2014
+C END FEB 2014
+C NOSMOO means: 0 = yes, do the smoothing; 1 = skip smoothing.
+      NOSMOO = 0
+      LSEG = MSEG
+      RSHIFT = WIDTH 
+      RADD1 = 0.
+      RADD2 = 0.
+      DO 355 I = 1,NSEG
+         IF (NSUBSEG(I).NE.0) NOSMOO = 1 
+  355 CONTINUE
+      IF (NOSMOO.EQ.1) THEN
+         GO TO 395
+      ENDIF
+C
+C Add data for "smoothing" segments (segments that eliminate "corners")
+C (Only for corrugated panels with no sub-segments)
+C
+      DO 360 I = 1,NSEG
+         RATIO = (ZP2(I) - ZP1(I))/(RP2(I) - RP1(I))
+         GAMMAS(I) = ATAN(RATIO)*180/PI
+         IF (UPDOWN(I).EQ.1) THEN
+            THETA1(I) = GAMMAS(I) + PHISEG(I)
+            THETA2(I) = GAMMAS(I) - PHISEG(I)
+            ANGLE1(I) = 90. - PHISEG(I) - GAMMAS(I)
+            ANGLE2(I) = 90. - PHISEG(I) + GAMMAS(I)
+         ELSE
+            THETA1(I) = GAMMAS(I) - PHISEG(I)
+            THETA2(I) = GAMMAS(I) + PHISEG(I)
+            ANGLE1(I) = 90. - PHISEG(I) + GAMMAS(I)
+            ANGLE2(I) = 90. - PHISEG(I) - GAMMAS(I)
+         ENDIF
+C
+         WRITE(IFILE4,'(A,2I5)') ' I,UPDOWN(I) = ', I,UPDOWN(I)
+         WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' PHISEG(I),GAMMAS(I),THETA1(I),THETA2(I),ANGLE1(I),ANGLE2(I)=',
+     1   PHISEG(I),GAMMAS(I),THETA1(I),THETA2(I),ANGLE1(I),ANGLE2(I)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+  360 CONTINUE
+C
+C BEG FEB 2014
+C  RSMOOTH is the smaller toroidal radius of all "smoothing" segments
+C  CORNER  is the limiting "DTHETA" value, where DTHETA=angle
+C          difference at segment junctions and left and right edges
+C BEG APR 2014
+C    old   If CORNER, that is, DTHETA, is less than 20 degrees, then
+C    new
+C    new   If CORNER, that is, DTHETA, is less than 10 degrees
+C    new   at segment junctions in the INTERIOR of the shell
+C    new   or
+C    new   If CORNRE, that is, DTHETA, is less than  5 degrees
+C    new   at either END of the shell
+C    new   then:
+C END APR 2014
+C          no "smoothing" toroidal segment is inserted into the
+C          model.
+C END FEB 2014
+C  It would be best if RSMOOTH and CORNER were GENTEXT input variables,
+C  but this has not been done. Therefore, RSMOOTH and CORNER are set
+C  here.
+C
+      ISEGN = 0
+      RSMOOTH = 1.0
+C BEG APR 2014
+C     CORNER = 20.
+      CORNER = 10.
+      CORNRE = 5.
+C END APR 2014
+C
+      ISMOTH0 = 0
+C BEG APR 2014
+C     IF (ABS(THETA1(1)).LT.(0.5*CORNER)) GO TO 365
+      IF (ABS(THETA1(1)).LT.(0.5*CORNRE)) GO TO 365
+C END APR 2014
+C
+C  A "smoothing" segment is needed...
+C  Establish the "smoothing" segment adjacent to the left-hand edge:
+      ISEGN = 1
+      ISMOTH0 = 1
+      IF (THETA1(1).GT.0.0) UPDWNS0 = 2
+      IF (THETA1(1).LT.0.0) UPDWNS0 = 1      
+      FLAMDA = ABS(THETA1(1)*PI/180.)
+      RSHIFT = WIDTH 
+      RADD1 = RSMOOTH*SIN(FLAMDA)
+      IF (UPDOWN(1).EQ.1) THEN
+         IF (UPDWNS0.EQ.1) THEN
+           FLAMDA = -THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = -RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW - RSMOOTH
+        ENDIF
+      ELSE
+         IF (UPDWNS0.EQ.1) THEN
+           FLAMDA = -THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = -RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = ZP1(1) + RSMOOTH*SANG90
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW - RSMOOTH
+        ENDIF
+      ENDIF
+C
+      WRITE(IFILE4,'(A,2I5)')
+     1 ' Left edge: UPDOWN(1),UPDWNS0 = ', UPDOWN(1), UPDWNS0
+      WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW
+C
+      NNODESN(ISEGN) = 31
+      THKALLN(ISEGN) = THKALL(1)
+      RNEW1(ISEGN) = RNEWM
+      ZNEW1(ISEGN) = ZNEWM
+      RNEW2(ISEGN) = RNEWP
+      ZNEW2(ISEGN) = ZNEWP
+      RCNEW1(ISEGN) = RCNEW
+      ZCNEW1(ISEGN) = ZCNEW
+      IF (UPDWNS0.EQ.1) SROTN(ISEGN) =  1.0
+      IF (UPDWNS0.EQ.2) SROTN(ISEGN) = -1.0
+  365 CONTINUE
+C
+      NSEG1 = NSEG - 1
+C
+      DO 370 I = 1,NSEG1
+         ISEGN = ISEGN + 1
+         NNODESN(ISEGN) = NNODES(I)
+         THKALLN(ISEGN) = THKALL(I)
+         RNEW1(ISEGN) = RP1(I)
+         ZNEW1(ISEGN) = ZP1(I)
+         RNEW2(ISEGN) = RP2(I)
+         ZNEW2(ISEGN) = ZP2(I)
+         RCNEW1(ISEGN) = RPC(I)
+         ZCNEW1(ISEGN) = ZPC(I)
+         SROTN(ISEGN) = SROT(I)
+         ISMOOTH(I) = 0
+         I1 = I + 1
+         DTHETA = ABS(THETA2(I) - THETA1(I1))
+C BEG APR 2014
+C        GO TO 370
+C END APR 2014
+         IF (UPDOWN(I).EQ.UPDOWN(I1).OR.DTHETA.LT.CORNER) THEN
+            GO TO 370
+         ENDIF
+C  A "smoothing" segment is needed...
+         ISMOOTH(I) = 1
+         DANGLE(I) = 0.5*RSMOOTH*DTHETA/RPLATE(I)
+         DANGLE(I1)= 0.5*RSMOOTH*DTHETA/RPLATE(I1)
+         IF (THETA1(I1).GT.THETA2(I)) THEN
+            UPDOWNS(I) = 2
+         ELSE
+            UPDOWNS(I) = 1
+         ENDIF
+         ANGLEM = (ANGLE2(I) +DANGLE(I))*PI/180
+         SANGLEM = SIN(ANGLEM)
+         CANGLEM = COS(ANGLEM)
+         ANGLEP = (ANGLE1(I1) +DANGLE(I1))*PI/180
+         SANGLEP = SIN(ANGLEP)
+         CANGLEP = COS(ANGLEP)
+         IF (UPDOWN(I).EQ.1) THEN
+            ZNEWM =  RPLATE(I)*SANGLEM  + ZPC(I)
+            RNEWM =  RPLATE(I)*CANGLEM  + RPC(I)
+            ZNEWP = -RPLATE(I1)*SANGLEP + ZPC(I1)
+            RNEWP = -RPLATE(I1)*CANGLEP + RPC(I1)
+         ELSE
+            ZNEWM = -RPLATE(I)*SANGLEM  + ZPC(I)
+            RNEWM =  RPLATE(I)*CANGLEM  + RPC(I)
+            ZNEWP =  RPLATE(I1)*SANGLEP + ZPC(I1)
+            RNEWP = -RPLATE(I1)*CANGLEP + RPC(I1)
+         ENDIF
+C
+         RRMM = (RPLATE(I)  - RSMOOTH)/RPLATE(I)
+         RRMP = (RPLATE(I)  + RSMOOTH)/RPLATE(I)
+         RRPM = (RPLATE(I1) - RSMOOTH)/RPLATE(I1)
+         RRPP = (RPLATE(I1) + RSMOOTH)/RPLATE(I1)
+         IF (UPDOWN(I).EQ.1) THEN
+            IF (UPDOWNS(I).EQ.1) THEN
+              RCNEWM = RRMM*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMM*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPP*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPP*(ZNEWP -ZPC(I1)) + ZPC(I1)
+            ELSE
+              RCNEWM = RRMP*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMP*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPM*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPM*(ZNEWP -ZPC(I1)) + ZPC(I1)
+           ENDIF
+         ELSE
+            IF (UPDOWNS(I).EQ.1) THEN
+              RCNEWM = RRMP*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMP*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPM*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPM*(ZNEWP -ZPC(I1)) + ZPC(I1)
+            ELSE
+              RCNEWM = RRMM*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMM*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPP*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPP*(ZNEWP -ZPC(I1)) + ZPC(I1)
+           ENDIF
+         ENDIF
+C
+         RCNEW = 0.5*(RCNEWM + RCNEWP)
+         ZCNEw = 0.5*(ZCNEWM + ZCNEWP)
+C
+         WRITE(IFILE4,'(A,3I5)')
+     1 ' I,UPDOWN(I),UPDOWNS(I) = ', I,UPDOWN(I), UPDOWNS(I)
+         WRITE(IFILE4,'(A,/,1P8E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEWM,ZCNEWM,RCNEWP,ZCNEWP=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEWM,ZCNEWM,RCNEWP,ZCNEWP
+         WRITE(IFILE4,'(A,1P2E12.4)') 'RCNEW,ZCNEW=',RCNEW,ZCNEW
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         ISEGN = ISEGN + 1
+         NNODESN(ISEGN) = 31
+         THKALLN(ISEGN) = THKALL(I) 
+         RNEW1(ISEGN) = RNEWM
+         ZNEW1(ISEGN) = ZNEWM
+         RNEW2(ISEGN) = RNEWP
+         ZNEW2(ISEGN) = ZNEWP
+         RCNEW1(ISEGN) = RCNEW
+         ZCNEW1(ISEGN) = ZCNEW
+         IF (UPDOWNS(I).EQ.1) SROTN(ISEGN) =  1.0
+         IF (UPDOWNS(I).EQ.2) SROTN(ISEGN) = -1.0
+         ISEGN1 = ISEGN - 1
+         RNEW2(ISEGN1) = RNEW1(ISEGN)
+         ZNEW2(ISEGN1) = ZNEW1(ISEGN)
+C
+  370 CONTINUE
+C
+      ISEGN = ISEGN + 1
+      NNODESN(ISEGN) = NNODES(NSEG)
+      THKALLN(ISEGN) = THKALL(NSEG)
+      RNEW1(ISEGN) = RP1(NSEG)
+      ZNEW1(ISEGN) = ZP1(NSEG)
+      RNEW2(ISEGN) = RP2(NSEG)
+      ZNEW2(ISEGN) = ZP2(NSEG)
+      RCNEW1(ISEGN) = RPC(NSEG)
+      ZCNEW1(ISEGN) = ZPC(NSEG)
+      SROTN(ISEGN) = SROT(NSEG)
+C
+      ISMOOTH(NSEG)= 0
+C BEG APR 2014
+C     IF (ABS(THETA2(NSEG)).LT.(0.5*CORNER)) GO TO 380
+      IF (ABS(THETA2(NSEG)).LT.(0.5*CORNRE)) GO TO 380
+C END APR 2014
+C
+C  A "smoothing" segment is needed...
+C  Establish the "smoothing" segment adjacent to the right-hand edge:
+      ISMOOTH(NSEG) = 1
+      IF (THETA2(NSEG).GT.0.0) UPDOWNS(NSEG) = 1
+      IF (THETA2(NSEG).LT.0.0) UPDOWNS(NSEG) = 2
+      FLAMDA = ABS(THETA2(NSEG)*PI/180.)
+      RADD2 = RSMOOTH*SIN(FLAMDA)
+      IF (UPDOWN(NSEG).EQ.1) THEN
+         IF (UPDOWNS(NSEG).EQ.1) THEN
+           FLAMDA =  THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = -RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = -THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW - RSMOOTH
+        ENDIF
+      ELSE
+         IF (UPDOWNS(NSEG).EQ.1) THEN
+           FLAMDA =  THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = -RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = -THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = ZP2(NSEG) + RSMOOTH*SANG90
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW - RSMOOTH
+        ENDIF
+      ENDIF
+C
+      WRITE(IFILE4,'(A,2I5)')
+     1 ' right edge: UPDOWN(NSEG),UPDOWNS(NSEG) = ',
+     1               UPDOWN(NSEG),UPDOWNS(NSEG)
+      WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW
+C
+      ISEGN = ISEGN + 1
+      NNODESN(ISEGN) = 31
+      THKALLN(ISEGN) = THKALL(NSEG) 
+      RNEW1(ISEGN) = RNEWM
+      ZNEW1(ISEGN) = ZNEWM
+      RNEW2(ISEGN) = RNEWP
+      ZNEW2(ISEGN) = ZNEWP
+      RCNEW1(ISEGN) = RCNEW
+      ZCNEW1(ISEGN) = ZCNEW
+      IF (UPDOWNS(NSEG).EQ.1) SROTN(ISEGN) =  1.0
+      IF (UPDOWNS(NSEG).EQ.2) SROTN(ISEGN) = -1.0
+C
+  380 CONTINUE
+C
+      DO 385 I = 1,ISEGN
+         RNEW1(I) = RNEW1(I) + RSHIFT
+         RNEW2(I) = RNEW2(I) + RSHIFT
+         RCNEW1(I) = RCNEW1(I) + RSHIFT
+  385 CONTINUE
+C
+      DO 390 I = 2,ISEGN
+         I1 = I - 1
+         RNEW1(I) = RNEW2(I1)
+         ZNEW1(I) = ZNEW2(I1)
+  390 CONTINUE
+C
+      WRITE(IFILE4,'(/,A,A)')
+     1' SEG.    RNEW1      ZNEW1      RNEW2      ZNEW2    ',
+     1'     RCNEW1     ZCNEW1     SROTN'
+      DO 392 I = 1,ISEGN
+       WRITE(IFILE4,'(I4,1P7E12.4)')
+     1 I, RNEW1(I),ZNEW1(I),RNEW2(I),ZNEW2(I),RCNEW1(I),ZCNEW1(I),
+     1 SROTN(I)
+  392 CONTINUE
+C
+      LSEG = ISEGN
+      MSEG = LSEG
+C
+      CALL MOVER(NNODESN,1,NNODES,1,LSEG)
+      CALL MOVER(THKALLN,1,THKALL,1,LSEG)
+      CALL MOVER(RNEW1,1,RP1,1,LSEG)
+      CALL MOVER(RNEW2,1,RP2,1,LSEG)
+      CALL MOVER(ZNEW1,1,ZP1,1,LSEG)
+      CALL MOVER(ZNEW2,1,ZP2,1,LSEG)
+      CALL MOVER(RCNEW1,1,RPC,1,LSEG)
+      CALL MOVER(ZCNEW1,1,ZPC,1,LSEG)
+      CALL MOVER(SROTN,1,SROT,1,LSEG)
+C
+  395 CONTINUE
+C
+C     CALL EXIT
+C
+C BEG FEB 2014
+C BEG FEB 10, 2014
+      IF (INDIC.LT.3) THEN
+C BEG FEB 28, 2014
+C BEG MAR 2014
+C BEG MAY 2014
+         IF (INDX.EQ.1) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC, ', 2, 0, ',MSEG,' $ INDIC,NPRT,ISTRESS,NSEG'
+         IF (INDX.EQ.2) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC,', 2, 0, ',MSEG,' $ INDIC,NPRT,ISTRESS,NSEG'
+C END MAY 2014
+C END MAR 2014
+C END FEB 28, 2014
+         IF (INDX.EQ.0) WRITE(IFIL14,'(A,I3,A)')
+     1 ' 0, 1, 1, ',MSEG,' $ INDIC,NPRT,ISTRESS,NSEG'
+      ELSE
+         IF (INDX.NE.0) WRITE(IFIL14,'(A,I3,A,A)')
+     1 ' 4, 1, 0, 1, ',MSEG,' 0, 0, 1, 180',
+     1 '  $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+         IF (INDX.EQ.0) WRITE(IFIL14,'(A,I3,A)')
+     1 ' 3, 1, 1, ',MSEG,' 0, 0, 1, 180  $ INDIC,NPRT,ISTRESS,NSEG'
+      ENDIF
+C END FEB 10, 2014
+C END FEB 2014
+C
+      DO 400 I = 1,MSEG
+         ISEG = I
+         WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+         WRITE(IFIL14,'(I4,A,I3,A)') NNODES(ISEG),', 3, ',NSHAPE(ISEG),
+     1 ' $ NMESH,NTYPEH,NSHAPE'
+C BEG FEB 2014
+         WRITE(IFIL14,'(1P,4E14.6,A)') ZP1(I),RP1(I),ZP2(I),RP2(I),
+     1 ' $ R1,Z1,R2,Z2'
+         WRITE(IFIL14,'(1P,3E14.6,A)') ZPC(I),RPC(I),-SROT(I),
+     1 ' $ RC,ZC,SROT'
+C END FEB 2014
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' 0  $ IMP = indicator for imperfection'
+         WRITE(IFIL14,'(A)')' 1, 2, 1  $ NTYPEZ,NZVALU,NTYPE'
+         WRITE(IFIL14,'(A,I5,A)') ' 1, ',NNODES(ISEG),
+     1 ' $ IPOINT(1),IPOINT(2)'
+         ZVAL1 = THKALL(ISEG)/2.
+         ISEG1 = ISEG + 1
+         ZVAL2 = THKALL(ISEG)/2.
+         WRITE(IFIL14,'(1P,2E14.6,A)') ZVAL1,ZVAL2,'  $ ZVAL1,ZVAL2'
+C BEG APR 2014
+C        WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+         WRITE(IFIL14,'(A)')' Y  $ do you want to print r(s), etc.'
+C END APR 2014
+C
+C BEG FEB 2014
+         WRITE(IFIL14,'(A)') ' H $ RING AND LINE LOAD INPUT FOLLOWS'
+         IF (ISEG.EQ.1)
+     1   WRITE(IFIL14,'(A,A)') ' 1, 1, 1, 0 ',
+     1 ' $ NRING, NTYPE, IPOINT(1), NTYPER'
+         IF (ISEG.GT.1) WRITE(IFIL14,'(A)') ' 0  $ NRING'
+         WRITE(IFIL14,'(1PE14.6,A)') FOUND(ISEG),' $ K'
+C BEG FEB 10, 2014
+         PRESS = TOTLOD(ILOADX)
+C        AXIALL = PRESS*ZP1(1)/2.0
+         AXIALL = 0.0
+         IF (ISEG.EQ.1.AND.INDIC.LT.3) THEN
+C END FEB 10, 2014
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 0, 0, 0. ',
+     1 ' $ LINTYP, NLOAD(1),NLOAD(2),NLOAD(3),NLOAD(4),V(1)'
+          WRITE(IFIL14, '(A,1PE14.6,A)') ' 1, 0, 0, 0 ', AXIALL,
+     1 ' $ NLOAD(1),NLOAD(2),NLOAD(3),NLOAD(4),DV(1)'
+         ELSE
+          WRITE(IFIL14,'(A)') ' 0 $ LINTYP'
+         ENDIF
+C
+         WRITE(IFIL14,'(A)') ' H $ DISTRIBUTED LOAD INPUT FOLLOWS'
+C BEG FEB 10, 2014
+         IF (INDIC.LT.3) THEN
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 2, 0, 0, 1 ',
+     1  ' $ IDISAB,NLTYPE,NPSTAT,NLOAD(1),NLOAD(2),NLOAD(3)'
+         ELSE
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 2, 4, 0, 0, 1 ',
+     1  ' $ IDISAB,NLTYPE,NPSTAT,NTYPEL,NLOAD(1),NLOAD(2),NLOAD(3)'
+         ENDIF
+C END FEB 10, 2014
+         WRITE(IFIL14,'(1P2E14.6,A)') PRESS,PRESS,' $ PN(1),PN(2)'
+C BEG FEB 10, 2014
+         IF (INDIC.GE.3) THEN
+          WRITE(IFIL14,'(A,A)') ' 2, 2, 1, 0., 180., 1.0, 1.0',
+     1  ' $ NTHETA,NOPT,NODD,THETA1,THETA2,YPLUS1,YPLUS2'
+          WRITE(IFIL14,'(A)')
+     1  ' N  $ Do you want to print out Fourier expansion of load?'
+         ENDIF
+C END FEB 10, 2014
+         WRITE(IFIL14,'(A,I4,A)')' 1, 1, ',NNODES(ISEG),
+     1 ' $ NTYPE, IPOINT(1),IPOINT(2)'
+C
+         WRITE(IFIL14,'(A)') ' H  $ SHELL WALL CONSTRUCTION FOLLOWS'
+C END FEB 2014
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' 2  $ NWALL'
+         WRITE(IFIL14,'(1P,3E14.6,A)') EMOD,NU,DENSTY,
+     1 ' $ EMOD,NU,DENSTY'
+         ALPH = 0.
+         NRS = 0
+         WRITE(IFIL14,'(1P,E14.6,2I3,A)') ALPH,NRS,NSUR(ISEG),
+     1 ' $ ALPHA,NRS,NSUR'
+C
+         WRITE(IFIL14,'(A)')' N  $ do you want print refsurf,thick.?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out Cij?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out loads?'
+C
+C BEG FEB 10, 2014
+  400 CONTINUE
+C
+      WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+      WRITE(IFIL14,'(A)')' 0  $ NLAST'
+      WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+C
+      IF (INDX.NE.0) THEN
+        NMINB = N0B
+C BEG MAR 2014
+        IF (INDIC.LE.-1) NMINB = -10
+C END MAR 2014
+        INCRB = 1
+        IF (INDX.EQ.1) INCRB = 5
+        NVEC  = 1
+        WRITE(IFIL14,'(5I6,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+      ENDIF
+C
+      IF (INDIC.LT.3) THEN
+         IF (INDX.NE.0) THEN
+C BEG FEB 28, 2014
+C          WRITE(IFIL14,'(A,A)') ' 0., 1., 0., 0., 0., 0.',
+C    1   ' $ P,DP,TEMP,DTEMP,OMEGA,DOMEGA'
+C BEG MAR 2014
+           IF (INDIC.EQ.1.OR.INDIC.EQ.-1)
+     1     WRITE(IFIL14,'(A,A)') ' 1., 0.1, 0., 0., 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,OMEGA,DOMEGA'
+C BEG MAY 2014
+C          IF (INDIC.EQ.-2) WRITE(IFIL14,'(A,A)')
+C    1      ' 0.05, 0.05, 0., 0., 100, 0., 0.',
+C    1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+           IF (INDIC.EQ.-2) WRITE(IFIL14,'(A,A)')
+     1      ' 0.02, 0.02, 0., 0., 190, 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+C END MAY 2014
+C END MAR 2014
+C END FEB 28, 2014
+         ELSE
+           WRITE(IFIL14,'(A,A)') ' 1., 1., 0., 0., 1, 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+         ENDIF
+      ELSE
+         WRITE(IFIL14,'(A,A)') ' 1, 0., 1, 1001, 31, 0., 0., 1',
+     1 ' $ NDIST,THETA,NCIRC,ITHETA,NTHETA,THETAS,OMEGA,IOMGAB'
+         WRITE(IFIL14,'(A)')
+     1 ' N  $ Do you want response to harmonic forcing?'
+      ENDIF
+C END FEB 10, 2014
+         WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+         WRITE(IFIL14,'(I6,A)') MSEG,'  $ how many segments?'
+C
+C   Next, generate the BIGBOSOR4 input for all the constraint
+C   conditions (connections to ground and segment junctions)
+C   in the multi-module model.
+C
+C   The connections to ground (NGRND(i) > 0), where
+C   i = the shell segment number, are governed by the
+C   array, IDISP(i,j), where j is an index for which displacement
+C   component is constrained or not constrained.
+C
+C   IDISP(i,j) = 1 means that the jth displacement component is
+C                  constrained to be zero.
+C   IDISP(i,j) = 0 means that the jth displacement component is
+C                  free
+C
+C   In BIGBOSOR4 [10] there are 4 displacement components:
+C
+C   IDISP(i,1) refers to USTAR, the axial (vertical) displacement
+C   IDISP(i,2) refers to VSTAR, the circumferential displacement
+C   IDISP(i,3) refers to WSTAR, the radial (horizontal) displacement
+C   IDISP(i,4) refers to CHI, the meridional rotation
+C
+C   The entire array, IDISP(i,j), i = 1,NSEGS, j = 1,4,
+C   is initially set equal to unity when SUBROUTINE BOSDEC is
+C   called from SUBROUTINE BEHX1 (local buckling:   INDX = 1) and
+C   called from SUBROUTINE BEHX2 (general buckling: INDX = 2,3). In
+C   the following code IDISP(i,j) is reset to zero in certain of
+C   the shell segments:
+C
+C   For LOCAL   buckling (INDX = 1) in Segments 1 and NSEG 
+C               simple support (anti-symmetry at both Segs. 1 & NSEG)
+C   For GENERAL buckling (INDX = 2) in Segments 1 and NSEG 
+C               simple support at Seg. 1, symmetry at Seg. NSEG.
+C   For GENERAL buckling (INDX = 3) in Segments 1 and NSEG
+C               simple support at Seg. 1, anti-symmetry at Seg. NSEG.
+C
+C
+         DO 500 I = 1,MSEG
+C
+         WRITE(IFIL14,'(A,4I6)')
+     1 ' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+         WRITE(IFIL14,'(A)')' 0  $ number of poles'
+         NGRND(I) = 0
+C BEG FEB 2014
+         IF (I.EQ.1) THEN
+            NGRND(I) = 1
+            NODGRD(I,1) = 1
+            IF (MSEG.EQ.1) NGRND(I) = 2
+            IF (INDX.EQ.0) THEN
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ENDIF
+C Alternate (temporary) edge conditions along left-hand edge:
+            IF (INDX.EQ.2.OR.INDX.EQ.1) THEN
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ENDIF
+            IF (INDX.EQ.3) THEN
+             IF (IBOUND.EQ.1.OR.IBOUND.EQ.2) THEN
+C              antisymmetry on left side:
+               IDISP(I,1) = 0
+               IDISP(I,2) = 1
+               IDISP(I,3) = 1
+               IDISP(I,4) = 0
+             ELSE
+C              symmetry on left side:
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+             ENDIF
+            ENDIF
+         ENDIF
+C
+         IF (I.EQ.MSEG) THEN
+            IF (MSEG.GT.1) THEN
+               NGRND(I) = 1
+               NODGRD(I,1) = NNODES(I)
+            ELSE
+               NODGRD(I,2) = NNODES(I)
+            ENDIF
+            IF (INDX.EQ.2) THEN
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ELSE
+               IF (INDX.EQ.3) THEN
+                IF (IBOUND.EQ.1.OR.IBOUND.EQ.3) THEN
+C                 antisymmetry on right side:
+                  IDISP(I,1) = 0
+                  IDISP(I,2) = 1
+                  IDISP(I,3) = 1
+                  IDISP(I,4) = 0
+                ELSE
+C                 symmetry on right side:
+                  IDISP(I,1) = 1
+                  IDISP(I,2) = 0
+                  IDISP(I,3) = 0
+                  IDISP(I,4) = 1
+                ENDIF
+               ELSE
+C BEG FEB 28, 2014
+C                 symmetry on right side:
+                  IDISP(I,1) = 1
+                  IDISP(I,2) = 0
+                  IDISP(I,3) = 0
+                  IDISP(I,4) = 1
+C END FEB 28, 2014
+               ENDIF
+            ENDIF
+         ENDIF
+C END FEB 2014
+         WRITE(IFIL14,'(I3,A)') NGRND(I),' $ connect to ground'
+         IF (NGRND(I).GT.0) THEN
+            NGRNDI = NGRND(I)
+            DO 425 J = 1,NGRNDI
+               WRITE(IFIL14,'(I3,A)') NODGRD(I,J),' $ node to ground'
+               IF (I.EQ.1.OR.(I.EQ.MSEG.AND.NODGRD(I,J).EQ.NNODES(I)))
+     1                                                            THEN
+C BEG FEB 2014
+C BEG MAR 2014 (temporary prebuckling bc at beginning of BIGBOSOR4 model)
+C                IF (I.EQ.1)
+C    1            WRITE(IFIL14,'(A,A)') ' 0, 1, 0, 1, 0., 0.',
+C    1          ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+                 IF (I.EQ.1)
+     1            WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 1, 0., 0.',
+     1          ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+C END MAR 2014 (temporary prebuckling bc at beginning of BIGBOSOR4 model)
+                 IF (I.EQ.MSEG)
+     1            WRITE(IFIL14,'(A,A)') ' 1, 0, 0, 1, 0., 0.',
+     1          ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+                 WRITE(IFIL14,'(A)')' N  $ constraint same for buck.?'
+                 WRITE(IFIL14,'(4I3,A)')
+     1           IDISP(I,1),IDISP(I,2),IDISP(I,3),IDISP(I,4),
+     1         ' $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+               ENDIF
+C END FEB 2014
+  425       CONTINUE
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (I.LE.1) THEN
+             WRITE(IFIL14,'(A)')' N  $ joined to previous segments?'
+         ELSE
+             NPREV(I) = 1
+             WRITE(IFIL14,'(A)')' Y  $ joined to previous segments?'
+             WRITE(IFIL14,'(I3,A)') NPREV(I),' $ connects to prev.segs'
+             NPREVI = NPREV(I)
+             DO 450 J = 1,NPREVI
+               NODPRV(I,J) = 1
+               JPREV(I,J) = I - 1
+               JNODPV(I,J) = NNODES(I-1)
+               WRITE(IFIL14,'(I3,A)') NODPRV(I,J),' $ node current seg'
+               WRITE(IFIL14,'(I3,A)') JPREV(I,J),' $ prev.segment no.'
+               WRITE(IFIL14,'(I3,A)') JNODPV(I,J),' $ node in prev.seg.'
+               WRITE(IFIL14,'(A)')' 1, 1, 1, 1 $ IU,IV,IW,ICHI'
+               WRITE(IFIL14,'(A)')' 0., 0.  $ D1,D2'
+               WRITE(IFIL14,'(A)')' Y  $ is constraint same for buck.?'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  450        CONTINUE
+         ENDIF
+C
+  500    CONTINUE
+C End of the loop over the number of segments, MSEG
+C
+C
+C BEG FEB 2014
+         IF (INDX.EQ.3.AND.IBOUND.GT.1) THEN
+           WRITE(IFIL14,'(A)')' N  $ are rigid body motions possible?'
+           GO TO 540
+         ENDIF
+         WRITE(IFIL14,'(A)')' Y  $ are rigid body motions possible?'
+         WRITE(IFIL14,'(A)')' Y  $ do you wish to prevent rigid body?'
+         WRITE(IFIL14,'(2I6,A,A)') MSEG,NNODES(MSEG),' 1, 1, 0, 1 ',
+     1 ' $ ISEG,INODE,IUSTAR,IVSTAR,IWSTAR,ICHI n=0'
+         WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 1',
+     1 ' $ IUSTAR,IVSTAR,IWSTAR,ICHI n=1'
+  540    CONTINUE
+C END FEB 2014
+C
+C BEG FEB 10, 2014
+         IF (INDIC.GE.3) THEN
+            WRITE(IFIL14,'(A)')
+     1    ' N  $ Do you want inertial reactions to Load Set A?'
+            WRITE(IFIL14,'(A)') 
+     1    ' N  $ Do you want inertial reactions to Load Set B?'
+         ENDIF
+C END FEB 10, 2014
+         DO 550 ISEG = 1,MSEG
+            WRITE(IFIL14,'(A)')' Y  $ do you want to list seg. output?'
+  550    CONTINUE
+         WRITE(IFIL14,'(A)')' Y  $ do you want to list ring forces?'
+C
+C     CALL EXIT
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      BOSDEC2
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "span" (wide panel)
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "span" (wide panel)
+C  NOTE: Values of MMM and RCYL are set in this subroutine. You may
+C  want to change these two input variables from the values that are
+C  now set to differentvalues.
+C
+      SUBROUTINE BOSDEC2(INDX,IFIL14,IMODX,ILOADX,INDIC)
+C  Insert labelled common blocks: span9.COM
+      COMMON/IV01/NSEG,MLOWGS,MHIGHGS,MLOWGA,MHIGHGA,MLOWL,MHIGHL,IELMNT
+      INTEGER NSEG,MLOWGS,MHIGHGS,MLOWGA,MHIGHGA,MLOWL,MHIGHL,IELMNT
+      COMMON/IV09/NSUBSEG(19),INSUBSE
+      INTEGER NSUBSEG
+      COMMON/IV10/UPDOWN(19)
+      INTEGER UPDOWN
+      COMMON/IV11/UPDWNS(50,19),IUPDWNS,JUPDWNS
+      INTEGER UPDWNS
+      COMMON/FV07/THICK(19),ITHICK 
+      REAL THICK
+      COMMON/FV08/SUBWID(19),PHISEG(19),PHISUB(19)
+      REAL SUBWID,PHISEG,PHISUB
+      COMMON/FV11/YPLATE(20),IYPLATE
+      REAL YPLATE
+      COMMON/FV13/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV16/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV19/BUKSYM(20),BUKSYMA(20),BUKSYMF(20)
+      REAL BUKSYM,BUKSYMA,BUKSYMF
+      COMMON/FV22/BUKASY(20),BUKASYA(20),BUKASYF(20)
+      REAL BUKASY,BUKASYA,BUKASYF
+      COMMON/FV25/CYLBUK(20,19),JCYLBUK,CYLBUKA(20,19),CYLBUKF(20,19)
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV28/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/FV01/WIDTH,LENGTH,FACLEN,EMOD,NU,DENSTY,PHIBIG,WEIGHT
+      REAL WIDTH,LENGTH,FACLEN,EMOD,NU,DENSTY,PHIBIG,WEIGHT
+      COMMON/IV12/UPDNBIG
+      INTEGER UPDNBIG
+C  end of span9.COM
+C
+C BEG FEB 28, 2014
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+C END FEB 28, 2014
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      DIMENSION R1(295),R2(295),Z1(295),Z2(295)
+      DIMENSION RC(295),ZC(295),SROT(295)
+C BEG AUG 2013
+      DIMENSION SROTP(295),NSHAPE2(295),THKALL2(295),NTYPE2(295)
+      DIMENSION NRING2(295),FOUND2(295),NSUR2(295),SARC2(295)
+      DIMENSION THET1(295),THET2(295),THET3(295)
+C END AUG 2013
+      DIMENSION FOUND(295),NSUR(295),UPDNAL(295),RADIUS(295)
+      DIMENSION NSHAPE(295),NNODES(295),NRING(295),NNODES2(295)
+      DIMENSION IDISP(295,4),JPREV(295,2),JNODPV(295,2)
+      DIMENSION NPREV(295),NODPRV(295,2),NGRND(295),NODGRD(295,2)
+      DIMENSION NTYPE(295),DHIGH(295),PHI(295),ALPHA(295)
+      DIMENSION RAD(295),ZAD(295),RPC(295),ZPC(295),FMULT(295)
+      DIMENSION RP1(295),RP2(295),ZP1(295),ZP2(295),SARC(295)
+C BEG STAGS stuff...
+      DIMENSION NCOLS(300),IWALL(300),UPDNAL2(300)
+      DIMENSION MUNIT(300),NUNIT(300),MBOUND(300),NBOUND(300)
+      DIMENSION XGC1(300),XGC2(300),XGC3(300)
+      DIMENSION YGC1(300),YGC2(300),YGC3(300)
+      DIMENSION ZGC1(300),ZGC2(300),ZGC3(300)
+      DIMENSION PROP1(300),PROP2(300),PROP3(300)
+      DIMENSION PROP4(300),PROP5(300)
+C BEG FEB 2014
+      DIMENSION PROP6(300),PROP7(300),PROP8(300)
+C END FEB 2014
+      DIMENSION NCOLS2(300),IWALL2(300)
+      DIMENSION MUNIT2(300),NUNIT2(300),MBOUND2(300),NBOUND2(300)
+      DIMENSION PROP12(300),PROP22(300),PROP32(300)
+      DIMENSION PROP42(300),PROP52(300)
+C BEG FEB 2014
+      DIMENSION PROP62(300),PROP72(300),PROP82(300)
+C END FEB 2014
+      DIMENSION BRADIUS(295),UPDWNSM(295),IWALLS(295),RADIUSS(295)
+      DIMENSION SUBTEND(295),SUBTND2(295)
+      INTEGER UPDWNSM
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA3
+C END STAGS stuff
+      DIMENSION THKALL(295)
+      COMMON/RADII/RPLATE(295),RSUBSEG(20,295)
+C BEG AUG 2013
+      DIMENSION GAMMAS(50),THETA1(50),THETA2(50),ISMOOTH(50)
+      DIMENSION DANGLE(50),ANGLE1(50),ANGLE2(50),UPDOWNS(50)
+      INTEGER UPDOWNS, UPDWNS0
+      DIMENSION NNODESN(50),THKALLN(50),RNEW1(50),ZNEW1(50)
+      DIMENSION RNEW2(50),ZNEW2(50),RCNEW1(50),ZCNEW1(50)
+      DIMENSION SROTN(50)
+C END AUG 2013
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/AREAX/AREA,SIG1
+C
+      INTEGER UPDNAL
+C
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC2 *******************'/
+     1'  The purpose of BOSDEC2 to set up an input file, NAME.ALL,'/
+     1'  for a wide corrugated panel. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+      IF (INDX.EQ.1) THEN
+         RBEG = RBIGL
+      ENDIF
+      IF (INDX.GT.1) THEN
+         RBEG = RBIGG
+      ENDIF
+C
+      RBEG = 0.000001
+C     RBEG = 10.
+      CALL MOVER(0.,0,FOUND,1,295)
+      CALL MOVER(1, 0,IDISP,1,1180)
+      CALL MOVER(0, 0,JPREV,1,590)
+      CALL MOVER(0, 0,JNODPV,1,590)
+      CALL MOVER(0, 0,NPREV,1,295)
+      CALL MOVER(0, 0,NODPRV,1,590)
+      CALL MOVER(0, 0,NGRND,1,295)
+      CALL MOVER(0, 0,NODGRD,1,590)
+      CALL MOVER(2, 0,NSHAPE,1,295)
+      CALL MOVER(1, 0,NTYPE,1,295)
+      CALL MOVER(31, 0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.2) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.2.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.3.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.3) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.4.AND.NSUBSEG(1).LE.1) CALL MOVER(91,0,NNODES,1,295)
+      IF (NSEG.EQ.1.AND.NSUBSEG(1).EQ.4) CALL MOVER(91,0,NNODES,1,295)
+      CALL MOVER(0, 0,NRING,1,295)
+      CALL MOVER(0, 0,NSUR,1,295)
+      CALL MOVER(0., 0,FOUND,1,295)
+C
+C   ZVAL   = distance from the leftmost shell segment surface
+C            to the shell segment reference surface as we
+C            "travel" along the shell segment
+C   NSHAPE = BIGBOSOR4 index for shape of shell segment:
+C            NSHAPE = 1 means cone, cylinder, flat plate
+C            NSHAPE = 2 means toroidal, spherical
+C   NSUR   = BIGBOSOR4 index for location of reference surface
+C            in a shell segment:
+C            NSUR = 0 means middle surface is the ref. surf.
+C            NSUR = 1 means rightmost surface is the ref. surf.
+C            NSUR = -1 means reference surface is the inner surface
+C                      or is at an arbitrary location relative
+C                      to the shell wall material in the shell seg.
+C   R1(i),R2(i),Z1(i),Z2(i) =
+C                 (r,z) end points for the ith shell segment
+C   RC(i),ZX(i) = center of meridional curvature of ith segment
+C   SROT(i) = +1 for clockwise, -1 for anti-clockwise
+C                travel along the ith segment.
+C
+C   NTYPE  = type of callout used for the location of ring
+C            attachment point to the ith shell segment.
+C            NOTE: NTYPE(i) = 1 is always used in this project.
+C            NTYPE(i) = 1 means that the location of the ring
+C            attachment point to the shell segment is identified
+C            by its nodal point number within that shell segment.
+C            BIGBOSOR4 had to be modified to do this. Until now
+C            BIGBOSOR4 only permitted callout locations to be
+C            identified by either radial (r) or axial (z) numbers.
+C            The modification to BIGBOSOR4 was needed to avoid input
+C            errors in BIGBOSOR4 caused by lack of monotonicity
+C            of r-values or z-values within a single shell segment.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  First, added to the (x,z) plane is an overall constant curvature
+C  that spans the entire width of the domain. The shape of the
+C  curved plate is always prismatic, that is, it does not vary in
+C  the z-direction. The z-direction is the direction along which the
+C  uniform end shortening (compression) is applied.
+C
+      PI = 3.1415927
+      RADBIG = 0.5*WIDTH/SIN(PHIBIG*PI/180.)
+      CPHI = COS(PHIBIG*PI/180.)
+      SFLAT = 0.
+      DHIGH(1) = 0.
+      NSEG1 = NSEG + 1
+      RSIGN = 1.0
+      IF (UPDNBIG.EQ.2) RSIGN = -1.0
+      DHIGH(NSEG1) = RSIGN*RADBIG*(1. -CPHI)
+      IF (NSEG.GT.1) THEN
+         DO 25 I = 2,NSEG
+            I1 = I - 1
+            SFLAT = SFLAT + SUBWID(I1)
+            DHIGH(I)=
+     1         RSIGN*(SQRT(RADBIG**2-(SFLAT-0.5*WIDTH)**2)-RADBIG*CPHI)
+   25    CONTINUE
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(/,A,/,A)')
+     1   ' Seg.no.    Height     Meridional      ARC angle       ARC ',
+     1   '  ISEG       DHIGH      radius           PHI         LENGTH'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  MAJOR segment data...
+C
+C  Next, derive the geometry for each of the NSEG shell segments
+C  These are the MAJOR segments, before we deal with subsegments.
+C
+      NRLOAD = 0
+      R1(1) = RBEG
+      Z1(1) = YPLATE(1) 
+C
+      DO 100 ISEG = 1,NSEG
+         I = ISEG
+         I1 = ISEG + 1
+         ISEG1 = ISEG + 1
+         IF (ISEG.GT.1) THEN
+            ISEGM = ISEG - 1
+            R1(ISEG) = R2(ISEGM)
+            Z1(ISEG) = Z2(ISEGM)
+         ENDIF
+         R2(ISEG) = R1(ISEG) + SUBWID(ISEG)
+         Z2(ISEG) = YPLATE(ISEG1) +DHIGH(ISEG1)
+         FMULT(ISEG) = -1.0
+         IF (UPDOWN(ISEG).EQ.2) FMULT(ISEG) = 1.0
+         DTOTL1 = DHIGH(I) + YPLATE(I)
+         DTOTL2 = DHIGH(I1)+ YPLATE(I1)
+         TWODEE = SQRT(SUBWID(I)**2 +(DTOTL2-DTOTL1)**2)
+         RPLATE(I) = 0.5*TWODEE/SIN(PHISEG(I)*PI/180.)
+         CPHI = COS(PHISEG(ISEG)*PI/180.)
+         RATIO2 = (Z2(ISEG) -Z1(ISEG))/(R2(ISEG) -R1(ISEG))
+         ALPHA(ISEG) = ATAN(RATIO2)
+         PI = 3.1415927
+         ANGLE = PI/2. -PHISEG(ISEG)*PI/180. -ALPHA(ISEG)
+         SANGLE = SIN(ANGLE)
+         CANGLE = COS(ANGLE)
+         IF (UPDOWN(ISEG).EQ.2) THEN
+            RC(ISEG) = R2(ISEG) - RPLATE(ISEG)*CANGLE
+            ZC(ISEG) = Z2(ISEG) + RPLATE(ISEG)*SANGLE
+         ELSE
+            RC(ISEG) = R1(ISEG) + RPLATE(ISEG)*CANGLE
+            ZC(ISEG) = Z1(ISEG) - RPLATE(ISEG)*SANGLE
+         ENDIF
+         IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(I5,1P,3E14.4)')
+     1   I,DHIGH(I),RPLATE(I),PHISEG(ISEG)
+  100 CONTINUE
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) WRITE(IFILE4,'(I5,1P,E14.4)')
+     1 NSEG1,DHIGH(NSEG1)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG AUG 2013
+      ZSUM = 0.
+      DO 110 I = 1,NSEG
+         ZSUM = ZSUM + 0.5*(Z1(I) + Z2(I))
+  110 CONTINUE
+      ZAVE = ZSUM/FLOAT(NSEG)
+C END AUG 2013
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) THEN 
+          WRITE(IFILE4,'(/,A,A)')
+     1' ISEG       R1         Z1        R2         Z2         RC      ',
+     1'     ZC'
+         DO 120 I = 1,NSEG
+            WRITE(IFILE4,'(I4,1P6E12.4)')
+     1    I,R1(I),Z1(I),R2(I),Z2(I),RC(I),ZC(I)
+  120    CONTINUE 
+      ENDIF
+C
+C  Next, do subsegments...
+C
+      KOUNT = 1
+      RAD(1) = R1(1)
+      ZAD(1) = Z1(1)
+C
+      DO 200 ISEG = 1,NSEG
+C
+         NSUB = NSUBSEG(ISEG)
+         IF (NSUB.LE.1) THEN
+C  There are no subsegments in this MAJOR segment...
+            KOUNT = KOUNT + 1
+            KSEG = KOUNT - 1
+            RP1(KSEG) = R1(ISEG)
+            ZP1(KSEG) = Z1(ISEG)
+            RP2(KSEG) = R2(ISEG)
+            ZP2(KSEG) = Z2(ISEG)
+            RPC(KSEG) = RC(ISEG)
+            ZPC(KSEG) = ZC(ISEG)
+            SROT(KSEG) = -FMULT(ISEG)
+            SARC(KSEG) = 2.*RPLATE(ISEG)*PHISEG(ISEG)*PI/180.
+            UPDNAL(KSEG) = UPDOWN(ISEG)
+            RADIUS(KSEG) = RPLATE(ISEG)
+            THKALL(KSEG) = THICK(ISEG)
+            IWALL(KSEG)  = -ISEG
+            GO TO 200
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         CSEG = 2.0
+C
+C  Next, loop over subsegments...
+C
+         DO 150 JSEG = 1,NSUB
+C
+            KOUNT = KOUNT + 1
+            KSEG = KOUNT - 1
+            IF (JSEG.LT.NSUB) THEN
+C  We compute the (r,z) coordinates of the end of the JSEGth subsegment
+C  within the ISEGth MAJOR segment...
+               FJSEG = FLOAT(JSEG)
+               FNSUB = FLOAT(NSUB)
+               GAMMA = FJSEG*CSEG*PHISEG(ISEG)*(PI/180.)/FNSUB
+               IF (UPDOWN(ISEG).EQ.2) THEN
+                  ANGLE = PI/2. -ALPHA(ISEG) +PHISEG(ISEG)*PI/180.
+     1                                                         -GAMMA
+                  SANGLE = SIN(ANGLE)
+                  CANGLE = COS(ANGLE)
+                  RAD(KOUNT) = RC(ISEG) +RPLATE(ISEG)*CANGLE
+                  ZAD(KOUNT) = ZC(ISEG) -RPLATE(ISEG)*SANGLE
+               ELSE
+                  ANGLE = PI/2. -ALPHA(ISEG) -PHISEG(ISEG)*PI/180.
+     1                                                         +GAMMA
+                  SANGLE = SIN(ANGLE)
+                  CANGLE = COS(ANGLE)
+                  RAD(KOUNT) = RC(ISEG) -RPLATE(ISEG)*CANGLE
+                  ZAD(KOUNT) = ZC(ISEG) +RPLATE(ISEG)*SANGLE
+               ENDIF
+            ELSE
+               RAD(KOUNT) = R2(ISEG)
+               ZAD(KOUNT) = Z2(ISEG)
+            ENDIF
+C
+            IF (JSEG.EQ.1) THEN
+               RAD(KSEG) = R1(ISEG)
+               ZAD(KSEG) = Z1(ISEG)
+            ENDIF
+C
+            RP1(KSEG) = RAD(KSEG)
+            ZP1(KSEG) = ZAD(KSEG)
+            RP2(KSEG) = RAD(KOUNT)
+            ZP2(KSEG) = ZAD(KOUNT)
+C
+C  Next, compute the center of meridional curvature, RPC, ZPC.
+C  Also, compute the subsegment arc length, SARC(KSEG)...
+            D2DEE = SQRT((RP2(KSEG) - RP1(KSEG))**2
+     1                  +(ZP2(KSEG) - ZP1(KSEG))**2)
+            RSUBSEG(JSEG,ISEG) = 0.5*D2DEE/SIN(PHISUB(ISEG)*PI/180.)
+C
+            OMEGA = PHISUB(ISEG)*PI/180.
+            SARC(KSEG) = 2.*OMEGA*RSUBSEG(JSEG,ISEG)
+            RATIO2 = (ZP2(KSEG)-ZP1(KSEG))/(RP2(KSEG)-RP1(KSEG))
+            CHI = ATAN(RATIO2)
+            ANGLE = PI/2. - OMEGA -CHI
+            IF (RP2(KSEG).LT.RP1(KSEG)) ANGLE = -PI/2. - CHI - OMEGA
+            SANGLE = SIN(ANGLE)
+            CANGLE = COS(ANGLE)
+            IF (UPDWNS(JSEG,ISEG).EQ.2) THEN
+               RPC(KSEG) = RP2(KSEG) -RSUBSEG(JSEG,ISEG)*CANGLE
+               ZPC(KSEG) = ZP2(KSEG) +RSUBSEG(JSEG,ISEG)*SANGLE
+               SROT(KSEG) = -1.0
+            ELSE
+               RPC(KSEG) = RP1(KSEG) +RSUBSEG(JSEG,ISEG)*CANGLE
+               ZPC(KSEG) = ZP1(KSEG) -RSUBSEG(JSEG,ISEG)*SANGLE
+               SROT(KSEG) = 1.0
+            ENDIF
+            UPDNAL(KSEG) = UPDWNS(JSEG,ISEG)
+            RADIUS(KSEG) = RSUBSEG(JSEG,ISEG)
+            THKALL(KSEG) = THICK(ISEG)
+  150    CONTINUE
+  200 CONTINUE
+C
+      MSEG = KSEG
+C
+      DPHI = 0.
+      IF (UPDNAL(MSEG).EQ.1) THEN
+         IF (ZP2(MSEG).LT.ZPC(MSEG)) THEN
+            RATIO4 = ABS((ZPC(MSEG) - ZP2(MSEG))/RADIUS(MSEG))
+            IF (RATIO4.GT.1.0) RATIO4 = 1.0
+            DPHI = ASIN(RATIO4)
+            ZP2(MSEG) = ZPC(MSEG) + RADIUS(MSEG)*SIN(DPHI)
+         ENDIF
+      ELSE
+         IF (ZP2(MSEG).GT.ZPC(MSEG)) THEN
+            RATIO4 = ABS((ZP2(MSEG) - ZPC(MSEG))/RADIUS(MSEG))
+            IF (RATIO4.GT.1.0) RATIO4 = 1.0
+            DPHI = ASIN(RATIO4)
+            ZP2(MSEG) = ZPC(MSEG) - RADIUS(MSEG)*SIN(DPHI)
+         ENDIF
+      ENDIF
+      SARC(MSEG) = SARC(MSEG) - 2.*RADIUS(MSEG)*DPHI
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IMODX.EQ.0.AND.INDX.EQ.1) THEN
+         DO 210 J = 1,NSEG
+           NSUB = NSUBSEG(J)
+           WRITE(IFILE4,'(/,A,I3,A,/,(5I6))')
+     1   ' ISEG= ',J,' UPDWNS(i,ISEG)=',(UPDWNS(I,J),I=1,NSUB)
+  210    CONTINUE
+         WRITE(IFILE4,'(/,A,A)')
+     1' ISEG       RP1        ZP1       RP2        ZP2        RPC     ',
+     1'    ZPC        SARC'
+         DO 220 I = 1,MSEG
+            WRITE(IFILE4,'(I4,1P7E12.4)')
+     1    I,RP1(I),ZP1(I),RP2(I),ZP2(I),RPC(I),ZPC(I),SARC(I)
+  220    CONTINUE
+      ENDIF
+C
+C     CALL EXIT
+C
+      AREA = 0.
+      DO 300 I = 1,MSEG
+         AREA = AREA + THKALL(I)*SARC(I)
+  300 CONTINUE
+C
+      DO 350 I = 1,MSEG
+         MTHICK = SARC(I)/THKALL(I)
+         IF (MTHICK.LT.31) NNODES(I) = MTHICK
+         IF (NNODES(I).LT.5) NNODES(I) = 5
+  350 CONTINUE
+C
+      SIG1 = TOTLOD(ILOADX)/(2.0*AREA)
+C
+      FN101 = 0.0
+      FN102 = 0.0
+C
+C  Next, we generate a valid input data file, *.ALL, for BIGBOSOR4
+C
+C  Global input before segment data...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG FEB 2014
+C BEG FEB 10, 2014
+C BEG MAR 2014
+      IF (INDX.EQ.0) WRITE(IFIL14,'(A,I2,A)')
+     1 ' maximum effective stress (INDIC=',INDIC,')'
+      IF (INDX.EQ.1) WRITE(IFIL14,'(A,I2,A)')
+     1 ' local buckling (INDIC=',INDIC,')'
+      IF (INDX.EQ.2) WRITE(IFIL14,'(A,I2,A)')
+     1 ' general symmetric buckling (INDIC=',INDIC,')'
+      IF (INDX.EQ.3) WRITE(IFIL14,'(A,I2,A)')
+     1 ' general sym-antisymmetric buckling (INDIC=',INDIC,')'
+      IF (INDX.EQ.4) WRITE(IFIL14,'(A,I2,A)')
+     1 ' general antisym-antisymmetric buckling (INDIC=',INDIC,')'
+C END MAR 2014
+C END FEB 10, 2014
+C END FEB 2014
+C NOSMOO means: 0 = yes, do the smoothing; 1 = skip smoothing.
+      NOSMOO = 0
+      LSEG = MSEG
+      RSHIFT = 0. 
+      RADD1 = 0.
+      RADD2 = 0.
+      DO 355 I = 1,NSEG
+         IF (NSUBSEG(I).NE.0) NOSMOO = 1 
+  355 CONTINUE
+      IF (NOSMOO.EQ.1) THEN
+         GO TO 395
+      ENDIF
+C
+C Add data for "smoothing" segments (segments that eliminate "corners")
+C (Only for corrugated panels with no sub-segments)
+C
+      DO 360 I = 1,NSEG
+         RATIO = (ZP2(I) - ZP1(I))/(RP2(I) - RP1(I))
+         GAMMAS(I) = ATAN(RATIO)*180/PI
+         IF (UPDOWN(I).EQ.1) THEN
+            THETA1(I) = GAMMAS(I) + PHISEG(I)
+            THETA2(I) = GAMMAS(I) - PHISEG(I)
+            ANGLE1(I) = 90. - PHISEG(I) - GAMMAS(I)
+            ANGLE2(I) = 90. - PHISEG(I) + GAMMAS(I)
+         ELSE
+            THETA1(I) = GAMMAS(I) - PHISEG(I)
+            THETA2(I) = GAMMAS(I) + PHISEG(I)
+            ANGLE1(I) = 90. - PHISEG(I) + GAMMAS(I)
+            ANGLE2(I) = 90. - PHISEG(I) - GAMMAS(I)
+         ENDIF
+C
+         WRITE(IFILE4,'(A,2I5)') ' I,UPDOWN(I) = ', I,UPDOWN(I)
+         WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' PHISEG(I),GAMMAS(I),THETA1(I),THETA2(I),ANGLE1(I),ANGLE2(I)=',
+     1   PHISEG(I),GAMMAS(I),THETA1(I),THETA2(I),ANGLE1(I),ANGLE2(I)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+  360 CONTINUE
+C
+C BEG FEB 2014
+C  RSMOOTH is the smaller toroidal radius of all "smoothing" segments
+C  CORNER  is the limiting "DTHETA" value, where DTHETA=angle
+C          difference at segment junctions and left and right edges
+C BEG APR 2014
+C    old   If CORNER, that is, DTHETA, is less than 20 degrees, then
+C    new
+C    new   If CORNER, that is, DTHETA, is less than 10 degrees
+C    new   at segment junctions in the INTERIOR of the shell
+C    new   or
+C    new   If CORNRE, that is, DTHETA, is less than  5 degrees
+C    new   at either END of the shell
+C    new   then:
+C END APR 2014
+C          no "smoothing" toroidal segment is inserted into the
+C          model.
+C END FEB 2014
+C
+C  It would be best if RSMOOTH and CORNER were GENTEXT input variables,
+C  but this has not been done. Therefore, RSMOOTH and CORNER are set
+C  here.
+C
+      ISEGN = 0
+C BEG APR 2014
+      RSMOOTH = 1.0 
+      WRITE(IFILE4,'(A,1P,E12.4)')' RSMOOTH=',RSMOOTH
+C     IF (INDX.EQ.1) CALL EXIT
+C END APR 2014
+C BEG APR 2014
+C     CORNER = 20.
+      CORNER = 10.
+      CORNRE = 5.
+C END APR 2014
+C
+      ISMOTH0 = 0
+C BEG APR 2014
+C     IF (ABS(THETA1(1)).LT.(0.5*CORNER)) GO TO 365
+      IF (ABS(THETA1(1)).LT.(0.5*CORNRE)) GO TO 365
+C END APR 2014
+C
+C  A "smoothing" segment is needed...
+C  Establish the "smoothing" segment adjacent to the left-hand edge:
+      ISEGN = 1
+      ISMOTH0 = 1
+C BEG NOV 2013
+      ISMOOTH(1) = 1
+C END NOV 2013
+      IF (THETA1(1).GT.0.0) UPDWNS0 = 2
+      IF (THETA1(1).LT.0.0) UPDWNS0 = 1      
+      FLAMDA = ABS(THETA1(1)*PI/180.)
+      RSHIFT = RSMOOTH*SIN(FLAMDA) 
+      RADD1 = RSMOOTH*SIN(FLAMDA)
+      IF (UPDOWN(1).EQ.1) THEN
+         IF (UPDWNS0.EQ.1) THEN
+           FLAMDA = -THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = -RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW - RSMOOTH
+        ENDIF
+      ELSE
+         IF (UPDWNS0.EQ.1) THEN
+           FLAMDA = -THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = -RSMOOTH*SANG90 + ZP1(1)
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = THETA1(1)*PI/180.
+           RNEWP = RP1(1)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWM = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           RCNEW = RP1(1) - RSMOOTH*SIN(FLAMDA)
+           ZCNEW = ZP1(1) + RSMOOTH*SANG90
+           ZNEWP = ZP1(1)
+           ZNEWM = ZCNEW - RSMOOTH
+        ENDIF
+      ENDIF
+C
+      WRITE(IFILE4,'(A,2I5)')
+     1 ' Left edge: UPDOWN(1),UPDWNS0 = ', UPDOWN(1), UPDWNS0
+      WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW
+C
+      NNODESN(ISEGN) = 16 
+      THKALLN(ISEGN) = THKALL(1)
+      RNEW1(ISEGN) = RNEWM
+      ZNEW1(ISEGN) = ZNEWM
+      RNEW2(ISEGN) = RNEWP
+      ZNEW2(ISEGN) = ZNEWP
+      RCNEW1(ISEGN) = RCNEW
+      ZCNEW1(ISEGN) = ZCNEW
+      IF (UPDWNS0.EQ.1) SROTN(ISEGN) =  1.0
+      IF (UPDWNS0.EQ.2) SROTN(ISEGN) = -1.0
+      UPDWNSM(ISEGN) = UPDWNS0
+      IWALLS(ISEGN) = IWALL(1)
+      RADIUSS(ISEGN) = RSMOOTH
+      FLRATIO =
+     1 0.5*SQRT((RNEWP-RNEWM)**2 +(ZNEWP-ZNEWM)**2)/RADIUSS(ISEGN)
+      SUBTEND(ISEGN) =  2.0*ASIN(FLRATIO)*180./PI
+  365 CONTINUE
+C
+      NSEG1 = NSEG - 1
+C
+C BEG NOV 2013
+      IF (NSEG1.GT.0) THEN
+C END NOV 2013
+       DO 370 I = 1,NSEG1
+         ISEGN = ISEGN + 1
+         NNODESN(ISEGN) = NNODES(I)
+         THKALLN(ISEGN) = THKALL(I)
+         RNEW1(ISEGN) = RP1(I)
+         ZNEW1(ISEGN) = ZP1(I)
+         RNEW2(ISEGN) = RP2(I)
+         ZNEW2(ISEGN) = ZP2(I)
+         RCNEW1(ISEGN) = RPC(I)
+         ZCNEW1(ISEGN) = ZPC(I)
+         SROTN(ISEGN) = SROT(I)
+         UPDWNSM(ISEGN) = UPDOWN(I)
+         IWALLS(ISEGN) = IWALL(I)
+         RADIUSS(ISEGN) = RPLATE(I)
+         FLRATIO =
+     1    0.5*SQRT((RP2(I)-RP1(I))**2
+     1            +(ZP2(I)-ZP1(I))**2)/RADIUSS(ISEGN)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         SUBTEND(ISEGN) =  2.0*ASIN(FLRATIO)*180./PI
+C BEG NOV 2013
+         ISMOOTH(ISEGN) = 0
+C END NOV 2013
+         I1 = I + 1
+         DTHETA = ABS(THETA2(I) - THETA1(I1))
+C BEG APR 2014
+C        GO TO 370
+C END APR 2014
+         IF (UPDOWN(I).EQ.UPDOWN(I1).OR.DTHETA.LT.CORNER) THEN
+            GO TO 370
+         ENDIF
+C  A "smoothing" segment is needed...
+         DANGLE(I) = 0.5*RSMOOTH*DTHETA/RPLATE(I)
+         DANGLE(I1)= 0.5*RSMOOTH*DTHETA/RPLATE(I1)
+         IF (THETA1(I1).GT.THETA2(I)) THEN
+            UPDOWNS(I) = 2
+         ELSE
+            UPDOWNS(I) = 1
+         ENDIF
+         ANGLEM = (ANGLE2(I) +DANGLE(I))*PI/180
+         SANGLEM = SIN(ANGLEM)
+         CANGLEM = COS(ANGLEM)
+         ANGLEP = (ANGLE1(I1) +DANGLE(I1))*PI/180
+         SANGLEP = SIN(ANGLEP)
+         CANGLEP = COS(ANGLEP)
+         IF (UPDOWN(I).EQ.1) THEN
+            ZNEWM =  RPLATE(I)*SANGLEM  + ZPC(I)
+            RNEWM =  RPLATE(I)*CANGLEM  + RPC(I)
+            ZNEWP = -RPLATE(I1)*SANGLEP + ZPC(I1)
+            RNEWP = -RPLATE(I1)*CANGLEP + RPC(I1)
+         ELSE
+            ZNEWM = -RPLATE(I)*SANGLEM  + ZPC(I)
+            RNEWM =  RPLATE(I)*CANGLEM  + RPC(I)
+            ZNEWP =  RPLATE(I1)*SANGLEP + ZPC(I1)
+            RNEWP = -RPLATE(I1)*CANGLEP + RPC(I1)
+         ENDIF
+C
+         RRMM = (RPLATE(I)  - RSMOOTH)/RPLATE(I)
+         RRMP = (RPLATE(I)  + RSMOOTH)/RPLATE(I)
+         RRPM = (RPLATE(I1) - RSMOOTH)/RPLATE(I1)
+         RRPP = (RPLATE(I1) + RSMOOTH)/RPLATE(I1)
+         IF (UPDOWN(I).EQ.1) THEN
+            IF (UPDOWNS(I).EQ.1) THEN
+              RCNEWM = RRMM*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMM*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPP*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPP*(ZNEWP -ZPC(I1)) + ZPC(I1)
+            ELSE
+              RCNEWM = RRMP*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMP*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPM*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPM*(ZNEWP -ZPC(I1)) + ZPC(I1)
+           ENDIF
+         ELSE
+            IF (UPDOWNS(I).EQ.1) THEN
+              RCNEWM = RRMP*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMP*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPM*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPM*(ZNEWP -ZPC(I1)) + ZPC(I1)
+            ELSE
+              RCNEWM = RRMM*(RNEWM - RPC(I)) + RPC(I)
+              ZCNEWM = RRMM*(ZNEWM - ZPC(I)) + ZPC(I)
+              RCNEWP = RRPP*(RNEWP -RPC(I1)) + RPC(I1)
+              ZCNEWP = RRPP*(ZNEWP -ZPC(I1)) + ZPC(I1)
+           ENDIF
+         ENDIF
+C
+         RCNEW = 0.5*(RCNEWM + RCNEWP)
+         ZCNEw = 0.5*(ZCNEWM + ZCNEWP)
+C
+         WRITE(IFILE4,'(A,3I5)')
+     1 ' I,UPDOWN(I),UPDOWNS(I) = ', I,UPDOWN(I), UPDOWNS(I)
+         WRITE(IFILE4,'(A,/,1P8E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEWM,ZCNEWM,RCNEWP,ZCNEWP=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEWM,ZCNEWM,RCNEWP,ZCNEWP
+         WRITE(IFILE4,'(A,1P2E12.4)') 'RCNEW,ZCNEW=',RCNEW,ZCNEW
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         ISEGN = ISEGN + 1
+         NNODESN(ISEGN) = 16 
+         THKALLN(ISEGN) = THKALL(I) 
+         RNEW1(ISEGN) = RNEWM
+         ZNEW1(ISEGN) = ZNEWM
+         RNEW2(ISEGN) = RNEWP
+         ZNEW2(ISEGN) = ZNEWP
+         RCNEW1(ISEGN) = RCNEW
+         ZCNEW1(ISEGN) = ZCNEW
+         IF (UPDOWNS(I).EQ.1) SROTN(ISEGN) =  1.0
+         IF (UPDOWNS(I).EQ.2) SROTN(ISEGN) = -1.0
+         UPDWNSM(ISEGN) = UPDOWNS(I)
+         IWALLS(ISEGN) = IWALL(I)
+         RADIUSS(ISEGN) = RSMOOTH
+         FLRATIO =
+     1    0.5*SQRT((RNEWP-RNEWM)**2 +(ZNEWP-ZNEWM)**2)/RADIUSS(ISEGN)
+         SUBTEND(ISEGN) =  2.0*ASIN(FLRATIO)*180./PI
+         ISEGN1 = ISEGN - 1
+         RNEW2(ISEGN1) = RNEW1(ISEGN)
+         ZNEW2(ISEGN1) = ZNEW1(ISEGN)
+C BEG NOV 2013
+         ISMOOTH(ISEGN) = 1
+C END NOV 2013
+C
+C BEG APR 2014
+         WRITE(IFILE4,'(A,I5,1P,E12.4)')' ISEGN,DTHETA=',ISEGN,DTHETA
+         WRITE(IFILE4,'(A,I5,1P,2E12.4)')
+     1 ' I,ANGLE1(I),ANGLE2(I)=',I,ANGLE1(I),ANGLE2(I)
+         WRITE(IFILE4,'(A,1P,2E12.4)')
+     1 ' ANGLEM*180/PI,ANGLEP*180/PI=',ANGLEM*180/PI,ANGLEP*180/PI
+         WRITE(IFILE4,'(A,1P,3E12.4)')
+     1 ' SANGLEP,CANGLEP,SUBTEND=',SANGLEP,CANGLEP,SUBTEND(ISEGN)
+         WRITE(IFILE4,'(A,I5,1P,2E12.4)')
+     1 ' ISEGN,RADIUSS(ISEGN),FLRATIO=',ISEGN,RADIUSS(ISEGN),FLRATIO
+C END APR 2014
+  370  CONTINUE
+C BEG APR 2014
+C      IF (INDX.EQ.1) CALL EXIT
+C END APR 2014
+C BEG NOV 2013
+      ENDIF
+C END NOV 2013
+C
+      ISEGN = ISEGN + 1
+      NNODESN(ISEGN) = NNODES(NSEG)
+      THKALLN(ISEGN) = THKALL(NSEG)
+      RNEW1(ISEGN) = RP1(NSEG)
+      ZNEW1(ISEGN) = ZP1(NSEG)
+      RNEW2(ISEGN) = RP2(NSEG)
+      ZNEW2(ISEGN) = ZP2(NSEG)
+      RCNEW1(ISEGN) = RPC(NSEG)
+      ZCNEW1(ISEGN) = ZPC(NSEG)
+      SROTN(ISEGN) = SROT(NSEG)
+      UPDWNSM(ISEGN) = UPDOWN(NSEG) 
+      IWALLS(ISEGN) = IWALL(NSEG)
+      RADIUSS(ISEGN) = RPLATE(NSEG)
+      FLRATIO =
+     1    0.5*SQRT((RP2(NSEG)-RP1(NSEG))**2
+     1            +(ZP2(NSEG)-ZP1(NSEG))**2)/RADIUSS(ISEGN)
+      SUBTEND(ISEGN) =  2.0*ASIN(FLRATIO)*180./PI
+C
+C BEG NOV 2013
+      ISMOOTH(ISEGN)= 0
+C END NOV 2013
+C BEG APR 2014
+C     IF (ABS(THETA2(NSEG)).LT.(0.5*CORNER)) GO TO 380
+      IF (ABS(THETA2(NSEG)).LT.(0.5*CORNRE)) GO TO 380
+C END APR 2014
+C
+C  A "smoothing" segment is needed...
+C  Establish the "smoothing" segment adjacent to the right-hand edge:
+      IF (THETA2(NSEG).GT.0.0) UPDOWNS(NSEG) = 1
+      IF (THETA2(NSEG).LT.0.0) UPDOWNS(NSEG) = 2
+      FLAMDA = ABS(THETA2(NSEG)*PI/180.)
+      RADD2 = RSMOOTH*SIN(FLAMDA)
+      IF (UPDOWN(NSEG).EQ.1) THEN
+         IF (UPDOWNS(NSEG).EQ.1) THEN
+           FLAMDA =  THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = -RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = -THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW - RSMOOTH
+        ENDIF
+      ELSE
+         IF (UPDOWNS(NSEG).EQ.1) THEN
+           FLAMDA =  THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = -RSMOOTH*SANG90 + ZP2(NSEG)
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW + RSMOOTH
+         ELSE
+           FLAMDA = -THETA2(NSEG)*PI/180.
+           RNEWM = RP2(NSEG)
+           ANG90 = PI/2. - FLAMDA
+           SANG90 = SIN(ANG90)
+           RNEWP = RP2(NSEG) + RSMOOTH*SIN(FLAMDA)
+           RCNEW = RNEWP 
+           ZCNEW = ZP2(NSEG) + RSMOOTH*SANG90
+           ZNEWM = ZP2(NSEG)
+           ZNEWP = ZCNEW - RSMOOTH
+        ENDIF
+      ENDIF
+C
+      WRITE(IFILE4,'(A,2I5)')
+     1 ' right edge: UPDOWN(NSEG),UPDOWNS(NSEG) = ',
+     1               UPDOWN(NSEG),UPDOWNS(NSEG)
+      WRITE(IFILE4,'(A,/,1P6E12.4)')
+     1 ' RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW=',
+     1   RNEWM,ZNEWM,RNEWP,ZNEWP,RCNEW,ZCNEW
+C
+      ISEGN = ISEGN + 1
+      NNODESN(ISEGN) = 16 
+      THKALLN(ISEGN) = THKALL(NSEG) 
+      RNEW1(ISEGN) = RNEWM
+      ZNEW1(ISEGN) = ZNEWM
+      RNEW2(ISEGN) = RNEWP
+      ZNEW2(ISEGN) = ZNEWP
+      RCNEW1(ISEGN) = RCNEW
+      ZCNEW1(ISEGN) = ZCNEW
+      IF (UPDOWNS(NSEG).EQ.1) SROTN(ISEGN) =  1.0
+      IF (UPDOWNS(NSEG).EQ.2) SROTN(ISEGN) = -1.0
+      UPDWNSM(ISEGN) = UPDOWNS(NSEG)
+      IWALLS(ISEGN) = IWALL(NSEG)
+      RADIUSS(ISEGN) = RSMOOTH
+      FLRATIO =
+     1    0.5*SQRT((RNEWP-RNEWM)**2 +(ZNEWP-ZNEWM)**2)/RADIUSS(ISEGN)
+      SUBTEND(ISEGN) = 2.0*ASIN(FLRATIO)*180./PI
+C BEG NOV 2013
+         ISMOOTH(ISEGN) = 1
+C END NOV 2013
+C
+  380 CONTINUE
+C
+      DO 385 I = 1,ISEGN
+         RNEW1(I) = RNEW1(I) + RSHIFT
+         RNEW2(I) = RNEW2(I) + RSHIFT
+         RCNEW1(I) = RCNEW1(I) + RSHIFT
+  385 CONTINUE
+C
+      DO 390 I = 2,ISEGN
+         I1 = I - 1
+         RNEW1(I) = RNEW2(I1)
+         ZNEW1(I) = ZNEW2(I1)
+  390 CONTINUE
+C
+      WRITE(IFILE4,'(/,A,A)')
+     1' SEG.    RNEW1      ZNEW1      RNEW2      ZNEW2    ',
+     1'     RCNEW1     ZCNEW1     SROTN'
+      DO 392 I = 1,ISEGN
+       WRITE(IFILE4,'(I4,1P7E12.4)')
+     1 I, RNEW1(I),ZNEW1(I),RNEW2(I),ZNEW2(I),RCNEW1(I),ZCNEW1(I),
+     1 SROTN(I)
+  392 CONTINUE
+C
+      LSEG = ISEGN
+      MSEG = LSEG
+C
+      CALL MOVER(NNODESN,1,NNODES,1,LSEG)
+      CALL MOVER(THKALLN,1,THKALL,1,LSEG)
+      CALL MOVER(RNEW1,1,RP1,1,LSEG)
+      CALL MOVER(RNEW2,1,RP2,1,LSEG)
+      CALL MOVER(ZNEW1,1,ZP1,1,LSEG)
+      CALL MOVER(ZNEW2,1,ZP2,1,LSEG)
+      CALL MOVER(RCNEW1,1,RPC,1,LSEG)
+      CALL MOVER(ZCNEW1,1,ZPC,1,LSEG)
+      CALL MOVER(SROTN,1,SROT,1,LSEG)
+C
+  395 CONTINUE
+C
+C     CALL EXIT
+C
+C  MMM is the number of WIDTHs included in the wide panel model.
+C      MMM should be a GENTEXT input variable, but that has not been
+C      done. Therefore, MMM is set here.
+C      NOTE: If subsegments exist MMM = 5 is probably too high, that is,
+C            there will be more than 295 segments in the BIGBOSOR4
+C            model of the wide corrugated panel, and your run will bomb.
+C
+C BEG FEB 2014
+C     MMM = 3 
+      MMM = FACLEN + 0.0001
+C END FEB 2014
+C BEG MAR 2014
+      IF (INDX.EQ.1) MMM = 1
+C END MAR 2014
+      MSEGTT = 2*MSEG*MMM 
+      IF (MSEGTT.GT.295) THEN
+        WRITE(IFILE4,'(A,I5)') ' Too many segments. MSEGTT=',MSEGTT
+        CALL EXIT
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG FEB 2014
+C BEG FEB 10, 2014
+      IF (INDIC.LT.3) THEN
+C BEG FEB 28, 2014
+C BEG MAR 2014
+C BEG MAY 2014
+         IF (INDX.EQ.1) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC, ', 2, 0, ',MSEGTT,' $ INDIC,NPRT,ISTRESS,NSEG'
+         IF (INDX.EQ.2) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC,', 2, 0, ',MSEGTT,' $ INDIC,NPRT,ISTRESS,NSEG'
+         IF (INDX.EQ.3) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC,', 2, 0, ',MSEGTT,' $ INDIC,NPRT,ISTRESS,NSEG'
+         IF (INDX.EQ.4) WRITE(IFIL14,'(I2,A,I3,A)')
+     1   INDIC,', 2, 0, ',MSEGTT,' $ INDIC,NPRT,ISTRESS,NSEG'
+C END MAY 2014
+C END MAR 2014
+C END FEB 28, 2014
+         IF (INDX.EQ.0) WRITE(IFIL14,'(A,I3,A)')
+     1 ' 0, 1, 1, ',MSEGTT,' $ INDIC,NPRT,ISTRESS,NSEG'
+      ELSE
+         IF (INDX.NE.0) WRITE(IFIL14,'(A,I3,A,A)')
+     1 ' 4, 1, 0, 1, ',MSEGTT,' 0, 0, 1, 180',
+     1 '  $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+         IF (INDX.EQ.0) WRITE(IFIL14,'(A,I3,A)')
+     1 ' 3, 1, 1, ',MSEGTT,' 0, 0, 1, 180  $ INDIC,NPRT,ISTRESS,NSEG'
+      ENDIF
+C END FEB 10, 2014
+C END FEB 2014
+C
+C BEG AUG 2013
+C This part of bosdec2 maps the "flat" corrugated panel onto a
+C cylindrical shell of radius RCYL. (RCYL is set below.)
+C
+C     WRITE(IFILE4,'(/,A,A)')
+C    1' ISEG       RP1        ZP1       RP2        ZP2        RPC     ',
+C    1'    ZPC        SARC'
+C     DO 398 I = 1,MSEG
+C        WRITE(IFILE4,'(I4,1P7E12.4)')
+C    1 I,RP1(I),ZP1(I),RP2(I),ZP2(I),RPC(I),ZPC(I),SARC(I)
+C 398 CONTINUE
+C
+C BEG STAGS stuff...
+      DO 400 I = 1,MSEG
+C BEG FEB 2014
+       RATIO2 = (RP2(I) - RP1(I))/(ZP2(I) - ZP1(I))
+C END FEB 2014
+       ALPH = ATAN(RATIO2)
+       IF (ALPH.GE.0.) THEN
+          IF (UPDWNSM(I).EQ.1) THEN
+C BEG FEB 2014
+             RATIO3 = (RP1(I) - RPC(I))/RADIUSS(I)
+          ELSE
+             RATIO3 = (RPC(I) - RP2(I))/RADIUSS(I)
+C END FEB 2014
+          ENDIF
+          BETA = ASIN(RATIO3)
+          THETA = BETA + ALPH
+       ELSE
+          IF (UPDWNSM(I).EQ.1) THEN
+C BEG FEB 2014
+             RATIO3 = (RP2(I) - RPC(I))/RADIUSS(I)
+          ELSE
+             RATIO3 = (RPC(I) - RP1(I))/RADIUSS(I)
+C END FEB 2014
+          ENDIF
+          BETA = ASIN(RATIO3)
+          THETA = BETA - ALPH
+       ENDIF
+C      IF (I.EQ.1) WRITE(IFILE4,'(A,/,2I3,1P,5E12.4)')
+C    1   ' I,UPDOWNS(I),ALPH,RATIO3,BETA,THETA,RADIUS(I)=',
+C    1     I,UPDOWNS(I),ALPH*180/PI,RATIO3,BETA*180/PI,THETA*180/PI,
+C    1     RADIUS(I)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG FEB 2014
+       IF (UPDWNSM(I).EQ.1) THEN
+          IF (RP1(I).LT.RPC(I))
+     1    THETT1 = (180./PI)*ASIN((ZP1(I) - ZPC(I))/RADIUSS(I))
+          IF (RP1(I).GE.RPC(I))
+     1    THETT1 = 90.0 + (180./PI)*ASIN((RP1(I) - RPC(I))/RADIUSS(I))
+       ELSE
+          IF (RP2(I).GT.RPC(I))
+     1    THETT1 = 180.0 + (180./PI)*ASIN((ZPC(I)-ZP2(I))/RADIUSS(I))
+          IF (RP2(I).LE.RPC(I))
+     1    THETT1 = 270.0 + (180./PI)*ASIN((RPC(I)-RP2(I))/RADIUSS(I))
+       ENDIF
+       THETT2 = THETT1 + SUBTEND(I)
+       PROP1(I) = THETT1
+       PROP2(I) = THETT2
+       PROP3(I) = 0. 
+       PROP4(I) = 180. 
+       PROP5(I) = ZPC(I)
+       PROP6(I) = RADIUSS(I)
+C END FEB 2014
+       THETDF = THETT2 - THETT1
+       NCOLS(I) = THETDF/(2.0*FLOAT(MMM))
+       IF (MOD(NCOLS(I),2).EQ.0) NCOLS(I) = NCOLS(I) + 1
+       IF (ISMOOTH(I).EQ.0) THEN
+          IF (NCOLS(I).GT.21) NCOLS(I) = 21
+          IF (NCOLS(I).LT.7) NCOLS(I) = 7
+       ELSE
+          IF (NCOLS(I).GT.11) NCOLS(I) = 11
+          IF (NCOLS(I).LT.3) NCOLS(I) = 3
+       ENDIF
+       WRITE(IFILE4,'(A,3I6)') 'ISEG,ISMOOTH(ISEG),NCOLS(ISEG)=',
+     1 I,ISMOOTH(I),NCOLS(I)
+  400 CONTINUE
+C
+C     CALL EXIT
+C
+      MSEG2 = 2*MSEG
+      DO 405 I = 1,MSEG
+         J = MSEG - I + 1
+         K = MSEG + I
+         UPDWNSM(K) = UPDWNSM(J)
+         IWALLS(K) = IWALLS(J)
+         RADIUSS(K) = RADIUSS(J)
+         SUBTEND(K) = SUBTEND(J)
+         NCOLS(K) = NCOLS(J)
+  405 CONTINUE
+C
+C BEG FEB 2014
+      WRITE(IFILE4,'(/,A)')
+     1  ' STAGS INPUT DATA GENERATED FOR THE TOROIDAL SHELL UNITS'
+C END FEB 2014
+      WRITE(IFILE4,'(/,A,I3,A)')
+     1  ' STAGS Unit Junctions for ',MSEG2,' Shell Units'
+      IF (MSEG2.LT.2) GO TO 415
+      DO 410 I = 2,MSEG2
+       I1 = I - 1
+       MUNIT(I1) = I1
+       NUNIT(I1) = I
+       IF (UPDWNSM(I1).EQ.2.AND.UPDWNSM(I).EQ.1) THEN
+C BEG FEB 2014
+        WRITE(IFILE4,'(A,I3,A,I3)')
+     1    ' Edge 1 of shell unit',I,
+     1    ' is joined to Edge 1 of shell unit',I1
+        MBOUND(I1) = 1
+        NBOUND(I1) = 1
+C END FEB 2014
+       ENDIF
+       IF (UPDWNSM(I1).EQ.1.AND.UPDWNSM(I).EQ.2) THEN
+C BEG FEB 2014
+        WRITE(IFILE4,'(A,I3,A,I3)')
+     1    ' Edge 3 of shell unit',I,
+     1    ' is joined to Edge 3 of shell unit',I1
+        MBOUND(I1) = 3
+        NBOUND(I1) = 3
+C END FEB 2014
+       ENDIF
+       IF (UPDWNSM(I1).EQ.1.AND.UPDWNSM(I).EQ.1) THEN
+C BEG FEB 2014
+        WRITE(IFILE4,'(A,I3,A,I3)')
+     1    ' Edge 1 of shell unit',I,
+     1    ' is joined to Edge 3 of shell unit',I1
+        MBOUND(I1) = 3
+        NBOUND(I1) = 1
+C END FEB 2014
+       ENDIF
+       IF (UPDWNSM(I1).EQ.2.AND.UPDWNSM(I).EQ.2) THEN
+C BEG FEB 2014
+        WRITE(IFILE4,'(A,I3,A,I3)')
+     1    ' Edge 3 of shell unit',I,
+     1    ' is joined to Edge 1 of shell unit',I1
+        MBOUND(I1) = 1
+        NBOUND(I1) = 3
+C END FEB 2014
+       ENDIF
+  410 CONTINUE
+  415 CONTINUE
+C
+C     NROWS = 101
+      NROWS = 201
+C BEG FEB 2014
+      IF (MMM.EQ.1) NROWS = 601
+C
+C  Generate input data for STAGS (toroidal with MMM repetitions)...
+      IF (MMM.GT.1) THEN
+C BEG MAR 2014
+         IF (INDX.EQ.2) THEN
+C          STAGS file for general symmetric buckling
+C          Generate CASE.inp3 file for input for STAGS...
+C          CASE.inp3 is an input file for STAGS:
+           I=INDEX(CASE,' ')
+           IF(I.NE.0) THEN
+             CASA3=CASE(:I-1)//'.inp3'
+           ELSE
+             CASA3=CASE//'.inp3'
+           ENDIF
+         ELSE
+           IF (INDX.EQ.3) THEN
+C            STAGS file for general antisymmetric buckling
+C            Generate CASE.inp4 file for input for STAGS...
+C            CASE.inp4 is an input file for STAGS:
+             I=INDEX(CASE,' ')
+             IF(I.NE.0) THEN
+               CASA3=CASE(:I-1)//'.inp4'
+             ELSE
+               CASA3=CASE//'.inp4'
+             ENDIF
+           ENDIF
+C
+           IF (INDX.EQ.4) THEN
+C            STAGS file for general antisymmetric buckling
+C            Generate CASE.inp5 file for input for STAGS...
+C            CASE.inp5 is an input file for STAGS:
+             I=INDEX(CASE,' ')
+             IF(I.NE.0) THEN
+               CASA3=CASE(:I-1)//'.inp5'
+             ELSE
+               CASA3=CASE//'.inp5'
+             ENDIF
+           ENDIF
+C
+C END MAR 2014
+         ENDIF
+      ELSE
+C        Generate CASE.inp2 file for input for STAGS...
+C        CASE.inp2 is an input file for STAGS:
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+           CASA3=CASE(:I-1)//'.inp2'
+         ELSE
+           CASA3=CASE//'.inp2'
+         ENDIF
+      ENDIF
+C END FEB 2014
+      OPEN(UNIT=63,FILE=CASA3,STATUS='UNKNOWN')
+      IFIL62 = 63
+C
+      M2MSEG = MMM*2*MSEG
+C write out stuff...
+      DO 416 I = 1,M2MSEG
+       WRITE(IFILE4,'(A,2I3)') ' ISEG,UPDWNSM(ISEG)=',I,UPDWNSM(I)
+  416 CONTINUE
+C     CALL EXIT
+C
+C BEG FEB 2014
+      WRITE(IFIL62,'(A,I3,A)')
+     1  ' STAGS model with ',M2MSEG,' toroidal shell units'
+C END FEB 2014
+      WRITE(IFIL62,'(A)')
+     1  ' 0  0  0  0  0  0  0  $B-1 IGRAV,ICHECK,ILIST,INCBC,NRUNIT,etc'
+      WRITE(IFIL62,'(I4,A,I4,A)') M2MSEG,'  0  0 ',M2MSEG-1,
+     1  '  0,  $B-2 NUNITS,NUNITE,NSTIFS,NINTS,NPATS,'
+      WRITE(IFIL62,'(A)')
+     1 '  0  0  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS'
+      WRITE(IFIL62,'(A)')
+     1 '  1  0  0  0  0  1  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP'
+C END STAGS stuff
+C
+      DO 425 M = 1,MMM
+      DO 420 I = 1,MSEG
+         ISEG = I
+         J = I + (M-1)*2*MSEG
+         R1(J) = FLOAT(M-1)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) + RP1(I)
+         R2(J) = FLOAT(M-1)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) + RP2(I)
+         RC(J) = FLOAT(M-1)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) + RPC(I)
+         Z1(J) = ZP1(I)
+         Z2(J) = ZP2(I)
+         ZC(J) = ZPC(I)
+         SROTP(J) = SROT(I)
+         NNODES2(J) = NNODES(I)
+         NSHAPE2(J) = NSHAPE(I)
+         THKALL2(J) = THKALL(I)
+         NTYPE2(J) = NTYPE(I)
+         NRING2(J) = NRING(I)
+         FOUND2(J) = FOUND(I)
+         NSUR2(J) = NSUR(I)
+C BEG STAGS stuff...
+         SARC2(J) = SARC(I)
+         NCOLS2(J) = NCOLS(I)
+         IWALL2(J) = IWALLS(I)
+         UPDNAL2(J) = UPDWNSM(I)
+         MUNIT2(J) = MUNIT(I) + (M-1)*2*MSEG
+         NUNIT2(J) = NUNIT(I) + (M-1)*2*MSEG
+         MBOUND2(J) = MBOUND(I)
+         NBOUND2(J) = NBOUND(I)
+         SUBTND2(J) = SUBTEND(I)
+         PROP12(J) = PROP1(I)
+         PROP22(J) = PROP2(I)
+         PROP32(J) = PROP3(I)
+         PROP42(J) = PROP4(I)
+         PROP52(J) = PROP5(I)
+C BEG FEB 2014
+         PROP62(J) = PROP6(I)
+C END FEB 2014
+C END STAGS stuff
+  420 CONTINUE
+C
+C     WRITE(IFILE4,'(/,A,A)')
+C    1' ISEG        R1         Z1        R2         Z2         RC     ',
+C    1'     ZC        SARC'
+C     DO 421 I = 1,MSEG
+C        J = I + (M-1)*2*MSEG
+C        WRITE(IFILE4,'(I4,1P6E12.4)')
+C    1 J,R1(J),Z1(J),R2(J),Z2(J),RC(J),ZC(J)
+C 421 CONTINUE
+C
+      DO 422 I = 1,MSEG
+         K = MSEG - I + 1
+         J = MSEG + I + (M-1)*2*MSEG
+         L = MSEG + I
+         R1(J) = FLOAT(M)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) - RP2(K)
+         R2(J) = FLOAT(M)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) - RP1(K)
+         RC(J) = FLOAT(M)*(WIDTH + 2.0*RADD1 + 2.0*RADD2) - RPC(K)
+         Z1(J) = ZP2(K)
+         Z2(J) = ZP1(K)
+         ZC(J) = ZPC(K)
+         SROTP(J) = SROT(K)
+         NNODES2(J) = NNODES(K)
+         NSHAPE2(J) = NSHAPE(K)
+         THKALL2(J) = THKALL(K)
+         NTYPE2(J) = NTYPE(K)
+         NRING2(J) = NRING(K)
+         FOUND2(J) = FOUND(K)
+         NSUR2(J) = NSUR(K)
+C BEG STAGS stuff...
+         SARC2(J) = SARC(K)
+         NCOLS2(J) = NCOLS(K)
+         IWALL2(J) = IWALLS(K)
+         UPDNAL2(J) = UPDWNSM(K)
+         MUNIT2(J) = MUNIT(L) + (M-1)*2*MSEG
+         NUNIT2(J) = NUNIT(L) + (M-1)*2*MSEG
+         MBOUND2(J) = MBOUND(L)
+         NBOUND2(J) = NBOUND(L)
+         SUBTND2(J) = SUBTEND(K)
+         PROP12(J) = PROP1(K)
+         PROP22(J) = PROP2(K)
+         PROP32(J) = PROP3(K)
+         PROP42(J) = PROP4(K)
+         PROP52(J) = PROP5(K)
+C BEG FEB 2014
+         PROP62(J) = PROP6(K)
+C END FEB 2014
+C END STAGS stuff
+  422 CONTINUE
+C
+C BEG STAGS stuff
+      IF (M.GT.1) THEN
+         J = (M-1)*2*MSEG
+         L = J + 1
+         MUNIT2(J) = J
+         NUNIT2(J) = L
+         IF (UPDNAL2(J).EQ.1) THEN
+C BEG FEB 2014
+            MBOUND2(J) = 3
+            NBOUND2(J) = 1
+         ELSE
+            MBOUND2(J) = 1
+            NBOUND2(J) = 3
+C END FEB 2014
+         ENDIF
+      ENDIF
+C END STAGS stuff
+C
+C     WRITE(IFILE4,'(/,A,A)')
+C    1' ISEG        R1         Z1        R2         Z2         RC     ',
+C    1'     ZC        SARC'
+C     DO 423 I = 1,MSEG
+C        J = MSEG + I + (M-1)*2*MSEG
+C        WRITE(IFILE4,'(I4,1P6E12.4)')
+C    1 J,R1(J),Z1(J),R2(J),Z2(J),RC(J),ZC(J)
+C 423 CONTINUE
+C
+  425 CONTINUE
+C
+C RCYL is the radius of the huge cylinder. Should be
+C a GENTEXT input variable, but it is not.
+C
+C     RCYL = 318. + FLOAT(MMM)*2.0*(RADD1 + RADD2)/(2.*PI)
+      RCYL = 0.
+      IF (RCYL.LT.R2(1)) THEN
+         DO 427 I = 1,MSEGTT
+           RP1(I) = R1(I)
+           ZP1(I) = Z1(I)
+           RP2(I) = R2(I)
+           ZP2(I) = Z2(I)
+           RPC(I) = RC(I)
+           ZPC(I) = ZC(I)
+C BEG NOV 2013
+C   ARCDRW3 is modified from BIGBOSOR4/SOURCES. Finds new center of
+C   curvature of a shell segment if the above values of
+C   RP1,ZP1, RP2,ZP2, RPC,ZPC are inconsistent.
+C
+           CALL ARCDRW3(I,RP1(I),RP2(I),RPC(I),ZP1(I),ZP2(I),
+     1                 ZPC(I),SROTP(I),BRADIUS(I),SUBTND2(I))
+C END NOV 2013
+C BEG STAGS stuff...
+C BEG FEB 2014
+           IF (UPDNAL2(I).EQ.1) THEN
+              XGC1(I) = RP1(I)
+              YGC1(I) = 0. 
+              ZGC1(I) = ZP1(I) 
+              XGC2(I) = RP1(I)
+              YGC2(I) = 0. 
+              ZGC2(I) = -ZP1(I)
+              XGC3(I) = RP2(I)
+              YGC3(I) = 0. 
+              ZGC3(I) = -ZP2(I) 
+           ELSE
+              XGC1(I) = RP2(I)
+              YGC1(I) = 0. 
+              ZGC1(I) = ZP2(I) 
+              XGC2(I) = RP2(I)
+              YGC2(I) = 0. 
+              ZGC2(I) = -ZP2(I) 
+              XGC3(I) = RP1(I)
+              YGC3(I) = 0. 
+              ZGC3(I) = -ZP1(I) 
+           ENDIF
+C
+           IF (UPDNAL2(I).EQ.1) THEN
+             IF (RP1(I).LT.RPC(I))
+     1       THETT1 = (180./PI)*ASIN((ZP1(I) - ZPC(I))/BRADIUS(I))
+             IF (RP1(I).GE.RPC(I))
+     1       THETT1 = 90.0 + (180./PI)*ASIN((RP1(I)-RPC(I))/BRADIUS(I))
+           ELSE
+             IF (RP2(I).GT.RPC(I))
+     1       THETT1 = 180.0 + (180./PI)*ASIN((ZPC(I)-ZP2(I))/BRADIUS(I))
+             IF (RP2(I).LE.RPC(I))
+     1       THETT1 = 270.0 + (180./PI)*ASIN((RPC(I)-RP2(I))/BRADIUS(I))
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           THETT2 = THETT1 + SUBTND2(I)
+           PROP12(I) = THETT1
+           PROP22(I) = THETT2
+           PROP62(I) = BRADIUS(I)
+C END FEB 2014
+C END STAGS stuff
+  427    CONTINUE
+         GO TO 443
+C BEG FEB 2014
+C End of (RCYL.LT.R2(1)) branch of "IF" statement.
+C END FEB 2014
+      ELSE
+         DO 430 I = 1,MSEGTT
+C          I1 = I - 1
+C          MSEG1 = MSEG + 1
+C          IF (I.GE.MSEG1) THEN
+C             DIFF = ABS(R1(I) - R2(I1))/RP2(MSEG)
+C             IF (DIFF.GT.0.001) THEN
+C                THETA = R2(I1)/RCYL
+C                RP1(I) = R2(I1) + (R1(I) - R2(I1))*COS(THETA)
+C                ZP1(I) = Z2(I1) + (R1(I) - R2(I1))*SIN(THETA)
+C                GO TO 428
+C             ENDIF
+C          ENDIF
+           THET1(I) = R1(I)/RCYL
+           RCYLI = RCYL + Z1(I) - ZAVE
+           RP1(I) = RCYLI*SIN(THET1(I)) +1.5*RCYL
+           ZP1(I) = RCYLI*COS(THET1(I))
+  428      CONTINUE
+           THET2(I) = R2(I)/RCYL
+           RCYLI = RCYL + Z2(I) - ZAVE
+           RP2(I) = RCYLI*SIN(THET2(I)) +1.5*RCYL
+           ZP2(I) = RCYLI*COS(THET2(I))
+           THET3(I) = RC(I)/RCYL
+           RCYLI = RCYL + ZC(I) - ZAVE
+           RPC(I) = RCYLI*SIN(THET3(I)) +1.5*RCYL
+           ZPC(I) = RCYLI*COS(THET3(I))
+C
+C   ARCDRW3 is modified from BIGBOSOR4/SOURCES. Finds new center of
+C   curvature of a shell segment if the above values of
+C   RP1,ZP1, RP2,ZP2, RPC,ZPC are inconsistent.
+C
+           CALL ARCDRW3(I,RP1(I),RP2(I),RPC(I),ZP1(I),ZP2(I),
+     1                 ZPC(I),SROTP(I),BRADIUS(I),SUBTND2(I))
+C
+C BEG STAGS stuff...
+C BEG FEB 2014
+           IF (UPDNAL2(I).EQ.1) THEN
+              XGC1(I) = RP1(I)
+              YGC1(I) = 0.
+              ZGC1(I) = ZP1(I)
+              XGC2(I) = RP1(I)
+              YGC2(I) = 0.
+              ZGC2(I) = -ZP1(I)
+              XGC3(I) = RP2(I)
+              YGC3(I) = 0.
+              ZGC3(I) = -ZP2(I)
+           ELSE
+              XGC1(I) = RP2(I)
+              YGC1(I) = 0.
+              ZGC1(I) = ZP2(I)
+              XGC2(I) = RP2(I)
+              YGC2(I) = 0.
+              ZGC2(I) = -ZP2(I)
+              XGC3(I) = RP1(I)
+              YGC3(I) = 0.
+              ZGC3(I) = -ZP1(I)
+           ENDIF
+           IF (UPDNAL2(I).EQ.1) THEN
+             PROP32(I) = PROP32(I) + (ZP1(I)-1.5*RCYL)/RCYL
+             PROP42(I) = PROP42(I) + (ZP2(I)-1.5*RCYL)/RCYL
+           ELSE
+             PROP32(I) = PROP32(I) + (ZP2(I)-1.5*RCYL)/RCYL
+             PROP42(I) = PROP42(I) + (ZP1(I)-1.5*RCYL)/RCYL
+           ENDIF
+           PROP12(I) = 0.
+C          FLRATIO =
+C    1     0.5*SQRT((ZP2(I)-ZP1(I))**2
+C    1             +(RP2(I)-RP1(I))**2)/BRADIUS(I)
+C          SUBTND2(I) =  2.0*ASIN(FLRATIO)*180./PI
+           PROP22(I) = SUBTND2(I) 
+           PROP62(I) = BRADIUS(I)
+C END FEB 2014
+C END STAGS stuff
+  430    CONTINUE
+      ENDIF
+C
+C     MSEGTTM = MSEGTT - 1
+C     DO 440 I = 1,MSEGTTM
+C        I1 = I + 1
+C        RP2(I) = RP1(I1)
+C        ZP2(I) = ZP1(I1)
+C 440 CONTINUE
+C
+C     THET1(MSEGTT) = R2(MSEGTT)/RCYL
+C     RCYLI = RCYL + Z2(MSEGTT) - ZAVE
+C     RP2(MSEGTT) = RCYLI*SIN(THET1(MSEGTT))
+C     ZP2(MSEGTT) = RCYLI*COS(THET1(MSEGTT))
+C
+  443 CONTINUE
+C
+C     WRITE(IFILE4,'(/,A,A)')
+C    1' ISEG       RP1        ZP1       RP2        ZP2        RPC     ',
+C    1'    ZPC       THETA'
+C     DO 460 I = 1,MSEGTT
+C        WRITE(IFILE4,'(I4,1P7E12.4)')
+C    1 I,RP1(I),ZP1(I),RP2(I),ZP2(I),RPC(I),ZPC(I),THET1(I)
+C 460 CONTINUE
+C     CALL EXIT
+C
+      DO 500 I = 1,MSEGTT
+         ISEG = I
+         WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+         WRITE(IFIL14,'(I4,A,I3,A)') NNODES2(I),', 3, ',NSHAPE2(I),
+     1 ' $ NMESH,NTYPEH,NSHAPE'
+C BEG FEB 2014
+         WRITE(IFIL14,'(1P,4E14.6,A)') ZP1(I),RP1(I),ZP2(I),RP2(I),
+     1 ' $ R1,Z1,R2,Z2'
+         WRITE(IFIL14,'(1P,3E14.6,A)') ZPC(I),RPC(I),-SROTP(I),
+     1 ' $ RC,ZC,SROT'
+C END FEB 2014
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' 0  $ IMP = indicator for imperfection'
+         WRITE(IFIL14,'(A)')' 1, 2, 1  $ NTYPEZ,NZVALU,NTYPE'
+         WRITE(IFIL14,'(A,I5,A)') ' 1, ',NNODES2(I),
+     1 ' $ IPOINT(1),IPOINT(2)'
+         ZVAL1 = THKALL2(I)/2.
+         ZVAL2 = THKALL2(I)/2.
+         WRITE(IFIL14,'(1P,2E14.6,A)') ZVAL1,ZVAL2,'  $ ZVAL1,ZVAL2'
+C BEG APR 2014
+C        WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+         WRITE(IFIL14,'(A)')' Y  $ do you want to print r(s), etc.'
+C END APR 2014
+C
+C BEG FEB 2014
+         WRITE(IFIL14,'(A)') ' H $ RING AND LINE LOAD INPUT FOLLOWS'
+         IF (ISEG.EQ.1)
+     1   WRITE(IFIL14,'(A,A)') ' 1, 1, 1, 0 ',
+     1 ' $ NRING, NTYPE, IPOINT(1), NTYPER'
+         IF (ISEG.GT.1) WRITE(IFIL14,'(A)') ' 0  $ NRING'
+         WRITE(IFIL14,'(1PE14.6,A)') FOUND(ISEG),' $ K'
+C BEG FEB 10, 2014
+         PRESS = TOTLOD(ILOADX)
+C        AXIALL = PRESS*ZP1(1)/2.0
+         AXIALL = 0.0
+         IF (ISEG.EQ.1.AND.INDIC.LT.3) THEN
+C END FEB 10, 2014
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 0, 0, 0. ',
+     1 ' $ LINTYP, NLOAD(1),NLOAD(2),NLOAD(3),NLOAD(4),V(1)'
+          WRITE(IFIL14, '(A,1PE14.6,A)') ' 1, 0, 0, 0 ', AXIALL,
+     1 ' $ NLOAD(1),NLOAD(2),NLOAD(3),NLOAD(4),DV(1)'
+         ELSE
+          WRITE(IFIL14,'(A)') ' 0 $ LINTYP'
+         ENDIF
+C
+         WRITE(IFIL14,'(A)') ' H $ DISTRIBUTED LOAD INPUT FOLLOWS'
+C BEG FEB 10, 2014
+         IF (INDIC.LT.3) THEN
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 2, 0, 0, 1 ',
+     1  ' $ IDISAB,NLTYPE,NPSTAT,NLOAD(1),NLOAD(2),NLOAD(3)'
+         ELSE
+          WRITE(IFIL14,'(A,A)') ' 1, 1, 2, 4, 0, 0, 1 ',
+     1  ' $ IDISAB,NLTYPE,NPSTAT,NTYPEL,NLOAD(1),NLOAD(2),NLOAD(3)'
+         ENDIF
+C END FEB 10, 2014
+         WRITE(IFIL14,'(1P2E14.6,A)') PRESS,PRESS,' $ PN(1),PN(2)'
+C BEG FEB 10, 2014
+         IF (INDIC.GE.3) THEN
+          WRITE(IFIL14,'(A,A)') ' 2, 2, 1, 0., 180., 1.0, 1.0',
+     1  ' $ NTHETA,NOPT,NODD,THETA1,THETA2,YPLUS1,YPLUS2'
+          WRITE(IFIL14,'(A)')
+     1  ' N  $ Do you want to print out Fourier expansion of load?'
+         ENDIF
+C END FEB 10, 2014
+         WRITE(IFIL14,'(A,I4,A)')' 1, 1, ',NNODES2(ISEG),
+     1 ' $ NTYPE, IPOINT(1),IPOINT(2)'
+C
+         WRITE(IFIL14,'(A)') ' H  $ SHELL WALL CONSTRUCTION FOLLOWS'
+C END FEB 2014
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' 2  $ NWALL'
+         WRITE(IFIL14,'(1P,3E14.6,A)') EMOD,NU,DENSTY,
+     1 ' $ EMOD,NU,DENSTY'
+         ALPH = 0.
+         NRS = 0
+         WRITE(IFIL14,'(1P,E14.6,2I3,A)') ALPH,NRS,NSUR2(I),
+     1 ' $ ALPHA,NRS,NSUR'
+C
+         WRITE(IFIL14,'(A)')' N  $ do you want print refsurf,thick.?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out Cij?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out loads?'
+C
+  500 CONTINUE
+C END AUG 2013
+C
+C BEG STAGS stuff...
+      DO 503 I = 1,MSEGTT
+C BEG FEB 2014
+         IF (I.LT.MSEGTT) THEN
+           WRITE(IFIL62,'(2I4,A,I3,A,I3,A)')
+     1       NCOLS2(I),NROWS,',   $F-1 NROWS(',I,'),NCOLS(',I,')'
+         ELSE
+           WRITE(IFIL62,'(2I4,A,I3,A,I3,A)')
+     1       NCOLS(K),NROWS,'    $F-1 NROWS(',J,'),NCOLS(',J,')'
+         ENDIF
+C END FEB 2014
+  503 CONTINUE
+C
+      DO 506 I = 1,MSEGTT
+         IF (I.LT.MSEGTT) WRITE(IFIL62,'(4I4,A,I3,A,I3,A,I3,A,I3,A)')
+     1       MUNIT2(I),MBOUND2(I),NUNIT2(I),NBOUND2(I),
+     1    '  $G-1 MUNIT(',I,'),MBOUND(',I,'),NUNIT(',I,'),NBOUND(',I,')'
+  506 CONTINUE
+C     MSEG21 = MSEG2 - 1
+C     DO 4221 I = 1,MSEG21
+C      WRITE(IFILE4,'(A,5I5)')
+C    1' I,MUNIT2(I),MBOUND2(I),NUNIT2(I),NBOUND2(I)=',
+C    1  I,MUNIT2(I),MBOUND2(I),NUNIT2(I),NBOUND2(I)
+C4221 CONTINUE
+C     CALL EXIT
+      WRITE(IFIL62,'(A)')
+     1  ' 1  0  0  0  0  0  $I-1 ITAM,NESP,IPLST,ITANST,ICREEP,IPLANE'
+      GMOD = EMOD/(2.*(1+NU))
+      WRITE(IFIL62,'(1P,4E11.4,A,1P,E9.2,A)')
+     1    EMOD,NU,GMOD,DENSTY/386.1,' 0. ',EMOD,' 0. $I-2 E1,etc'
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL62,'(A,/,A)')
+     1   'C GCP Material in shell unit walls',
+     1   'ORTHOELAST_MATERIAL  1 1 1 0 0 $ I-5a MATID,ngroups,nstates..'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E1=modulus along fibers.        BEGIN I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E2=modulus normal to fibers.          I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E3=modulus normal to fibers.          I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G12=x-y in-plane shear modulus.       I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G13=x-z out-of-plane shear modulus.   I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G23=y-z out-of-plane shear modulus.   I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU12=large in-plane Poisson ratio.      I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU13=x-z out-of-plane Poisson ratio.    I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU23=y-z out-of-plane Poisson ratio.    I-7a rec.'
+      WRITE(IFIL62,'(1P,E12.4,A)')
+     1    DENSTY/386.1,', $I-7a material weight density.      I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A1=thermal coef. along fibers.          I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A2=thermal coef. normal to fibers.      I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A3=thermal coef. normal to fibers.      I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B1=hydroscopic coef. along fibers.      I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B2=hydroscopic coef. normal to fibers.  I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B3=hydroscopic coef. normal to fibers.  I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a T=material cure temperature.            I-7a rec.'
+      WRITE(IFIL62,'(A)')
+     1    ' 0.  $I-7a M=reference moisture content.      END  I-7a rec.'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL62,'(A)') 'C GCP Shell unit wall props'
+      DO 510 ISEG = 1,NSEG
+          WRITE(IFIL62,'(A,I4,A,A,/,A,/,A,/,1PE14.6,A,/,A)')
+     1   'SHELL_FABRICATION ',ISEG,' 1 1 0 0',
+     1  ' $I-5a fabid,nlayer,ipts,ishr,isym',
+     1  ' 1  $I-21a MATID(j),j=1,nlayer',
+     1  ' 2  $I-21b INTSHL(j),j=1,nlayer',
+     1    THICK(ISEG),'  $I-21c THKSHL(j),j=1,nlayer',
+     1  ' 0.       $I-21d ANGSHL(j),j=1,nlayer'
+  510 CONTINUE
+      WRITE(IFIL62,'(A)')
+     1   'END    $I-5a cease (end of GCP input data)'
+C
+C  special STAGS input for the 940 finite element:
+      IF (IELMNT.EQ.940) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $ User Element Definitions -----------'
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $'
+           WRITE(IFIL62,'(A,/)')
+     1'*userElement  name="Uniform Plate Element"  type=940  nodes=4'
+           WRITE(IFIL62,'(A,/)') '*dofOrdering'
+           WRITE(IFIL62,'(A)') ' $  Node DOF...'
+           WRITE(IFIL62,'(A)') ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     1     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     2     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     3     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '     4     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '*nodeSequence'
+           WRITE(IFIL62,'(A)') ' $  Nodes...'
+           WRITE(IFIL62,'(A)') ' $  --------'
+           WRITE(IFIL62,'(A)') '    1 2 3 4'
+           WRITE(IFIL62,'(A,/)') '*floatVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ---------------------'
+           WRITE(IFIL62,'(A)')   '     UniformPressure  2'
+           WRITE(IFIL62,'(A,/)') '     Drilling         1'
+           WRITE(IFIL62,'(A,/)') '*integerVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     IntegOrder          1'
+           WRITE(IFIL62,'(A,/)') '     LoadType            1'
+           WRITE(IFIL62,'(A,/)') '*end userElement'
+           WRITE(IFIL62,'(A,A,/)')
+     1'*userProperty  name="Standard Data -- Uniform Plate Element"',
+     1'  id=940'
+           WRITE(IFIL62,'(A,/)') '*integerProps'
+           WRITE(IFIL62,'(A)')   ' $  Required Standard Data'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     ActiveNodes    4'
+           WRITE(IFIL62,'(A)')   '     SamplingCount  1'
+           WRITE(IFIL62,'(A)')   '     StrainCount    8'
+           WRITE(IFIL62,'(A,/)') '     StressCount    8'
+           WRITE(IFIL62,'(A)')   ' $  Data for GCP Interface'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     Class           2'
+           WRITE(IFIL62,'(A,/)') '     Kintype         1'
+           WRITE(IFIL62,'(A)')   '*end userProperty'
+      ENDIF
+C       End of IELMNT.EQ.940 condition.
+C
+C  Input for STAGS shell units next...
+C
+      DO 520 I = 1,MSEGTT
+C BEG FEB 2014
+           WRITE(IFIL62,'(A,I3,A,/,A)')
+     1    'C STAGS SHELL UNIT NUMBER ',I,':',
+     1   ' 8  3  0  0  0  1  $M-1 ISHELL,IGLOBE,NROWS,...,NFABS'
+           WRITE(IFIL62,'(1P,6E12.4,A)')
+     1     PROP12(I),PROP22(I),PROP32(I),PROP42(I),PROP52(I),PROP62(I),
+     1     ' $M-2'
+C END FEB 2014
+           WRITE(IFIL62,'(1P,3E14.6,A,/,1P,3E14.6,A,/,1P,3E14.6,A)')
+     1      XGC1(I),YGC1(I),ZGC1(I),'  $M-4A XGC1,YGC1,ZGC1',
+     1      XGC2(I),YGC2(I),ZGC2(I),'  $M-4B XGC2,YGC2,ZGC2',
+     1      XGC3(I),YGC3(I),ZGC3(I),'  $M-4C XGC3,YGC3,ZGC3'
+C BEG FEB 2014
+           WRITE(IFIL62,'(I4,A)') IWALL2(I),
+     1  '  0  0. 0. 0  0  0 $M-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,..'
+C END FEB 2014
+           WRITE(IFIL62,'(I6,A)') IELMNT,'   $N-1  KELT'
+           IF (IELMNT.EQ.940) THEN
+C BEG FEB 2014
+C            PRESS = 0.
+             PRESS = TOTLOD(ILOADX)
+C END FEB 2014
+             PRESS0 = 0.
+             WRITE(IFIL62,'(1P2E14.6,A)')
+     1                               PRESS,PRESS0,' 0. $n-1A PA,PB,drl'
+             WRITE(IFIL62,'(A)')
+     1                      ' 0  2          $n-1B integ.scheme,PA & PB'
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (I.EQ.1) THEN
+C BEG FEB 2014
+             IF (UPDNAL2(I).EQ.1) THEN
+                  WRITE(IFIL62,'(A)')
+     1          ' 0  4  6  4  1  $P-1 IBLN(i),i=1,4, IBOND'
+C BEG MAR 2014 (temporary prebuckling bc at beginning of model)
+C                 WRITE(IFIL62,'(A)') ' 101  100  $P-2 ITRA, IROT'
+                  WRITE(IFIL62,'(A)') ' 001  100  $P-2 ITRA, IROT'
+C END MAR 2014 (temporary prebuckling bc at beginning of model)
+C BEG MAR 2014
+                  IF (INDX.NE.4)
+     1            WRITE(IFIL62,'(A)') ' 4, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+                  IF (INDX.EQ.4)
+     1            WRITE(IFIL62,'(A)') ' 1, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+C END MAR 2014
+             ELSE
+                  WRITE(IFIL62,'(A)')
+     1          ' 6  4  0  4  1  $P-1 IBLN(i),i=1,4, IBOND'
+C BEG MAR 2014 (temporary prebuckling bc at beginning of model)
+C                 WRITE(IFIL62,'(A)') ' 101  100  $P-2 ITRA, IROT'
+                  WRITE(IFIL62,'(A)') ' 001  100  $P-2 ITRA, IROT'
+C END MAR 2014 (temporary prebuckling bc at beginning of model)
+C BEG MAR 2014
+                  IF (INDX.NE.4)
+     1            WRITE(IFIL62,'(A)') ' 6, 1, 4, 1  $P-3 JBLN(i),i=1,4'
+                  IF (INDX.EQ.4)
+     1            WRITE(IFIL62,'(A)') ' 6, 1, 1, 1  $P-3 JBLN(i),i=1,4'
+C END MAR 2014
+             ENDIF
+           ELSE
+             IF (I.NE.MSEGTT) THEN
+               WRITE(IFIL62,'(A)')
+     1       ' 6  4  6  4  1  $P-1 IBLN(i),i=1,4, IBOND'
+               WRITE(IFIL62,'(A)') ' 6, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+             ENDIF 
+C END FEB 2014
+           ENDIF
+C
+           IF (I.EQ.MSEGTT) THEN
+C BEG FEB 2014
+             IF (UPDNAL2(I).EQ.1) THEN
+                  WRITE(IFIL62,'(A)')
+     1          ' 6  4  4  4  1  $P-1 IBLN(i),i=1,4, IBOND'
+C BEG MAR 2014
+                  IF (MMM.GT.1.AND.INDX.EQ.2) WRITE(IFIL62,'(A)')
+     1          ' 6, 1, 4, 1  $P-3 JBLN(i),i=1,4'
+                  IF (MMM.GT.1.AND.INDX.GE.3) WRITE(IFIL62,'(A)')
+     1          ' 6, 1, 1, 1  $P-3 JBLN(i),i=1,4'
+C END MAR 2014
+                  IF (MMM.EQ.1) WRITE(IFIL62,'(A)')
+     1          ' 6, 1, 1, 1  $P-3 JBLN(i),i=1,4'
+C                 WRITE(IFIL62,'(A)') ' 011  100  $P-2 JTRA, JROT'
+             ELSE
+                  WRITE(IFIL62,'(A)')
+     1          ' 4  4  6  4  1  $P-1 IBLN(i),i=1,4, IBOND'
+C beg modified Feb 26, 2014
+C BEG MAR 2014
+                  IF (MMM.GT.1.AND.INDX.EQ.2) WRITE(IFIL62,'(A)')
+     1          ' 4, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+                  IF (MMM.GT.1.AND.INDX.GE.3) WRITE(IFIL62,'(A)')
+     1          ' 1, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+C END MAR 2014
+                  IF (MMM.EQ.1) WRITE(IFIL62,'(A)')
+     1          ' 1, 1, 6, 1  $P-3 JBLN(i),i=1,4'
+C end modified Feb 26, 2014
+             ENDIF
+C END FEB 2014
+           ENDIF
+C
+C BEG FEB 2014
+           IF (I.EQ.1) THEN
+              WRITE(IFIL62,'(A)')
+     1      ' 1  0  0  0   $Q-1 NSYS,NICS,NAMS,NUSS'
+           ELSE
+              WRITE(IFIL62,'(A)')
+     1      ' 1  0  0  0   $Q-1 NSYS,NICS,NAMS,NUSS'
+           ENDIF
+C Load system A
+           WRITE(IFIL62,'(A)') ' 1  1  0   $Q-2 ISYS,NN,IFLG'
+           FMULTX = 1.0
+           IF (UPDNAL2(I).NE.1) FMULTX = -1.0
+           WRITE(IFIL62,'(1PE14.6,A)')
+     1     FMULTX*TOTLOD(ILOADX),
+     1   ' 5  3  0  0  0  $Q-3 P,LT,LD,LI,LJ,LAX'
+C Load system B (imposed zero v displacement and node point 1
+C          IF (I.EQ.1) THEN
+C             WRITE(IFIL62,'(A)') ' 2  1  0   $Q-2 ISYS,NN,IFLG'
+C             WRITE(IFIL62,'(A)')
+C    1      ' 0. -1  2  1  101  0  $Q-3 P,LT,LD,LI,LJ,LAX'
+C          ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END FEB 2014
+           WRITE(IFIL62,'(A)')
+     1   ' 0  0  0  0  0  $R-1 IPRD,IPRR,IPRE,IPRS,IPRP'
+  520 CONTINUE
+C
+      CLOSE(UNIT=63)
+C BEG FEB 2014
+      IF (IMODX.EQ.0) WRITE(IFILE8,'(/,/,A,/,A)')
+     1  ' STAGS input file for michelin: ',
+     1    CASA3
+C END FEB 2014
+C
+C END STAGS stuff
+C
+C MORE BIGBOSOR4 stuff...
+      WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+      WRITE(IFIL14,'(A)')' 0  $ NLAST'
+      WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+C BEG FEB 10, 2014
+C
+      IF (INDX.NE.0) THEN
+        NMINB = N0B
+C BEG MAR 2014
+        IF (INDIC.LE.-1) NMINB = -10
+C END MAR 2014
+        INCRB = 1
+        IF (INDX.EQ.1) INCRB = 5
+        NVEC  = 1
+        WRITE(IFIL14,'(5I6,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+      ENDIF
+C
+      IF (INDIC.LT.3) THEN
+         IF (INDX.NE.0) THEN
+C BEG FEB 28, 2014
+C          WRITE(IFIL14,'(A,A)') ' 0., 1., 0., 0., 0., 0.',
+C    1   ' $ P,DP,TEMP,DTEMP,OMEGA,DOMEGA'
+C BEG MAR 2014
+           IF (INDIC.EQ.1.OR.INDIC.EQ.-1)
+     1     WRITE(IFIL14,'(A,A)') ' 1., 0.1, 0., 0., 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,OMEGA,DOMEGA'
+C BEG MAY 2014
+C          IF (INDIC.EQ.-2) WRITE(IFIL14,'(A,A)')
+C    1      ' 0.05, 0.05, 0., 0., 100, 0., 0.',
+C    1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+           IF (INDIC.EQ.-2) WRITE(IFIL14,'(A,A)')
+     1      ' 0.02, 0.02, 0., 0., 190, 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+C END MAY 2014
+C END MAR 2014
+C END MAR 2014
+C END FEB 28, 2014
+         ELSE
+           WRITE(IFIL14,'(A,A)') ' 1., 1., 0., 0., 1, 0., 0.',
+     1   ' $ P,DP,TEMP,DTEMP,NSTEPS,OMEGA,DOMEGA'
+         ENDIF
+      ELSE
+         WRITE(IFIL14,'(A,A)') ' 1, 0., 1, 1001, 31, 0., 0., 1',
+     1 ' $ NDIST,THETA,NCIRC,ITHETA,NTHETA,THETAS,OMEGA,IOMGAB'
+         WRITE(IFIL14,'(A)')
+     1 ' N  $ Do you want response to harmonic forcing?'
+      ENDIF
+C END FEB 10, 2014
+      WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+      WRITE(IFIL14,'(I6,A)') MSEGTT,'  $ how many segments?'
+C
+C   Next, generate the BIGBOSOR4 input for all the constraint
+C   conditions (connections to ground and segment junctions)
+C   in the multi-module model.
+C
+C   The connections to ground (NGRND(i) > 0), where
+C   i = the shell segment number, are governed by the
+C   array, IDISP(i,j), where j is an index for which displacement
+C   component is constrained or not constrained.
+C
+C   IDISP(i,j) = 1 means that the jth displacement component is
+C                  constrained to be zero.
+C   IDISP(i,j) = 0 means that the jth displacement component is
+C                  free
+C
+C   In BIGBOSOR4 [10] there are 4 displacement components:
+C
+C   IDISP(i,1) refers to USTAR, the axial (vertical) displacement
+C   IDISP(i,2) refers to VSTAR, the circumferential displacement
+C   IDISP(i,3) refers to WSTAR, the radial (horizontal) displacement
+C   IDISP(i,4) refers to CHI, the meridional rotation
+C
+C   The entire array, IDISP(i,j), i = 1,NSEGS, j = 1,4,
+C   is initially set equal to unity when SUBROUTINE BOSDEC is
+C   called from SUBROUTINE BEHX1 (local buckling:   INDX = 1) and
+C   called from SUBROUTINE BEHX2 (general buckling: INDX = 2,3). In
+C   the following code IDISP(i,j) is reset to zero in certain of
+C   the shell segments:
+C
+C   For LOCAL   buckling (INDX = 1) in Segments 1 and NSEG 
+C               simple support (anti-symmetry at both Segs. 1 & NSEG)
+C   For GENERAL buckling (INDX = 2) in Segments 1 and NSEG 
+C               simple support at Seg. 1, symmetry at Seg. NSEG.
+C   For GENERAL buckling (INDX = 3) in Segments 1 and NSEG
+C               simple support at Seg. 1, anti-symmetry at Seg. NSEG.
+C
+C
+      DO 600 I = 1,MSEGTT
+C
+         WRITE(IFIL14,'(A,4I6)')
+     1 ' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+         WRITE(IFIL14,'(A)')' 0  $ number of poles'
+         NGRND1 = 0
+         NODGRD1 = 0
+C BEG FEB 2014
+         IF (I.EQ.1) THEN
+            NGRND1 = 1
+            NODGRD1 = 1
+            IDISP(I,4) = 0
+C Alternate (temporary) edge conditions along bottom edge:
+            IF (INDX.EQ.2.OR.INDX.EQ.1) THEN
+C              symmetry on bottom edge:
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ENDIF
+            IF (INDX.EQ.3) THEN
+C Comment out the next 5 lines...
+C              antisymmetry on bottom edge:
+C              IDISP(I,1) = 0
+C              IDISP(I,2) = 1
+C              IDISP(I,3) = 1
+C              IDISP(I,4) = 0
+C              symmetry on bottom edge:
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ENDIF
+C BEG MAR 2014
+            IF (INDX.EQ.4) THEN
+C              anti-symmetry on bottom edge:
+               IDISP(I,1) = 0
+               IDISP(I,2) = 1
+               IDISP(I,3) = 1
+               IDISP(I,4) = 0
+            ENDIF
+C END MAR 2014
+         ENDIF
+C
+         IF (I.EQ.MSEGTT) THEN
+            NGRND1 = 1
+            NODGRD1 = NNODES(1)
+C BEG FEB 2014
+            IF (INDX.EQ.2) THEN
+C              symmetry at the top edge:
+C END FEB 2014
+               IDISP(I,1) = 1
+               IDISP(I,2) = 0
+               IDISP(I,3) = 0
+               IDISP(I,4) = 1
+            ENDIF 
+C BEG FEB 2014
+C BEG MAR 2014
+            IF (INDX.EQ.4.OR.INDX.EQ.3.OR.INDX.EQ.1) THEN
+C END MAR 2014
+C              antisymmetry at the top edge:
+C END FEB 2014
+               IDISP(I,1) = 0
+               IDISP(I,2) = 1
+               IDISP(I,3) = 1
+               IDISP(I,4) = 0
+            ENDIF
+         ENDIF
+C END FEB 2014
+         WRITE(IFIL14,'(I3,A)') NGRND1,' $ connect to ground'
+         IF (NGRND1.GT.0) THEN
+           WRITE(IFIL14,'(I3,A)') NODGRD1,' $ node to ground'
+C BEG FEB 2014
+C BEG MAR 2014 (temporary prebuckling bc at beginning of BIGBOSOR4 model)
+C                IF (I.EQ.1)
+C    1            WRITE(IFIL14,'(A,A)') ' 0, 1, 0, 1, 0., 0.',
+C    1          ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+                 IF (I.EQ.1)
+     1            WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 1, 0., 0.',
+     1          ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+C END MAR 2014 (temporary prebuckling bc at beginning of BIGBOSOR4 model)
+           IF (I.EQ.MSEGTT)
+     1      WRITE(IFIL14,'(A,A)') ' 1, 0, 0, 1, 0., 0.',
+     1    ' $ USTAR,VSTAR,WSTAR,CHI,D1,D2'
+           WRITE(IFIL14,'(A)')' N  $ constraint not same for buck.?'
+           WRITE(IFIL14,'(4I3,A)')
+     1     IDISP(I,1),IDISP(I,2),IDISP(I,3),IDISP(I,4),
+     1   ' $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+C END FEB 2014
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (I.LE.1) THEN
+             WRITE(IFIL14,'(A)')' N  $ joined to previous segments?'
+         ELSE
+            NPREVI = 1
+            WRITE(IFIL14,'(A)')' Y  $ joined to previous segments?'
+            WRITE(IFIL14,'(I3,A)') NPREVI,' $ connects to prev.segs'
+            NODPRVI = 1
+            JPREVI = I - 1
+            JNODPVI = NNODES2(I-1)
+            WRITE(IFIL14,'(I3,A)') NODPRVI,' $ node current seg'
+            WRITE(IFIL14,'(I3,A)') JPREVI,' $ prev.segment no.'
+            WRITE(IFIL14,'(I3,A)') JNODPVI,' $ node in prev.seg.'
+            WRITE(IFIL14,'(A)')' 1, 1, 1, 1 $ IU,IV,IW,ICHI'
+            WRITE(IFIL14,'(A)')' 0., 0.  $ D1,D2'
+            WRITE(IFIL14,'(A)')' Y  $ is constraint same for buck.?'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         ENDIF
+C
+  600 CONTINUE
+C End of the loop over the number of segments, MSEGTT
+C
+C BEG FEB 2014
+         IF (INDX.EQ.3.AND.IBOUND.GT.1) THEN
+           WRITE(IFIL14,'(A)')' N  $ are rigid body motions possible?'
+           GO TO 640
+         ENDIF
+         WRITE(IFIL14,'(A)')' Y  $ are rigid body motions possible?'
+         WRITE(IFIL14,'(A)')' Y  $ do you wish to prevent rigid body?'
+         WRITE(IFIL14,'(2I6,A,A)')
+     1     MSEGTT,NNODES2(MSEGTT),' 1, 1, 0, 1 ',
+     1 ' $ ISEG,INODE,IUSTAR,IVSTAR,IWSTAR,ICHI n=0'
+         WRITE(IFIL14,'(A,A)') ' 1, 1, 0, 1',
+     1 ' $ IUSTAR,IVSTAR,IWSTAR,ICHI n=1'
+  640    CONTINUE
+C END FEB 2014
+C
+C BEG FEB 10, 2014
+         IF (INDIC.GE.3) THEN
+            WRITE(IFIL14,'(A)')
+     1    ' N  $ Do you want inertial reactions to Load Set A?'
+            WRITE(IFIL14,'(A)')
+     1    ' N  $ Do you want inertial reactions to Load Set B?'
+         ENDIF
+C END FEB 10, 2014
+      DO 650 ISEG = 1,MSEGTT
+         WRITE(IFIL14,'(A)')' Y  $ do you want to list seg. output?'
+  650 CONTINUE
+      WRITE(IFIL14,'(A)')' Y  $ do you want to list ring forces?'
+C
+C     CALL EXIT
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      ARCDRW3
+      SUBROUTINE ARCDRW3(ISEG,X1,X2,X3,Y1,Y2,Y3,SROT,ROT,SUBTND)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     CALLED FROM BOSDEC2. TRACE IS GEOM,GEOMTY,READIT,MAIN. .
+C     SPHERICAL AND TOROIDAL SHELL GEOMETRY
+C
+C     (X3,Y3)  IS THE CENTER OF THE CIRCLE
+C     (X1,Y1) AND (X2,Y2) ARE THE TWO POINTS ON THE ARC
+C
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      WRITE(IFILE4,'(A,I4)') ' ARCDRW: Segment number =', ISEG
+      X4=(X2+X1)/2.0
+      Y4=(Y2+Y1)/2.0
+      IF (X2-X1) 10,40,10
+10    IF (Y2-Y1) 20,30,20
+20    CONTINUE
+C     FOR POINTS OF THE FORM  (X1,Y1) AND (X2,Y2)
+      SLOPE=(Y2-Y1)/(X2-X1)
+C
+C     (X5,Y5)  US THE NEW CENTER COORDINATE
+      X5=(X4/SLOPE+Y4-Y3+SLOPE*X3)/(SLOPE+1/SLOPE)
+      Y5=SLOPE*(X5-X3)+Y3
+      GO TO 50
+C     FOR POINTS OF THE FORM   (X1,Y) AND (X2,Y)
+30    X5=(X2+X1)/2.0
+      Y5=Y3
+      GO TO 50
+C     FOR POINTS OF THE FORM  (X,Y1)  AND (X,Y2)
+40    X5=X3
+      Y5=(Y2+Y1)/2.0
+C
+C     D1 IS THE DISTANCE BETWEEN (X4,Y4) AND (X5,Y5)
+C     D2 IS THE DISTANCE BETWEEN THE NEW CENTER AND THE OLD CENTER
+50    D1=SQRT((X4-X5)**2+(Y4-Y5)**2)
+      D2=SQRT((X3-X5)**2+(Y3-Y5)**2)
+      IF (D2) 80,80,60
+60    CONTINUE
+      IF (D1.EQ.0.0) GO TO 80
+      RATIO=D2/D1
+      IF(RATIO .LT. .01) GO TO 80 
+      WRITE(IFILE4,70)X3,Y3,X5,Y5,D2
+C23456789012345678901234567890123456789012345678901234567890123456789012
+70    FORMAT(' ERROR - CENTER COORDINATES REPLACED WITH NEW',
+     1' COORDINATES -',/,10X,' OLD COORDINATE - (', E10.4,',',E10.4,')',
+     1/,10X,' NEW COORDINATE - (',E10.4,',',E10.4,')',/,
+     110X,' DISTANCE BETWEEN COORDINATES - ',E10.4) 
+C
+      X3=X5
+      Y3=Y5
+80    CONTINUE
+C
+C The following statements are taken from the BIGBOSOR4 routine, GEOM2
+      PI = 3.1415927
+      ROT=SQRT((X1-X3)**2+(Y1-Y3)**2)
+      DR1 = X1 - X3 
+      DR2 = X2 - X3 
+      DZ1 = Y3 - Y1
+      DZ2 = Y3 - Y2
+      ANG1 = ATAN2(DR1,DZ1)
+      ANG2 = ATAN2(DR2,DZ2)
+      IF (ANG1.LT.0.0) ANG1 = ANG1 + 2.*PI
+      IF (ANG2.LT.0.0) ANG2 = ANG2 + 2.*PI
+      AN1DEG=ANG1*180./PI
+      AN2DEG=ANG2*180./PI
+      NSROT = SROT
+      IF (NSROT.EQ.-1) WRITE(IFILE4,90) ROT, AN1DEG,AN2DEG
+      IF (NSROT.EQ. 1) WRITE(IFILE4,85) ROT, AN1DEG,AN2DEG
+85    FORMAT(' RADIUS = ',1PE15.7,'  ALPHA1 = ', 1PE15.7,/,
+     1' ALPHA2 = ',1PE15.7,'  INCREASING ARC LENGTH CLOCKWISE',/)
+90    FORMAT(' RADIUS =  ',1PE15.7,' ALPHA1 =  ',1PE15.7,/,
+     1' ALPHA2 = ',1PE15.7,'  INCREASING ARC LENGTH ANTICLOCKWISE',/)
+C
+C BEG NOV 2013
+C We want the subtended angle, SUBTND, for STAGS input:
+      IF (AN2DEG.GE.AN1DEG) THEN
+         IF (NSROT.EQ.-1) SUBTND = AN2DEG - AN1DEG
+         IF (NSROT.EQ.1) SUBTND = 360. -(AN2DEG - AN1DEG)
+      ELSE
+         IF (NSROT.EQ.1) SUBTND = AN1DEG - AN2DEG
+         IF (NSROT.EQ.-1) SUBTND = 360. -(AN1DEG - AN2DEG)
+      ENDIF
+      WRITE(IFILE4,'(A,1P,E12.4)')
+     1 ' Subtended angle of segment, SUBTND=',SUBTND
+C END NOV 2013
+C
+      RETURN
+      END
+C

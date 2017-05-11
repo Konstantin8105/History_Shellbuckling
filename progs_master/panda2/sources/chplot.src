@@ -1,0 +1,2757 @@
+C=DECK      CHPLOT
+C  PURPOSE IS TO CHOOSE WHICH VARIABLES TO GET PLOTS OF.
+C
+      PROGRAM CHPLOT
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C
+C BEG NOV 2005
+      DIMENSION ILINE2(500)
+C END NOV 2005
+C BEG FEB 2005
+      DIMENSION ISLPRT(500,5,2),IEHILW(500,5,2),WABRUP(500)
+      CHARACTER*1 WABRUP
+C END FEB 2005
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+C BEG JAN 1996
+C BEG DEC 1998
+      DIMENSION ILINE(500),DWORDX(500),DWORDY(500)
+      CHARACTER*15 DWORDX,DWORDY
+C END DEC 1998
+C END JAN 1996
+C BEG JULY 1989
+      COMMON/LWRUPR/VLB(50),VUB(50),CLINK(50,5),VLINK(50),VBV(99)
+C END JULY 1989
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+C BEG MAY 1990
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+C BEG AUG 1995
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IMISCL(8)
+C END AUG 1995
+      DIMENSION TITLE5(26),TITLE6(26),TITLE7(26),TITLE8(26),NAMEV2(26)
+      DIMENSION TITL52(26),TITL62(26),TITL72(26),DSPLT2(30,26,6)
+C BEG SEPT 1990
+      DIMENSION NAMEVL(26),NAMEVR(26),FVECT(30,7),DIAWRD(3)
+C END SEPT 1990
+      DIMENSION STRAIN(26),ISUBT1(26),ISUBT2(26),ITV(26),DSPLOT(30,26,6)
+      CHARACTER*80 TITLE5,TITLE6,TITLE7,TITLE8,NAMEV2,NAMEVL,NAMEVR
+      CHARACTER*80 TITLOD,TITL52,TITL62,TITL72
+C BEG FEB 1996
+      DIMENSION NAMEVX(30)
+      CHARACTER*80 NAMEVX
+C END FEB 1996
+C BEG VMS
+C     CHARACTER*16 CASE18,CASE19,CASE20,DIAWRD
+C END VMS
+C BEG UNIX
+      CHARACTER*32 CASE18,CASE19,CASE20,DIAWRD
+C END UNIX
+C END MAY 1990
+      COMMON/PLTVAR/IPV(50),ICV(99),NPLT,NMARGN,NITER,NTIT(5,2)
+C BEG NOV 1992
+      DIMENSION MITER(5,2),TITLEX(5,2,99)
+      CHARACTER*80 TITLEX
+C END NOV 1992
+      COMMON/WORDS6/WORDPL(50),WORDCL(99)
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+      COMMON/PRESUR/P
+      DIMENSION ISUBP1(50),ISUBP2(50),ISUBC1(99),ISUBC2(99),LENGTH(99)
+      DIMENSION VPLT(50),FMARGN(99),IADDPL(50),IADDCL(99),TITLES(99)
+      DIMENSION NAMEV(50),NAMEM(99),CCPLOT(500),CCCPLT(500,60),FI(500)
+      DIMENSION WORMAR(99),WORDES(50),IQUIC(500,5),INUMB(500,5)
+      DIMENSION DUMMY(31),XALL(500,31),YALL(500,31),ISUBS1(31)
+      DIMENSION ISUBS2(31),ISV(31),ITOTW(30),XWALL(500,30),YWALL(500,30)
+      DIMENSION BEH(23),DDPLOT(30,23)
+      DIMENSION TITLE2(23),TITLE0(10),TITLE3(31),TITLE4(30)
+      DIMENSION DDDPLT(7500,4),XDALL(500,31),YDALL(500,31)
+      DIMENSION X2ALL(500),Y2ALL(500),X2DALL(500),Y2DALL(500)
+C BEG JAN 1991
+      CHARACTER*120 WORHED,WRDVTP
+C END JAN 1991
+C BEG FEB 1991
+      COMMON/GEOMN3/IBVAR,VARPLT(30)
+      COMMON/WORDSX/VARLEG(50),MARLEG(99),OBJLEG
+C BEG MAY 2004
+      CHARACTER*12 MARLEG,OBJLEG
+      CHARACTER*16 VARLEG
+C END MAY 2004
+C END FEB 1991
+C BEG MAR 1991
+      DIMENSION CURINT(30,60)
+      COMMON/FSAFEB/FSAFEP(99)
+      COMMON/FSAFB2/FSAFP2(99)
+      COMMON/CPLT12/CPLOT1,CPLOT2
+      COMMON/FSAFWD/PCWRD1(99),PCWRD2(99)
+      CHARACTER*80 PCWRD1,PCWRD2
+      COMMON/GEOMN4/ICURV,FNXPLT(30),FNYPLT(30),FNXYPL(30),
+     1              FNX0P,FNY0P,FNXY0P
+C BEG JUNE 1992
+      COMMON/NCASEP/NCASEX(5)
+C END JUNE 1992
+      CHARACTER*15 WRDCMB
+      CHARACTER*6 WRDCM1,WRDCM2
+      CHARACTER*10 WFNFXD,WFNCR1,WFNCR2
+C END MAR 1991
+      CHARACTER*80 WORDV,PHRASE,WORDPL,WORDCL
+      CHARACTER*80 TITLE0,TITLES,TITLE2,TITLE3,TITLE4
+      CHARACTER*80 WORDP,WORDA,WORDC,WORDD,WORDF,WORDB,WORDOB,WORDS
+      CHARACTER*4 ANSOUT,ANSWER,QUAL
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      CHARACTER*6 WORMAR,WORDES
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE1,CASE2,CASE3,CASE4,CASE5,CASE7,CASE8,CASE9,CASEU
+C     CHARACTER*16 CASE28,CASE6,CASE17
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE1,CASE2,CASE3,CASE4,CASE5,CASE7,CASE8,CASE9,CASEU
+      CHARACTER*32 CASE28,CASE6,CASE17
+C END UNIX
+      CHARACTER*72 NAMEV,NAMEM,NAMEOB
+      CHARACTER*1  CILOAD,CICASE
+      CHARACTER*9  CNX,CNY,CNXY,CCP
+      CHARACTER*7  CFMAG
+      CHARACTER*2  CIVAR,CICAR,LX
+      CHARACTER*72 ARGSTR
+      LOGICAL ANSL1,YEAH
+      EQUIVALENCE (DDDPLT(1,1),CCCPLT(1,1))
+      EQUIVALENCE (XDALL(1,1),XWALL(1,1))
+      EQUIVALENCE (YDALL(1,1),YWALL(1,1))
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+c      write(6,8888) case
+c8888  format('CHPLOT(---):  recovered case name= ',A)
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+      IX = I
+      IF(I.NE.0) THEN
+         CASE8=CASE(:I-1)//'.OPL'
+         CASE7=CASE(:I-1)//'.CBL'
+         CASE2=CASE(:I-1)//'.PLD'
+         CASE3=CASE(:I-1)//'.PL3'
+         CASE4=CASE(:I-1)//'.PL4'
+         CASE5=CASE(:I-1)//'.PL5'
+         CASE6=CASE(:I-1)//'.PL6'
+         CASE17=CASE(:I-1)//'.PL7'
+C BEG MAY 1990
+         CASE18=CASE(:I-1)//'.PL8'
+         CASE19=CASE(:I-1)//'.PL9'
+         CASE20=CASE(:I-1)//'.PL10'
+C END MAY 1990
+      ELSE
+         CASE8=CASE//'.OPL'
+         CASE7=CASE//'.CBL'
+         CASE2=CASE//'.PLD'
+         CASE3=CASE//'.PL3'
+         CASE4=CASE//'.PL4'
+         CASE5=CASE//'.PL5'
+         CASE6=CASE//'.PL6'
+         CASE17=CASE//'.PL7'
+C BEG MAY 1990
+         CASE18=CASE//'.PL8'
+         CASE19=CASE//'.PL9'
+         CASE20=CASE//'.PL10'
+C END MAY 1990
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 1
+      IFILE2= 2
+      IFILE3= 3
+      IFILE4= 4
+      IFILE5= 9
+      IFILE6= 29
+      IFILE7= 7
+      IFILE8= 8
+      IFIL28=28
+      IFIL17=17
+C BEG MAY 1990
+      IFIL18=18
+      IFIL19=19
+      IFIL20=20
+C END MAY 1990
+C BEG JULY 1989
+      IOUTFL = 53
+C
+C BEG VMS
+C     OPEN(UNIT=1,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=2,FILE=CASE2,STATUS='OLD',FORM='UNFORMATTED',READONLY)
+C     OPEN(UNIT=53,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=3,FILE=CASE3,STATUS='UNKNOWN')
+C     OPEN(UNIT=4,FILE=CASE4,STATUS='UNKNOWN')
+C     OPEN(UNIT=9,FILE=CASE5,STATUS='UNKNOWN')
+C     OPEN(UNIT=29,FILE=CASE6,STATUS='UNKNOWN')
+C     OPEN(UNIT=17,FILE=CASE17,STATUS='UNKNOWN')
+C     OPEN(UNIT=18,FILE=CASE18,STATUS='UNKNOWN')
+C     OPEN(UNIT=19,FILE=CASE19,STATUS='UNKNOWN')
+C     OPEN(UNIT=20,FILE=CASE20,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE7,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE8,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=1,FILE='PROMPT.DAT',STATUS='OLD')
+      OPEN(UNIT=2,FILE=CASE2(1:lastch(case2)),STATUS='OLD',
+     1     FORM='UNFORMATTED')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ioutfl)
+#endif
+      else
+	OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='OLD')
+#if rs6k
+        rewind(ifile3)
+#endif
+      else
+	OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case4(1:lastch(case4)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='OLD')
+#if rs6k
+        rewind(ifile4)
+#endif
+      else
+	OPEN(UNIT=ifile4, FILE=case4(1:lastch(case4)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case5(1:lastch(case5)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile5, FILE=case5(1:lastch(case5)), STATUS='OLD')
+#if rs6k
+        rewind(ifile5)
+#endif
+      else
+	OPEN(UNIT=ifile5, FILE=case5(1:lastch(case5)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case6(1:lastch(case6)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile6, FILE=case6(1:lastch(case6)), STATUS='OLD')
+#if rs6k
+        rewind(ifile6)
+#endif
+      else
+	OPEN(UNIT=ifile6, FILE=case6(1:lastch(case6)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case17(1:lastch(case17)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifil17, FILE=case17(1:lastch(case17)), STATUS='OLD')
+#if rs6k
+        rewind(ifil17)
+#endif
+      else
+	OPEN(UNIT=ifil17, FILE=case17(1:lastch(case17)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case18(1:lastch(case18)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifil18, FILE=case18(1:lastch(case18)), STATUS='OLD')
+#if rs6k
+        rewind(ifil18)
+#endif
+      else
+	OPEN(UNIT=ifil18, FILE=case18(1:lastch(case18)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case19(1:lastch(case19)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifil19, FILE=case19(1:lastch(case19)), STATUS='OLD')
+#if rs6k
+        rewind(ifil19)
+#endif
+      else
+	OPEN(UNIT=ifil19, FILE=case19(1:lastch(case19)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case20(1:lastch(case20)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifil20, FILE=case20(1:lastch(case20)), STATUS='OLD')
+#if rs6k
+        rewind(ifil20)
+#endif
+      else
+	OPEN(UNIT=ifil20, FILE=case20(1:lastch(case20)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case7(1:lastch(case7)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+	OPEN(UNIT=ifile7, FILE=case7(1:lastch(case7)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+C END UNIX
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPL FILE ******************'
+C END JULY 1989
+      WRITE(6,4)
+      WRITE(IFILE8,4)
+C BEG MAY 1990
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1 CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1 CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+C BEG FEB 1991
+    4 FORMAT(//' ***************** CHOOSEPLOT  *******************'/
+     1' The purpose of CHOOSEPLOT is to permit you to choose:'//
+     1'    1. Which design variables (decision variable candidates)'/
+     1'       are to be plotted v. design iterations (ITYPE=1);'/
+     1'    2. Which behaviors to plot v. load steps (ITYPE=3);'/
+     1'    3. Which sensitivity plots to obtain (ITYPE=4);'/
+     1'    4. At which locations to plot extreme fiber strains'/
+     1'       (ITYPE=3);'/
+     1'    5. Which design margins are to be plotted v. design'/
+     1'       iterations (ITYPE=1) or load steps (ITYPE=3) or'/
+     1'       design variable (ITYPE=4) or load combo (ITYPE=5).'/
+     1'    6. For which load steps to plot the deformed panel'/
+     1'       module (ITYPE=3).'/
+     1'    7. Whether or not to plot the layup configuration of the'/
+     1'       skin-stringer panel module (ITYPE=3)'/
+     1'    8. Whether or not to obtain a "3-D" plot of the locally'/
+     1'       post-buckled panel module (ITYPE=3)'/)
+C END FEB 1991
+    5 FORMAT(
+     1' The results of the interactive session are saved in a file'/
+     1' called ',A,'.CPL, in which ',A,' is your name for the case.'/
+     1' You may find this file useful for future runs of CHOOSEPLOT'/
+     1' in which you want to avoid answering many questions'/
+     1' interactively. CHOOSEPLOT also generates the six files:'/
+     1' ',A,'.OPL, ',A,'.PL3, ',A,'.PL4, ',A,'.PL5, ',A,'.PL6,'/
+     1' ' A,'.PL7,' A,'.PL8,' A,'.PL9,' A,'.PL10, which are described'/
+     1' briefly at the end of this run.')
+C END MAY 1990
+      WRITE(6,6) CASE(1:NLET)
+      WRITE(IFILE8,6) CASE(1:NLET)
+    6 FORMAT(
+     1' If you choose the tutorial option, ',A,'.OPL contains a'/
+     1' complete list of the interactive session, including prompting'/
+     1' questions, all "help" paragraphs, your responses to the'/
+     1' prompting questions, and evolving lists of which parameters'/
+     1' are to be plotted as they are chosen by you.'/
+     1' ****************************************************'/)
+C
+      QUAL = '.CPL'
+C BEG JULY 1989
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C END JULY 1989
+C
+      CALL GETCOM(IFILE7)
+C
+      IF (ITYPE.EQ.2) THEN
+         CALL DATUM(IFILE,22,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,23,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            WRITE(6,*)' PERFORM AN ITYPE=1 OR ITYPE=3 PANDAOPT'
+            WRITE(6,*)' ANALYSIS BEFORE ATTEMPTING TO USE CHOOSEPLOT.'
+            WRITE(6,*)' THEN USE CHOOSEPLOT IMMEDIATELY, WITHOUT'
+            WRITE(6,*)' FIRST RUNNING PANDAOPT WITH ITYPE = 2.'
+            WRITE(6,*)' THIS RUN WILL NOW ABORT VIA DIVISION BY ZERO.'
+            WRITE(6,*)' '
+            CALL ERREX
+         ELSE
+            ITYPE = 1
+         ENDIF
+      ENDIF
+C
+
+
+C BEG FEB 1991
+      IF(IX.NE.0) THEN
+         IF (ITYPE.EQ.1) CASE28=CASE(:I-1)//'.TIT'
+         IF (ITYPE.EQ.3.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5)
+     1       CASE28=CASE(:I-1)//'.TTT'
+      ELSE
+         IF (ITYPE.EQ.1) CASE28=CASE//'.TIT'
+         IF (ITYPE.EQ.3.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5)
+     1       CASE28=CASE//'.TTT'
+      ENDIF
+C END FEB 1991
+C
+C BEG VMS
+C     OPEN(UNIT=28,FILE=CASE28,STATUS='OLD',FORM='UNFORMATTED',READONLY)
+C END VMS
+C BEG UNIX
+C     write(6,8889) IX, CASE, I, CASE28
+C8889  format (  'IX= ',I8,'   case  = ',A,
+C    $        /,'I=  ',I8,'   case28= ',A)
+      OPEN(UNIT=28,FILE=CASE28(1:lastch(case28)),STATUS='OLD',
+     1     FORM='UNFORMATTED')
+C END UNIX
+C
+      CALL MOVER(0,0,IPV,1,50)
+      CALL MOVER(0,0,ICV,1,99)
+      CALL MOVER(1,0,ISUBP1,1,50)
+      CALL MOVER(0,0,ISUBP2,1,50)
+      CALL MOVER(1,0,ISUBS1,1,31)
+      CALL MOVER(0,0,ISUBS2,1,31)
+      CALL MOVER(1,0,ISUBC1,1,99)
+      CALL MOVER(0,0,ISUBC2,1,99)
+C BEG MAY 1990
+      CALL MOVER(1,0,ISUBT1,1,26)
+      CALL MOVER(0,0,ISUBT2,1,26)
+      CALL MOVER(0,0,ITV,1,26)
+C END MAY 1990
+C BEG NOV 1992
+      CALL MOVER(0,0,IQUIC,1,2500)
+      CALL MOVER(0,0,INUMB,1,2500)
+      CALL MOVER(0,0,MITER,1,10)
+C END NOV 1992
+C
+      WORDOB= 'WEIGHT OF THE ENTIRE PANEL'
+      NPLT = 0
+      NMARGN = 0
+      NCROSS = 0
+      NBEH = 23
+C
+C BEG FEB 1991
+      IF (ITYPE.EQ.1) ITRPLT = ITRTOT
+      IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) ITRPLT = NITER
+C END FEB 1991
+C BEG NOV 2005
+      IF (ITYPE.EQ.1.AND.ITRTOT.GT.500) THEN
+         WRITE(6,*)' TOO MANY ITERATIONS. THE MAXIMUM IS 500.'
+         WRITE(6,*)' ONLY THE FIRST 500 ITERATIONS WILL BE PLOTTED.'
+         ITRPLT = 500
+         IRESET = 1
+C END NOV 2005
+      ENDIF
+C
+      IF (ITRTOT.LT.2.AND.ITYPE.EQ.1) THEN
+         WRITE(6,*)' NO DESIGN ITERATIONS HAVE BEEN PERFORMED.'
+         WRITE(6,*)' PLEASE DO SOME OPTIMIZATION BEFORE USING'
+         WRITE(6,*)' CHOOSEPLOT.'
+         CALL EXIT
+      ENDIF
+      IF (ITYPE.EQ.3) ITRPLT = NSTEPS
+      IF (ITYPE.EQ.3.AND.NSTEPS.LT.1) THEN
+         WRITE(6,*)' NO LOAD STEPS HAVE BEEN PERFORMED.'
+         WRITE(6,*)' PLEASE DO SOME LOAD STEPS BEFORE USING'
+         WRITE(6,*)' CHOOSEPLOT.'
+         CALL EXIT
+      ENDIF
+C
+C BEG FEB 1991
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+         IF (ITYPE.EQ.4.OR.ITYPE.EQ.5) GO TO 25
+C END FEB 1991
+         CALL DATUM(IFILE,512,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) GO TO 25
+C
+         IPLT = 0
+   10    CONTINUE
+         IF (IPLT.GT.0) THEN
+           ARGSTR = '      DESIGN VARIABLES CHOSEN SOF'//
+     $              'AR FOR PLOTTING v. ITERATIONS   '
+           CALL OUTVR2(NVAR,VAR,WORDV,ARGSTR,6,59,1,ISUBP1,1)
+C
+           IF (IPROMP.GT.1) THEN
+              ARGSTR = '      DESIGN VARIABLES CHOSEN SOF'//
+     $                 'AR FOR PLOTTING v. ITERATIONS   '
+              CALL OUTVR2(NVAR,VAR,WORDV,ARGSTR,IPROMP,80,1,ISUBP1,1)
+           ENDIF
+         ENDIF
+C
+         ARGSTR = '    LIST FROM WHICH A VARIABLE TO'//
+     $            ' BE PLOTTED MUST NOW BE CHOSEN  '
+         CALL OUTVR2(NVAR,VAR,WORDV,ARGSTR,6,59,1,ISUBP2,1)
+         IF (IPROMP.GT.1) THEN
+            ARGSTR = '    LIST FROM WHICH A VARIABLE TO'//
+     $               ' BE PLOTTED MUST NOW BE CHOSEN  '
+            CALL OUTVR2(NVAR,VAR,WORDV,ARGSTR,IPROMP,80,1,ISUBP2,1)
+         ENDIF
+C
+         REWIND IFILE
+         CALL DATUM(IFILE,513,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ISUBP2(IVAR).NE.0) THEN
+            WRITE(6,*)' BAD CHOICE FOR DESIGN VARIABLE, TRY AGAIN.'
+            BACKSPACE(IOUT)
+            GO TO 10
+         ENDIF
+C
+         DO 20 J = 1,60
+   20    PHRASE(J:J) = WORDV(IVAR)(J:J)
+         FVAR = IVAR
+         IPV(IVAR) = 1
+         ISUBP1(IVAR) = 0
+         ISUBP2(IVAR) = 1
+         CALL GETVAR(0,FVAR,0,0,0,IPLT,VPLT,WORDPL,IADDPL)
+         IF (IPLT.EQ.20) THEN
+            WRITE(6,*)' NO MORE ITEMS ALLOWED IN THIS RUN. CHOOSE'
+            WRITE(6,*)' ADDITIONAL DESIGN VARIABLES IN ANOTHER RUN.'
+            GO TO 22
+         ENDIF
+         CALL DATUM(IFILE,544,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 10
+   22    CONTINUE
+         NPLT = IPLT
+C
+         TITLE0(2) = CASE(1:NLET)//'. SEE FILES '
+     1   //CASE(1:NLET)//'.OPM AND '//CASE(1:NLET)//'.OPP'
+         WRITE(IFILE8,24) TITLE0(2)
+   24 FORMAT(/' ******************************************************'/
+     1 1X,A)
+         ARGSTR = '    DESIGN VARIABLES TO BE PLOTT'//
+     $            'ED v. DESIGN ITERATIONS         '
+         CALL OUTVR2(NVAR,VAR,WORDV,ARGSTR,IFILE8,80,1,ISUBP1,1)
+C
+   25    CONTINUE
+         IPLMAR = 0
+         REWIND IFILE2
+         IF (NPLT.EQ.0) THEN
+            DO 125 IVAR = 1,NVAR
+C BEG FEB 1991
+               READ(IFILE2) (CCPLOT(I),I=1,ITRPLT)
+C END FEB 1991
+  125       CONTINUE
+         ENDIF
+         REWIND IFILE
+         CALL DATUM(IFILE,514,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) IPLMAR = 1
+         IF (IPLMAR.EQ.0) GO TO 122
+         FMMAX = 1.0
+      ENDIF
+C
+      CALL DATUM(IFILE,515,1,2,ILOADS,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,516,1,2,ICASES,REALL,CHARAC,IOUT,0,IPROMP)
+C
+      REWIND IFIL28
+C BEG NOV 1992
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+C      READ ACCUMULATED TITLES FROM PREVIOUS ITERATIONS
+         READ(IFIL28) ((NTIT(I,J),J=1,2),I=1,5)
+         READ(IFIL28) ((MITER(I,J),J=1,2),I=1,5)
+         READ(IFIL28) ((IQUIC(I,J),I=1,ITRPLT),J=1,5)
+C BEG FEB 2005
+         READ(IFIL28) (WABRUP(I),I=1,ITRPLT)
+         READ(IFIL28) (((ISLPRT(I,J,K),I=1,ITRPLT),J=1,5),K=1,2)
+         READ(IFIL28) (((IEHILW(I,J,K),I=1,ITRPLT),J=1,5),K=1,2)
+C END FEB 2005 
+         READ(IFIL28) ((INUMB(I,J),I=1,ITRPLT),J=1,5)
+C BEG FEB 2005  (was ITRLST, now ITRPLT in next three lines)
+         READ(IFIL28) (ILINE(I),I=1,ITRPLT)
+C BEG NOV 2005
+         READ(IFIL28) (ILINE2(I),I=1,ITRPLT)
+C END NOV 2005
+         READ(IFIL28) (DWORDX(I),I=1,ITRPLT)
+         READ(IFIL28) (DWORDY(I),I=1,ITRPLT)
+C END FEB 2005
+         DO 8 J = 1,2
+         DO 7 I = 1,5
+            NTITL = NTIT(I,J)
+            IF (NTITL.GT.0)
+     1          READ(IFIL28) (TITLEX(I,J,ITITL),ITITL=1,NTITL)
+    7    CONTINUE
+    8    CONTINUE
+         NTITL = NTIT(ILOADS,ICASES)
+         DO 9 K = 1,NTITL
+    9    TITLES(K) = TITLEX(ILOADS,ICASES,K)
+         MITERX = MITER(ILOADS,ICASES)
+      ENDIF
+C END NOV 1992
+C
+      IF (ITYPE.EQ.3) THEN
+          NTITL = NTIT(ILOADS,ICASES)
+          READ(IFIL28) NTITLE
+          READ(IFIL28) (TITLES(K),K=1,NTITL)
+      ENDIF
+C BEG NOV 1992
+C   STATEMENTS RELATING TO ITYPE=4 AND ITYPE=5 REMOVED.
+C END NOV 1992
+C
+      CLOSE(UNIT=IFIL28)
+C
+      IUNIT = 10*ICASES + ILOADS
+      CALL CONVR1(ILOADS,CILOAD)
+      CALL CONVR1(ICASES,CICASE)
+      LX = '.P'
+C BEG FEB 1991
+      IF (ITYPE.EQ.3.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) LX = '.L'
+C END FEB 1991
+      IF (IX.NE.0) THEN
+         CASEU = CASE(:IX-1)//LX//CICASE//CILOAD
+      ELSE
+         CASEU = CASE//LX//CICASE//CILOAD
+      ENDIF
+      INQUIRE(UNIT=IUNIT,OPENED=YEAH)
+      IF (.NOT.YEAH) THEN
+C BEG VMS
+C        OPEN(UNIT=IUNIT,FILE=CASEU,STATUS='OLD',FORM='UNFORMATTED',
+C    1        READONLY)
+C END VMS
+C BEG UNIX
+         OPEN(UNIT=IUNIT,FILE=CASEU(1:lastch(caseu)),STATUS='OLD',
+     1        FORM='UNFORMATTED')
+C END UNIX
+      ENDIF
+C
+      IF (ITYPE.EQ.3) THEN
+         REWIND IUNIT
+C BEG MAY 1990
+         READ(IUNIT) TITLOD
+C BEG SEPT 1990
+         DO 30 JVECT = 1,7
+C END SEPT 1990
+         READ(IUNIT) (FVECT(I,JVECT),I=1,NSTEPS)
+   30    CONTINUE
+C END MAY 1990
+         READ(IUNIT) (TITLE2(I),I=1,NBEH)
+         DO 31 IBEH = 1,NBEH
+         READ(IUNIT) (DDPLOT(I,IBEH),I=1,NSTEPS)
+   31    CONTINUE
+         NSTEPH = NSTEPS/2 +1
+         DO 32 IBEH = 1,NBEH
+   32    BEH(IBEH) = DDPLOT(NSTEPH,IBEH)
+C
+C BEG MAY 1990
+   33    CONTINUE
+         REWIND IFILE
+         CALL DATUM(IFILE,941,1,2,NABSCI,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG SEPT 1990
+            IF (NABSCI.LT.1.OR.NABSCI.GT.7) THEN
+               WRITE(6,*)
+     1          ' INPUT MUST BE 1 or 2 or 3 or 4 or 5 or 6 or 7'
+C END SEPT 1990
+               WRITE(6,*)' TRY AGAIN.'
+               BACKSPACE(IOUT)
+               GO TO 33
+            ENDIF
+C END MAY 1990
+C  NEXT, CHOOSE WHICH BEHAVIORS (ITYPE=3) AND/OR DESIGN MARGINS
+C  TO PLOT V. ITERATIONS (ITYPE=1) OR LOAD STEPS (ITYPE=3)...
+C
+         REWIND IFILE
+         CALL DATUM(IFILE,503,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) GO TO 200
+C 
+C  NEXT, CHOOSE WHICH BEHAVIORS TO PLOT V. LOAD STEPS...
+C
+            IPLT = 0
+   35       CONTINUE
+            IF (IPLT.GT.0) THEN
+               ARGSTR = '      BEHAVIORS CHOSEN SO FAR FOR'//
+     $                  ' PLOTTING v. LOAD STEP NO.       '
+               CALL OUTVR2(NBEH,BEH,TITLE2,ARGSTR,6,59,1,ISUBP1,4)
+C
+               IF (IPROMP.GT.1) THEN
+                ARGSTR = '      BEHAVIORS CHOSEN SO FAR FOR'//
+     $                   ' PLOTTING v. LOAD STEP NO.       '
+                CALL OUTVR2(NBEH,BEH,TITLE2,ARGSTR,IPROMP,80,1,ISUBP1,4)
+               ENDIF
+            ENDIF
+C
+            ARGSTR = '    LIST FROM WHICH A BEHAVIOR TO'//
+     $               ' BE PLOTTED MUST NOW BE CHOSEN  '
+            CALL OUTVR2(NBEH,BEH,TITLE2,ARGSTR,6,59,1,ISUBP2,4)
+            IF (IPROMP.GT.1) THEN
+               ARGSTR = '    LIST FROM WHICH A BEHAVIOR TO'//
+     $                  ' BE PLOTTED MUST NOW BE CHOSEN  '
+               CALL OUTVR2(NBEH,BEH,TITLE2,ARGSTR,IPROMP,80,1,ISUBP2,4)
+            ENDIF
+C
+            REWIND IFILE
+            CALL DATUM(IFILE,504,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+            IF (ISUBP2(IVAR).NE.0) THEN
+               WRITE(6,*)' BAD CHOICE FOR BEHAVIOR, TRY AGAIN.'
+               BACKSPACE(IOUT)
+               GO TO 35
+            ENDIF
+C
+            DO 36 J = 1,60
+   36       PHRASE(J:J) = TITLE2(IVAR)(J:J)
+            FVAR = IVAR
+            IPV(IVAR) = 1
+            ISUBP1(IVAR) = 0
+            ISUBP2(IVAR) = 1
+            CALL GETVAR(0,FVAR,0,0,0,IPLT,VPLT,WORDPL,IADDPL)
+            IF (IPLT.EQ.20) THEN
+               WRITE(6,*)' NO MORE ITEMS ALLOWED IN THIS RUN. CHOOSE'
+               WRITE(6,*)' ADDITIONAL BEHAVIORS IN ANOTHER RUN.'
+               GO TO 37
+         ENDIF
+            CALL DATUM(IFILE,542,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 35
+   37       CONTINUE
+            NPLT = IPLT
+C
+C BEG MAY 1990
+      CALL LENWRD(TITLOD,J)
+      TITLE0(2) = CASE(1:NLET)//': '//TITLOD(1:J)//
+     1 ', LOADSET='//CILOAD//', SUBSET='//CICASE
+C END MAY 1990
+      WRITE(IFILE8,24) TITLE0(2)
+      ARGSTR = '    BEHAVIORS TO BE PLOTTED v. LO'//
+     $         'AD STEP NUMBER                   '
+      CALL OUTVR2(NBEH,BEH,TITLE2,ARGSTR,IFILE8,80,1,ISUBP1,4)
+C
+   38       CONTINUE
+      ENDIF
+C
+  122 CONTINUE
+C
+      IF (NPLT.EQ.0) GO TO 200
+C
+C  Next, generate a file, *.PL4, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL4, contains the selected design parameters if ITYPE = 1
+C  and the selected behaviors v. load steps if ITYPE = 3
+C
+C
+      DO 130 I = 1,120
+  130 WORHED(I:I) = ' '
+      IF (ITYPE.EQ.1) WRITE(IFILE8,150) ITRPLT
+      IF (ITYPE.EQ.3) WRITE(IFILE8,1501) ITRPLT,ILOADS,ICASES
+  150 FORMAT(/' ***** DESIGN VARIABLES FOR ',I3,' ITERATIONS ******')
+ 1501 FORMAT(/' ***** BEHAVIORS FOR ',I3,' LOAD STEPS ******'/
+     1' ***** LOAD SET NO. ',I1,';  SUBCASE NO. ',I1,' *****')
+      REWIND IFILE4
+      DO 151 I = 1,ITRPLT
+      IF (ITYPE.EQ.1) FI(I) = I - 1
+C BEG MAY 1990
+      IF (ITYPE.EQ.3) FI(I) = FVECT(I,NABSCI)
+C END MAY 1990
+  151 CONTINUE
+      NPLT1 = NPLT + 1
+C BEG FEB 1996
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFILE4,920)
+     1   '# Global directives, design variables vs design iterations'
+         WRITE(IFILE4,920) '=title('//TITLE0(2)//')'
+         WRITE(IFILE4,920) '=xlabel(Design Iterations)'
+         WRITE(IFILE4,920) '=ylabel(Design Parameters)'
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         WRITE(IFILE4,920)
+     1   '# Global directives, panel behaviors vs load'
+         WRITE(IFILE4,920) '=title('//TITLE0(2)//')'
+         IF (NABSCI.EQ.1) 
+     1     WRITE(IFILE4,920) '=xlabel(Axial Load, Nx)'
+         IF (NABSCI.EQ.2) 
+     1     WRITE(IFILE4,920) '=xlabel(Hoop Load, Ny)'
+         IF (NABSCI.EQ.3) 
+     1     WRITE(IFILE4,920) '=xlabel(In-Plane Shear Load, Nxy)'
+         IF (NABSCI.EQ.4) 
+     1     WRITE(IFILE4,920) '=xlabel(Axial Moment, Mx)'
+         IF (NABSCI.EQ.5) 
+     1     WRITE(IFILE4,920) '=xlabel(Hoop Moment, My)'
+         IF (NABSCI.EQ.6) 
+     1     WRITE(IFILE4,920) '=xlabel(Normal Pressure, p)'
+         IF (NABSCI.EQ.7) 
+     1     WRITE(IFILE4,920) '=xlabel(Temperature Multiplier)'
+         WRITE(IFILE4,920) '=ylabel(Panel Behaviors)'
+      ENDIF
+C     WRITE(IFILE4,920) TITLE0(2)
+C     WRITE(IFILE4,910) NPLT1
+C     IF (ITYPE.EQ.1) WRITE(IFILE4,920) ' ITERATIONS '
+C     IF (ITYPE.EQ.3) WRITE(IFILE4,920) ' LOAD STEPS '
+C END FEB 1996
+      KOUNT = 0
+      IF (ITYPE.EQ.1) WRITE(IFILE8,152) NPLT
+      IF (ITYPE.EQ.3) WRITE(IFILE8,1502) ILOADS,ICASES,NPLT
+  152 FORMAT(/' DEFINITIONS OF DESIGN VARIABLES FOLLOW...'/
+     1   I3,' DESIGN VARIABLES HAVE BEEN SELECTED FROM'/
+     1' THE FOLLOWING LIST.'/
+     1' VARIABLE'/
+     1'  NUMBER          DEFINITION OF THE DESIGN VARIABLE')
+ 1502 FORMAT(/' DEFINITIONS OF BEHAVIORS FOLLOW...'/
+     1'  LOAD CASE NO. = ',I2,';    SUBCASE NO. = ',I2/
+     1   I3,' BEHAVIORS HAVE BEEN SELECTED FROM'/
+     1' THE FOLLOWING LIST.'/
+     1'   BEHAVIOR'/
+     1'    NUMBER          DEFINITION OF THE BEHAVIOR'/
+     1'    i.j.k     [ i.j.k  means  (behavior no.).(load case).(subcase
+     1) ]'/)
+C
+      IF (ITYPE.EQ.1) NUPPER = NVAR
+      IF (ITYPE.EQ.3) NUPPER = NBEH
+      DO 160 IVAR = 1,NUPPER
+        CALL CONVR2(IVAR,CIVAR)
+        WORDES(IVAR) = '    '//CIVAR
+        WORMAR(IVAR) = CIVAR//'.'//CILOAD//'.'//CICASE
+        IF (ITYPE.EQ.1) NAMEV(IVAR) = CIVAR//' '//WORDV(IVAR)(1:69)
+        IF (ITYPE.EQ.3)
+     1       NAMEV(IVAR) = WORMAR(IVAR)//' '//TITLE2(IVAR)(1:66)
+        IF (ITYPE.EQ.1) READ(IFILE2) (CCPLOT(I), I=1,ITRTOT)
+        IF (IPV(IVAR).NE.0) THEN
+           IF (KOUNT.EQ.0) THEN
+              IF (ITYPE.EQ.1) WORHED = '   '//WORDES(IVAR)
+              IF (ITYPE.EQ.3) WORHED = '     '//WORMAR(IVAR)
+           ENDIF
+           IF (KOUNT.GT.0) THEN
+              CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+              WRDVTP = WORHED
+              IF (ITYPE.EQ.1)
+     1               WORHED = WRDVTP(1:J)//'      '//WORDES(IVAR)
+              IF (ITYPE.EQ.3)
+     1               WORHED = WRDVTP(1:J)//'     '//WORMAR(IVAR)
+C END JAN 1991
+           ENDIF
+           KOUNT = KOUNT + 1
+           DO 155 I = 1,ITRPLT
+           IF (ITYPE.EQ.1) CCCPLT(I,KOUNT) = CCPLOT(I)
+           IF (ITYPE.EQ.3) CCCPLT(I,KOUNT) = DDPLOT(I,IVAR)
+  155      CONTINUE
+C BEG FEB 1996 (NEXT STATEMENT COMMENTED OUT)
+C          WRITE(IFILE4,920) NAMEV(IVAR)
+           NAMEVX(KOUNT) = NAMEV(IVAR)
+C END FEB 1996
+        ENDIF
+        WRITE(IFILE8,157) NAMEV(IVAR)
+  157   FORMAT(4X,A)
+  160 CONTINUE
+C BEG FEB 1996
+      DO 171 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFILE4,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 170 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFILE4,920) '+legend('//NAMEVX(J)//')'
+                  WRITE(IFILE4,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               WRITE(IFILE4,930) FI(I),CCCPLT(I,J)
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFILE4,920) '  '
+                  WRITE(IFILE4,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+  170    CONTINUE
+         WRITE(IFILE4,920) '  '
+  171 CONTINUE
+C     DO 170 I = 1,ITRPLT
+C 170 WRITE(IFILE4,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+C
+C  PRINT THE DESIGN VARIABLES (ITYPE=1) OR BEHAVIORS (ITYPE=3)
+C  TO BE PLOTTED BY DIPLOT...
+C
+      IF (ITYPE.EQ.1) WRITE(IFILE8,175) WORHED
+      IF (ITYPE.EQ.3) WRITE(IFILE8,176) ILOADS,ICASES,WORHED
+  175 FORMAT(/
+     1' *****  DESIGN VARIABLES TO BE PLOTTED v. ITERATIONS  *****'/
+     1' ITER.      DESIGN VARIABLES TO BE PLOTTED'/
+     1'  NO.',A/)
+  176 FORMAT(/
+     1' *****  BEHAVIORS TO BE PLOTTED v. LOAD STEP NUMBER  *****'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k =(behavior no.).(load case).(subcase) *******'//
+     1' LOAD         BEHAVIOR TO BE PLOTTED'/
+     1' STEP',A/)
+C
+      NOUT = MIN(KOUNT,11)
+      DO 180 I = 1,ITRPLT
+  180 WRITE(IFILE8,190) I,(CCCPLT(I,J),J=1,NOUT)
+  190 FORMAT(I3,3X,1P,11E11.3)
+C
+  200 CONTINUE
+C BEG MAR 1991
+      IF (ITYPE.NE.5) CLOSE(UNIT=IFILE4)
+C END MAR 1991
+C
+C BEG MAY 1990
+C  NEW STATEMENTS FOR GENERATING EXTREME FIBER STRAIN ARRAYS FOR
+C  PLOTTING VIA DIPLOT...
+C
+      IF (ITYPE.NE.3) GO TO 2495
+C READ AXIAL,HOOP,SHEAR STRAINS...
+      READ(IUNIT) TITLOD
+      READ(IUNIT) (TITLE5(I),I=1,NSTRNS)
+      DO 202 ICOMP = 1,2
+      DO 201 IPOINT = 1,NSTRNS
+         IF (ICOMP.EQ.1) THEN
+          TITLE8(IPOINT) = TITLE5(IPOINT)(1:13)//TITLE5(IPOINT)(20:80)
+          STRAIN(IPOINT) = 0.
+         ENDIF
+         READ(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+  201 CONTINUE
+  202 CONTINUE
+      READ(IUNIT) (TITLE6(I),I=1,NSTRNS)
+      DO 204 ICOMP = 3,4
+      DO 203 IPOINT = 1,NSTRNS
+         READ(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+  203 CONTINUE
+  204 CONTINUE
+      READ(IUNIT) (TITLE7(I),I=1,NSTRNS)
+      DO 206 ICOMP = 5,6
+      DO 205 IPOINT = 1,NSTRNS
+         READ(IUNIT) (DSPLOT(I,IPOINT,ICOMP),I=1,NSTEPS)
+  205 CONTINUE
+  206 CONTINUE
+C
+C READ 45-DEG STRAINS...
+      READ(IUNIT) TITLOD
+      READ(IUNIT) (TITL52(I),I=1,NSTRNS)
+      DO 302 ICOMP = 1,2
+      DO 301 IPOINT = 1,NSTRNS
+         READ(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+  301 CONTINUE
+  302 CONTINUE
+      READ(IUNIT) (TITL62(I),I=1,NSTRNS)
+      DO 304 ICOMP = 3,4
+      DO 303 IPOINT = 1,NSTRNS
+         READ(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+  303 CONTINUE
+  304 CONTINUE
+      READ(IUNIT) (TITL72(I),I=1,NSTRNS)
+      DO 306 ICOMP = 5,6
+      DO 305 IPOINT = 1,NSTRNS
+         READ(IUNIT) (DSPLT2(I,IPOINT,ICOMP),I=1,NSTEPS)
+  305 CONTINUE
+  306 CONTINUE
+C
+      NPLTST = 0
+C  DO YOU WANT STRAIN PLOTS?
+      REWIND IFILE
+      CALL DATUM(IFILE,518,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 2495
+      CALL DATUM(IFILE,525,1,2,IDIAG,REALL,CHARAC,IOUT,0,IPROMP)
+C
+C   IDIAG = 1 MEANS AXIAL,HOOP STRAIN PLOTS; 2 MEANS (+,-) 45 DEG.
+C
+C  NEXT, CHOOSE AT WHICH LOCATIONS IN MODULE TO PLOT EXTREME FIBER
+C  STRAIN COMPONENTS V. LOAD STEPS...
+C
+      IPLTST = 0
+      CALL MOVER(0,0,IPV,1,50)
+      CALL PICTS(IFILE8,ISTIF(1),INTEXT(1),B2(1),W2(1),1,IFAY(1))
+      CALL PICT3(IFILE8,ISTIF(1),INTEXT(1),B2(1),W2(1),1,IFAY(1))
+  210 CONTINUE
+      IF (IPLTST.GT.0) THEN
+         ARGSTR = '      LOCATIONS CHOSEN SO FAR FOR'//
+     $            ' PLOTTING v. LOAD STEP NO.       '
+         CALL OUTVR2(NSTRNS,STRAIN,TITLE8,ARGSTR,6,60,1,ISUBT1,7)
+C
+         IF (IPROMP.GT.1) THEN
+           ARGSTR = '      LOCATIONS CHOSEN SO FAR FOR'//
+     $              ' PLOTTING v. LOAD STEP NO.       '
+           CALL OUTVR2(NSTRNS,STRAIN,TITLE8,ARGSTR,IPROMP,80,1,ISUBT1,7)
+         ENDIF
+      ENDIF
+C
+      CALL PICT3(6,ISTIF(1),INTEXT(1),B2(1),W2(1),1,IFAY(1))
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,519,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISUBT2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR LOCATION, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 210
+      ENDIF
+C
+      DO 212 J = 1,60
+  212 PHRASE(J:J) = TITLE8(IVAR)(J:J)
+      FVAR = IVAR
+      IPV(IVAR) = 1
+      ISUBT1(IVAR) = 0
+      ISUBT2(IVAR) = 1
+      CALL GETVAR(0,FVAR,0,0,0,IPLTST,VPLT,WORDPL,IADDPL)
+      IF (IPLTST.EQ.10) THEN
+         WRITE(6,*)' NO MORE ITEMS ALLOWED IN THIS RUN. CHOOSE'
+         WRITE(6,*)' ADDITIONAL LOCATIONS IN ANOTHER RUN.'
+         GO TO 214
+      ENDIF
+      CALL DATUM(IFILE,543,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 210
+  214 CONTINUE
+      NPLTST = IPLTST
+      CALL LENWRD(TITLOD,J)
+      TITLE0(2) = CASE(1:NLET)//': '//TITLOD(1:J)//
+     1 ', LOADSET='//CILOAD//', SUBSET='//CICASE
+      WRITE(IFILE8,24) TITLE0(2)
+      ARGSTR = '    LOCATIONS TO BE PLOTTED v. LO'//
+     $         'AD STEP NUMBER                   '
+      CALL OUTVR2(NSTRNS,STRAIN,TITLE8,ARGSTR,IFILE8,80,1,ISUBT1,7)
+C
+      IF (NPLTST.EQ.0) GO TO 2495
+C
+C  IDIAG = 2 MEANS PLOT 45-DEG NORMAL AND SHEAR STRAINS...
+      IF (IDIAG.EQ.2) THEN
+         CALL MOVER(DSPLT2,1,DSPLOT,1,4680)
+         DO 219 I = 1,26
+            TITLE5(I) = TITL52(I)
+            TITLE6(I) = TITL62(I)
+            TITLE7(I) = TITL72(I)
+  219    CONTINUE
+      ENDIF
+C
+C  Next, generate a file, *.PL8, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL8, contains the extreme fiber axial strains at the
+C  selected locations in the single panel module.
+C
+      DO 220 I = 1,120
+  220 WORHED(I:I) = ' '
+      WRITE(IFILE8,221) ITRPLT,ILOADS,ICASES
+  221 FORMAT(/' ***** LOCATIONS FOR ',I3,' LOAD STEPS ******'/
+     1' ***** LOAD SET NO. ',I1,';  SUBCASE NO. ',I1,' *****')
+      REWIND IFIL18
+      DO 222 I = 1,ITRPLT
+        FI(I) = FVECT(I,NABSCI)
+  222 CONTINUE
+      NPLT2 = 2*NPLTST + 1
+C BEG FEB 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL18,920)
+     1'# Global directives, axial or +45-deg.extremefiber strain v load'
+      WRITE(IFIL18,920) '=title('//TITLE0(2)//')'
+      IF (NABSCI.EQ.1) 
+     1  WRITE(IFIL18,920) '=xlabel(Axial Load, Nx)'
+      IF (NABSCI.EQ.2) 
+     1  WRITE(IFIL18,920) '=xlabel(Hoop Load, Ny)'
+      IF (NABSCI.EQ.3) 
+     1  WRITE(IFIL18,920) '=xlabel(In-Plane Shear Load, Nxy)'
+      IF (NABSCI.EQ.4) 
+     1  WRITE(IFIL18,920) '=xlabel(Axial Moment, Mx)'
+      IF (NABSCI.EQ.5) 
+     1  WRITE(IFIL18,920) '=xlabel(Hoop Moment, My)'
+      IF (NABSCI.EQ.6) 
+     1  WRITE(IFIL18,920) '=xlabel(Normal Pressure, p)'
+      IF (NABSCI.EQ.7) 
+     1  WRITE(IFIL18,920) '=xlabel(Temperature Multiplier)'
+      IF (IDIAG.EQ.1)
+     1 WRITE(IFIL18,920) '=ylabel(Axial Extreme Fiber Strain)'
+      IF (IDIAG.EQ.2) WRITE(IFIL18,920)
+     1       '=ylabel(+45-Degree Extreme Fiber Normal Strain)'
+C     WRITE(IFIL18,920) TITLE0(2)
+C     WRITE(IFIL18,910) NPLT2
+C     WRITE(IFIL18,920) ' LOAD STEPS '
+C END FEB 1996
+      KOUNT = 0
+      WRITE(IFILE8, 223) ILOADS,ICASES,NPLTST
+  223 FORMAT(/' LOCATIONS FOR PLOTS OF EXTREME FIBER STRAINS FOLLOW...'/
+     1'  LOAD CASE NO. = ',I2,';    SUBCASE NO. = ',I2/
+     1   I3,' LOCATIONS HAVE BEEN SELECTED FROM THE FOLLOWING LIST.'/
+     1'   LOCATION'/
+     1'    NUMBER          DEFINITION OF THE LOCATION'/
+     1'    i.j.k     [ i.j.k  means  (location no.).(load case).(subcase
+     1) ]'/)
+C
+      DO 228 IVAR = 1,NSTRNS
+        CALL CONVR2(IVAR,CIVAR)
+        WORDES(IVAR) = '    '//CIVAR
+        WORMAR(IVAR) = CIVAR//'.'//CILOAD//'.'//CICASE
+        NAMEVL(IVAR) = WORMAR(IVAR)//' Layer 1 '//TITLE5(IVAR)(1:58)
+        NAMEVR(IVAR) = WORMAR(IVAR)//' Layer n '//TITLE5(IVAR)(1:58)
+        NAMEV2(IVAR)= WORMAR(IVAR)//' '//TITLE8(IVAR)(1:66)
+        IF (IPV(IVAR).NE.0) THEN
+           IF (KOUNT.EQ.0) 
+     1        WORHED = '    '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+           IF (KOUNT.GT.0) THEN
+              CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+              WRDVTP = WORHED
+              WORHED = 
+     1        WRDVTP(1:J)//'     '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+C END JAN 1991
+           ENDIF
+           KOUNT = KOUNT + 2
+           KOUN1 = KOUNT - 1
+           DO 226 I = 1,ITRPLT
+C BEG AUGUST 1990
+             IF (ABS(DSPLOT(I,IVAR,1)).GT.0.1) DSPLOT(I,IVAR,1) = 0.
+             IF (ABS(DSPLOT(I,IVAR,2)).GT.0.1) DSPLOT(I,IVAR,2) = 0.
+C END AUGUST 1990
+             CCCPLT(I,KOUN1) = DSPLOT(I,IVAR,1)
+             CCCPLT(I,KOUNT) = DSPLOT(I,IVAR,2)
+  226      CONTINUE
+C BEG FEB 1996 (NEXT two STATEMENTs COMMENTED OUT)
+C          WRITE(IFIL18,920)  NAMEVL(IVAR)
+C          WRITE(IFIL18,920)  NAMEVR(IVAR)
+           NAMEVX(KOUN1) = NAMEVL(IVAR)
+           NAMEVX(KOUNT) = NAMEVR(IVAR)
+C END FEB 1996
+        ENDIF
+        WRITE(IFILE8,227) NAMEV2(IVAR)
+  227   FORMAT(4X,A)
+  228 CONTINUE
+C BEG FEB 1996
+      DO 2295 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFIL18,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 229 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFIL18,920) '+legend('//NAMEVX(J)//')'
+                  WRITE(IFIL18,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               WRITE(IFIL18,930) FI(I),CCCPLT(I,J)
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFIL18,920) '  '
+                  WRITE(IFIL18,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+  229    CONTINUE
+         WRITE(IFIL18,920) '  '
+ 2295 CONTINUE
+C     DO 229 I = 1,ITRPLT
+C 229 WRITE(IFIL18,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+C
+C  PRINT THE EXTREME FIBER AXIAL STRAINS TO BE PLOTTED BY DIPLOT...
+C
+      DIAWRD(1) =    '     AXIAL      ' 
+      DIAWRD(2) =    '     HOOP       '
+      DIAWRD(3) =    ' IN-PLANE SHEAR '
+      IF (IDIAG.EQ.2) THEN
+         DIAWRD(1) = ' +45-DEG NORMAL '
+         DIAWRD(2) = ' -45-DEG NORMAL '
+         DIAWRD(3) = ' +45-DEG SHEAR  '
+      ENDIF
+      WRITE(IFILE8,2291) DIAWRD(1),ILOADS,ICASES,DIAWRD(1),WORHED
+ 2291 FORMAT(/
+     1' *****',A,'STRAINS TO BE PLOTTED v. LOAD STEP NUMBER  *****'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k =(location no.).(load case).(subcase) *******'//
+     1' LOAD    EXTREME FIBER',A,'STRAINS TO BE PLOTTED'/
+     1' STEP',A/
+     1'         Layer 1    Layer n    Layer 1    Layer n    Layer 1    
+     1layer n    layer 1    layer n    layer 1    layer n')
+C
+      NOUT = MIN(KOUNT,11)
+      DO 2292 I = 1,ITRPLT
+ 2292 WRITE(IFILE8,2293) I,(CCCPLT(I,J),J=1,NOUT)
+ 2293 FORMAT(I3,3X,1P,11E11.3)
+C
+C  Next, generate a file, *.PL9, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL9, contains the extreme fiber hoop strains at the
+C  selected locations in the single panel module.
+C
+      DO 230 I = 1,120
+  230 WORHED(I:I) = ' '
+      REWIND IFIL19
+      DO 232 I = 1,ITRPLT
+        FI(I) = FVECT(I,NABSCI)
+  232 CONTINUE
+      NPLT2 = 2*NPLTST + 1
+C BEG FEB 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL19,920)
+     1'# Global directives, hoop or -45-deg.extreme fiber strain v load'
+      WRITE(IFIL19,920) '=title('//TITLE0(2)//')'
+      IF (NABSCI.EQ.1) 
+     1  WRITE(IFIL19,920) '=xlabel(Axial Load, Nx)'
+      IF (NABSCI.EQ.2) 
+     1  WRITE(IFIL19,920) '=xlabel(Hoop Load, Ny)'
+      IF (NABSCI.EQ.3) 
+     1  WRITE(IFIL19,920) '=xlabel(In-Plane Shear Load, Nxy)'
+      IF (NABSCI.EQ.4) 
+     1  WRITE(IFIL19,920) '=xlabel(Axial Moment, Mx)'
+      IF (NABSCI.EQ.5) 
+     1  WRITE(IFIL19,920) '=xlabel(Hoop Moment, My)'
+      IF (NABSCI.EQ.6) 
+     1  WRITE(IFIL19,920) '=xlabel(Normal Pressure, p)'
+      IF (NABSCI.EQ.7) 
+     1  WRITE(IFIL19,920) '=xlabel(Temperature Multiplier)'
+      IF (IDIAG.EQ.1)
+     1 WRITE(IFIL19,920) '=ylabel(Hoop Extreme Fiber Strain)'
+      IF (IDIAG.EQ.2) WRITE(IFIL19,920)
+     1       '=ylabel(-45-Degree Extreme Fiber Normal Strain)'
+C     WRITE(IFIL19,920) TITLE0(2)
+C     WRITE(IFIL19,910) NPLT2
+C     WRITE(IFIL19,920) ' LOAD STEPS '
+C END FEB 1996
+      KOUNT = 0
+C
+      DO 238 IVAR = 1,NSTRNS
+        CALL CONVR2(IVAR,CIVAR)
+        WORDES(IVAR) = '    '//CIVAR
+        WORMAR(IVAR) = CIVAR//'.'//CILOAD//'.'//CICASE
+        NAMEVL(IVAR) = WORMAR(IVAR)//' Layer 1 '//TITLE6(IVAR)(1:58)
+        NAMEVR(IVAR) = WORMAR(IVAR)//' Layer n '//TITLE6(IVAR)(1:58)
+        IF (IPV(IVAR).NE.0) THEN
+           IF (KOUNT.EQ.0) 
+     1        WORHED = '    '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+           IF (KOUNT.GT.0) THEN
+              CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+              WRDVTP = WORHED
+              WORHED = 
+     1        WRDVTP(1:J)//'     '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+C END JAN 1991
+           ENDIF
+           KOUNT = KOUNT + 2
+           KOUN1 = KOUNT - 1
+           DO 236 I = 1,ITRPLT
+C BEG AUGUST 1990
+             IF (ABS(DSPLOT(I,IVAR,3)).GT.0.1) DSPLOT(I,IVAR,3) = 0.
+             IF (ABS(DSPLOT(I,IVAR,4)).GT.0.1) DSPLOT(I,IVAR,4) = 0.
+C END AUGUST 1990
+             CCCPLT(I,KOUN1) = DSPLOT(I,IVAR,3)
+             CCCPLT(I,KOUNT) = DSPLOT(I,IVAR,4)
+  236      CONTINUE
+C BEG FEB 1996 (NEXT two STATEMENTs COMMENTED OUT)
+C          WRITE(IFIL19,920)  NAMEVL(IVAR)
+C          WRITE(IFIL19,920)  NAMEVR(IVAR)
+           NAMEVX(KOUN1) = NAMEVL(IVAR)
+           NAMEVX(KOUNT) = NAMEVR(IVAR)
+C END FEB 1996
+        ENDIF
+  238 CONTINUE
+C BEG FEB 1996
+      DO 2395 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFIL19,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 239 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFIL19,920) '+legend('//NAMEVX(J)//')'
+                  WRITE(IFIL19,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               WRITE(IFIL19,930) FI(I),CCCPLT(I,J)
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFIL19,920) '  '
+                  WRITE(IFIL19,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+  239    CONTINUE
+         WRITE(IFIL19,920) '  '
+ 2395 CONTINUE
+C     DO 239 I = 1,ITRPLT
+C 239 WRITE(IFIL19,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+C
+C  PRINT THE EXTREME FIBER HOOP STRAINS TO BE PLOTTED BY DIPLOT...
+C
+      WRITE(IFILE8,2391) DIAWRD(2),DIAWRD(2),WORHED
+ 2391 FORMAT(/
+     1' *****',A,'STRAINS TO BE PLOTTED v. LOAD STEP NUMBER  *****'/
+     1' LOAD    EXTREME FIBER',A,'STRAINS TO BE PLOTTED'/
+     1' STEP',A/
+     1'         Layer 1    Layer n    Layer 1    Layer n    Layer 1    
+     1layer n    layer 1    layer n    layer 1    layer n')
+C
+      NOUT = MIN(KOUNT,11)
+      DO 2392 I = 1,ITRPLT
+ 2392 WRITE(IFILE8,2393) I,(CCCPLT(I,J),J=1,NOUT)
+ 2393 FORMAT(I3,3X,1P,11E11.3)
+C
+C  Next, generate a file, *.PL10, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL10, contains the extreme fiber in-plane shear strains at
+C  at the selected locations in the single panel module.
+C
+      DO 240 I = 1,120
+  240 WORHED(I:I) = ' '
+      REWIND IFIL20
+      DO 242 I = 1,ITRPLT
+        FI(I) = FVECT(I,NABSCI)
+  242 CONTINUE
+      NPLT2 = 2*NPLTST + 1
+C BEG FEB 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL20,920)
+     1'# Global directives, hoop or -45-deg.extreme fiber strain v load'
+      WRITE(IFIL20,920) '=title('//TITLE0(2)//')'
+      IF (NABSCI.EQ.1) 
+     1  WRITE(IFIL20,920) '=xlabel(Axial Load, Nx)'
+      IF (NABSCI.EQ.2) 
+     1  WRITE(IFIL20,920) '=xlabel(Hoop Load, Ny)'
+      IF (NABSCI.EQ.3) 
+     1  WRITE(IFIL20,920) '=xlabel(In-Plane Shear Load, Nxy)'
+      IF (NABSCI.EQ.4) 
+     1  WRITE(IFIL20,920) '=xlabel(Axial Moment, Mx)'
+      IF (NABSCI.EQ.5) 
+     1  WRITE(IFIL20,920) '=xlabel(Hoop Moment, My)'
+      IF (NABSCI.EQ.6) 
+     1  WRITE(IFIL20,920) '=xlabel(Normal Pressure, p)'
+      IF (NABSCI.EQ.7) 
+     1  WRITE(IFIL20,920) '=xlabel(Temperature Multiplier)'
+      IF (IDIAG.EQ.1)
+     1 WRITE(IFIL20,920) '=ylabel(In-Plane Extreme Fiber Shear Strain)'
+      IF (IDIAG.EQ.2) WRITE(IFIL20,920)
+     1       '=ylabel(45-Degree Extreme Fiber In-Plane Shear Strain)'
+C     WRITE(IFIL20,920) TITLE0(2)
+C     WRITE(IFIL20,910) NPLT2
+C     WRITE(IFIL20,920) ' LOAD STEPS '
+C END FEB 1996
+      KOUNT = 0
+C
+      DO 248 IVAR = 1,NSTRNS
+        CALL CONVR2(IVAR,CIVAR)
+        WORDES(IVAR) = '    '//CIVAR
+        WORMAR(IVAR) = CIVAR//'.'//CILOAD//'.'//CICASE
+        NAMEVL(IVAR) = WORMAR(IVAR)//' Layer 1 '//TITLE7(IVAR)(1:58)
+        NAMEVR(IVAR) = WORMAR(IVAR)//' Layer n '//TITLE7(IVAR)(1:58)
+        IF (IPV(IVAR).NE.0) THEN
+           IF (KOUNT.EQ.0) 
+     1        WORHED = '    '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+           IF (KOUNT.GT.0) THEN
+              CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+              WRDVTP = WORHED
+              WORHED = 
+     1        WRDVTP(1:J)//'     '//WORMAR(IVAR)//'     '//WORMAR(IVAR)
+C END JAN 1991
+           ENDIF
+           KOUNT = KOUNT + 2
+           KOUN1 = KOUNT - 1
+           DO 246 I = 1,ITRPLT
+C BEG AUGUST 1990
+             IF (ABS(DSPLOT(I,IVAR,5)).GT.0.1) DSPLOT(I,IVAR,5) = 0.
+             IF (ABS(DSPLOT(I,IVAR,6)).GT.0.1) DSPLOT(I,IVAR,6) = 0.
+C END AUGUST 1990
+             CCCPLT(I,KOUN1) = DSPLOT(I,IVAR,5)
+             CCCPLT(I,KOUNT) = DSPLOT(I,IVAR,6)
+  246      CONTINUE
+C BEG FEB 1996 (NEXT two STATEMENTs COMMENTED OUT)
+C          WRITE(IFIL20,920)  NAMEVL(IVAR)
+C          WRITE(IFIL20,920)  NAMEVR(IVAR)
+           NAMEVX(KOUN1) = NAMEVL(IVAR)
+           NAMEVX(KOUNT) = NAMEVR(IVAR)
+C END FEB 1996
+        ENDIF
+  248 CONTINUE
+C BEG FEB 1996
+      DO 2496 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         WRITE(IFIL20,920) '# data set '//CIVAR
+         IFLAG1 = 0
+         IFLAG2 = 0
+         DO 249 I = 1,ITRPLT
+            IF (CCCPLT(I,J).NE.0.) THEN
+               IF (IFLAG1.EQ.0) THEN
+                  WRITE(IFIL20,920) '+legend('//NAMEVX(J)//')'
+                  WRITE(IFIL20,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG1 = 1
+               ENDIF
+               IFLAG2 = 0
+               WRITE(IFIL20,930) FI(I),CCCPLT(I,J)
+            ELSE
+               IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                  WRITE(IFIL20,920) '  '
+                  WRITE(IFIL20,'(A,I2,A)') '+setmarker(',J-1,')'
+                  IFLAG2 = 1
+               ENDIF
+            ENDIF
+  249    CONTINUE
+         WRITE(IFIL20,920) '  '
+ 2496 CONTINUE
+C     DO 249 I = 1,ITRPLT
+C 249 WRITE(IFIL20,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+C
+C  PRINT THE EXTREME FIBER SHEAR STRAINS TO BE PLOTTED BY DIPLOT...
+C
+      WRITE(IFILE8,2491) DIAWRD(3),DIAWRD(3),WORHED
+ 2491 FORMAT(/
+     1' *****',A,'STRAINS TO BE PLOTTED v. LOAD STEP NUMBER  *****'/
+     1' LOAD    EXTREME FIBER',A,'STRAINS TO BE PLOTTED'/
+     1' STEP',A/
+     1'         Layer 1    Layer n    Layer 1    Layer n    Layer 1    
+     1layer n    layer 1    layer n    layer 1    layer n')
+C
+      NOUT = MIN(KOUNT,11)
+      DO 2492 I = 1,ITRPLT
+ 2492 WRITE(IFILE8,2493) I,(CCCPLT(I,J),J=1,NOUT)
+ 2493 FORMAT(I3,3X,1P,11E11.3)
+C
+ 2495 CONTINUE
+      NPLTST = 2*NPLTST
+      CLOSE(UNIT=IFIL18)
+      CLOSE(UNIT=IFIL19)
+      CLOSE(UNIT=IFIL20)
+C END MAY 1990
+C
+      IF (ITYPE.EQ.3) THEN
+         IPLMAR = 1
+         REWIND IFILE
+         CALL DATUM(IFILE,514,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) IPLMAR = 0
+         IF (IPLMAR.EQ.0) THEN
+            DO 383 ITIT = 1,NTITL
+            READ(IUNIT) (CCPLOT(I),I=1,ITRPLT)
+  383       CONTINUE
+            GO TO 42
+         ENDIF
+      ENDIF
+      IF (IPLMAR.EQ.0) GO TO 42
+C
+      CALL MOVER(0.,0,CCPLOT,1,NTITL)
+      IMAR = 0
+   39 CONTINUE
+      IF (IMAR.GT.0) THEN
+         ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR '//
+     $            'FOR PLOTTING                     '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,6,70,1,ISUBC1,2)
+C
+         IF (IPROMP.GT.1) THEN
+            ARGSTR = '    DESIGN MARGINS CHOSEN SO FAR '//
+     $               'FOR PLOTTING                     '
+            CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IPROMP,80,1,ISUBC1,2)
+         ENDIF
+      ENDIF
+C
+      ARGSTR = '    LIST FROM WHICH A MARGIN TO B'//
+     $         'E PLOTTED MUST NOW BE CHOSEN     '
+      CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,6,70,1,ISUBC2,2)
+      IF (IPROMP.GT.1) THEN
+         ARGSTR = '    LIST FROM WHICH A MARGIN TO B'//
+     $            'E PLOTTED MUST NOW BE CHOSEN     '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IPROMP,80,1,ISUBC2,2)
+      ENDIF
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,517,1,2,IVAR,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISUBC2(IVAR).NE.0) THEN
+         WRITE(6,*)' BAD CHOICE FOR DESIGN MARGIN, TRY AGAIN.'
+         BACKSPACE(IOUT)
+         GO TO 39
+      ENDIF
+C
+      DO 40 J = 1,60
+   40 PHRASE(J:J) = TITLES(IVAR)(J:J)
+      FVAR = IVAR
+      ICV(IVAR) = 1
+      ISUBC1(IVAR) = 0
+      ISUBC2(IVAR) = 1
+      CALL GETVAR(0,FVAR,0,0,0,IMAR,FMARGN,WORDCL,IADDCL)
+      IF (IMAR.EQ.20) THEN
+         WRITE(6,*)' NO MORE ITEMS ALLOWED IN THIS RUN. CHOOSE'
+         WRITE(6,*)' ADDITIONAL MARGINS IN ANOTHER RUN.'
+         GO TO 402
+      ENDIF
+      CALL DATUM(IFILE,545,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 39
+  402 CONTINUE
+      CALL DATUM(IFILE,547,1,2,INT,FMMAX,CHARAC,IOUT,0,IPROMP)
+      FMMAX = ABS(FMMAX)
+      NMARGN = IMAR
+C
+C BEG MAY 1990
+      IF (ITYPE.EQ.3) THEN
+         CALL LENWRD(TITLOD,J)
+         TITLE0(1) = CASE(1:NLET)//': '//TITLOD(1:J)//
+     1    ', LOADSET='//CILOAD//', SUBSET='//CICASE
+      ELSE
+C BEG FEB 1991
+         IF (ITYPE.EQ.1)
+     1   TITLE0(1) = CASE(1:NLET)//': LOADSET='//CILOAD//', SUBSET='
+     1    //CICASE
+         IF (ITYPE.EQ.4) THEN
+           DO 403 I = 1,10
+              JBLNK = I
+              IF (VARLEG(IBVAR)(I:I).NE.' ') GO TO 407
+  403      CONTINUE
+  407      CONTINUE
+           TITLE0(1) = CASE(1:NLET)//': LOADSET='//CILOAD//', SUBSET='
+     1      //CICASE//', DESIGN VARIABLE= '//VARLEG(IBVAR)(JBLNK:12)
+         ENDIF
+C END FEB 1991
+C BEG MAR 1991
+         IF (ITYPE.EQ.5) THEN
+C BEG JULY 1993
+           ITRPL1 = ITRPLT - 1
+           CCRIT1 = 10.E16
+           CCRIT2 = 10.E16
+           IF (CPLOT1.GT.0.0.AND.CPLOT2.GT.0.0) THEN
+              CCRIT1 = CPLOT2
+              CCRIT2 = CPLOT1
+           ENDIF
+           IF (ICURV.EQ.1) THEN
+              WRDCMB = '(Nx, Ny), Nxyo='
+              FNFIXD = FNXY0P
+              WRDCM1 = 'Nxcr ='
+              WRDCM2 = 'Nycr ='
+              FNCRIT = FNXPLT(ITRPL1)*CCRIT1
+              CALL CONVRE(FNCRIT,WFNCR1)
+              FNCRIT = FNYPLT(ITRPLT)*CCRIT2
+              CALL CONVRE(FNCRIT,WFNCR2)
+           ENDIF
+           IF (ICURV.EQ.2) THEN
+              WRDCMB = '(Nx, Nxy), Nyo='
+              FNFIXD = FNY0P
+              WRDCM1 = 'Nxcr ='
+              WRDCM2 = 'Nxycr='
+              FNCRIT = FNXPLT(ITRPL1)*CCRIT1
+              CALL CONVRE(FNCRIT,WFNCR1)
+              FNCRIT = FNXYPL(ITRPLT)*CCRIT2
+              CALL CONVRE(FNCRIT,WFNCR2)
+           ENDIF
+           IF (ICURV.EQ.3) THEN
+              WRDCMB = '(Ny, Nxy), Nxo='
+              FNFIXD = FNX0P
+              WRDCM1 = 'Nycr ='
+              WRDCM2 = 'Nxycr='
+              FNCRIT = FNYPLT(ITRPL1)*CCRIT1
+              CALL CONVRE(FNCRIT,WFNCR1)
+              FNCRIT = FNXYPL(ITRPLT)*CCRIT2
+              CALL CONVRE(FNCRIT,WFNCR2)
+           ENDIF
+           CALL CONVRE(FNFIXD,WFNFXD)
+           TITLE0(1) =
+     1      WRDCMB//WFNFXD//':'//WRDCM1//WFNCR1//','//WRDCM2//WFNCR2
+         ENDIF
+C END JULY 1993
+C END MAR 1991
+      ENDIF
+C END MAY 1990
+      WRITE(IFILE8,24) TITLE0(1)
+      IF (ITYPE.EQ.1) THEN
+         ARGSTR = '    DESIGN MARGINS TO BE PLOTTED '//
+     $            'v. DESIGN ITERATIONS            '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IFILE8,80,1,ISUBC1,2)
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         ARGSTR = '    DESIGN MARGINS TO BE PLOTTED '//
+     $            'v. LOAD STEP NUMBER             '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IFILE8,80,1,ISUBC1,2)
+      ENDIF
+C BEG FEB 1991
+      IF (ITYPE.EQ.4) THEN
+         ARGSTR = '    DESIGN MARGINS TO BE PLOTTED '//
+     $            'v. DESIGN VARIABLE              '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IFILE8,80,1,ISUBC1,2)
+      ENDIF
+C END FEB 1991
+C BEG MAR 1991
+      IF (ITYPE.EQ.5) THEN
+         ARGSTR = '    DESIGN MARGINS TO BE PLOTTED '//
+     $            'v. IN-PLANE LOAD COMBINATION    '
+         CALL OUTVR2(NTITL,CCPLOT,TITLES,ARGSTR,IFILE8,80,1,ISUBC1,2)
+      ENDIF
+C END FEB 1991
+C
+C
+C  Next, generate a file, *.PL3, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL3, contains the selected design margins.
+C
+      IF (NMARGN.EQ.0) GO TO 100
+C
+      IF (ITYPE.EQ.1) WRITE(IFILE8,49) ITRPLT, ILOADS, ICASES
+      IF (ITYPE.EQ.3) WRITE(IFILE8,50) ITRPLT, ILOADS, ICASES
+C BEG FEB 1991
+      IF (ITYPE.EQ.4) THEN
+         WRITE(IFILE8,501) ITRPLT,VARLEG(IBVAR)(JBLNK:12),ILOADS,ICASES
+      ENDIF
+C END FEB 1991
+C BEG MAR 1991
+      IF (ITYPE.EQ.5) WRITE(IFILE8,502) ITRPLT, WRDCMB, FNFIXD,
+     1                                  ILOADS, ICASES
+C END MAR 1991
+   49 FORMAT(/
+     1' *******  DESIGN MARGINS TO BE PLOTTED v. ',I3,' DESIGN ITERATION
+     1S *******'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+   50 FORMAT(/
+     1' *******  DESIGN MARGINS TO BE PLOTTED v. ',I3,' LOAD STEPS *****
+     1**'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C BEG FEB 1991
+  501 FORMAT(/
+     1' ***** DESIGN MARGINS TO BE PLOTTED v. ',I3,' VALUES OF ', A,/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C END FEB 1991
+C BEG MAR 1991
+  502 FORMAT(/
+     1' ** DESIGN MARGINS TO BE PLOTTED v. ',I3,' COMBINATIONS OF ',
+     1 A, 1PE12.4,' **'/
+     1        ' ****** LOAD SET NO. ',I1,'                  ******'/
+     1    ' ****** SUB-CASE (1=MIDLENGTH, 2=PANEL END)= ',I1,' *****')
+C END MAR 1991
+      REWIND IFILE3
+      DO 51 I = 1,ITRPLT
+      IF (ITYPE.EQ.1) FI(I) = I - 1
+C BEG MAY 1990
+      IF (ITYPE.EQ.3) FI(I) = FVECT(I,NABSCI)
+C END MAY 1990
+C BEG FEB 1991
+      IF (ITYPE.EQ.4) FI(I) = VARPLT(I)
+C END FEB 1991
+C BEG MAR 1991
+      IF (ITYPE.EQ.5) FI(I) = I
+C END MAR 1991
+   51 CONTINUE
+      NMARG1 = NMARGN + 1
+C BEG FEB 1996
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFILE3,920)
+     1   '# Global directives, design margins vs design iterations'
+         WRITE(IFILE3,920) '=title('//TITLE0(1)//')'
+         WRITE(IFILE3,920) '=xlabel(Design Iterations)'
+         WRITE(IFILE3,920) '=ylabel(Design Margins)'
+      ENDIF
+      IF (ITYPE.EQ.3) THEN
+         WRITE(IFILE3,920)
+     1   '# Global directives, design margins vs load'
+         WRITE(IFILE3,920) '=title('//TITLE0(1)//')'
+         IF (NABSCI.EQ.1) 
+     1     WRITE(IFILE3,920) '=xlabel(Axial Load, Nx)'
+         IF (NABSCI.EQ.2) 
+     1     WRITE(IFILE3,920) '=xlabel(Hoop Load, Ny)'
+         IF (NABSCI.EQ.3) 
+     1     WRITE(IFILE3,920) '=xlabel(In-Plane Shear Load, Nxy)'
+         IF (NABSCI.EQ.4) 
+     1     WRITE(IFILE3,920) '=xlabel(Axial Moment, Mx)'
+         IF (NABSCI.EQ.5) 
+     1     WRITE(IFILE3,920) '=xlabel(Hoop Moment, My)'
+         IF (NABSCI.EQ.6) 
+     1     WRITE(IFILE3,920) '=xlabel(Normal Pressure, p)'
+         IF (NABSCI.EQ.7) 
+     1     WRITE(IFILE3,920) '=xlabel(Temperature Multiplier)'
+         WRITE(IFILE3,920) '=ylabel(Design Margins)'
+      ENDIF
+      IF (ITYPE.EQ.4) THEN
+         WRITE(IFILE3,920)
+     1   '# Global directives, design margins vs design parameter'
+         WRITE(IFILE3,920) '=title('//TITLE0(1)//')'
+         WRITE(IFILE3,920)
+     1     '=xlabel(Design Parameter, '//VARLEG(IBVAR)//')'
+         WRITE(IFILE3,920) '=ylabel(Design Margins)'
+      ENDIF
+      IF (ITYPE.EQ.5) THEN
+         WRITE(IFILE4,920)
+     1   '# Global directives, normalized load interaction curve'
+         WRITE(IFILE4,920) '=title('//TITLE0(1)//')'
+         IF (ICURV.EQ.1.OR.ICURV.EQ.2) WRITE(IFILE4,920)
+C BEG FEB 1997
+C    1     '=xlabel(Normalized Axial Resultant, Nx/Nxcr)'
+     1     '=ylabel(Normalized Axial Resultant, Nx/Nxcr)'
+C END FEB 1997
+         IF (ICURV.EQ.3) WRITE(IFILE4,920)
+C BEG FEB 1997
+C    1     '=xlabel(Normalized Hoop Resultant, Ny/Nycr)'
+     1     '=ylabel(Normalized Hoop Resultant, Ny/Nycr)'
+C END FEB 1997
+         IF (ICURV.EQ.1) WRITE(IFILE4,920)
+C BEG FEB 1997
+C    1     '=ylabel(Normalized Hoop Resultant, Ny/Nycr)'
+     1     '=xlabel(Normalized Hoop Resultant, Ny/Nycr)'
+C END FEB 1997
+         IF (ICURV.EQ.2.OR.ICURV.EQ.3) WRITE(IFILE4,920)
+C BEG FEB 1997
+C    1     '=ylabel(Normalized In-Plane Shear Resultant, Nxy/Nxycr)'
+     1     '=xlabel(Normalized In-Plane Shear Resultant, Nxy/Nxycr)'
+C END FEB 1997
+      ENDIF
+C     WRITE(IFILE3,920) TITLE0(1)
+C     WRITE(IFILE3,910) NMARG1
+C     IF (ITYPE.EQ.1) WRITE(IFILE3,920) ' ITERATIONS '
+C     IF (ITYPE.EQ.3) WRITE(IFILE3,920) ' LOAD STEPS '
+C     IF (ITYPE.EQ.4) WRITE(IFILE3,920) VARLEG(IBVAR)
+C     IF (ITYPE.EQ.5) THEN
+C        NMARG2 = 2*NMARGN
+C        NPLT   = NMARGN
+C        WRITE(IFILE3,920) ' LOAD COMBOS'
+C        WRITE(IFILE4,920) TITLE0(1)
+C        WRITE(IFILE4,910) NMARG2
+C     ENDIF
+C END FEB 1996
+      KOUNT = 0
+      WRITE(IFILE8,52) ILOADS,ICASES,NMARGN
+   52 FORMAT(/' DEFINITIONS OF DESIGN MARGINS FOLLOW...'/
+     1'  LOAD CASE NO. = ',I2,';    SUBCASE NO. = ',I2/
+     1   I3,' MARGINS HAVE BEEN SELECTED FROM THE FOLLOWING LIST.'/
+     1' MARGIN'/
+     1' NUMBER          BEHAVIOR TO WHICH MARGIN CORRESPONDS'/
+     1' i.j.k    [ i.j.k  means  (margin no.).(load case).(subcase) ]')
+C
+      DO 60 ICAR = 1,NTITL
+        CALL CONVR2(ICAR,CICAR)
+        WORMAR(ICAR) = CICAR//'.'//CILOAD//'.'//CICASE
+        NAMEM(ICAR) = WORMAR(ICAR)//' '//TITLES(ICAR)(1:66)
+C BEG NOV 1992
+        IF (ITYPE.EQ.1) THEN
+           READ(IUNIT) (CCPLOT(I), I=1,MITERX)
+           IF (MITERX.LT.ITRTOT) THEN
+              MITRX1 = MITERX + 1
+              DO 53 I = MITRX1,ITRTOT
+   53         CCPLOT(I) = 0.
+           ENDIF
+        ENDIF
+C END NOV 1992
+        IF (ITYPE.EQ.3) READ(IUNIT) (CCPLOT(I), I=1,NSTEPS)
+C BEG FEB 1991
+        IF (ITYPE.EQ.4) READ(IUNIT) (CCPLOT(I), I=1,ITRPLT)
+C END FEB 1991
+C BEG MAR 1991
+        IF (ITYPE.EQ.5) THEN
+           READ(IUNIT) (CCPLOT(I), I=1,ITRPLT)
+           ITRPL1 = ITRPLT - 1
+           FSAFE = 1.
+           FSAFE2= 1.
+           DO 602 I = 1,99
+              IF (PCWRD1(I)(1:66).EQ.TITLES(ICAR)(1:66)) THEN
+C BEG JULY 1993
+                 FSAFE = FSAFP2(I)
+C END JULY 1993
+                 GO TO 603
+              ENDIF
+  602      CONTINUE
+  603      CONTINUE
+C BEG JULY 1993
+C          DO 604 I = 1,99
+C             IF (PCWRD2(I)(1:66).EQ.TITLES(ICAR)(1:66)) THEN
+C                FSAFE2 = FSAFP2(I)
+C                GO TO 605
+C             ENDIF
+C 604      CONTINUE
+C 605      CONTINUE
+           IF (FSAFE.LE.0.)  FSAFE = 1.0
+C          IF (FSAFE2.LE.0.) FSAFE2= 1.0
+C END JULY 1993
+           CCRIT1 = CCPLOT(ITRPL1)
+           CCRIT2 = CCPLOT(ITRPLT)
+           ILETC = INDEX(TITLES(ICAR),'Wide column panel buck')
+C BEG JULY 1993
+C          IF (ILETC.NE.0) THEN
+              IF (CPLOT1.GT.0.0.AND.CPLOT2.GT.0.0) THEN
+                 CCRIT1 = CPLOT2
+                 CCRIT2 = CPLOT1
+              ENDIF
+C          ENDIF
+           IF (CCRIT1.EQ.0.) CCRIT1 = 10.E16
+           IF (CCRIT2.EQ.0.) CCRIT2 = 10.E16
+C          IF (ICURV.EQ.1) THEN
+C             FNCRIT = FNXPLT(ITRPL1)*(CCRIT1+1.)*FSAFE2
+C             FNCRIT = FNXPLT(ITRPL1)*CCRIT1
+C             CALL CONVRE(FNCRIT,WFNCR1)
+C             FNCRIT = FNYPLT(ITRPLT)*(CCRIT2+1.)*FSAFE
+C             FNCRIT = FNYPLT(ITRPLT)*CCRIT2
+C             CALL CONVRE(FNCRIT,WFNCR2)
+C          ENDIF
+C          IF (ICURV.EQ.2) THEN
+C             FNCRIT = FNXPLT(ITRPL1)*(CCRIT1+1.)*FSAFE2
+C             FNCRIT = FNXPLT(ITRPL1)*CCRIT1
+C             CALL CONVRE(FNCRIT,WFNCR1)
+C             FNCRIT = FNXYPL(ITRPLT)*(CCRIT2+1.)*FSAFE
+C             FNCRIT = FNXYPL(ITRPLT)*CCRIT2
+C             CALL CONVRE(FNCRIT,WFNCR2)
+C             WRITE(6,'(A,I3,A)') ' ICAR=',ICAR,NAMEM(ICAR)(1:66)
+C             WRITE(6,*)' ITRPL1,ITRPLT,FSAFE,FSAFE2=',
+C    1                    ITRPL1,ITRPLT,FSAFE,FSAFE2
+C             WRITE(6,*)' CCRIT1,CCRIT2=',CCRIT1,CCRIT2
+C             WRITE(6,*)' FNXPLT(ITRPL1),FNXYPL(ITRPLT)=',
+C    1                    FNXPLT(ITRPL1),FNXYPL(ITRPLT)
+C             WRITE(6,'(A,A)')' WFNCR1=',WFNCR1
+C             WRITE(6,'(A,A)')' WFNCR2=',WFNCR2
+C          ENDIF
+C          IF (ICURV.EQ.3) THEN
+C             FNCRIT = FNYPLT(ITRPL1)*(CCRIT1+1.)*FSAFE2
+C             FNCRIT = FNYPLT(ITRPL1)*CCRIT1
+C             CALL CONVRE(FNCRIT,WFNCR1)
+C             FNCRIT = FNXYPL(ITRPLT)*(CCRIT2+1.)*FSAFE
+C             FNCRIT = FNXYPL(ITRPLT)*CCRIT2
+C             CALL CONVRE(FNCRIT,WFNCR2)
+C          ENDIF
+C END JULY 1993
+        ENDIF
+C END MAR 1991
+        IF (ICV(ICAR).NE.0) THEN
+           IF (KOUNT.EQ.0) WORHED = '    '//WORMAR(ICAR)
+           IF (KOUNT.GT.0) THEN
+              CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+              WRDVTP = WORHED
+              WORHED = WRDVTP(1:J)//'     '//WORMAR(ICAR)
+C END JAN 1991
+           ENDIF
+           KOUNT = KOUNT + 1
+C BEG MAR 1991
+           KT1 = 2*KOUNT - 1
+           KT2 = 2*KOUNT
+C END MAR 1991
+           DO 55 I = 1,ITRPLT
+           CCCPLT(I,KOUNT) = CCPLOT(I)
+C BEG DEC 2000
+           IF (ABS(CCCPLT(I,KOUNT)).GT.FMMAX) 
+     1        CCCPLT(I,KOUNT) = 0.
+C END DEC 2000
+C BEG MAR 1991
+           IF (ITYPE.EQ.5) THEN
+             IF (I.GE.(ITRPLT-1)) CCCPLT(I,KOUNT) = 0.
+             IF (I.LT.ITRPL1) THEN
+C BEG JULY 1993
+              IF (ICURV.EQ.1) THEN
+C                FNUM1 = FNXPLT(I)*(CCPLOT(I)+1.)
+C                FDEN1 = FNXPLT(ITRPL1)*(CCRIT1+1.)
+C                FNUM2 = FNYPLT(I)*(CCPLOT(I)+1.)
+C                FDEN2 = FNYPLT(ITRPLT)*(CCRIT2+1.)
+                 FNUM1 = FNXPLT(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN1 = FNXPLT(ITRPL1)*CCRIT1
+                 FNUM2 = FNYPLT(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN2 = FNYPLT(ITRPLT)*CCRIT2
+              ENDIF
+              IF (ICURV.EQ.2) THEN
+C                FNUM1 = FNXPLT(I)*(CCPLOT(I)+1.)
+C                FDEN1 = FNXPLT(ITRPL1)*(CCRIT1+1.)
+C                FNUM2 = FNXYPL(I)*(CCPLOT(I)+1.)
+C                FDEN2 = FNXYPL(ITRPLT)*(CCRIT2+1.)
+                 FNUM1 = FNXPLT(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN1 = FNXPLT(ITRPL1)*CCRIT1
+                 FNUM2 = FNXYPL(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN2 = FNXYPL(ITRPLT)*CCRIT2
+C                WRITE(8,*)' ITRPL1,ITRPLT,I,CCRIT1,CCRIT2=',
+C    1                       ITRPL1,ITRPLT,I,CCRIT1,CCRIT2
+C                WRITE(8,*)' FNXPLT(I),FNXYPL(I),CCPLOT(I)=',
+C    1                       FNXPLT(I),FNXYPL(I),CCPLOT(I)
+C                WRITE(8,*)' FNUM1,FDEN1,FNUM2,FDEN2=',
+C    1                       FNUM1,FDEN1,FNUM2,FDEN2
+              ENDIF
+              IF (ICURV.EQ.3) THEN
+C                FNUM1 = FNYPLT(I)*(CCPLOT(I)+1.)
+C                FDEN1 = FNYPLT(ITRPL1)*(CCRIT1+1.)
+C                FNUM2 = FNXYPL(I)*(CCPLOT(I)+1.)
+C                FDEN2 = FNXYPL(ITRPLT)*(CCRIT2+1.)
+                 FNUM1 = FNYPLT(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN1 = FNYPLT(ITRPL1)*CCRIT1
+                 FNUM2 = FNXYPL(I)*(CCPLOT(I)+1.)*FSAFE
+                 FDEN2 = FNXYPL(ITRPLT)*CCRIT2
+              ENDIF
+C END JULY 1993
+              CURINT(I,KT1) = 0.
+              CURINT(I,KT2) = 0.
+              IF (FDEN1.NE.0.) THEN
+                CURINT(I,KT2) = FNUM1/FDEN1
+                IF (ABS(CURINT(I,KT2)).LT.0.0001) CURINT(I,KT2)=.0001
+                IF (CCRIT1.EQ.10.E16) CURINT(I,KT2) = 0.
+C BEG JULY 1993
+                IF (CCPLOT(I).EQ.0.0) CURINT(I,KT2) = 0.
+C END JULY 1993
+              ENDIF
+              IF (FDEN2.NE.0.) THEN
+                CURINT(I,KT1) = FNUM2/FDEN2
+                IF (ABS(CURINT(I,KT1)).LT.0.0001) CURINT(I,KT1)=.0001
+                IF (CCRIT2.EQ.10.E16) CURINT(I,KT1) = 0.
+C BEG JULY 1993
+                IF (CCPLOT(I).EQ.0.0) CURINT(I,KT1) = 0.
+C END JULY 1993
+                IF (CURINT(I,KT1).EQ.0.) CURINT(I,KT2) = 0.
+              ENDIF
+C BEG SEP 1995
+              IF (ABS(CURINT(I,KT1)).GT.(FMMAX+0.)) CURINT(I,KT1) = 0.
+              IF (ABS(CURINT(I,KT2)).GT.(FMMAX+0.)) CURINT(I,KT2) = 0.
+C END SEP 1995
+              IF (CURINT(I,KT1).EQ.0.) CURINT(I,KT2) = 0.
+             ENDIF
+           ENDIF
+   55      CONTINUE
+C BEG FEB 1996
+C          WRITE(IFILE3,920) NAMEM(ICAR)
+           NAMEVX(KOUNT) = NAMEM(ICAR)
+           IF (ITYPE.EQ.5) THEN
+C           WRITE(IFILE4,920) ' INTERACTION'
+C           WRITE(IFILE4,920)
+            NAMEVX(KOUNT) =
+     1      WORMAR(ICAR)//':'//TITLES(ICAR)(1:65)
+           ENDIF
+C END FEB 1996
+        ENDIF
+        WRITE(IFILE8,57) NAMEM(ICAR)
+   57   FORMAT(1X,A)
+   60 CONTINUE
+C BEG FEB 1996
+      DO 703 J = 1,KOUNT
+         CALL CONVR2(J,CIVAR)
+         IF (ITYPE.NE.5) THEN
+            WRITE(IFILE3,920) '# data set '//CIVAR
+            IFLAG1 = 0
+            IFLAG2 = 0
+            DO 70 I = 1,ITRPLT
+               IF (CCCPLT(I,J).NE.0.) THEN
+                  IF (IFLAG1.EQ.0) THEN
+                     WRITE(IFILE3,920) '+legend('//NAMEVX(J)//')'
+                     WRITE(IFILE3,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG1 = 1
+                  ENDIF
+                  IFLAG2 = 0
+                  CCCCPT = CCCPLT(I,J)
+                  IF (ITYPE.EQ.1.AND.CCCCPT.LT.-1.0) CCCCPT = -1.
+                  WRITE(IFILE3,930) FI(I),CCCCPT
+               ELSE
+                  IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                     WRITE(IFILE3,920) '  '
+                     WRITE(IFILE3,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG2 = 1
+                  ENDIF
+               ENDIF
+   70       CONTINUE
+            WRITE(IFILE3,920) '  '
+         ELSE
+            WRITE(IFILE4,920) '# data set '//CIVAR
+            JJ = 2*J
+            JJ1= 2*J - 1
+            ITRPL2 = ITRPLT - 2
+            IFLAG1 = 0
+            IFLAG2 = 0
+            DO 71 I = 1,ITRPL2
+               IF (CURINT(I,JJ1).NE.0.0.AND.CURINT(I,JJ).NE.0.0) THEN
+                  IF (IFLAG1.EQ.0) THEN
+                     WRITE(IFILE4,920) '+legend('//NAMEVX(J)//')'
+                     WRITE(IFILE4,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG1 = 1
+                  ENDIF
+                  IFLAG2 = 0
+                  WRITE(IFILE4,930) CURINT(I,JJ1),CURINT(I,JJ)
+               ELSE
+                  IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                     WRITE(IFILE4,920) '  '
+                     WRITE(IFILE4,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG2 = 1
+                  ENDIF
+               ENDIF
+   71       CONTINUE
+            WRITE(IFILE4,920) '  '
+         ENDIF
+  703 CONTINUE
+C     DO 70 I = 1,ITRPLT
+C        WRITE(IFILE3,930) FI(I),(CCCPLT(I,J),J=1,KOUNT)
+C  70 CONTINUE
+C     IF (ITYPE.EQ.5) THEN
+C        KOUNT2 = 2*KOUNT
+C        ITRPL2 = ITRPLT - 2
+C        DO 71 I = 1,ITRPL2
+C           WRITE(IFILE4,930) (CURINT(I,J),J=1,KOUNT2)
+C  71    CONTINUE
+C        CLOSE(UNIT=IFILE4)
+C     ENDIF
+      IF (ITYPE.EQ.5) CLOSE(UNIT=IFILE4)
+      IF (ITYPE.NE.5) CLOSE(UNIT=IFILE3)
+C END FEB 1996
+C
+C  PRINT THE DESIGN MARGINS TO BE PLOTTED BY DIPLOT...
+C
+      IF (ITYPE.EQ.1) WRITE(IFILE8,75) ILOADS,ICASES,WORHED
+      IF (ITYPE.EQ.3) WRITE(IFILE8,76) ILOADS,ICASES,WORHED
+C BEG FEB 1991
+      IF (ITYPE.EQ.4) WRITE(IFILE8,761) VARLEG(IBVAR)(JBLNK:12),
+     1                                  ILOADS,ICASES,WORHED
+C END FEB 1991
+C BEG MAR 1991
+      IF (ITYPE.EQ.5) WRITE(IFILE8,762) WRDCMB,FNFIXD,
+     1                                  ILOADS,ICASES,WORHED
+   75 FORMAT(/
+     1' *******  DESIGN MARGINS TO BE PLOTTED v. DESIGN ITERATIONS *****
+     1**'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k  = (margin no.).(load case).(subcase) *******'//
+     1' ITER.     MARGINS TO BE PLOTTED'/
+     1'  NO.',A/)
+C
+   76 FORMAT(/
+     1' *******  DESIGN MARGINS TO BE PLOTTED v. LOAD STEP NO. *******'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k  = (margin no.).(load case).(subcase) *******'//
+     1' LOAD     MARGINS TO BE PLOTTED'/
+     1' STEP ',A/)
+C
+C BEG FEB 1991
+  761 FORMAT(/
+     1' *******  DESIGN MARGINS TO BE PLOTTED v. ',A,' *******'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k  = (margin no.).(load case).(subcase) *******'//
+     1'   DESIGN     MARGINS TO BE PLOTTED'/
+     1'  VARIABLE   ',A/)
+C END FEB 1991
+C
+C BEG MAR 1991
+  762 FORMAT(/
+     1' ** DESIGN MARGINS TO BE PLOTTED v. COMBINATIONS OF ',
+     1 A,1PE12.4,' **'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' *******  i.j.k  = (margin no.).(load case).(subcase) *******'//
+     1' LOAD     MARGINS TO BE PLOTTED'/
+     1' STEP ',A/)
+C END MAR 1991
+C
+      NOUT = MIN(KOUNT,11)
+      DO 80 I = 1,ITRPLT
+C BEG FEB 1991
+         IF (ITYPE.NE.4) THEN
+            WRITE(IFILE8,90) I,(CCCPLT(I,J),J=1,NOUT)
+   90       FORMAT(I3,3X,1P,11E11.3)
+         ELSE
+            WRITE(IFILE8,901) VARPLT(I),(CCCPLT(I,J),J=1,NOUT)
+  901       FORMAT(1P,12E11.3)
+         ENDIF
+   80 CONTINUE
+C END FEB 1991
+  100 CONTINUE
+C
+   42 CONTINUE
+C
+C BEG MAR 1991
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.4.OR.ITYPE.EQ.5) THEN
+C END MAR 1991
+C
+C  Next, generate a file, *.PL5, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL5, contains the design objective v. design iterations.
+C  NOTE: If ITYPE = 5, *.PL5 contains the ITRPLT load combinations for
+C        which margins were calculated.
+C
+C BEG MAR 1991
+         IF (ITYPE.EQ.5) GO TO 254
+C END MAR 1991
+         REWIND IFILE
+C BEG AUG 1995
+         CALL DATUM(IFILE,48,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END AUG 1995
+         NOBJ = 1
+         IF (ANSL1('N',ANSOUT,INFILE)) NOBJ = 0
+         IF (NOBJ.EQ.0) GO TO 940
+         IF (ITYPE.EQ.1)
+     1   TITLE0(3) = CASE(1:NLET)//'. SEE FILES '
+     1   //CASE(1:NLET)//'.OPM AND '//CASE(1:NLET)//'.OPP'
+C BEG FEB 1991
+         IF (ITYPE.EQ.4)
+     1   TITLE0(3) = CASE(1:NLET)//': LOADSET='//CILOAD//', SUBSET='
+     1    //CICASE//', DESIGN VARIABLE='//VARLEG(IBVAR)(JBLNK:12)
+C END FEB 1991
+C BEG MAR 1991
+  254    CONTINUE
+         IF (ITYPE.EQ.5) TITLE0(3) =
+     1     CASE(1:NLET)//': Load combinations '//WRDCMB//WFNFXD
+         WRITE(IFILE8,24) TITLE0(3)
+         IF (ITYPE.EQ.1) WRITE(IFILE8,250) ITRPLT
+         IF (ITYPE.EQ.4) WRITE(IFILE8,251) ITRPLT,VARLEG(IBVAR)
+         IF (ITYPE.EQ.5) WRITE(IFILE8,253) ITRPLT
+  250    FORMAT(/' ***** DESIGN OBJECTIVE FOR ',I3,' ITERATIONS ******')
+  251    FORMAT(/' *** DESIGN OBJECTIVE FOR ',I3,' VALUES OF ',A,' ***')
+  253    FORMAT(/' ***',I3,
+     1          ' LOAD COMBINATIONS USED FOR INTERACTION CURVE **')
+         DO 252 I = 1,ITRPLT
+         IF (ITYPE.EQ.1) FI(I) = I - 1
+         IF (ITYPE.EQ.4) FI(I) = VARPLT(I)
+         IF (ITYPE.EQ.5) THEN
+            NOBJ = 1
+            IF (ICURV.EQ.1) FI(I) = FNYPLT(I)
+            IF (ICURV.EQ.2) FI(I) = FNXYPL(I)
+            IF (ICURV.EQ.3) FI(I) = FNXYPL(I)
+            IF (ICURV.EQ.1) CCPLOT(I) = FNXPLT(I)
+            IF (ICURV.EQ.2) CCPLOT(I) = FNXPLT(I)
+            IF (ICURV.EQ.3) CCPLOT(I) = FNYPLT(I)
+         ENDIF
+  252    CONTINUE
+         NOB = 1
+         NOB1 = NOB + 1
+C BEG FEB 1996
+         IF (ITYPE.EQ.1) THEN
+            WRITE(IFILE5,920)
+     1      '# Global directives, objective vs design iterations'
+            WRITE(IFILE5,920) '=title('//TITLE0(3)//')'
+            WRITE(IFILE5,920) '=xlabel(Design Iterations)'
+            WRITE(IFILE5,920) '=ylabel(Objective)'
+         ENDIF
+         IF (ITYPE.EQ.4) THEN
+            WRITE(IFILE5,920)
+     1      '# Global directives, objective vs design parameter'
+            WRITE(IFILE5,920) '=title('//TITLE0(3)//')'
+            WRITE(IFILE5,920)
+     1        '=xlabel(Design Parameter, '//VARLEG(IBVAR)//')'
+            WRITE(IFILE5,920) '=ylabel(Objective)'
+         ENDIF
+C        WRITE(IFILE5,920) TITLE0(3)
+C        WRITE(IFILE5,910) NOB1
+C        IF (ITYPE.EQ.1) WRITE(IFILE5,920) ' ITERATIONS '
+C        IF (ITYPE.EQ.4) WRITE(IFILE5,920) VARLEG(IBVAR)
+C        IF (ITYPE.EQ.5) WRITE(IFILE5,920) WRDCMB
+C END FEB 1996
+         NAMEOB = WORDOB(1:72)
+         IF (ITYPE.EQ.5) NAMEOB = TITLE0(3)
+         IF (ITYPE.NE.5) READ(IFILE2) (CCPLOT(I), I=1,ITRPLT)
+C END MAR 1991
+C BEG FEB 1996
+         IF (ITYPE.EQ.1.OR.ITYPE.EQ.4) THEN
+            WRITE(IFILE5,920) '# data set 1'
+            IFLAG1 = 0
+            IFLAG2 = 0
+            IF (ITYPE.EQ.1.AND.ITRPLT.GE.500) THEN
+               CCPSUM = 0.
+               DO 2695 I = 1,ITRPLT
+                  CCPSUM = CCPSUM + CCPLOT(I)
+ 2695          CONTINUE
+                  CCPAVE = CCPSUM/FLOAT(ITRPLT)
+               DO 2696 I = 1,ITRPLT
+                  IF (CCPLOT(I).GT.(2.0*CCPAVE)) CCPLOT(I) = 0.0
+ 2696          CONTINUE
+            ENDIF
+            DO 270 I = 1,ITRPLT
+               IF (CCPLOT(I).NE.0.) THEN
+                  IF (IFLAG1.EQ.0) THEN
+                     WRITE(IFILE5,920) '+legend('//NAMEOB//')'
+                     WRITE(IFILE5,'(A,I2,A)') '+setmarker(0)'
+                     IFLAG1 = 1
+                  ENDIF
+                  IFLAG2 = 0
+                  WRITE(IFILE5,930) FI(I),CCPLOT(I)
+               ELSE
+                  IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                     WRITE(IFILE5,920) '  '
+                     WRITE(IFILE5,'(A,I2,A)') '+setmarker(0)'
+                     IFLAG2 = 1
+                  ENDIF
+               ENDIF
+  270       CONTINUE
+            WRITE(IFILE5,920) '  '
+         ENDIF
+C        WRITE(IFILE5,920) NAMEOB
+C        DO 270 I = 1,ITRPLT
+C 270    WRITE(IFILE5,930) FI(I),CCPLOT(I)
+C END FEB 1996
+         CLOSE(UNIT=IFILE5)
+C
+C  PRINT THE OBJECTIVE TO BE PLOTTED BY DIPLOT...
+C
+C BEG FEB 1991
+         IF (ITYPE.EQ.1) WRITE(IFILE8,275)
+         IF (ITYPE.EQ.4) WRITE(IFILE8,276) VARLEG(IBVAR)(JBLNK:12)
+C END FEB 1991
+C BEG MAR 1991
+         IF (ITYPE.EQ.5) WRITE(IFILE8,277) WRDCMB,FNFIXD
+C END MAR 1991
+  275    FORMAT(/
+     1 ' *****  OBJECTIVE FUNCTION TO BE PLOTTED v. ITERATIONS  *****'/
+     1 ' ITER.    OBJECTIVE'/
+     1 '  NO.   TO BE PLOTTED')
+C BEG FEB 1991
+  276    FORMAT(/
+     1 ' *****  OBJECTIVE FUNCTION TO BE PLOTTED v. ',A,'  *****'/
+     1 '   DESIGN      OBJECTIVE'/
+     1 '  VARIABLE   TO BE PLOTTED')
+C BEG MAR 1991
+  277    FORMAT(/
+     1 ' ***** IN-PLANE LOAD COMBINATIONS ',A,1PE12.4,' *****'/
+     1 ' FIRST LOAD    SECOND LOAD'/
+     1 ' COMPONENT      COMPONENT')
+C END MAR 1991
+C
+         DO 280 I = 1,ITRPLT
+C BEG JULY 1991
+C BEG DEC 2003
+            IF (ITYPE.EQ.1) THEN
+C END DEC 2003
+C END JULY 1991
+               WRITE(IFILE8,290) I,CCPLOT(I)
+  290          FORMAT(I3,3X,1PE12.4)
+            ELSE
+               IF (ITYPE.EQ.4) WRITE(IFILE8,291) VARPLT(I),CCPLOT(I)
+               IF (ITYPE.EQ.5) WRITE(IFILE8,291)     FI(I),CCPLOT(I)
+  291          FORMAT(1P,2E12.4)
+            ENDIF
+  280    CONTINUE
+C END FEB 1991
+C
+         GO TO 940
+      ENDIF
+C
+C NEXT, CHOOSE LOAD STEPS FOR WHICH TO PLOT DEFORMED PANEL MODULES...
+C
+      IF (ITYPE.EQ.3) THEN
+C
+C  NEXT, RETRIEVE THE UNDEFORMED AND DEFORMED PANEL MODULE GEOMETRY..
+C
+         NSTEP1 = NSTEPS + 1
+         READ(IUNIT) ITOT, (TITLE3(ISTEP),ISTEP=1,NSTEP1)
+         DO 310 ISTEP = 1,NSTEP1
+           READ(IUNIT) (XALL(I,ISTEP), I=1,ITOT)
+           READ(IUNIT) (YALL(I,ISTEP), I=1,ITOT)
+  310    CONTINUE
+C 
+C  NEXT, CHOOSE FOR WHICH LOAD STEPS TO PLOT THE PANEL MODULE CROSS
+C  SECTION.  LOAD STEP 0 = UNDEFORMED CROSS SECTION..
+C
+         REWIND IFILE
+         CALL DATUM(IFILE,501,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) GO TO 44
+C
+         ICROSS = 0
+  320    CONTINUE
+         IF (ICROSS.GT.0) THEN
+            ARGSTR = ' LOAD STEPS CHOSEN SO FAR FOR PLO'//
+     $               'TTING PANEL MODULE CROSS SECTION '
+            CALL OUTVR2(NSTEP1,DUMMY,TITLE3,ARGSTR,6,60,1,ISUBS1,3)
+C
+            IF (IPROMP.GT.1) THEN
+               ARGSTR = ' LOAD STEPS CHOSEN SO FAR FOR PLO'//
+     $                  'TTING PANEL MODULE CROSS SECTION '
+               CALL OUTVR2(NSTEP1,DUMMY,TITLE3,ARGSTR,IPROMP,80,1,
+     $                     ISUBS1,3)
+            ENDIF
+         ENDIF
+C
+         ARGSTR = ' LIST FROM WHICH A LOAD STEP TO B'//
+     $            'E SELECTED MUST NOW BE CHOSEN   '
+         CALL OUTVR2(NSTEP1,DUMMY,TITLE3,ARGSTR,6,60,1,ISUBS2,3)
+         IF (IPROMP.GT.1) THEN
+            ARGSTR = ' LIST FROM WHICH A LOAD STEP TO B'//
+     $               'E SELECTED MUST NOW BE CHOSEN   '
+            CALL OUTVR2(NSTEP1,DUMMY,TITLE3,ARGSTR,IPROMP,80,1,ISUBS2,3)
+         ENDIF
+C
+         REWIND IFILE
+         CALL DATUM(IFILE,502,1,2,ILOD,REALL,CHARAC,IOUT,0,IPROMP)
+         IVAR = ILOD + 1
+         IF (ISUBS2(IVAR).NE.0) THEN
+            WRITE(6,*)' BAD CHOICE FOR LOAD STEP, TRY AGAIN.'
+            BACKSPACE(IOUT)
+            GO TO 320
+         ENDIF
+C
+         DO 330 J = 1,60
+  330    PHRASE(J:J) = TITLE3(IVAR)(J:J)
+         FVAR = IVAR
+         ISV(IVAR) = 1
+         ISUBS1(IVAR) = 0
+         ISUBS2(IVAR) = 1
+         CALL GETVAR(0,FVAR,0,0,0,ICROSS,VPLT,WORDPL,IADDPL)
+         IF (ICROSS.EQ.12) THEN
+            WRITE(6,*)' NO MORE ITEMS ALLOWED IN THIS RUN. CHOOSE'
+            WRITE(6,*)' ADDITIONAL BEHAVIORS IN ANOTHER RUN.'
+            GO TO 340
+         ENDIF
+         CALL DATUM(IFILE,541,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 320
+  340    CONTINUE
+         NCROSS = ICROSS
+C
+C BEG MAY 1990
+         CALL LENWRD(TITLOD,J)
+         TITLE0(3) = CASE(1:NLET)//': '//TITLOD(1:J)//
+     1    ', LOADSET='//CILOAD//', SUBSET='//CICASE
+C END MAY 1990
+      WRITE(IFILE8,24) TITLE0(3)
+      ARGSTR = ' PANEL MODULE CROSS SECTIONS TO B'//
+     $         'E PLOTTED FOR FOLLOWING LOADS..  '
+      CALL OUTVR2(NSTEP1,DUMMY,TITLE3,ARGSTR,IFILE8,80,1,ISUBS1,3)
+C
+C  Next, generate a file, *.PL5, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL5, contains vectors for plotting the undeformed and
+C  deformed panel module...
+C
+         WRITE(IFILE8,355) NCROSS, ILOADS, ICASES
+  355    FORMAT(/
+     1' *****  PANEL MODULES TO BE PLOTTED FOR',I2,' LOAD STEPS *****'/
+     1        ' ****** LOAD SET NO. ',I1,', SUBCASE NO. ',I1,' ******')
+         REWIND IFILE5
+         NCROS2 = 2*NCROSS
+C BEG FEB 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFILE5,920)
+     1'# Global directives, deformed skin-stringer module cross section'
+         WRITE(IFILE5,920) '=title('//TITLE0(3)//')'
+         WRITE(IFILE5,920) '=xlabel(skin-stringer module cross section)'
+         WRITE(IFILE5,920) '=ylabel(skin-stringer module cross section)'
+         WRITE(IFILE5,920) '=samescale'
+C        WRITE(IFILE5,920) TITLE0(3)
+C        WRITE(IFILE5,910) NCROS2
+         KOUNT2 = 0
+C END FEB 1996
+         KOUNT = 0
+         WRITE(IFILE8,356) ILOADS,ICASES,NCROSS
+  356    FORMAT(/' DEFINITIONS OF LOAD STEPS FOLLOW...'/
+     1'  LOAD CASE NO. = ',I2,';    SUBCASE NO. = ',I2/
+     1   I3,' LOAD STEPS HAVE BEEN SELECTED FROM THE FOLLOWING LIST.'/
+     1'  LOAD '/
+     1'  STEP                   DEFINITION'/
+     1' i.j.k  [ i.j.k  means  (load step no.).(load case).(subcase) ]'/
+     1)
+C
+         DO 360 ICAR = 1,NSTEP1
+           ICAR1 = ICAR-1
+           CALL CONVR2(ICAR1,CICAR)
+           WORMAR(ICAR) = CICAR//'.'//CILOAD//'.'//CICASE
+           NAMEM(ICAR) = WORMAR(ICAR)//' '//TITLE3(ICAR)(1:66)
+           IF (ISV(ICAR).NE.0) THEN
+              IF (KOUNT.EQ.0) 
+     1         WORHED = '   '//WORMAR(ICAR)//'    '//WORMAR(ICAR)
+              IF (KOUNT.GT.0) THEN
+                 CALL LENWRD(WORHED,J)
+C BEG JAN 1991
+                 WRDVTP = WORHED
+                 WORHED = 
+     1           WRDVTP(1:J)//'    '//WORMAR(IVAR)//'    '//WORMAR(IVAR)
+C END JAN 1991
+              ENDIF
+              KOUNT = KOUNT + 2
+              KOUN1 = KOUNT - 1
+              DO 359 I = 1,ITOT
+                 CCCPLT(I,KOUN1) = XALL(I,ICAR)
+                 CCCPLT(I,KOUNT) = YALL(I,ICAR)
+  359         CONTINUE
+C BEG FEB 1996
+              KOUNT2 = KOUNT2 + 1
+C             WRITE(IFILE5,920) 'PANEL MODULE'
+C             WRITE(IFILE5,920) NAMEM(ICAR)
+              NAMEVX(KOUNT2) = NAMEM(ICAR)
+C END FEB 1996
+           ENDIF
+           WRITE(IFILE8,361) NAMEM(ICAR)
+  361      FORMAT(1X,A)
+  360    CONTINUE
+C BEG FEB 1996
+         DO 371 J = 1,KOUNT2
+            CALL CONVR2(J,CIVAR)
+            WRITE(IFILE5,920) '# data set '//CIVAR
+            JJ = 2*J
+            JJ1= 2*J - 1
+            IFLAG1 = 0
+            IFLAG2 = 0
+            DO 370 I = 1,ITOT
+               IF (CCCPLT(I,JJ).NE.0.) THEN
+                  IF (IFLAG1.EQ.0) THEN
+                     WRITE(IFILE5,920) '+legend('//NAMEVX(J)//')'
+                     WRITE(IFILE5,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG1 = 1
+                  ENDIF
+                  IFLAG2 = 0
+                  WRITE(IFILE5,930) CCCPLT(I,JJ1),CCCPLT(I,JJ)
+               ELSE
+                  IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                     WRITE(IFILE5,920) '  '
+                     WRITE(IFILE5,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG2 = 1
+                  ENDIF
+               ENDIF
+  370       CONTINUE
+            WRITE(IFILE5,920) '  '
+  371    CONTINUE
+C        DO 370 I = 1,ITOT
+C 370    WRITE(IFILE5,930) (CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+C
+         CLOSE(UNIT=IFILE5)
+C
+C  PRINT THE PANEL MODULE COORDINATES TO BE PLOTTED BY DIPLOT...
+C
+         WRITE(IFILE8,376) ILOADS,ICASES,WORHED
+  376    FORMAT(/
+     1' *******  PANEL MODULES TO BE PLOTTED FOR A LOAD STEP *******'/
+     1' *******  LOAD CASE NO.',I2,',      SUBCASE NO.',I2,' *******'/
+     1' *******  THE COLUMN HEADINGS HAVE THE SIGNIFICANCE:  *******'/
+     1' ******  i.j.k  = (load step no.).(load case).(subcase) ******'//
+     1' NODE     XALL      YALL      XALL      YALL      XALL      YALL 
+     1     XALL      YALL      XALL      YALL      XALL      YALL   '/
+     1'  NO.',A/)
+C
+         NOUT = MIN(KOUNT,12)
+         DO 380 I = 1,ITOT
+  380    WRITE(IFILE8,390) I,(CCCPLT(I,J),J=1,NOUT)
+  390    FORMAT(I3,3X,1P,12E10.2)
+  395    CONTINUE
+C
+      ENDIF
+C
+   44 CONTINUE
+C
+C  READ IN THE DATA FOR PLOTS OF LAYERS IN THE SKIN-STRINGER MODULE...
+C
+      READ(IUNIT) KMAX,Y0
+      READ(IUNIT) (ITOTW(K),K=1,KMAX),(TITLE4(K),K=1,KMAX)
+      REWIND IFILE
+      CALL DATUM(IFILE,32,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      ILAYPL = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) ILAYPL = 1
+      IF (NOPLOT.EQ.1) THEN
+         WRITE(6,*)' YOU CANNOT PLOT THICKNESS BECAUSE THERE ARE TOO'
+         WRITE(6,*)' MANY DIFFERENT LAYER TYPES.  MAX. OF 30 ALLOWED.'
+         ILAYPL = 0
+      ENDIF
+      IF (ILAYPL.EQ.0) THEN
+         DO 344 K = 1,KMAX
+            IK = ITOTW(K)
+            READ(IUNIT) (XWALL(I,K),I=1,IK)
+            READ(IUNIT) (YWALL(I,K),I=1,IK)
+  344    CONTINUE
+         GO TO 471
+      ENDIF
+C
+      IF (ILAYPL.EQ.1) THEN
+         DIMMAX = MAX(B(1),(H(1)+2.*Y0))
+         XMIN = 0.
+         XMAX = DIMMAX
+         YMIN = 0.
+         YMAX = DIMMAX
+C
+C  EXPANDED VIEW?
+C
+         FMAG   = 1.
+         IEXPND = 0
+         CALL DATUM(IFILE,34,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,36,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) IEXPND = 1
+         IF (IEXPND.EQ.1) THEN
+            CALL DATUM(IFILE,38,1,2,INT,XPAND,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,40,1,2,ISF,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,42,1,2,INT,FMAG, CHARAC,IOUT,0,IPROMP)
+            HP = H(1) + 2.0*Y0
+            FMAXD = MAX(B(1),HP)
+            WINDOW= FMAXD/FMAG
+            IF (ISF.EQ.1) YPAND = Y0
+            IF (ISF.EQ.2) YPAND = H(1) + 1.5*Y0
+            XMIN = XPAND - 0.5*WINDOW
+            XMAX = XPAND + 0.5*WINDOW
+            YMIN = YPAND - 0.5*WINDOW
+            YMAX = YPAND + 0.5*WINDOW
+            CALL CONVRF(FMAG,CFMAG)
+            TITLE0(4) = 'CASE NAME='//CASE(1:NLET)//
+     1                  '; MAGNIFICATION FACTOR='//CFMAG
+         ENDIF
+         IF (IEXPND.EQ.0) THEN
+            TITLE0(4) = CASE(1:NLET)//'. SEE FILES '
+     1      //CASE(1:NLET)//'.OPM AND '//CASE(1:NLET)//'.OPI'
+         ENDIF
+         WRITE(IFILE8,24) TITLE0(4)
+         CALL MOVER(XMIN,0,XWALL,1,15000)
+         CALL MOVER(0.,0,YWALL,1,15000)
+         DO 345 K = 1,KMAX
+            IK = ITOTW(K)
+            READ(IUNIT) (XWALL(I,K),I=1,IK)
+            READ(IUNIT) (YWALL(I,K),I=1,IK)
+  345    CONTINUE
+C
+C  Next, generate a file, *.PL6, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL6, contains vectors for plotting the layers of each
+C  segment of the skin-stringer panel module. Layers of a given type
+C  are plotted with use of a unique symbol.
+C
+         ITOT = 0
+         DO 397 K = 1,KMAX
+  397    ITOT = MAX(ITOT,ITOTW(K))
+         KOUNT = 0
+         K2 = 2*KMAX
+C BEG FEB 1996
+         KOUNT2 = 0
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFILE6,920)
+     1'# Global directives, skin-stringer module showing layers'
+         WRITE(IFILE6,920) '=title('//TITLE0(4)//')'
+         WRITE(IFILE6,920) '=xlabel(skin-stringer module cross section)'
+         WRITE(IFILE6,920) '=ylabel(skin-stringer module cross section)'
+         WRITE(IFILE6,920) '=samescale'
+C        WRITE(IFILE6,920) TITLE0(4)
+C        WRITE(IFILE6,910) K2
+C END FEB 1996
+         DO 460 K = 1,KMAX
+           KOUNT = KOUNT + 2
+           KOUN1 = KOUNT - 1
+           DO 410 I = 1,ITOT
+           CCCPLT(I,KOUN1) = XWALL(I,K)
+           CCCPLT(I,KOUNT) = YWALL(I,K)
+  410      CONTINUE
+C BEG FEB 1996
+           KOUNT2 = KOUNT2 + 1
+C          WRITE(IFILE6,920) 'PANEL MODULE'
+C          WRITE(IFILE6,920) TITLE4(K)
+           NAMEVX(KOUNT2) = TITLE4(K)
+C END FEB 1996
+  460   CONTINUE
+C BEG FEB 1996
+        DO 473 J = 1,KOUNT2
+            CALL CONVR2(J,CIVAR)
+            WRITE(IFILE6,920) '# data set '//CIVAR
+            JJ = 2*J
+            JJ1= 2*J - 1
+            IFLAG1 = 0
+            IFLAG2 = 0
+            DO 470 I = 1,ITOT
+               IF (CCCPLT(I,JJ).NE.0.) THEN
+                  IF (IFLAG1.EQ.0) THEN
+                     WRITE(IFILE6,920) '+legend('//NAMEVX(J)//')'
+                     WRITE(IFILE6,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG1 = 1
+                  ENDIF
+                  IFLAG2 = 0
+                  WRITE(IFILE6,930) CCCPLT(I,JJ1),CCCPLT(I,JJ)
+               ELSE
+                  IF (IFLAG1.EQ.1.AND.IFLAG2.EQ.0) THEN
+                     WRITE(IFILE6,920) '  '
+                     WRITE(IFILE6,'(A,I2,A)') '+setmarker(',J-1,')'
+                     IFLAG2 = 1
+                  ENDIF
+               ENDIF
+  470       CONTINUE
+            WRITE(IFILE6,920) '  '
+  473   CONTINUE
+C       DO 470 I = 1,ITOT
+C 470   WRITE(IFILE6,930) (CCCPLT(I,J),J=1,KOUNT)
+C END FEB 1996
+      ENDIF
+  471 CONTINUE
+      CLOSE(UNIT=IFILE6)
+C
+C  NEXT, SET UP THE ARRAY FOR GETTING A "3-D" PLOT OF THE LOCALLY
+C  BUCKLED PANEL MODULE...
+C
+      REWIND IFILE
+      CALL DATUM(IFILE,44,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,46,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      N3DPLT = 0
+      IF (ANSL1('Y',ANSOUT,INFILE)) N3DPLT = 1
+      IF (N3DPLT.EQ.0) GO TO 940
+      CALL CONVRE(FNX,CNX)
+      CALL CONVRE(FNY,CNY)
+      CALL CONVRE(FNXY,CNXY)
+      CALL CONVRE(-P,CCP)
+      TITLE0(5) = CASE(1:NLET)//
+     1   '; Nx='//CNX//', Ny='//CNY//', Nxy='//CNXY//', p='//CCP
+C
+C  SET UP THE BIG DDDPLT ARRAY FROM THE MANY XALL,YALL,XWALL,YWALL
+C  ARRAYS.
+C
+      READ(IUNIT) INTV1,ITOT,IALLX
+      IALL = 0
+      DO 480 IV = 1,INTV1
+         READ(IUNIT) (XALL(J,IV),J=1,ITOT)
+         READ(IUNIT) (YALL(J,IV),J=1,ITOT)
+         READ(IUNIT) (XDALL(J,IV),J=1,ITOT)
+         READ(IUNIT) (YDALL(J,IV),J=1,ITOT)
+         IF (IV.EQ.INTV1) THEN
+            READ(IUNIT) (X2ALL(J),J=1,IALLX)
+            READ(IUNIT) (Y2ALL(J),J=1,IALLX)
+            READ(IUNIT) (X2DALL(J),J=1,IALLX)
+            READ(IUNIT) (Y2DALL(J),J=1,IALLX)
+         ENDIF
+C
+         DO 472 I = 1,ITOT
+         IALL = IALL + 1
+         DDDPLT(IALL,1) = XALL(I,IV)
+         DDDPLT(IALL,2) = YALL(I,IV)
+         DDDPLT(IALL,3) = XDALL(I,IV)
+         DDDPLT(IALL,4) = YDALL(I,IV)
+  472 CONTINUE
+  480 CONTINUE
+      DO 481 I = 1,IALLX
+         IALL = IALL + 1
+         DDDPLT(IALL,1) = X2ALL(I)
+         DDDPLT(IALL,2) = Y2ALL(I)
+         DDDPLT(IALL,3) = X2DALL(I)
+         DDDPLT(IALL,4) = Y2DALL(I)
+  481 CONTINUE
+C
+C BEG FEB 1996
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL17,920)
+     1'# Global directives, undeformed and deformed skin-stringer unit'
+      WRITE(IFIL17,920) '=title('//TITLE0(5)//')'
+      WRITE(IFIL17,920) '=xlabel(skin-stringer module cross section)'
+      WRITE(IFIL17,920) '=ylabel(skin-stringer module cross section)'
+      WRITE(IFIL17,920) '=samescale'
+      WRITE(IFIL17,920) '=markeroff'
+C     I4 = 4
+C     WRITE(IFIL17,920) TITLE0(5)
+C     WRITE(IFIL17,910) I4
+C     WRITE(IFIL17,920) 'PANEL MODULE'
+C     WRITE(IFIL17,920) '"3-D" Undeformed panel module'
+C     WRITE(IFIL17,920) 'PANEL MODULE'
+C     WRITE(IFIL17,920) '"3-D" Panel module as deformed by final load'
+      WRITE(IFIL17,920) '# data set 1'
+      WRITE(IFIL17,920) '=linestyle(dashed)'
+      DO 482 I = 1,IALL
+         IF (DDDPLT(I,2).NE.0.) THEN
+            WRITE(IFIL17,930) DDDPLT(I,1),DDDPLT(I,2)
+         ELSE
+            WRITE(IFIL17,920) '  '
+         ENDIF
+  482 CONTINUE
+      WRITE(IFIL17,920) '  '
+      WRITE(IFIL17,920) '# data set 2'
+      WRITE(IFIL17,920) '+linestyle(continuous)'
+      DO 483 I = 1,IALL
+         IF (DDDPLT(I,2).NE.0.) THEN
+            WRITE(IFIL17,930) DDDPLT(I,3),DDDPLT(I,4)
+         ELSE
+            WRITE(IFIL17,920) '  '
+            WRITE(IFIL17,920) '+linestyle(continuous)'
+         ENDIF
+  483 CONTINUE
+      WRITE(IFIL17,920) '  '
+C     DO 482 I = 1,IALL
+C     WRITE(IFIL17,930) (DDDPLT(I,J),J=1,4)
+C 482 CONTINUE
+C END FEB 1996
+      CLOSE(UNIT=IFIL17)
+      WRITE(IFILE8,24) TITLE0(5)
+C
+  910 FORMAT(I4)
+  920 FORMAT(A)
+  930 FORMAT(8E12.5)
+  940 CONTINUE
+C
+      IF (IRESET.EQ.1) THEN
+C BEG AUG 1995
+         REWIND IFILE
+         CALL DATUM(IFILE,50,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            ITRALL = ITRALL + ITRTOT
+            ITRTOT = 0
+            IRESET = 0
+         ENDIF
+C END AUG 1995
+      ENDIF
+C
+      CALL STORCM(IFILE7)
+C
+        WRITE(6,400)      CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET)
+C BEG MAY 1990
+        WRITE(6,404)      CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET)
+        WRITE(6,405)      CASE(1:NLET)
+C END MAY 1990
+        WRITE(IFILE8,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET)
+C BEG MAY 1990
+        WRITE(IFILE8,404) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET),CASE(1:NLET)
+        WRITE(IFILE8,405) CASE(1:NLET)
+C END MAY 1990
+  400 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.CPL = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of CHOOSEPLOT.'/
+     1 1X,A,'.CBL = Contains the ',A,' data base.'/
+     1 1X,A,'.OPL = Output from CHOOSEPLOT. Please list this file and'/
+     1'          inspect it and the ',A,'.CPL file carefully before'/
+     1'          proceeding.'/)
+  404 FORMAT(
+     1 1X,A,'.PL3 = File for margin plots via DIPLOT'/
+     1 1X,A,'.PL4 = File for design variable plots (ITYPE=1) or'/
+     1'            behavior v. load plots (ITYPE=3) or in-plane load'/
+     1'            interaction curves (ITYPE=5) via DIPLOT'/
+     1 1X,A,'.PL5 = File for objective plot (ITYPE=1) or undeformed'/
+     1'            and deformed panel module (ITYPE=3) or in-plane'/
+     1'            load combinations (ITYPE=5) via DIPLOT'/
+     1 1X,A,'.PL6 = File for plot of layup of skin-stringer module'/
+     1'             (ITYPE=3).'//
+     1 1X,A,'.PL7 = File for "3-D" plot of locally post-buckled panel'/
+     1'            module. (ITYPE=3).'/
+C BEG MAY 1990
+     1 1X,A,'.PL8 = File for plot of AXIAL or +45deg. extreme fiber'/
+     1'             strains v. a selected load component (ITYPE=3).'/
+     1 1X,A,'.PL9 = File for plot of HOOP or -45deg. extreme fiber'/
+     1'             strains v. a selected load component (ITYPE=3).'/
+     1 1X,A,'.PL10= File for plot of SHEAR strains at 0deg. or 45deg.'/
+     1'             v. a selected load component (ITYPE=3).')
+  405 FORMAT(/
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' NEXT, INSPECT THE FILE ',A,'.OPL AND THEN IF ALL IS OKAY,'/
+     1' GIVE THE COMMAND:  DIPLOT   .')
+C END MAY 1990
+C
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPL FILE ******************'
+      CLOSE(UNIT=IOUT)
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+C END JULY 1989
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=2)
+      CLOSE(UNIT=8)
+C BEG VMS
+C     CLOSE(UNIT=IUNIT)
+C END VMS
+C
+      END

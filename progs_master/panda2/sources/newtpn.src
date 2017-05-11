@@ -1,0 +1,889 @@
+C=DECK      NEWTPN
+      SUBROUTINE NEWTPN(C,B,CHI,PSI,GAM,ROT,EPSL,E2W,E3U,U,RHS,IPOINT,
+     1                  NX0,NY0,PRESS,AFN,IFREE)
+C
+C  Purpose is to obtain the local stiffness matrix and r.h.s. for
+C  the current Newton iteration (Panel deformation under uniform press)
+C
+      DOUBLE PRECISION CHI,PSI,GAM,C,ROT,B,EPSL,RHS,U,E2W,E3U
+      DOUBLE PRECISION P1,P2,P3,P4,P5,P6,P7,P8
+      DOUBLE PRECISION CHII,PSII,CCI,RHSI
+      DOUBLE PRECISION PPI,PCICPI,CHIJ,PSIJ
+      DOUBLE PRECISION CCJ,PPJ,PCJCPJ,CIJ,PIJ,CPPC    
+      DOUBLE PRECISION CB,CB2,CB3,CB4,U1,U2,U3,U4,U5
+      DIMENSION CB(8,7),CB2(3,7),CB3(3,7),CB4(8,7)
+      DIMENSION C(6,6),ROT(3,7),B(6,7),EPSL(*),RHS(*),U(7,7)     
+      REAL NX0,NY0
+C     
+      IF (AFN.GT.0.5.AND.PRESS.EQ.0.) THEN
+         C(2,2) = C(2,2) - C(1,2)**2/C(1,1)
+         C(1,2) = 0.
+      ENDIF
+C
+      CALL VARCOF(EPSL,E2W,E3U,C,CHI,PSI,GAM,P1,P2,P3,P4,P5,P6,P7,P8,
+     1            NX0, NY0,IFREE)
+C     
+         DO 100 I = 1,7
+            CHII = ROT(1,I)  
+            PSII = ROT(2,I)  
+            CCI  = CHI*CHII   
+            PPI = PSI*PSII
+            PCICPI = PSI*CHII + CHI*PSII  
+            CALL CTB(P4,P5,C,B,I,CB,IFREE)
+            CALL CTB2(P4,P5,C,B,I,CB2,IFREE)
+            CALL CTB3(C,CCI,PPI,PCICPI,I,CB3)
+            CALL CTB4(P4,P5,C,CCI,PPI,PCICPI,I,CB4,IFREE)
+  100   CONTINUE
+C     
+         DO 300 I = 1,7
+            CHII = ROT(1,I)  
+            PSII = ROT(2,I)  
+            CCI  = CHI*CHII   
+            PPI = PSI*PSII
+            PCICPI = PSI*CHII + CHI*PSII  
+            FMULT = 0.
+            IF (I.EQ.1.OR.I.EQ.4.OR.I.EQ.7) FMULT = 1.0
+C
+            RHSI   = EPSL(1)*CB(1,I) +EPSL(2)*CB(2,I) +E2W*CB(3,I)
+     1              +E3U*CB(4,I)
+     1              +EPSL(3)*CB(5,I) +EPSL(4)*CB(6,I) +EPSL(5)*CB(7,I)
+     1              +EPSL(6)*CB(8,I)
+     1              +P1*CB2(1,I) +P2*CB2(2,I) +P3*CB2(3,I)
+     1              +P1*CB3(1,I) +P2*CB3(2,I) +P3*CB3(3,I)
+     1              +EPSL(1)*CB4(1,I) +EPSL(2)*CB4(2,I) +E2W*CB4(3,I)
+     1              +E3U*CB4(4,I) +EPSL(3)*CB4(5,I) +EPSL(4)*CB4(6,I)
+     1              +EPSL(5)*CB4(7,I) +EPSL(6)*CB4(8,I)
+     1              +3.*P5*(NX0*B(1,I)+NY0*FMULT*B(2,I))
+     1              +NX0*CCI*.5 + NY0*PPI*.5
+C
+            RHS(I) = - RHSI
+C
+            DO 200 J = 1,7   
+              CHIJ = ROT(1,J)
+              PSIJ = ROT(2,J)
+              CCJ  = CHI*CHIJ 
+              PPJ = PSI*PSIJ
+              PCJCPJ = PSI*CHIJ + CHI*PSIJ
+              CIJ  = CHII*CHIJ
+              PIJ  = PSII*PSIJ
+              CPPC = CHII*PSIJ + PSII*CHIJ
+              U1 =     P6*CIJ + P7*PIJ + P8*CPPC
+C
+              CALL BTCTB(I,J,B,CB,U2)
+              U3 = CCJ*CB2(1,I) + PPJ*CB2(2,I) + PCJCPJ*CB2(3,I)
+              U4 = CCI*CB2(1,J) + PPI*CB2(2,J) + PCICPI*CB2(3,J)
+              U5 = CCJ*CB3(1,I) + PPJ*CB3(2,I) + PCJCPJ*CB3(3,I)
+C
+              U(I,J) =   U1 + U2 + U3 + U4 + U5
+C
+  200     CONTINUE
+  300   CONTINUE
+C
+C     IF (IPOINT.EQ.17) THEN
+C
+C     WRITE(8,*)' KINEMATIC LAW B(6,7) AT POINT 17='
+C     DO 400 II = 1,6
+C        WRITE(8,430) (B(II,JJ),JJ=1,7)
+C 400 CONTINUE
+C
+C     WRITE(8,*)' ROTATION-DISPLACEMENT RELATIONS AT POINT 17='
+C     DO 450 II = 1,3
+C        WRITE(8,430) (ROT(II,JJ),JJ=1,7)
+C 450 CONTINUE
+C
+C     WRITE(8,*)' CB-MATRIX AT POINT 17 ='
+C     DO 470 II = 1,7
+C        WRITE(8,430) (ROT(II,JJ),JJ=1,7)
+C 470 CONTINUE
+C
+C     WRITE(8,*)' LOCAL STIFFNESS MATRIX U(7,7) AT POINT 17 ='
+C     DO 500 II = 1,7
+C        WRITE(8,430) (U(II,JJ),JJ=1,7)
+C 430    FORMAT(1P,7E14.6)
+C 500 CONTINUE
+C
+C     ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CTB
+      SUBROUTINE CTB(P4,P5,C,B,K,CB,IFREE)
+C
+C  Purpose is to obtain C(i,j)*B(i,k). Part of derivation of nonlinear
+C  static response of panel to uniform normal pressure. What we are
+C  deriving here is the product C*d(ei)/dq(k).
+C
+      DOUBLE PRECISION C,B,CB,P4,P5
+      DIMENSION C(6,6),B(6,7),CB(8,7)
+C
+      IF (IFREE.EQ.1) THEN
+         CB(1,K) = (C(1,1)*B(1,K) + C(1,2)*B(2,K)
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*.5
+         CB(3,K) = (C(1,2)*B(1,K) + C(2,2)*B(2,K)
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*.5
+         CB(2,K) = CB(3,K)
+         CB(4,K) = (C(3,3)*B(3,K) + C(3,6)*B(6,K))*.5
+         CB(5,K) = CB(4,K)
+         CB(6,K) = (C(1,4)*B(1,K) + C(2,4)*B(2,K)
+     1             +C(4,4)*B(4,K) + C(4,5)*B(5,K))*.5
+         CB(7,K) = (C(1,5)*B(1,K) + C(2,5)*B(2,K)
+     1             +C(4,5)*B(4,K) + C(5,5)*B(5,K))*.5
+         CB(8,K) = (C(3,6)*B(3,K) + C(6,6)*B(6,K))*.5
+         RETURN
+      ENDIF
+C
+      IF (K.EQ.1.OR.K.EQ.4.OR.K.EQ.7) THEN
+C
+         CB(1,K) = (C(1,1)*B(1,K) + C(1,2)*B(2,K)
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*.5
+C
+         CB(2,K) =-(C(1,2)*B(1,K) + C(2,2)*B(2,K)
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*P5
+C
+         CB(3,K) = (C(1,2)*B(1,K) + C(2,2)*B(2,K)
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*.5
+C
+         CB(4,K) = (C(3,3)*B(3,K) + C(3,6)*B(6,K))*.5
+         CB(5,K) = (C(3,3)*B(3,K) + C(3,6)*B(6,K))*P4
+C
+         CB(6,K) = (C(1,4)*B(1,K) + C(2,4)*B(2,K)
+     1             +C(4,4)*B(4,K) + C(4,5)*B(5,K))*.5
+C
+         CB(7,K) = (C(1,5)*B(1,K) + C(2,5)*B(2,K)
+     1             +C(4,5)*B(4,K) + C(5,5)*B(5,K))*.5
+C
+         CB(8,K) = (C(3,6)*B(3,K) + C(6,6)*B(6,K))*.5
+C
+      ELSE
+C
+         CB(1,K) = (C(1,1)*B(1,K) - C(1,2)*B(2,K)*P4
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*.5
+C
+         CB(2,K) =-(C(1,2)*B(1,K) - C(2,2)*B(2,K)/P4
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*P5
+C
+         CB(3,K) = (C(1,2)*B(1,K) - C(2,2)*B(2,K)*P4
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*.5
+C
+         IF (K.EQ.2.OR.K.EQ.5)CB(4,K)=(C(3,3)*B(3,K) + C(3,6)*B(6,K))*.5
+         IF (K.EQ.3.OR.K.EQ.6)CB(4,K)= C(3,3)*B(3,K)*P4+C(3,6)*B(6,K)*.5
+         IF (K.EQ.2.OR.K.EQ.5)CB(5,K)=(C(3,3)*B(3,K) + C(3,6)*B(6,K))*P4
+         IF (K.EQ.3.OR.K.EQ.6)CB(5,K)= C(3,3)*B(3,K)*.5+C(3,6)*B(6,K)*P4
+C
+         CB(6,K) = (C(1,4)*B(1,K) - C(2,4)*B(2,K)*P4
+     1             +C(4,4)*B(4,K) + C(4,5)*B(5,K))*.5
+C
+         CB(7,K) = (C(1,5)*B(1,K) - C(2,5)*B(2,K)*P4
+     1             +C(4,5)*B(4,K) + C(5,5)*B(5,K))*.5
+C
+         IF (K.EQ.2.OR.K.EQ.5)CB(8,K)=(C(3,6)*B(3,K) + C(6,6)*B(6,K))*.5
+         IF (K.EQ.3.OR.K.EQ.6)CB(8,K)= C(3,6)*B(3,K)*P4+C(6,6)*B(6,K)*.5
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      BTCTB
+      SUBROUTINE BTCTB(I,J,B,CB,BCB)
+C
+C  Purpose is to calculate d[e(linear)]/dq(j) x C x d[e(linear)]/dq(i)
+C
+      DOUBLE PRECISION B,CB,BCB
+      DIMENSION B(6,7),CB(8,7)
+C
+      BCB = 0.
+      DO 10 K = 1,6
+        L = K
+        IF (K.EQ.2) THEN
+           IF (J.EQ.3.OR.J.EQ.6) THEN
+              L = 2
+           ELSE
+              L = 3
+           ENDIF
+        ENDIF
+        IF (K.EQ.3) THEN
+           IF (J.EQ.3.OR.J.EQ.6) THEN
+              L = 5
+           ELSE
+              L = 4
+           ENDIF
+        ENDIF
+        IF (K.GT.3) L = K+2
+        BCB = BCB + B(K,J)*CB(L,I)
+   10 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      CTB2
+      SUBROUTINE CTB2(P4,P5,C,B,K,CB,IFREE)
+C
+C  Purpose is to obtain C(i,j)*B(i,k). Part of derivation of nonlinear
+C  static response of panel to uniform normal pressure. What we are
+C  deriving here is the product C*d(ei)/dq(k) that is multiplied by
+C  d[e(nonlinear)]/dq(j)...
+C
+      DOUBLE PRECISION C,B,CB,P4,P5
+      DIMENSION C(6,6),B(6,7),CB(3,7)
+C
+      IF (IFREE.EQ.1) THEN
+         CB(1,K) = (C(1,1)*B(1,K) + C(1,2)*B(2,K)
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*P4
+C
+         CB(2,K) = (C(1,2)*B(1,K) + C(2,2)*B(2,K)
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*P5
+C
+         CB(3,K) = (C(3,3)*B(3,K) + C(3,6)*B(6,K))*P5
+         RETURN
+      ENDIF
+C
+      IF (K.EQ.1.OR.K.EQ.4.OR.K.EQ.7) THEN
+C
+         CB(1,K) = (C(1,1)*B(1,K) + C(1,2)*B(2,K)
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*P4
+C
+         CB(2,K) = (C(1,2)*B(1,K) + C(2,2)*B(2,K)
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*P5
+C
+         CB(3,K) = (C(3,3)*B(3,K) + C(3,6)*B(6,K))*P5
+C
+      ELSE
+C
+         CB(1,K) = (C(1,1)*B(1,K) - C(1,2)*B(2,K)*.25/P4
+     1             +C(1,4)*B(4,K) + C(1,5)*B(5,K))*P4
+C
+         CB(2,K) = (C(1,2)*B(1,K) + C(2,2)*B(2,K)*.25/P5
+     1             +C(2,4)*B(4,K) + C(2,5)*B(5,K))*P5
+C
+         IF (K.EQ.2.OR.K.EQ.5)CB(3,K)=(C(3,3)*B(3,K)+C(3,6)*B(6,K))*P5
+         IF (K.EQ.3.OR.K.EQ.6)CB(3,K)=C(3,3)*B(3,K)*.25+C(3,6)*B(6,K)*P5
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CTB3
+      SUBROUTINE CTB3(C,CCI,PPI,PCICPI,I,CB)
+C
+C  Purpose is to calculate the term C x d[e(nonlinear)]/dq(k) that is
+C  multiplied by d[e(nonlinear)]/dq(j).
+C
+      DOUBLE PRECISION C,CCI,PPI,PCICPI,CB
+      DIMENSION C(6,6),CB(3,7)
+C
+      CB(1,I) = C(1,1)*CCI*.375 +C(1,2)*PPI*.125
+      CB(2,I) = C(1,2)*CCI*.125 +C(2,2)*PPI*.375
+      CB(3,I) = C(3,3)*PCICPI*.125
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CTB4
+      SUBROUTINE CTB4(P4,P5,C,CCI,PPI,PCICPI,I,CB,IFREE)
+C
+C  Purpose is to calculate the term C x d[e(nonlinear)]/dq(k) that is
+C  multiplied by e(linear).
+C
+      DOUBLE PRECISION C,CCI,PPI,PCICPI,CB,P4,P5
+      DIMENSION C(6,6),CB(8,7)
+C
+      CB(1,I) =   C(1,1)*CCI*P4 + C(1,2)*PPI*P5
+      CB(2,I) = (-C(1,2)*CCI    + C(2,2)*PPI)*.25
+      CB(3,I) =   C(1,2)*CCI*P4 + C(2,2)*PPI*P5
+      IF (IFREE.EQ.1) CB(2,I) = CB(3,I)
+      CB(4,I) = C(3,3)*PCICPI*P5
+      CB(5,I) = C(3,3)*PCICPI*.25
+      IF (IFREE.EQ.1) CB(5,I) = CB(4,I)
+      CB(6,I) =   C(1,4)*CCI*P4 + C(2,4)*PPI*P5
+      CB(7,I) =   C(1,5)*CCI*P4 + C(2,5)*PPI*P5
+      CB(8,I) = C(3,6)*PCICPI*P5
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      VARCOF
+      SUBROUTINE VARCOF(EPSL,E2W,E3U,C,CHI,PSI,GAM,P1,P2,P3,P4,P5,P6,P7,
+     1                  P8,NX0,NY0,IFREE)
+C
+C  Calculate various coefficients used in nonlinear equilibrium analysis
+C  of panel under uniform normal pressure.
+C
+      DOUBLE PRECISION EPSL,E2W,E3U,C,CHI,PSI,GAM,P1,P2,P3,P4,P5,P6,P7
+      DOUBLE PRECISION P8,P9,P10
+      DIMENSION EPSL(*),C(6,6)
+      REAL NX0,NY0
+C
+      P1 = .5*CHI*CHI
+      P2 = .5*PSI*PSI
+      P3 =    CHI*PSI
+      PI = 3.1415927
+      P4 = 4./(3.*PI)
+      P5 = .5*P4
+      P9 = 0.25
+      P10 = 0.25
+      IF (IFREE.EQ.1) THEN
+         P9 = -P4
+        P10 = P5
+      ENDIF
+C
+      P6 = EPSL(1)*C(1,1)*P4 -EPSL(2)*C(1,2)*P9 +E2W*C(1,2)*P4
+     1    +EPSL(4)*C(1,4)*P4 +EPSL(5)*C(1,5)*P4
+     1    +P1*C(1,1)*.375 + P2*C(1,2)*.125 + .5*NX0
+C
+      P7 = EPSL(1)*C(1,2)*P5 +EPSL(2)*C(2,2)*P10 +E2W*C(2,2)*P5
+     1    +EPSL(4)*C(2,4)*P5 +EPSL(5)*C(2,5)*P5
+     1    +P1*C(1,2)*.125 + P2*C(2,2)*.375 + .5*NY0
+C
+      P8 = (E3U*P5 +EPSL(3)*P10)*C(3,3) + EPSL(6)*C(3,6)*P5
+     1    +P3*C(3,3)*.125
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      NONLIN
+      SUBROUTINE NONLIN(CHI,PSI,GAM,C,FN,ROT,B1,SPSL,RHS,U,SCOF)  
+C     
+C  Derive the contributions to the r.h.s. vector and to the strain
+C  energy (local stiffnes matrix) U that arise from nonlinear (large    
+C  rotation components, CHI, PSI, GAM. This subroutine is called only   
+C  if INDIC = 3 (static response to uniform pressure).
+C     
+C  Calculate the contribution to local stiffness matrix, U of the term  
+C  e(transpose)*C*d2(e)/dq(i)dq(j)...     
+C  Also, calculate the contribution to the r.h.s.,    
+C  e(transpose)*C*d(e)/dq(i)...     
+C     
+      DOUBLE PRECISION CHI,PSI,GAM,C,FN,ROT,B1,SPSL,RHS,U   
+      DOUBLE PRECISION CHI2,GAM2,PSI2,GAPS,P1,P2,P3,P4,P5,P6,P7,P8,P9   
+      DOUBLE PRECISION P10,S1,S2,S3,S4,COF,CHII,PSII,GAMI,CCI,GGI,CCIGGI
+      DOUBLE PRECISION CC3GGI,CCIGG3,PPIGGI,PCICPI,CHIJ,PSIJ,GAMJ 
+      DOUBLE PRECISION CCJ,GGJ,CCJPPJ,PPJGGJ,PCJCPJ,CIJ,PIJ,GIJ,CPPC    
+      DOUBLE PRECISION A1Q4,A2Q4    
+C     
+      DIMENSION C(6,6),ROT(3,7),B1(6,7),SPSL(*),RHS(*),U(7,7)     
+C     
+         COF = SCOF     
+         CHI2 = CHI*CHI 
+         GAM2=GAM*GAM   
+         PSI2=PSI*PSI   
+         GAPS= GAM2+PSI2
+         P1 = CHI2*C(1,1)     
+         P2 = GAM2*C(1,1) + GAPS*C(1,2)   
+         P3 = CHI2*C(1,2)     
+         P4 = GAM2*C(1,2) + GAPS*C(2,2)   
+         P5 = CHI*PSI*C(3,3)  
+         P6 = CHI2*C(1,4)     
+         P7 = GAM2*C(1,4) + GAPS*C(2,4)   
+         P8 = CHI2*C(1,5)     
+         P9 = GAM2*C(1,5) + GAPS*C(2,5)   
+        P10 = CHI*PSI*C(3,6)  
+         S1 = .125*P1   
+         S2 = .125*P2   
+         S3 = .125*(P3 + 3.*P4)     
+         S4 = .25*P5    
+C     
+         DO 112 II = 1,7
+            CHII = ROT(1,II)  
+            PSII = ROT(2,II)  
+            GAMI = ROT(3,II)  
+            CCI  = CHI*CHII   
+            GGI  = GAM*GAMI   
+            CCIGGI = 2.*CCI + GGI   
+            CC3GGI = 3.*CCI + GGI   
+            CCIGG3 = CCI + 3.*GGI   
+            PPIGGI = PSI*PSII + GGI 
+            PCICPI = PSI*CHII + CHI*PSII  
+            RHS(II) = 0.
+            DO 109 JJ = 1,6   
+  109       RHS(II) = RHS(II) - SPSL(JJ)*B1(JJ,II)    
+            RHS(II) = RHS(II) -COF*((P1+.5*P2)*B1(1,II) +P10*B1(6,II)   
+     1                        +(P3+.5*P4)*B1(2,II) + P5*B1(3,II)  
+     1                        +(P6+.5*P7)*B1(4,II)+(P8+.5*P9)*B1(5,II)) 
+     1     -.125*(P1*CC3GGI+P2*CCIGG3 +(P3+3.*P4)*PPIGGI +2.*P5*PCICPI) 
+     1       -COF*(SPSL(1)*CCIGGI + SPSL(2)*PPIGGI + SPSL(3)*PCICPI)    
+C     
+            DO 110 JJ = 1,7   
+              CHIJ = ROT(1,JJ)
+              PSIJ = ROT(2,JJ)
+              GAMJ = ROT(3,JJ)
+              CCJ  = CHI*CHIJ 
+              GGJ  = GAM*GAMJ 
+              CCJGGJ = 2.*CCJ + GGJ 
+              PPJGGJ = PSI*PSIJ + GGJ     
+              PCJCPJ = PSI*CHIJ + CHI*PSIJ
+              CIJ  = CHII*CHIJ
+              PIJ  = PSII*PSIJ
+              GIJ  = GAMI*GAMJ
+              CPPC = CHII*PSIJ + PSII*CHIJ
+              A1Q4 = GGJ*C(1,1) + PPJGGJ*C(1,2) 
+              A2Q4 = GGJ*C(1,2) + PPJGGJ*C(2,2) 
+C     
+              U(II,JJ) = U(II,JJ) + COF*(SPSL(1)*(2.*CIJ+GIJ)     
+     1               +SPSL(2)*(PIJ+GIJ) +SPSL(3)*CPPC)
+     1               +S1*(3.*CIJ+GIJ) +S2*(CIJ +3.*GIJ)     
+     1               +S3*(PIJ+GIJ)    +S4*CPPC  
+     1               +COF*((CCJGGJ*C(1,1) + PPJGGJ*C(1,2))*B1(1,II)     
+     1                    +(CCIGGI*C(1,1) + PPIGGI*C(1,2))*B1(1,JJ)     
+     1                    +(CCJGGJ*C(1,2) + PPJGGJ*C(2,2))*B1(2,II)     
+     1                    +(CCIGGI*C(1,2) + PPIGGI*C(2,2))*B1(2,JJ)     
+     1                    +(PCJCPJ*B1(3,II) + PCICPI*B1(3,JJ))*C(3,3))  
+     1               +COF*((CCJGGJ*C(1,4) + PPJGGJ*C(2,4))*B1(4,II)     
+     1                    +(CCIGGI*C(1,4) + PPIGGI*C(2,4))*B1(4,JJ)     
+     1                    +(CCJGGJ*C(1,5) + PPJGGJ*C(2,5))*B1(5,II)     
+     1                    +(CCIGGI*C(1,5) + PPIGGI*C(2,5))*B1(5,JJ)     
+     1                    +(PCJCPJ*B1(6,II) + PCICPI*B1(6,JJ))*C(3,6))  
+     1               +.25*(CCJ*C(1,1)*CC3GGI + A1Q4*CCIGG3  
+     1                    +CCJ*C(1,2)*PPIGGI + A2Q4*PPIGGI*3.     
+     1                    +C(3,3)*PCJCPJ*PCICPI)
+C     
+  110       CONTINUE    
+  112    CONTINUE 
+C     
+      RETURN
+      END   
+C     
+C     
+C     
+C=DECK      FTOSTR
+      SUBROUTINE FTOSTR(FB,ROT,B1,C,I3M,I2M,I1M,I0,I1P,I2P,I3P,FMULT,
+     1                  FN,CHI,PSI,GAM,EPSL,SPSL,IFINIS,E2W,E3U,
+C BEG JUN 2004
+     1                  NX0, NY0,PRESS,AFN,I,ILABEL,IMOD)
+C END JUN 2004
+C
+C  Starting with solution vector, FB, and kinematic matrices, ROT and
+C  B1, and constitutive law, C, obtain rotation components CHI, PSI,
+C  and GAM, and strain components, EPSL, and stress resultants and
+C  moments, SPSL.
+C
+      DOUBLE PRECISION FB,ROT,B1,C,CHI,PSI,GAM,EPSL,SPSL,FN,E2W,E3U
+      DIMENSION FB(*),ROT(3,7),B1(6,7),C(6,6),EPSL(6),SPSL(6)
+      REAL NX0,NY0
+C
+C END JUNE 1992
+      FIN = 0.
+      VMULT = 1.0
+C
+C  GET ROTATION COMPONENTS FROM PREVIOUS NEWTON ITERATION...
+C
+         CHI= ROT(1,1)*FB(I3M) +ROT(1,2)*FB(I2M)
+     1       +ROT(1,4)*FB(I0)  +ROT(1,5)*FB(I1P)
+     1       +ROT(1,7)*FB(I3P)
+C
+         PSI= ROT(2,1)*FB(I3M)
+     1       +ROT(2,4)*FB(I0)
+     1       +ROT(2,7)*FB(I3P)
+C
+         AFN = ABS(FN)
+         IF (AFN.LT.0.5) THEN
+            PSI = 0.
+            GAM = 0.
+            FIN = 1.0
+            VMULT = -1.0
+            GO TO 10
+         ENDIF
+C
+C        GAM= ROT(3,1)*FB(I3M) +ROT(3,2)*FB(I2M) +ROT(3,3)*FB(I1M)
+C    1       +ROT(3,4)*FB(I0)  +ROT(3,5)*FB(I1P) +ROT(3,6)*FB(I2P)
+C    1       +ROT(3,7)*FB(I3P)
+C
+         GAM = 0.
+C
+   10    CONTINUE
+C
+C  Get strains and changes in curvature from previous Newton
+C  iteration..
+C
+        EPSL(1)= B1(1,1)*FB(I3M) +B1(1,2)*FB(I2M)
+     1          +B1(1,4)*FB(I0)  +B1(1,5)*FB(I1P)
+     1          +B1(1,7)*FB(I3P)  +FMULT*.5*CHI**2
+C
+        E2W = B1(2,1)*FB(I3M) + B1(2,4)*FB(I0) + B1(2,7)*FB(I3P)
+        EPSL(2) = FIN*E2W
+     1        +VMULT*(B1(2,3)*FB(I1M)+B1(2,6)*FB(I2P))
+C
+        E3U = B1(3,2)*FB(I2M) + B1(3,5)*FB(I1P)
+        EPSL(3) = FIN*E3U
+     1          +B1(3,3)*FB(I1M)
+     1          +B1(3,6)*FB(I2P)
+C
+        EPSL(4)= B1(4,1)*FB(I3M) +B1(4,2)*FB(I2M)
+     1          +B1(4,4)*FB(I0)  +B1(4,5)*FB(I1P)
+     1          +B1(4,7)*FB(I3P)
+C
+        EPSL(5)= B1(5,1)*FB(I3M)
+     1          +B1(5,4)*FB(I0)
+     1          +B1(5,7)*FB(I3P)
+C
+        EPSL(6)= B1(6,1)*FB(I3M) +B1(6,2)*FB(I2M)
+     1          +B1(6,4)*FB(I0)  +B1(6,5)*FB(I1P)
+     1          +B1(6,7)*FB(I3P)
+C
+        IF (FIN.LT.0.5) RETURN
+        IF (IFINIS.EQ.1) THEN
+           EPSL(3) = 0.
+           EPSL(6) = 0.
+C          WRITE(8,*)' CHI,PSI,AFN,PRESS=',CHI,PSI,AFN,PRESS
+C          WRITE(8,*)' EPSL(1),EPSL(2)=',EPSL(1),EPSL(2)
+C          WRITE(8,*)' I3M,I2M,I1M,I0,I1P,I2P,I3P=',
+C    1                 I3M,I2M,I1M,I0,I1P,I2P,I3P
+C          WRITE(8,*)' FIN,E2W,VMULT=',FIN,E2W,VMULT
+C          WRITE(8,*)' FB(I3M),FB(I2M)=',FB(I3M),FB(I2M)
+C          WRITE(8,*)' FB(I1M),FB(I0) =',FB(I1M),FB(I0)
+C          WRITE(8,*)' FB(I1P),FB(I2P)=',FB(I1P),FB(I2P)
+C          WRITE(8,*)' FB(I3P)        =',FB(I3P)
+C          WRITE(8,*)' NX0,NY0=',NX0,NY0
+        ENDIF
+C
+C  Get stress resultants and moments from previous Newton
+C  iteration...
+C
+        SPSL(1) = EPSL(1)*C(1,1) +EPSL(2)*C(1,2) + EPSL(4)*C(1,4)
+     1           +EPSL(5)*C(1,5) +(1.-FLOAT(IFINIS))*NX0
+C
+        IF (AFN.GT.0.5.AND.PRESS.EQ.0.) SPSL(1) = 0.
+C
+        SPSL(2) = EPSL(1)*C(1,2) +EPSL(2)*C(2,2) + EPSL(4)*C(2,4)
+     1           +EPSL(5)*C(2,5) +(1.-FLOAT(IFINIS))*NY0
+C
+        SPSL(3) = EPSL(3)*C(3,3) + EPSL(6)*C(3,6)
+C
+        SPSL(4) = EPSL(1)*C(1,4) + EPSL(2)*C(2,4) + EPSL(4)*C(4,4)
+     1           +EPSL(5)*C(4,5)
+C
+        SPSL(5) = EPSL(1)*C(1,5) + EPSL(2)*C(2,5) + EPSL(4)*C(4,5)
+     1           +EPSL(5)*C(5,5)
+C
+        SPSL(6) = EPSL(3)*C(3,6) + EPSL(6)*C(6,6)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SRHS
+      SUBROUTINE SRHS(I,L5,B,THERM,PRESS,F,WB,ISEG)
+C
+C  PURPOSE IS TO FIND THE RIGHT-HAND-SIDE VECTOR CORRESPONDING TO
+C  THERMAL LOADING (DUE TO CURING) PLUS NORMAL PRESSURE
+C     CALLED WHEN INDIC = 3 (LINEAR,NONSYMMETRIC STRESS ANALYSIS), THIS
+C     SUBROUTINE CALCULATES THE RIGHT-HAND-SIDE VECTOR CORRESPONDING TO
+C     DISTRIBUTED MECHANICAL AND THERMAL LOADS ON SHELL SURFACE FOR
+C     SEGMENT NO. ISEG, MESH POINT NO. I.
+C
+      DOUBLE PRECISION FNBAR,RD,FK1,RFK2,CURD,RDS,FN,H
+      DOUBLE PRECISION WB,B,F,PT,PC,PN,T1,T2,T4,T5
+      DIMENSION WB(7)
+      DIMENSION B(6,7),THERM(*),F(*)
+      COMMON/GGG/FNBAR,RD,FK1,RFK2,CURD,RDS,FN,H
+C
+C     THERMAL LOADS
+      T1 = - THERM(1)
+      T2 = - THERM(2)
+      T4 = - THERM(4)
+      T5 = - THERM(5)
+C
+C  SET THERMAL LOADS EQUAL TO ZERO FOR NOW. THERMAL WARPING TAKEN
+C  CARE OF IN ANOTHER WAY.
+C
+      T1 = 0.
+      T2 = 0.
+      T3 = 0.
+      T4 = 0.
+      T5 = 0.
+C
+C     MECHANICAL SURFACE TRACTIONS
+      PT = 0.
+      PC = 0.
+      PN = .5*PRESS
+C
+C     ADDITIONS TO RIGHT-HAND-SIDE VECTOR.
+      F(1)=F(1)+RDS*(-T1*B(1,1)-T2*B(2,1)-T4*B(4,1)-T5*B(5,1)+PN*WB(1))
+      F(2)=F(2)+RDS*(-T1*B(1,2)-T2*B(2,2)-T4*B(4,2)-T5*B(5,2)+PT/2.)
+      F(3)=F(3)+RDS*(-T1*B(1,3)-T2*B(2,3)-T4*B(4,3)-T5*B(5,3)+PC/2.)
+      F(4)=F(4)+RDS*(-T1*B(1,4)-T2*B(2,4)-T4*B(4,4)-T5*B(5,4)+PN*WB(4))
+      F(5)=F(5)+RDS*(-T1*B(1,5)-T2*B(2,5)-T4*B(4,5)-T5*B(5,5)+PT/2.)
+      F(6)=F(6)+RDS*(-T1*B(1,6)-T2*B(2,6)-T4*B(4,6)-T5*B(5,6)+PC/2.)
+      F(7)=F(7)+RDS*(-T1*B(1,7)-T2*B(2,7)-T4*B(4,7)-T5*B(5,7)+PN*WB(7))
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      GETBNL
+      SUBROUTINE GETBNL(B1,ROT,CHI,PSI,GAM)
+C
+C  Calculate the part of the strain-displacement relations that
+C  contain rotations. (Nonlinear kinematic terms from AIAA J. Paper
+C  1971, pp 401-410, "Analysis of ring-stiffened shells of revolution.."
+C  by D. Bushnell). These terms are derived from Eq.(10), a,b,c of that
+C  paper.
+C
+C  Input...
+C
+C   CHI,PSI,GAM are the three components of rotation (Eqs.11 in paper)
+C   ROT is the 3x7 rotation matrix (rotation components in terms of
+C   nodal degrees of freedom)
+C
+C  Output...
+C
+C   B1 is the 6x7 matrix containing kinematic relations in terms of
+C   nodal degrees of freedom.
+C
+      DOUBLE PRECISION B1,ROT,CHI,PSI,GAM
+      DIMENSION B1(6,7),ROT(3,7)
+C
+      DO 10 I = 1,7
+C
+         B1(1,I) = B1(1,I) + CHI*ROT(1,I)
+         B1(3,I) = B1(3,I) + CHI*ROT(2,I)
+C
+   10 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CHGFIX
+      SUBROUTINE CHGFIX(IMINUS,ISEG,NSEG,I,L5,ISTIF,B,B2,W2,CMAX,FIFX2)
+C
+C Change the v-displacement constraint for pressure-loaded panels.
+C v in segment 1 and segment NSEG is constrained to zero. v-constraints
+C of middle section (containing stiffener and stiffener base) are
+C released from segments 1 and NSEG.
+C
+C      IF (B.LT.(5.*W2)) RETURN
+      IF (IMINUS.EQ.1) THEN
+         IF (ISEG.EQ.1.AND.I.EQ.1) FIFX2 = CMAX
+         IF (ISEG.EQ.NSEG.AND.I.EQ.L5) FIFX2 = CMAX
+         IF (ISTIF.EQ.0) RETURN
+C        IF (B2.GT.W2.AND.(ISEG.EQ.1.AND.I.EQ.L5)) FIFX2 = 0.
+C        IF (B2.LE.W2.AND.(ISEG.EQ.1.AND.I.EQ.L5)) FIFX2 = 0.
+C        IF (ISTIF.NE.4) THEN
+C           IF (ISEG.EQ.2.AND.I.EQ.L5) FIFX2 = 0.
+C        ENDIF
+C        IF (ISTIF.EQ.4) THEN
+C           IF (B2.GT.W2.AND.(ISEG.EQ.(NSEG-1).AND.I.EQ.L5)) FIFX2 = 0.
+C            IF (B2.LE.W2.AND.(ISEG.EQ.2.AND.I.EQ.L5)) FIFX2 = 0.
+C        ENDIF
+      ENDIF
+      IF (ISTIF.EQ.0) RETURN
+C     IF (IMINUS.EQ.0) THEN
+C        IF (ISEG.EQ.2.AND.I.EQ.1) FIFX2 = 0.
+C        IF (ISEG.EQ.NSEG.AND.I.EQ.1) FIFX2 = 0.
+C     ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      WEBSHR
+      SUBROUTINE WEBSHR(IFILE,FNBAR,V,W,CHIDD,FK2,INDX)
+C
+C  PURPOSE IS TO CALCULATE MAXIMUM SHEAR RESULTANT IN THE STRINGER
+C  WEB CAUSED BY NORMAL PRESSURE.  THIS SHEAR RESULTANT IS CALCULATED
+C  FROM THE CONVERGED RESULTS OF THE GLOBAL MODEL WITH SMEARED STIFFENERS.
+C
+C BEG SEPT 1991
+      COMMON/PRESR2/P
+C END SEPT 1991
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/SHRWEB/SHEARX,XMAX,SHEARY,YMAX
+      COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+      COMMON/ZPARTS/ZPARTX(5),ZPARTY(5)
+      COMMON/GEOM2/B(2),B2(2),H(2),WW(2),WW2(2)
+      DOUBLE PRECISION FK2,A1,A2,DPX,FNBAR
+C
+      IF (INDX.EQ.0) THEN
+         SHEARY = 0.
+C BEG  1 MAY 1989
+         SHEARX = 0.
+         IF (H(1).EQ.0.) RETURN
+C END  1 MAY 1989
+         SHEARX =  -P*AXIAL*B(1)/(2.*H(1))
+         GO TO 15
+      ENDIF
+C
+      WXMAX = AXIAL**4/CS(4,4)
+      WYMAX =  CIRC**4/CS(5,5)
+      FMULTX= 1.0
+      IF (WXMAX.GT.WYMAX) FMULTX = WYMAX/WXMAX
+      FMULTY = 1.0
+      IF (WYMAX.GT.WXMAX) FMULTY = WXMAX/WYMAX
+C
+      IF (INDX.EQ.2) GO TO 20
+C
+C  TO THE STRINGER WEB...   
+C
+C BEG  1 MAY 1989
+      IF (H(1).EQ.0.) THEN
+         SHEARX = 0.
+         RETURN
+      ENDIF
+C END  1 MAY 1989
+C BEG JULY 1989
+      IWEB = 3
+      WFL  = WW(1)
+      IF (ISTIF(1).EQ.5) THEN
+         IWEB = 2
+         WFL  = B(1)
+      ENDIF
+      IWEBP = IWEB + 1
+C
+C BEG SEPT 1991
+      SHEARX = 0.
+C     IF (FNBAR.GT.0.0) THEN
+C        A1 = 4.*FNBAR**2*V +0.5*FNBAR**3*W**2
+C        A2 = FNBAR*W*FK2 + ZPARTX(IWEBP)*FNBAR**3*W
+C
+C        DPX = (A2/(8.*A1))*(1.-DSQRT(1.+(8.*A1/A2)**2))
+C        SINX  = DPX
+C        CSTAR = CX(1,1,IWEBP) - CX(1,2,IWEBP)**2/CX(2,2,IWEBP)
+C        IF (SINX.GT.1.0) THEN
+C           WRITE(IFILE,*)' ERROR IN WEBSHR... SINX GREATER THAN 1.0'
+C           CALL ERREX
+C        ENDIF
+C
+C        COSX = SQRT(1. - SINX**2)
+C        SHEARX = -CSTAR*WFL*(A1*2.*SINX*COSX - A2*COSX)
+C        XMAX  = ASIN(SINX)/FNBAR
+C        IF (XMAX.LT.0.) THEN
+C           SHEARX = CSTAR*WFL*A2
+C END JULY 1989
+C           XMAX = 0.
+C         ENDIF
+C     ELSE
+C        SHEARX = 0.0
+C     ENDIF
+C END SEPT 1991
+C
+C  SHEAR IN STRINGER WEB AS CALCULATED FROM SIMPLE BEAM THEORY, ASSUMING THAT
+C  THE SHEAR IS UNIFORM IN THE DIRECTION NORMAL TO THE STRINGER AXIS
+C  THAT ALL THE SHEAR IS CARRIED BY THE STRINGER WEBS,
+C  AND THAT ALL THE PRESSURE IS REACTED AT THE EDGES X = 0 AND X = L.
+C
+      SHBEAM = 0.
+      IF ((CIRC/ABS(R)).LT.0.5) SHBEAM = -P*FMULTX*AXIAL*B(1)/(2.*H(1))
+      SHRMAX = MAX(ABS(SHBEAM),ABS(SHEARX))
+      DIFF = 0.0
+      IF (SHEARX.NE.0.0) DIFF = ABS(SHRMAX - ABS(SHBEAM))/ABS(SHEARX)
+      IF (DIFF.LT.0.01) SHEARX = SHBEAM
+C
+C BEG JULY 1989
+      IF (ISTIF(1).GE.4) SHEARX = 0.5*SHEARX
+C END JULY 1989
+C
+C  THE SHEAR IS PLUS AT ONE END OF THE PANEL AND MINUS AT THE OTHER.
+C  DECIDE WHICH IS THE WORST FROM THE POINT OF VIEW OF BUCKLING.
+C
+   15 CONTINUE
+C BEG JULY 1989
+      IF (CX(4,6,IWEB).GE.0.) THEN
+C END JULY 1989
+         IF (SHEARX.GE.0.) GO TO 5
+         XMAX = AXIAL - XMAX
+         SHEARX = ABS(SHEARX)
+         GO TO 5
+      ELSE
+         IF (SHEARX.LE.0.) GO TO 5
+         XMAX = AXIAL - XMAX
+         SHEARX = -ABS(SHEARX)
+      ENDIF
+    5 CONTINUE
+      RETURN
+C
+   20 CONTINUE
+C
+C BEG  1 MAY 1989
+      IF (H(2).EQ.0.) THEN
+         SHEARY = 0.
+         RETURN
+      ENDIF
+C END  1 MAY 1989
+C BEG JULY 1989
+      IWEB = 3
+      WFL  = WW(2)
+      IF (ISTIF(2).EQ.5) THEN
+         IWEB = 2
+         WFL  = B(2)
+      ENDIF
+      IWEBP = IWEB + 1
+C BEG SEPT 1991
+      SHEARY = 0.
+C     CSTAR = CY(1,1,IWEBP) - CY(1,2,IWEBP)**2/CY(2,2,IWEBP)
+C     SHEARY= CSTAR*ZPARTY(IWEBP)*CHIDD*WFL
+C END SEPT 1991
+C     WRITE(8,*)' CSTAR,ZPARTY(IWEBP)=',CSTAR,ZPARTY(IWEBP)
+C     WRITE(8,*)' CHIDD,WFL,SHEARY=',CHIDD,WFL,SHEARY
+C END JULY 1989
+C
+C  SHEAR IN RING WEB AS CALCULATED FROM SIMPLE BEAM THEORY, ASSUMING THAT
+C  THE SHEAR IS UNIFORM IN THE DIRECTION NORMAL TO THE RING AXIS
+C  THAT ALL THE SHEAR IS CARRIED BY THE RING WEBS,
+C  AND THAT ALL THE PRESSURE IS REACTED AT THE EDGES Y = 0 AND Y = CIRC.
+C
+      SHBEAM = 0.
+      IF ((CIRC/ABS(R)).LT.0.5) SHBEAM = -P*FMULTY*CIRC*B(2)/(2.*H(2))
+      SHRMAX = MAX(ABS(SHBEAM),ABS(SHEARY))
+      DIFF = 0.0
+      IF (SHEARY.NE.0.0) DIFF = ABS(SHRMAX - ABS(SHBEAM))/ABS(SHEARY)
+      IF (DIFF.LT.0.01) SHEARY = SHBEAM
+      YMAX   = 0.
+C BEG JULY 1989
+      IF (ISTIF(2).GE.4) SHEARY = 0.5*SHEARY
+C END JULY 1989
+C
+C  THE SHEAR IS PLUS AT ONE END OF THE PANEL AND MINUS AT THE OTHER.
+C  DECIDE WHICH IS THE WORST FROM THE POINT OF VIEW OF BUCKLING.
+C
+C BEG JULY 1989
+      IF (CY(4,6,IWEB).GE.0.) THEN
+C END JULY 1989
+         IF (SHEARY.GE.0.) GO TO 25
+         IF (INTEXT(2).EQ.0) YMAX = CIRC - YMAX
+         SHEARY = ABS(SHEARY)
+         GO TO 25
+      ELSE
+         IF (SHEARY.LE.0.) GO TO 25
+         IF (INTEXT(2).EQ.0) YMAX = CIRC - YMAX
+         SHEARY = -ABS(SHEARY)
+      ENDIF
+   25 CONTINUE
+C
+C     DPPX = (A2/(8.*A1))*(1.+DSQRT(1.+(8.*A1/A2)**2))
+C
+C     WRITE(IFILE,10) FNBAR,V,W,ZPARTX(IWEBP),SINX,DPPX,SHEARX,XMAX
+C  10 FORMAT(/' DATA FOR MAXIMUM SHEAR RESULTANT IN STRINGER WEB'/
+C    1' CAUSED BY OVERALL RESPONSE OF PANEL TO UNIFORM NORMAL'/
+C    1' PRESSURE...'/
+C    1'  n*pi/L                                        =',1PE12.4/
+C    1'  reference surface axial  displacement, v      =',1PE12.4/
+C    1'  reference surface normal displacement, w      =',1PE12.4/
+C    1'  distance of flange from ref. surf., ZPARTX(IWEBP) =',1PE12.4/
+C    1'  SINX(small solution, actually used)           =',1PE12.4/
+C    1'  SINX(large solution, not used)                =',1PE12.4/
+C    1'  MAXIMUM IN-PLANE SHEAR RESULTANT OF WEB, SHEAR=',1PE12.4/
+C    1'  position along x-axis of the maximum shear    =',1PE12.4/)
+C
+      RETURN
+      END

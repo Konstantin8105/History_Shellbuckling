@@ -1,0 +1,2678 @@
+C=DECK      MODE  
+      SUBROUTINE MODE(IFILE8,IPRINT,NSEG,I5,IW,HC,M3,F,ISKIN,     
+     1    ILOCAL,IGLOB,ZPARTX,N,CX,INDIC,WPRES,EIGLOC,R,ITIP,
+     1    ICWEB,IMOD,W,WD,WDD,UU,VV,VP,Z,NWAVES,FKNOCK,FKNHAT,ICROWN,
+C BEG OCT 1998
+C BEG JUN 2004
+     1    P,IFICT,WDDD,ICALL,IWRITE,TX,ISR,MINTRG,
+     1    INTRNG,RAD2,TY,IZSTIF,B,B2,HHH,WWW,W2,
+     1    B0,B20,H0,W0,W20,ISTIF,INTEXT,IFAY,IBEAM,IONEST,
+     1    AXIAL,CIRC,ICRIP,ISEGC,WRATIO,WTIPWS,WRATTP,
+C BEG OCT 2004
+     1    WRATWB,WRATCN,WRWIDE,WIDLAM,PEDG,ISOGRD,RESULT,IFLG)
+C END OCT 2004
+C END JUN 2004
+C END OCT 1998
+C     
+C  PURPOSE IS TO OBTAIN MODE SHAPE (W AND CHI) FROM EIGENVECTOR.  
+C     
+C BEG APR 2007
+      COMMON/CSKINX/CSKIN(6,6),TSKINX(5),TSKINY(5)
+C END APR 2007
+      DOUBLE PRECISION F,H,HPAST,HI,C1,C2,C3,DIV
+      DIMENSION I5(*),IW(*),HC(*),F(*),DUM(5),ZPARTX(*),CX(6,6,5)
+      DIMENSION W(23,8),WD(23,8),WDD(23,8),UU(23,8),VV(23,8),VP(23,8)
+      DIMENSION Z(23,8)
+C BEG JUN 2004
+      DIMENSION TY(*),IZSTIF(*),B(*),B2(*),HHH(*),WWW(*),W2(*)
+      DIMENSION B0(*),B20(*),H0(*),W0(*),W20(*),ISTIF(*),INTEXT(*)
+      DIMENSION IFAY(*),RESULT(3,5,2)
+C END JUN 2004
+C BEG NOV 2003
+      COMMON/OUTP/NPRT
+C END NOV 2003
+C BEG JUN 2004
+C     COMMON/IZSTIX/IZSTIF(2)
+C END JUN 2004
+C BEG OCT 1996
+      DIMENSION WDDD(23,8)
+C END OCT 1996
+C BEG JAN 1996
+      DIMENSION WADJ(2,8), WEND(2,8)
+C END JAN 1996
+C BEG OCT 1998
+      DIMENSION TX(*)
+C END OCT 1998
+C BEG JUN 2004
+C     COMMON/GEOM2/B(2),B2(2),HHH(2),WWW(2),W2(2)     
+C     COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+C     COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NNSEG(2),INTEXT(2)  
+C     COMMON/GEOM1/AXIAL,CIRC,RRR
+C     COMMON/CRIPL1/ICRIP,ISEGC
+C     COMMON/WIMPF/WRATIO,WTIPWS
+C     COMMON/WRATXX/WRATTP,WRATWB,WRATCN
+C     COMMON/WRWID/WRWIDE
+C     COMMON/WIDCOX/WIDLAM
+C     COMMON/EDGCON/PEDG
+C END JUN 2004
+      LOGICAL PEDG
+      REAL N,NU12,NXMODE
+C     
+      ITOT  = 1
+      IC = 5
+      NUNK = 7    
+      KLAP = 4    
+      WMAX = 0.   
+      WMAXT= 0.
+      IF (ILOCAL.EQ.1.AND.IGLOB.EQ.0) WRATIO = 1.0
+      IWEB = 3
+      MAXSEG = 2
+C BEG MAY 1997
+      IF (IZSTIF(ISR).EQ.1) MAXSEG = 1
+C END MAY 1997
+      IF (IGLOB.EQ.-2.AND.ISTIF(ISR).EQ.4.AND.B2(ISR).EQ.W2(ISR)) 
+     1   MAXSEG = 1
+      MAXALL = 4
+      IF (ISTIF(ISR).EQ.0) MAXALL = 1
+      IF (ISTIF(ISR).EQ.3) MAXALL = 3
+C BEG JULY 1996
+      IF (ISTIF(ISR).EQ.4.AND.B20(ISR).GT.W20(ISR)) THEN
+C END JULY 1996
+         IWEB = 4
+         MAXSEG = 3
+         IF (IGLOB.EQ.-2) MAXSEG = 2
+         MAXALL = 5
+      ENDIF
+      IF (ISTIF(ISR).EQ.5) THEN
+         IWEB = 2
+         MAXSEG = 4
+         MAXALL = 4
+C BEG NOV 1995
+         IF (B2(ISR).GT.0.0) THEN
+            MAXSEG = 6
+            MAXALL = 6
+         ENDIF
+C END NOV 1995
+      ENDIF
+      DZ1 = HHH(ISR)/FLOAT(I5(IWEB)-1)
+      SNPB = 2.*SQRT(N)
+C
+      IF (INDIC.NE.3) THEN
+         IDIV = 4
+C BEG APR 1996
+C        IF (IGLOB.LE.-2) IDIV = 24
+         IF (IGLOB.LE.-2.OR.IONEST.EQ.1.OR.IGLOB.EQ.2) IDIV = 24
+C END APR 1996
+         DIV = F(IDIV)
+         IF (ISTIF(ISR).EQ.5) THEN
+            DIV = 1.0
+            F24 = F(24)
+            F118= F(118)
+            F71 = F(71)
+            DIV0 = MAX(ABS(F24),ABS(F118))
+            DIV0 = MAX(DIV0,ABS(F71))
+            DIFF = ABS(DIV0 - ABS(F24))/DIV0
+            IF (DIFF.LT.0.001) DIV = F(24)
+            DIFF = ABS(DIV0 - ABS(F118))/DIV0
+            IF (DIFF.LT.0.001) DIV = F(118)
+            DIFF = ABS(DIV0 - ABS(F71))/DIV0
+            IF (DIFF.LT.0.001) DIV = F(71)
+            IF (ABS(DIV).LT.0.5) DIV = 1.0
+         ENDIF
+         DO 10 I = 1,M3    
+   10    F(I) = F(I)/DIV
+         WMAX = 0.
+         WMAXT= 0.
+         I5TOT = 0
+C
+C BEG OCT 1998
+         IF (IMOD.EQ.0.AND.IGLOB.NE.2) CALL WIDCOM(IFILE8,
+     1   ISTIF,IFAY,ISOGRD,B,B2,W2,CX,RESULT,WIDLAM,NPRT)
+
+C END OCT 1998
+C
+         DO 50 ISEG = 1,NSEG
+            I5I = I5(ISEG)
+            DO 30 I = 1,I5I
+               IT = I5TOT + I + 1
+               I0 = IW(IT)
+               WTEST = F(I0)
+               IF (ISEG.LE.MAXSEG) WMAX = MAX(ABS(WTEST),WMAX)
+               WMAXT = MAX(ABS(WTEST),WMAXT)
+C BEG MAR 1996
+C              IF (IGLOB.EQ.0.AND.ISEG.EQ.IWEB) THEN
+C                 WRITE(8,*)' ISEG,I,WTEST,WMAX,WMAXT,WTEST/WMAX=',
+C    1                        ISEG,I,WTEST,WMAX,WMAXT,WTEST/WMAX
+C              ENDIF
+C END MAR 1996
+C BEG JAN 1996
+C  SET UP ARRAYS WADJ, WEND FOR LATER TEST FOR FICTITIOUS MODE 
+C  (TEST IF SEG. END POINT W MUCH, MUCH LARGER THAN ADJACENT POINT W).
+               IF (IMOD.EQ.0.AND.(I.EQ.1.OR.I.EQ.I5I)) THEN
+                  IF (I.EQ.1)   THEN
+                     IADJ = IW(IT + 1)
+C BEG NOV 2003
+                     WADJ(1,ISEG) = F(IADJ)
+                     WEND(1,ISEG) = WTEST
+C                    WRITE(IFILE8,'(A,2I5,1P,2E12.4)')
+C    1            ' ISEG,I,WADJ(1,ISEG),WEND(1,ISEG)=',
+C    1              ISEG,I,WADJ(1,ISEG),WEND(1,ISEG)
+C END NOV 2003
+                  ENDIF
+                  IF (I.EQ.I5I) THEN
+                     IADJ = IW(IT - 1)
+C BEG NOV 2003
+                     WADJ(2,ISEG) = F(IADJ)
+                     WEND(2,ISEG) = WTEST
+C                    WRITE(IFILE8,'(A,2I5,1P,2E12.4)')
+C    1            ' ISEG,I,WADJ(2,ISEG),WEND(2,ISEG)=',
+C    1              ISEG,I,WADJ(2,ISEG),WEND(2,ISEG)
+C END NOV 2003
+                  ENDIF
+               ENDIF
+   30       CONTINUE
+C BEG OCT 1993
+C           IF (IGLOB.EQ.-3.AND.ISEG.EQ.IWEB) THEN
+            IF (                ISEG.EQ.IWEB) THEN
+C BEG MAR 1996
+               IT = I5TOT + 2
+C END MAR 1996
+               I0 = IW(IT)
+               WCUR = (F(I0+3) - 2.*F(I0) + F(I0-3))/WMAX
+C BEG MAR 1996
+               WMXTP1 = 0.
+               WMXFLG = 0.
+               IF (IBEAM.EQ.1.AND.IGLOB.NE.2) THEN
+                  WMXTP1 = ABS(F(I0))
+                  IF (ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2) THEN
+                     IT = I5TOT + I5I + 1 + I5I + 2
+                     I0 = IW(IT)
+                     WMXFLG = ABS(F(I0))
+                     WMAX = MAX(WMAX,WMXFLG)
+                  ENDIF
+               ENDIF
+               IT = I5TOT + I5I + 1
+               I0 = IW(IT)
+               WMXTP2 = ABS(F(I0))
+               WMAXTP = MAX(WMXTP2,WMXTP1)
+C              WRITE(8,'(A,2I5)')' ISEG,I5TOT=',ISEG,I5TOT
+C              WRITE(8,'(A,1P4E12.4)') ' WMAX,WMXTP1,WMXTP2,WMAXTP=',
+C    1                                   WMAX,WMXTP1,WMXTP2,WMAXTP
+C END MAR 1996
+C BEG NOV 1994
+               WTIPWS = 10.
+               IF (WMAX.GT.0.0) WTIPWS = WMAXTP/WMAX
+C END NOV 1994
+C              WRITE(8,*)' ISEG,WMAXTP,WCUR=',ISEG,WMAXTP,WCUR
+               IMID = I5I/2 + 1
+               IT = I5TOT + IMID + 1
+               I0 = IW(IT)
+               WMDWEB = ABS(F(I0))
+            ENDIF
+C END OCT 1993
+            I5TOT = I5TOT + I5I + 2
+   50    CONTINUE
+         DO 60 I = 1,M3
+   60    F(I) = F(I)/WMAXT
+C BEG AUG 1997
+         WLAST = 1.0
+         IF (ISTIF(ISR).NE.5) WLAST = F(M3-8)
+C BEG OCT 1998
+         IF (MINTRG.EQ.2.AND.IGLOB.EQ.2) WLAST = F(M3-23)
+C END OCT 1998
+         WLAST = ABS(WLAST)
+C        IF (IWRITE.EQ.1) WRITE(IFILE8,62) ICALL,WLAST,(F(I),I=1,M3)
+C  62    FORMAT(/' IN SUB. MODE. ICALL =',I2,', WLAST=',1PE12.4,
+C    1 ' . EIGENMODE, F=',/,(1P5E12.4))
+C END AUG 1997
+C BEG JAN 1996
+         IF (IMOD.EQ.0) THEN
+            IFICT = 0
+            AWMAXT = ABS(WMAXT)
+            DO 65 ISEG = 1,NSEG
+            DO 64 IEND = 1,2
+C BEG NOV 2003
+               WNORM = WEND(IEND,ISEG)/AWMAXT
+               WNEXT = WADJ(IEND,ISEG)/AWMAXT
+               WDIFF = ABS(WNORM - WNEXT)
+               IF (NPRT.GE.2) WRITE(IFILE8,'(A,A,2I5,1P,E12.4)')
+     1       ' Check for FICTITIOUS buckling mode(WDIFF>0.8):',
+     1       ' ISEG,IEND,WDIFF=',ISEG,IEND,WDIFF
+C              WRITE(IFILE8,'(A,/,2I5,1P,5E12.4,/,A,1P,E12.4)')
+C    1' IEND,ISEG,WEND(IEND,ISEG),WADJ(IEND,ISEG),AWMAXT,WNORM,WNEXT=',
+C    1  IEND,ISEG,WEND(IEND,ISEG),WADJ(IEND,ISEG),AWMAXT,WNORM,WNEXT,
+C    1' WDIFF = ',WDIFF
+               IF (WDIFF.GT.0.8) THEN
+                  IFICT = 1 
+C              WRITE(IFILE8,'(A,2I5,1P,4E12.4)')
+C    1 ' IEND,ISEG,WNORM,WNEXT,WDIFF,AWMAXT=',
+C    1   IEND,ISEG,WNORM,WNEXT,WDIFF,AWMAXT
+                  GO TO 651
+               ENDIF
+               WBIGX  = MAX(ABS(WNORM),ABS(WNEXT))
+               WSMALL = MIN(ABS(WNORM),ABS(WNEXT))
+               IF (WBIGX.GT.0.5) THEN
+                  WFICT = WSMALL/WBIGX
+                  IF (WFICT.LT.0.1) THEN
+                     IFICT = 1
+                     GO TO 651
+                  ENDIF
+               ENDIF
+C END NOV 2003
+   64       CONTINUE
+   65       CONTINUE
+C BEG NOV 2003
+  651       CONTINUE
+C END NOV 2003
+C BEG NOV 2003
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (IFICT.EQ.1)
+     1          WRITE(IFILE8,66) IGLOB,EIGLOC,ISEG,WNORM,WNEXT
+   66       FORMAT(/
+     1 ' ******** WARNING ******** WARNING ******** WARNING ********',/,
+     1 ' THIS BUCKLING MODE IS FICTITIOUS. FICTITIOUS MODES ARE NOT',/,
+     1 ' SMOOTH AND CORRESPOND TO SPURIOUS EIGENVALUES. FICTITIOUS',/,
+     1 ' MODES SOMETIMES RESULT WHEN THE SKIN IS TOO THIN AND LOADED',/,
+     1 ' BY AXIAL COMPRESSION COMBINED WITH TRANSVERSE TENSION. YOU',/,
+     1 ' SHOULD RAISE THE LOWER BOUND(S) ON RELEVANT THICKNESSES AND',/,
+     1 ' RERUN THIS CASE.',/,
+     1 ' IGLOB = ', I2,'; BUCKLING LOAD FACTOR, EIG=',1P,E12.4,/,
+     1 ' NORMAL DISPLACEMENTS THAT CAUSED "FICTITIOUS" FINDING IN SEG.',
+     1   I2,/,
+     1 ' NORMAL DISPLACEMENT W AT ONE OR OTHER SEGMENT END,     WEND =',
+     1   1P,E12.4,/,
+     1 ' NORMAL DISPLACEMENT W ADJACENT TO THAT AT SEGMENT END, WNEXT=',
+     1   1P,E12.4,/,
+     1 ' ***** END WARNING ***** END WARNING ***** END WARNING *****')
+C END NOV 2003
+C
+         ENDIF
+C END JAN 1996
+         FMULT = 1.0
+         IF (ISTIF(ISR).NE.5.AND.ILOCAL.EQ.1.AND.F(IDIV).LT.0.0)
+     1      FMULT = -1.
+         DO 70 I = 1,M3
+   70    F(I) = FMULT*F(I)
+C BEG JUL 1999
+C BEG NOV 2003
+C  use tighter specification on fictitious mode.
+C        IF (IMOD.EQ.0.AND.IGLOB.EQ.-4.AND.IFICT.EQ.0) THEN
+C        IF (IMOD.EQ.0) THEN
+         IF (IMOD.EQ.0.AND.IFICT.EQ.0) THEN
+C END NOV 2003
+            I5TOT = 0
+            DO 90 ISEG = 1,NSEG
+               I5I = I5(ISEG)
+               I5IM= I5I -1
+               DO 80 I = 2,I5IM,2
+                  IT = I5TOT + I + 1
+                  I0 = IW(IT)
+                  IMX = IW(IT-1)
+                  IPX = IW(IT+1)
+                  FM = DABS(F(IMX))
+                  F0 = DABS(F(I0))
+                  FP = DABS(F(IPX))
+                  WBIG = MAX(FM,FP)
+                  WBIG = MAX(WBIG,F0)
+C BEG NOV 2003
+                  WDIFM = 1.0
+                  WDIF0 = 0.0
+                  WDIFP = 1.0
+                  IF (WBIG.GT.0.0) THEN
+                     WDIFM = ABS(WBIG-FM)/WBIG
+                     WDIF0 = ABS(WBIG-F0)/WBIG
+                     WDIFP = ABS(WBIG-FP)/WBIG
+                  ENDIF
+                  IF (WDIFM.LT.0.0001) IWDIF = I-1
+                  IF (WDIF0.LT.0.0001) IWDIF = I
+                  IF (WDIFP.LT.0.0001) IWDIF = I+1
+                  IT = I5TOT + IWDIF + 1
+                  I0 = IW(IT)
+                  IF (I.EQ.2.AND.IWDIF.EQ.(I-1)) THEN
+                     IPX = IW(IT+1)
+                     WSMA= DABS(F(IPX))
+                  ELSE
+                    IF (I.EQ.I5IM.AND.IWDIF.EQ.(I+1)) THEN
+                       IMX = IW(IT-1)
+                       WSMA= DABS(F(IMX))
+                    ELSE
+                       IMX = IW(IT-1)
+                       IPX = IW(IT+1)
+                       FM = DABS(F(IMX))
+                       FP = DABS(F(IPX))
+                       WSMA = MIN(FM,FP)
+                    ENDIF
+                  ENDIF
+C END NOV 2003
+C BEG NOV 2003
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C                 IF (NPRT.GE.2) WRITE(IFILE8,'(A,4I4,1P,2E12.4)')
+C    1          ' ISEG,I,I0,IWDIF,WBIG,WSMA=',ISEG,I,I0,IWDIF,WBIG,WSMA
+C END NOV 2003
+                  IF (WBIG.GT.0.7.AND.WSMA.LT.0.2) THEN
+                     IFICT = 1
+                     GO TO 95
+                  ENDIF
+   80          CONTINUE
+               I5TOT = I5TOT + I5I + 2
+   90       CONTINUE
+   95       CONTINUE
+C BEG NOV 2003
+            IF (IFICT.EQ.1)
+     1      WRITE(IFILE8,66) IGLOB,EIGLOC,ISEG,WBIG,WSMA
+C END NOV 2003
+         ENDIF
+C END JUL 1999
+         IF (IGLOB.EQ.-2) THEN
+            ICWEB = 0
+            ITIP = 0
+C BEG OCT 2004
+            IFLG = 0
+C END OCT 2004
+            ICROWN = 0
+            IF (WMAXT.GT.(1.3*WMAX)) THEN
+               ICWEB = 1
+               ITIP  = 1
+C BEG OCT 2004
+               IFLG  = 1
+C END OCT 2004
+               ICROWN= 1
+C BEG AUG 1997
+               IF (IWRITE.EQ.0) RETURN
+C END AUG 1997
+            ENDIF
+         ENDIF
+         IF (IGLOB.EQ.-3) THEN
+            ITIP = 0
+            WCUR = FMULT*WCUR
+            IF (WMAXTP.GT.(0.5*WMAX)) THEN
+               ITIP  = 1
+C BEG AUG 1997
+               IF (IWRITE.EQ.0) RETURN
+C END AUG 1997
+            ENDIF
+         ENDIF
+         IF (ILOCAL.EQ.1.AND.IGLOB.EQ.0.AND.WMAXT.GT.WMAX)
+     1    WRATIO = WMAX/WMAXT
+         IF (ILOCAL.EQ.1.AND.IGLOB.EQ.-1) THEN
+            ICWEB = 0
+            ITIP  = 0
+C           IF (WMAXT.GT.(2.0*WMAX)) ICWEB = 1
+C BEG OCT 1993
+C           IF (WMAXT.GT.(1.3*WMAX)) THEN
+C BEG MAR 1996
+            FMULTX = 0.5
+            IF (IBEAM.EQ.1) FMULTX = 0.25
+C           IF (WIDLAM.GE.1.0.AND.WMAXTP.GT.1.0*WMAX
+            IF (WIDLAM.GE.1.0.AND.WMAXTP.GT.FMULTX*WMAX
+C END MAR 1996
+     1                       .AND.WMDWEB.LT.(2.0*WMAXTP)) THEN
+               ICWEB = 1
+               ITIP  = 1
+C BEG OCT 2004
+               IFLG  = 1
+C END OCT 2004
+            ENDIF
+C BEG NOV 1994
+            IF (WIDLAM.LT.1.0.AND.WMAXTP.GT.1.0*WMAX
+     1                       .AND.WMDWEB.LT.(0.75*WMAXTP)) THEN
+C END NOV 1994
+               ICWEB = 1
+               ITIP  = 1
+C BEG OCT 2004
+               IFLG  = 1
+C END OCT 2004
+            ENDIF
+C END OCT 1993
+C BEG OCT 1996
+C           RETURN
+            GO TO 100
+C END OCT 1996
+         ENDIF
+      ENDIF
+C
+      ISKIN = 0   
+      ITIP  = 0
+C BEG OCT 2004
+      IFLG  = 0
+C END OCT 2004
+      ICWEB = 0
+      ICROWN = 0
+C     
+C BEG OCT 1996
+  100 CONTINUE
+      I5TOT = 0
+C END OCT 1996
+      DO 240 ISEG =1,NSEG     
+C     
+C BEG OCT 1998
+C BEG JUN 2004
+      IF (IGLOB.NE.2)
+     1   CALL IDSEG(ISTIF(ISR),ISEG,NSEG,B20(ISR),W20(ISR),J,
+     1              IFAY)
+      IF (IGLOB.EQ.2)
+     1  CALL IDSEG2(ISTIF(ISR),ISEG,NSEG,B20(ISR),W20(ISR),J,
+     1              IFAY)
+      IF (IGLOB.NE.2) CALL GETGEO(ISEG,DUM,RATIO,B(2),R,
+     1 B,B2,B0,B20,HHH,H0,WWW,W0,W2,W20,IZSTIF,ISTIF,INTEXT,NSEG,
+     1 AXIAL,CIRC,IBEAM,RAD2)
+      IF (IGLOB.EQ.2) CALL GTGEO2(ISEG,DUM,RATIO,ABS(R),
+     1 B,B2,B0,B20,HHH,H0,WWW,W0,W2,W20,IZSTIF,ISTIF,
+     1 INTRNG,TX,TY)
+C END JUN 2004
+C END OCT 1998
+      NU12 = CX(1,2,J)/CX(2,2,J)
+      CEFF = CX(1,1,J) - NU12*CX(1,2,J)
+C     
+      I5I = I5(ISEG)    
+      HI = HC(ITOT)*RATIO
+      ZAVE = ZPARTX(J)
+C BEG APR 2007
+C     IF (ISTIF(ISR).NE.5.AND.J.EQ.3) ZAVE = -0.5*(TX(2)+HHH(ISR))
+      IF (ISTIF(ISR).NE.5.AND.J.EQ.3) ZAVE = -0.5*(TSKINX(2)+HHH(ISR))
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END APR 2007
+      IAVE = I5I/2 + 1
+      FACT = 1.
+      IF (ZAVE.LT.0.) FACT = -1.
+      DZ = 0.
+      IF (ISEG.EQ.IWEB) DZ = FACT*DZ1
+      IF (ISEG.EQ.(IWEB+2).AND.ISTIF(ISR).GE.4) DZ = -FACT*DZ1
+      IF (ISR.EQ.2.AND.J.EQ.3.AND.ZPARTX(J).GT.0.) THEN
+         DZ = DZ1
+         ZAVE = ABS(ZAVE)
+      ENDIF
+C
+C     START LOOP OVER CURRENT SEGMENT MESH POINTS.    
+C     
+C     
+      DO 110 I=1,I5I    
+C     
+      III = ITOT + I - 1
+      H = HC(III)*RATIO 
+C     
+      CALL WWDWDD(1.,ISEG,F,HI,H,I5TOT,I,IW,IC,NUNK,KLAP,W,WD,WDD,U,V, 
+     1            VD)
+C     
+C BEG MAR 1997 (MOVE DOWN "OCT 1996" STATEMENTS INTO ANOTHER "I" LOOP.
+C  MOVE DOWN COMPUTATION OF WDDD AFTER WDD HAS BEEN SMOOTHED AT SEG. ENDS
+C END MAR 1997
+      UU(I,ISEG) = U    
+      VV(I,ISEG) = V    
+C
+      CEXY = 0.
+      IF (I.EQ.1.OR.I.EQ.I5I) THEN
+         NXMODE = CEFF*SNPB*V
+         CN12   = NXMODE*0.5*H*SNPB
+         CEXY   = CN12/CX(3,3,J)
+         IF (I.EQ.I5I) CEXY = - CEXY
+      ENDIF
+C
+      VP(I,ISEG) = CEXY + VD
+      Z(I,ISEG)  = ZAVE + FLOAT(I-IAVE)*DZ
+C     
+  110 CONTINUE    
+C     
+C BEG AUG 1997
+      WFIRST = ABS(W(1,1))
+C BEG OCT 1998
+      IF (MINTRG.EQ.2.AND.IGLOB.EQ.2) WFIRST = ABS(W(6,1))
+C END OCT 1998
+      WSKIN = WFIRST
+      IF (ISTIF(ISR).NE.5) WSKIN = MAX(WFIRST,WLAST)
+C END AUG 1997
+C BEG MAR 1997
+C  Smooth WDD at segment ends:
+      WDD(1,ISEG)   = 2.*WDD(2,ISEG)    - WDD(3,ISEG)
+      I5I1 = I5I-1
+      I5I2 = I5I-2
+      WDD(I5I,ISEG) = 2.*WDD(I5I1,ISEG) - WDD(I5I2,ISEG)
+      DO 115 I = 1,I5I
+         III = ITOT + I - 1
+         H = HC(III)*RATIO 
+C BEG OCT 1996
+C   need WDDD for transverse shear force in sandwich walls...
+         IF (I.GT.1) THEN
+            I1 = I-1
+            WDDD(I,ISEG) = (WDD(I,ISEG) - WDD(I1,ISEG))/H
+C BEG MAR 1997
+C  This section is commented out. It leads to heavy panels because
+C  in an actual panel the sandwich directly under the stringer would
+C  be locally strengthened greatly in order to survive local forces
+C  applied by the stringer to the stringer base. Also, the effect of
+C  the concentrated line moment that the stringer applies to the
+C  stringer base is accounted for in the "Plantema" section of
+C  SUBROUTINE BUCPAN.
+C           IF (ISTIF(ISR).GE.1.AND.ISTIF(ISR).LE.3) THEN
+C              IF (ISEG.EQ.2.OR.(ISEG.EQ.4.AND.ISTIF(ISR).EQ.1)) THEN
+C                 IF (I.EQ.(I5I/2+1))
+C    1             WDDD(I,ISEG) = 2.*(WDD(I,ISEG)-WDD(I-1,ISEG))/TX(3)
+C                 IF (I.EQ.(I5I/2+2)) 
+C    1             WDDD(I,ISEG) = 2.*(WDD(I,ISEG)-WDD(I-1,ISEG))/TX(3)
+C              ENDIF
+C           ENDIF
+C END MAR 1997
+         ENDIF
+         IF (I.EQ.I5I) WDDD(1,ISEG) = 2.*WDDD(2,ISEG) - WDDD(3,ISEG)
+C        WRITE(8,'(A,2I5,1P,2E12.4)')
+C    1   ' I,ISEG,H,WDDD(I,ISEG)=',I,ISEG,H,WDDD(I,ISEG)
+C END OCT 1996
+  115 CONTINUE
+C END MAR 1997
+      IF (ISTIF(ISR).NE.5) THEN
+C BEG MAY 1997
+         IF (IZSTIF(ISR).EQ.0) THEN
+            IF (INDIC.EQ.3.AND.ISEG.EQ.MAXSEG) WPRES = W(IAVE,ISEG)
+         ELSE
+            IF (INDIC.EQ.3.AND.ISEG.EQ.MAXSEG) WPRES = W(I5I,1)
+         ENDIF
+C END MAY 1997
+      ELSE
+         IF (P.GE.0.) THEN
+            IF (INDIC.EQ.3.AND.ISEG.EQ.1) WPRES = W(IAVE,ISEG)
+         ELSE
+            IF (INDIC.EQ.3.AND.ISEG.EQ.3) WPRES = W(IAVE,ISEG)
+         ENDIF
+      ENDIF
+      IF (ISTIF(ISR).EQ.5) GO TO 120
+C
+C     IF (ILOCAL.EQ.0.AND.IGLOB.EQ.0.AND.INDIC.NE.3) THEN
+C BEG OCT 1998
+      IF ((IGLOB.EQ.0.OR.IGLOB.EQ.2).AND.INDIC.NE.3) THEN
+C END OCT 1998
+         IF (ISEG.EQ.2.AND.ILOCAL.EQ.0) THEN
+               IF (ISTIF(ISR).NE.4) THEN
+                  IMID = I5I/2 + 1
+                  WMID = W(IMID,2)
+               ELSE  
+C BEG JULY 1996
+                  IF (B20(ISR).GT.W20(ISR)) WMID = W(I5I,2)    
+                  IF (B20(ISR).EQ.W20(ISR)) WMID = W(1,2)
+C END JULY 1996
+               ENDIF 
+C BEG AUG 1997
+            WRAT = ABS(WMID/WSKIN)
+C END AUG 1997
+C BEG OCT 1998
+            IF (IMOD.EQ.0.AND.IGLOB.NE.2) WRWIDE = WRAT
+C END OCT 1998
+            IF (WRAT.LT.0.2) ISKIN = 1
+            IF (IGLOB.NE.2.AND.IMOD.EQ.0.AND.IPRINT.GE.1) THEN
+C BEG AUG 1997
+               WRITE(IFILE8,112) NWAVES,ABS(WMID),WSKIN,WRAT
+  112          FORMAT(/' NUMBER OF AXIAL HALFWAVES = ',I6,/,
+C END AUG 1997
+     1' AMPLITUDE OF BUCKLING MODE AT STRINGER BASE, WSTR  =',1PE12.4/
+     1' AMPLITUDE OF BUCKLING MODE BETWEEN STRINGERS,WSKIN =',1PE12.4/
+     1' RATIO OF BUCKLING MODAL DISPLACEMENTS,  WSTR/WSKIN =',1PE12.4)
+C BEG MAR 1996
+C              IF (WRAT.LT.0.7.OR.WRAT.GT.1.3) WRITE(IFILE8,113)
+C BEG JULY 1997
+               IF (IBEAM.EQ.0.AND.ICALL.EQ.7
+     1                       .AND.(WRAT.LT.0.7.OR.WRAT.GT.1.3))
+C END JULY 1997
+     1                                         WRITE(IFILE8,113)
+C END MAR 1996
+  113          FORMAT(
+     1' NOTE: THERE IS SIGNIFICANT DEFORMATION OF THE CROSS SECTION'/
+     1'       OF THE PANEL MODULE IN THIS BUCKLING MODE. THIS'/
+     1'       DEFORMATION MAY WELL CAUSE THE WIDE COLUMN BUCKLING'/
+     1'       LOAD FACTOR TO BE CONSIDERABLY LESS THAN THE GENERAL'/
+     1'       OR PANEL (BETWEEN RINGS) INSTABILITY LOAD FACTORS.'/)
+            ENDIF
+         ENDIF
+C
+C BEG OCT 1998
+         IF (ISEG.EQ.IWEB.AND.IGLOB.NE.2) THEN
+C END OCT 1998
+C BEG AUG 1997
+            W1   = WSKIN
+C END AUG 1997
+C BEG APR 1996
+            IF (IONEST.EQ.1) W1 = ABS(W(6,1))
+C END APR 1996
+            WTIP = ABS(W(I5I,IWEB))
+            IMID = I5I/2 + 1
+            WMID = ABS(W(IMID,IWEB))
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (IMOD.EQ.0.AND.ISTIF(ISR).LT.4
+     1      .AND.(ICALL.EQ.5.OR.ICALL.EQ.7.OR.ICALL.EQ.8)) THEN
+               IF (IPRINT.GE.1) WRITE(IFILE8,'(A,1PE12.4,/,A,1PE12.4)')
+     1    ' AMPLIT.OF BUCKLING MODE AT STRINGER WEB TIP, WTIP  =',WTIP,
+     1    ' AMPLIT.OF BUCKLING MODE AT STRINGER MIDWEB,  WMID  =',WMID
+               IF (ICALL.EQ.8.AND.WTIP.GT.0.5) ITIP = 1
+            ENDIF
+            WRAT = 1.0
+            IF (WTIP.GT.0.1) WRAT = W1/WTIP
+            IF (ILOCAL.EQ.0) THEN
+               IF (WRAT.LT.0.1) ITIP = 1
+C BEG MAR 1996
+C BEG AUG 1997
+               IF (IBEAM.EQ.0.AND.IPRINT.LE.2.AND.IWRITE.EQ.0) RETURN
+               IF (IPRINT.LE.1.AND.IWRITE.EQ.0) RETURN
+C END AUG 1997
+C END MAR 1996
+            ELSE
+C BEG OCT 1993
+               IF (WIDLAM.GE.1.0.AND.WTIP.GT.(1.0*W1)
+     1                          .AND.WMID.LT.(2.0*WTIP)) ITIP = 1
+C BEG NOV 1994
+               IF (WIDLAM.LT.1.0.AND.WTIP.GT.(1.0*W1)
+     1                          .AND.WMID.LT.(0.75*WTIP)) ITIP = 1
+C END NOV 1994
+C END OCT 1993
+            ENDIF
+         ENDIF
+      ENDIF 
+C     
+C  Correct truncation error in WD at segment ends, which can be
+C  rather severe...
+C
+C     IF (ISEG.LT.NSEG) WD(I5I,ISEG)=(W(I5I,ISEG)-W(I5I-1,ISEG))/H
+C     IF (ISEG.GT.1)    WD(1,ISEG)  =(W(2,  ISEG)-W(1,    ISEG))/H
+C     WDD(I5I,ISEG) = 2.*WDD(I5I-1,ISEG) - WDD(I5I-2,ISEG)  
+C     WDD(1,ISEG)   = 2.*WDD(2,ISEG)     - WDD(3,ISEG)
+C     
+  120 CONTINUE    
+C     
+      I5TOT = I5TOT + I5I + 2 
+      ITOT  = ITOT + I5I
+  240 CONTINUE    
+C BEG OCT 2004
+C End of the ISEG loop over the number of segments.
+C END OCT 2004
+C     
+      IF (IMOD.EQ.0.AND.ILOCAL.EQ.1.AND.IGLOB.EQ.0) THEN
+         WRATTP = 0.
+         WRATWB = 0.
+         WRATCN = 0.
+      ENDIF
+C
+C BEG OCT 1998
+      IF (ISTIF(ISR).LT.4.AND.ILOCAL.EQ.1
+     1        .AND.(IGLOB.EQ.0.OR.IGLOB.EQ.-1.OR.IGLOB.EQ.2)) THEN
+C END OCT 1998
+         IF (ISTIF(ISR).NE.0) THEN
+            I5I  = I5(IWEB)
+            IMID = I5I/2 + 1
+            WTIP = ABS(W(I5I, IWEB))
+            WCRIP= ABS(W(IMID,IWEB))
+C BEG OCT 2004
+            WFLG = 0.
+            IF (ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2) THEN
+               I5FLG = I5(4)
+               WFLG  = ABS(W(I5FLG,4))
+            ENDIF
+C END OCT 2004
+C BEG OCT 1996
+            IF (IGLOB.EQ.0) ICWEB = 0
+C END OCT 1996
+C BEG OCT 2004
+            IF (IGLOB.EQ.0) IFLG  = 0
+C END OCT 2004
+C BEG AUG 1997
+            W1 = WSKIN
+C END AUG 1997
+C BEG OCT 1998
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (IMOD.EQ.0.AND.ISTIF(ISR).LT.4.AND.IGLOB.EQ.2
+     1      .AND.(ICALL.EQ.9.OR.ICALL.EQ.10.OR.ICALL.EQ.11)) THEN
+              IF (IPRINT.GE.1) THEN
+               IF (MINTRG.NE.2)
+     1            WRITE(IFILE8,'(A,1PE12.4,/,A,1PE12.4,/,A,1PE12.4)')
+     1    ' AMPLIT.OF BUCKLING MODE MIDWAY BETWEEN RINGS, WMID =',WSKIN,
+     1    ' AMPLIT.OF BUCKLING MODE AT   RING   WEB TIP,  WTIP =',WTIP,
+     1    ' AMPLIT.OF BUCKLING MODE AT   RING   MIDWEB,  WCRIP =',WCRIP
+               IF (MINTRG.EQ.2)
+     1            WRITE(IFILE8,'(A,1PE12.4,/,A,1PE12.4,/,A,1PE12.4)')
+     1    ' MAX. AMPLIT. OF BUCKLING MODE BETWEEN RINGS,  WMID =',WSKIN,
+     1    ' AMPLIT.OF BUCKLING MODE AT   RING   WEB TIP,  WTIP =',WTIP,
+     1    ' AMPLIT.OF BUCKLING MODE AT   RING   MIDWEB,  WCRIP =',WCRIP
+C BEG OCT 2004
+               WRITE(IFILE8,'(A,1P,E12.4)')
+     1    ' AMPLIT.OF BUCKLING MODE AT  RING FLANGE TIP,, WFLG =',WFLG
+C END OCT 2004
+              ENDIF
+C BEG OCT 2004
+              IF (WTIP.GT.2.*WSKIN.AND.WTIP.GE.WCRIP.AND.WTIP.GT.WFLG)
+     1                                                 ITIP = 1
+              IF (WCRIP.GT.2.*WSKIN.AND.WCRIP.GT.WTIP.AND.WCRIP.GT.WFLG)
+     1                                                 ICWEB = 1
+C BEG OCT 2004
+              IF (WFLG.GT.2.*WSKIN.AND.WFLG.GT.WCRIP.AND.WFLG.GT.WTIP)
+     1                                                 IFLG = 1
+C END OCT 2004
+            ENDIF
+C END OCT 1998
+C BEG APR 1996
+            IF (IONEST.EQ.1.AND.IGLOB.NE.2) W1 = ABS(W(6,1))
+C END APR 1996
+C BEG MAR 1996
+            WFLNGE = 0.
+            IF (IBEAM.EQ.1) THEN
+               W1BEAM = W1
+               IF (ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2) THEN
+                  IWEBP = IWEB + 1
+                  I5WP = I5(IWEBP)
+                  W1BEAM = MAX(W1,ABS(W(I5WP,IWEBP)))
+                  WFLNGE = ABS(W(I5WP,IWEBP))
+               ENDIF
+C BEG OCT 1996
+               IF (IGLOB.EQ.0.AND.WCRIP.GT.4.0*W1BEAM) ICWEB = 1
+C END OCT 1996
+            ELSE
+C BEG OCT 1996
+               IF (IGLOB.EQ.0.AND.WCRIP.GT.W1
+     1                       .AND.WCRIP.GT.WTIP) ICWEB = 1
+C BEG MAY 1997
+C BEG OCT 2004
+               IF (ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2) THEN
+C END OCT 2004
+                  IWEBP = IWEB + 1
+                  I5WP = I5(IWEBP)
+                  WFLNGE = ABS(W(I5WP,IWEBP))
+               ENDIF
+C END MAY 1997
+C END OCT 1996
+            ENDIF
+C BEG OCT 1996
+            IF (IMOD.EQ.0.AND.IGLOB.EQ.0) THEN
+C END OCT 1996
+C BEG OCT 2004
+C23456789012345678901234567890123456789012345678901234567890123456789012
+               IF (IBEAM.EQ.1.AND.(ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2))
+     1         THEN
+C END OCT 2004
+                  WRATCN = 20.
+                  IF (W1.GT.0.05) WRATCN = WFLNGE/W1
+               ENDIF
+C BEG MAY 1997
+C BEG OCT 2004
+               IF (IBEAM.EQ.0.AND.(ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2))
+     1         THEN
+C END OCT 2004
+                  WRATCN = 20.
+                  IF (W1.GT.0.05) WRATCN = WFLNGE/W1
+               ENDIF
+C END MAY 1997
+C END MAR 1996
+               WRATWB = 20.
+               IF (W1.GT.0.05) WRATWB = WCRIP/W1
+               WRATTP = 20.
+               IF (W1.GT.0.05) WRATTP = WTIP/W1
+C BEG OCT 2004
+C BEG NOV 2009
+C              WRATCN = 20.
+C              IF ((ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2)
+C    1                             .AND.W1.GT.0.05) WRATCN = WFLG/W1
+C
+C END OCT 2004
+               IF (ISTIF(ISR).EQ.1.OR.ISTIF(ISR).EQ.2) THEN
+                  WRATCN = 20.
+                  IF (W1.GT.0.05) WRATCN = WFLG/W1
+               ENDIF
+C END NOV 2009
+            ENDIF
+            FKNTIP = FKNOCK
+            DIFKN = ABS(1.0-FKNOCK)
+C BEG OCT 2004
+            IF (IMOD.EQ.0.AND.DIFKN.GT.0.05.AND.
+     1         (WTIP.GT.W1.OR.WCRIP.GT.W1.OR.WFLG.GT.W1)) THEN
+C END OCT 2004
+               SPEC = 15.
+               WRAT = 20.
+C BEG OCT 2004
+               IF (W1.GE.0.05) THEN
+                  WRAT1 = WTIP/W1
+                  WRAT2 = WCRIP/W1
+                  WRAT3 = WFLG/W1
+                  IF (WRAT2.GT.WRAT1.AND.WRAT2.GT.WRAT3) SPEC = 5.
+                  WRAT = MAX(WRAT1,WRAT2)
+                  WRAT = MAX(WRAT,WRAT3)
+               ENDIF
+C END OCT 2004
+               IF (WRAT.GT.SPEC) FKNTIP = 1.0
+               IF (WRAT.LE.SPEC) THEN
+                   QUOTNT = (1.0-FKNOCK)/(SPEC - 1.0)
+                   FKNTIP = QUOTNT*WRAT + (FKNOCK - QUOTNT)
+               ENDIF
+C BEG OCT 2004
+               IF (IGLOB.NE.2.AND.IPRINT.GE.2.AND.WRAT.GT.1.0)
+     1            WRITE(IFILE8,242) IGLOB,NWAVES,WRAT,FKNOCK,FKNTIP
+               IF (IGLOB.EQ.2.AND.IPRINT.GE.2.AND.WRAT.GT.1.0)
+     1            WRITE(IFILE8,2421) IGLOB,NWAVES,WRAT,FKNOCK,FKNTIP
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  242          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET BECAUSE LOCAL'/
+     1' BUCKLING HAS MORE STRINGER DEFORMATION THAN IN THE PANEL SKIN.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Ratio of the buckling mode amplitude in the stringer to that'/
+     1'   in the panel skin is ',1PE10.2,'.'/
+     1'       Old   knockdown factor,             FKNOCK(2) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNTIP    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+ 2421          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET: INTER-RING'/
+     1' BUCKLING HAS MORE RING DEFORMATION THAN MIDWAY BETWEEN RINGS.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Ratio of the buckling mode amplitude in the ring to that'/
+     1'   midway between rings is ',1PE10.2,'.'/
+     1'       Old   knockdown factor,             FKNOCK(4) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNTIP    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+C END OCT 1998
+            ENDIF
+C
+C BEG OCT 2004
+C  The following many statements are commented out..
+C           FKNWEB = FKNOCK
+C           IF (IMOD.EQ.0.AND.DIFKN.GT.0.05.AND.WCRIP.GT.W1
+C    1                   .AND.WCRIP.GT.WTIP) THEN
+C              SPEC = 5.
+C              WRAT = 20.
+C              IF (W1.GE.0.05) WRAT = WCRIP/W1
+C              IF (WRAT.GT.SPEC) FKNWEB = 1.0
+C              IF (WRAT.LE.SPEC) THEN
+C                  QUOTNT = (1.0-FKNOCK)/(SPEC - 1.0)
+C                  FKNWEB = QUOTNT*WRAT + (FKNOCK - QUOTNT)
+C              ENDIF
+C              WCRIPP = 100000.
+C              IF (W1.GT.0.00000001) WCRIPP = WCRIP/W1
+C BEG OCT 1998
+C              IF (IGLOB.NE.2.AND.IPRINT.GE.2.AND.WCRIP.GT.0.1)
+C    1            WRITE(IFILE8,243) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNWEB
+C              IF (IGLOB.EQ.2.AND.IPRINT.GE.2.AND.WCRIP.GT.0.1)
+C    1            WRITE(IFILE8,2431) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNWEB
+C END OCT 2004
+  243          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET BECAUSE LOCAL'/
+     1' BUCKLING INVOLVES THE STRINGER WEB MORE THAN THE PANEL SKIN.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Amplitude of the buckling mode at mid-height of the stringer'/
+     1'   web is ',1PE10.2,' times the amplitude in the panel skin.'/
+     1'       Old   knockdown factor,             FKNOCK(2) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNWEB    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+ 2431          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET: INTER-RING'/
+     1' BUCKLING INVOLVES THE RING WEB MORE THAN MIDWAY BETW. RINGS.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Amplitude of the buckling mode at mid-height of the ring'/
+     1'   web is ',1PE10.2,' times the amplitude midway betw. rings.'/
+     1'       Old   knockdown factor,             FKNOCK(4) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNWEB    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+C END OCT 1998
+C BEG OCT 2004
+C           ENDIF
+C BEG MAY 1997
+C
+C           FKNFLN = FKNOCK
+C           IF (IMOD.EQ.0.AND.DIFKN.GT.0.05.AND.WFLNGE.GT.W1
+C    1                   .AND.WFLNGE.GT.WTIP.AND.WFLNGE.GT.WCRIP) THEN
+C              SPEC = 15.
+C              WRAT = 20.
+C              IF (W1.GE.0.05) WRAT = WFLNGE/W1
+C              IF (WRAT.GT.SPEC) FKNFLN = 1.0
+C              IF (WRAT.LE.SPEC) THEN
+C                  QUOTNT = (1.0-FKNOCK)/(SPEC - 1.0)
+C                  FKNFLN = QUOTNT*WRAT + (FKNOCK - QUOTNT)
+C              ENDIF
+C              WFLNGX = 100000.
+C              IF (W1.GT.0.00000001) WFLNGX = WFLNGE/W1
+C BEG OCT 1998
+C              IF (IGLOB.NE.2.AND.IPRINT.GE.2.AND.WFLNGE.GT.0.1)
+C    1            WRITE(IFILE8,2430) IGLOB,NWAVES,WFLNGX,FKNOCK,FKNFLN
+C              IF (IGLOB.EQ.2.AND.IPRINT.GE.2.AND.WFLNGE.GT.0.1)
+C    1            WRITE(IFILE8,2432) IGLOB,NWAVES,WFLNGX,FKNOCK,FKNFLN
+C2430          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+C    1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET BECAUSE LOCAL'/
+C    1' BUCKLING INVOLVES THE STRINGER FLANGE MORE THAN PANEL SKIN.'/
+C    1'   Type of buckling,                          IGLOB  =', I5/
+C    1'   Number of axial halfwaves,                NWAVES  =', I5/
+C    1'   Amplitude of the buckling mode at the tip of the stringer'/
+C    1'       Old   knockdown factor,             FKNOCK(2) =',1PE12.4/
+C    1'    Proposed knockdown factor,             FKNFLN    =',1PE12.4/
+C    1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+C    1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+C    1' **************  END NOTE    END NOTE    END NOTE *************')
+C2432          FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+C    1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET: INTER-RING'/
+C    1' BUCKLING INVOLVES THE RING FLANGE MORE THAN MIDWAY BETW RINGS.'/
+C    1'   Type of buckling,                          IGLOB  =', I5/
+C    1'   Number of axial halfwaves,                NWAVES  =', I5/
+C    1'   Amplitude of the buckling mode at the tip of the ring'/
+C    1'   flange is ',1PE10.2,' times the amplitude midway betw rings.'/
+C    1'       Old   knockdown factor,             FKNOCK(4) =',1PE12.4/
+C    1'    Proposed knockdown factor,             FKNFLN    =',1PE12.4/
+C    1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+C    1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+C    1' **************  END NOTE    END NOTE    END NOTE *************')
+C END OCT 1998
+C           ENDIF
+C END MAY 1997
+C           FKNOCK = MAX(FKNTIP,FKNWEB)
+            FKNOCK = FKNTIP
+C BEG MAY 1997
+C           FKNOCK = MAX(FKNOCK,FKNFLN)
+C END MAY 1997
+C END OCT 2004
+         ENDIF
+C BEG OCT 2004
+C     (End of IF (ISTIF(ISR).NE.0) condition)
+C END OCT 2004
+      ENDIF
+C BEG OCT 2004  
+C           (End of IF (ISTIF(ISR).LT.4.AND.ILOCAL.EQ.1
+C    1        .AND.(IGLOB.EQ.0.OR.IGLOB.EQ.-1.OR.IGLOB.EQ.2)) condition)
+C END OCT 2004
+C BEG OCT 1998
+      IF (ISTIF(ISR).EQ.4.AND.ILOCAL.EQ.1
+     1        .AND.(IGLOB.EQ.0.OR.IGLOB.EQ.-1.OR.IGLOB.EQ.2)) THEN
+C END OCT 1998
+         MAXSEG = 2
+C BEG JULY 1996
+         IF (B20(ISR).GT.W20(ISR)) MAXSEG = 3
+C END JULY 1996
+C BEG OCT 1996
+         IF (IGLOB.EQ.0) ISEGC = MAXSEG 
+C END OCT 1996
+         IMID = I5(MAXSEG)/2 + 1    
+         IMID1= I5(IWEB)/2 + 1
+         IWEB1= IWEB+1
+         IMID2= I5(IWEB1)/2 + 1
+C BEG AUG 1997
+         W1 = WSKIN
+C END AUG 1997
+C BEG APR 1996
+         IF (IONEST.EQ.1.AND.IGLOB.NE.2) W1 = ABS(W(6,1))
+C END APR 1996
+         WWEB = ABS(W(IMID1,IWEB))
+         WCRN = ABS(W(IMID2,IWEB1))
+         WHAT = ABS(W(IMID,MAXSEG))
+         W1MAX = MAX(W1,WHAT)
+C BEG OCT 1996
+         IF (IMOD.EQ.0.AND.IGLOB.EQ.0) THEN
+C END OCT 1996
+            WRATWB = 20.
+C           IF (W1.GT.0.05) WRATWB = WWEB/W1
+            IF (W1MAX.GT.0.05) WRATWB = WWEB/W1MAX
+            WRATCN = 20.
+C           IF (W1.GT.0.05) WRATCN = WCRN/W1
+            IF (W1MAX.GT.0.05) WRATCN = WCRN/W1MAX
+         ENDIF
+C BEG OCT 1996
+         IF (IGLOB.EQ.0) THEN
+            ICRIP = 0
+            IF (WHAT.GT.W1.AND.WHAT.GT.WWEB.AND.WHAT.GT.WCRN)
+     1         ICRIP = 1 
+         ENDIF
+         ICWEBX = 0
+         IF (WWEB.GT.W1.AND.WWEB.GT.WHAT) ICWEBX = 1
+         IF (IGLOB.EQ.0) ICWEB = ICWEBX
+C END OCT 1996
+C
+         FKNWEB = FKNOCK
+         DIFKN = ABS(1.0-FKNOCK)
+C BEG OCT 1996
+         IF (IMOD.EQ.0.AND.DIFKN.GT.0.05.AND.ICWEBX.EQ.1) THEN
+C END OCDT 1996
+            SPEC = 5.
+            WRAT = 20.
+C           IF (W1.GE.0.05) WRAT = WWEB/W1
+            IF (W1MAX.GE.0.05) WRAT = WWEB/W1MAX
+            IF (WRAT.GT.SPEC) FKNWEB = 1.0
+            IF (WRAT.LE.SPEC) THEN
+                QUOTNT = (1.0-FKNOCK)/(SPEC - 1.0)
+                FKNWEB = QUOTNT*WRAT + (FKNOCK - QUOTNT)
+            ENDIF
+            WCRIPP = 100000.
+            IF (W1MAX.GT.0.00000001) WCRIPP = WWEB/W1MAX
+C BEG APR 1997
+C           IF (WWEB.GT.0.1) WRITE(IFILE8,243)
+C    1         IGLOB,NWAVES,WCRIPP,FKNOCK,FKNWEB
+            IF (IGLOB.EQ.0)
+     1         WRITE(IFILE8,243) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNWEB
+C END APR 1997
+C BEG OCT 1998
+            IF (IGLOB.EQ.2)
+     1         WRITE(IFILE8,2431) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNWEB
+C END OCT 1998
+         ENDIF
+C
+C BEG OCT 1996
+         ICRWNX = 0
+         IF (WCRN.GT.W1.AND.WCRN.GT.WHAT.AND.WCRN.GT.0.2*WWEB)
+     1       ICRWNX = 1
+         IF (IGLOB.EQ.0.OR.IGLOB.EQ.2) ICROWN = ICRWNX
+C END OCT 1996
+         FKNCRN = FKNOCK
+C BEG OCT 1996
+         IF (IMOD.EQ.0.AND.DIFKN.GT.0.05.AND.ICRWNX.EQ.1) THEN
+C END OCT 1996
+            SPEC = 5.
+            WRAT = 20.
+C           IF (W1.GE.0.05) WRAT = WCRN/W1
+            IF (W1MAX.GE.0.05) WRAT = WCRN/W1MAX
+            IF (WRAT.GT.SPEC) FKNCRN = 1.0
+            IF (WRAT.LE.SPEC) THEN
+                QUOTNT = (1.0-FKNOCK)/(SPEC - 1.0)
+                FKNCRN = QUOTNT*WRAT + (FKNOCK - QUOTNT)
+            ENDIF
+            WCRIPP = 100000.
+            IF (W1MAX.GT.0.00000001) WCRIPP = WCRN/W1MAX
+C BEG OCT 1998
+            IF (IGLOB.NE.2.AND.IPRINT.GE.2.AND.WCRN.GT.0.1)
+     1         WRITE(IFILE8,244) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNCRN
+            IF (IGLOB.EQ.2.AND.IPRINT.GE.2.AND.WCRN.GT.0.1)
+     1         WRITE(IFILE8,2441) IGLOB,NWAVES,WCRIPP,FKNOCK,FKNCRN
+  244       FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET BECAUSE LOCAL'/
+     1' BUCKLING INVOLVES THE HAT CROWN MORE THAN THE PANEL SKIN.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Amplitude of the buckling mode at mid-width of the stringer'/
+     1'   crown is ',1PE10.2,' times the amplitude in the panel skin.'/
+     1'       Old   knockdown factor,             FKNOCK(2) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNCRN    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+ 2441       FORMAT(/' *********** NOTE   NOTE   NOTE ***********'/
+     1' KNOCKDOWN FACTOR FOR IN-PLANE SHEAR MAY BE RESET: INTER-RING'/
+     1' BUCKLING INVOLVES THE HAT CROWN MORE THAN MIDWAY BETW. RINGS.'/
+     1'   Type of buckling,                          IGLOB  =', I5/
+     1'   Number of axial halfwaves,                NWAVES  =', I5/
+     1'   Amplitude of the buckling mode at mid-width of the ring hat'/
+     1'   crown is ',1PE10.2,' times the amplitude midway betw. rings.'/
+     1'       Old   knockdown factor,             FKNOCK(4) =',1PE12.4/
+     1'    Proposed knockdown factor,             FKNCRN    =',1PE12.4/
+     1' (NOTE: WHETHER OR NOT THE KNOCKDOWN FACTOR WILL ACTUALLY BE'/
+     1'        CHANGED MAY DEPEND ON FURTHER CALCULATIONS.)'/
+     1' **************  END NOTE    END NOTE    END NOTE *************')
+C END OCT 1998
+         ENDIF
+         FKNOCK = MAX(FKNWEB,FKNCRN)
+C BEG OCT 1998
+         IF (IGLOB.EQ.0.OR.IGLOB.EQ.2) FKNHAT = FKNCRN
+C END OCT 1998
+      ENDIF 
+C BEG OCT 2004
+C  (End of the IF (ISTIF(ISR).EQ.4.AND.ILOCAL.EQ.1
+C    1        .AND.(IGLOB.EQ.0.OR.IGLOB.EQ.-1.OR.IGLOB.EQ.2)) condition) 
+C END OCT 2004    
+C BEG OCT 1996
+C BEG AUG 1997
+      IF (IPRINT.LT.2.AND.IWRITE.EQ.0) GO TO 810
+C END AUG 1997
+C END OCT 1996
+      IF (INDIC.NE.3) THEN
+         CALL PICTS(IFILE8,ISTIF(ISR),INTEXT(ISR),
+     1              B2(ISR),W2(ISR),ISR,IFAY(ISR))
+C BEG OCT 1998
+         IF (ISR.EQ.1) WRITE(IFILE8,550) NSEG,NWAVES
+         IF (ISR.EQ.2) WRITE(IFILE8,551) NSEG,NWAVES
+      ENDIF
+  550 FORMAT(//
+     1'     NORMAL MODAL DISPLACEMENTS IN THE PANEL MODULE SHOWN ABOVE'/ 
+     1'           SKIN-STRINGER PANEL MODULE HAS',I2,' SEGMENTS'/
+     1'         NUMBER OF HALF-WAVES IN THE AXIAL DIRECTION, M=',I3/
+     1' NODE   Z         W         WD       WDD        U         V        
+     1   WDDD')
+  551 FORMAT(//
+     1'     NORMAL MODAL DISPLACEMENTS IN THE PANEL MODULE SHOWN ABOVE'/ 
+     1'            "SKIN"-RING PANEL MODULE HAS',I2,' SEGMENTS'/
+     1'         NUMBER OF HALF-WAVES IN THE CIRC. DIRECTION, n=',I3/
+     1' NODE   Z         W         WD       WDD        U         V        
+     1   WDDD')
+C END OCT 1998
+C     
+      DO 800 ISEG = 1,NSEG    
+      I5I = I5(ISEG)    
+      IF (INDIC.NE.3) WRITE(IFILE8,600) ISEG
+  600  FORMAT(/
+     1'                 MODAL DISPLACEMENTS FOR SEGMENT NO.',I2)
+      DO 620 I = 1,I5I
+        WRITE(IFILE8,610) I,Z(I,ISEG),W(I,ISEG),WD(I,ISEG),
+C BEG APR 1997
+C    1    WDD(I,ISEG),UU(I,ISEG),VV(I,ISEG),VP(I,ISEG)
+     1    WDD(I,ISEG),UU(I,ISEG),VV(I,ISEG),WDDD(I,ISEG)
+C END APR 1997
+  610 FORMAT(I3,1P,7E10.2)
+  620 CONTINUE
+C     
+  800 CONTINUE
+  810 CONTINUE    
+C
+      RETURN
+      END   
+C
+C
+C
+C=DEC      WIDCOM
+C BEG JUN 2004
+      SUBROUTINE WIDCOM(IFILE,
+     1   ISTIF,IFAY,ISOGRD,B,B2,W2,CX,RESULT,WIDLAM,NPRT)
+C END JUN 2004
+C
+C  PURPOSE IS TO COMPUTE WIDTH-WISE WIDE COLUMN BUCKLING OF PANEL SKIN
+C  BETWEEN STRINGERS. THE WIDTH-WISE WIDE COLUMN BUCKLING LOAD FACTOR,
+C  WIDLAM, IS USED IN SUBROUTINE MODE IN ORDER TO DETERMINE THE CRITERION
+C  TO USE FOR SETTING ITIP, WHICH GOVERNS THE BENDING-TORSION BUCKLING
+C  CONSTRAINT CONDITION.
+C
+C BEG JUN 2004
+      DIMENSION ISTIF(*),IFAY(*),B(*),B2(*),W2(*),CX(6,6,5)
+      DIMENSION RESULT(3,5,2)
+C     COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+C     COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C     COMMON/GEOM6/IFAY(2),IMISCL(28)
+C     COMMON/ISOGR/ISOGRD,ISOANG
+C     COMMON/ALLCIJ/CX(6,6,5),CY(6,6,5),CS(6,6)
+C     COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+C     COMMON/OUTP/NPRT
+C     COMMON/WIDCOX/WIDLAM
+C END JUN 2004
+C
+      WIDLAM = 1000000.
+      IF (RESULT(2,1,1).GE.0.0) RETURN
+      IF (ISTIF(1).EQ.0) RETURN
+      IF (ISOGRD.EQ.1) RETURN
+      FACT = 1.0
+      PI = 3.1415927
+      WIDTH = B(1)
+C BEG NOV 1995
+      IF (ISTIF(1).EQ.4.OR.ISTIF(1).EQ.5) WIDTH = B(1) - B2(1)
+C END NOV 1995
+      EICOL = CX(5,5,1) - CX(2,5,1)**2/CX(2,2,1)
+      WIDLAM = FACT*PI*PI*EICOL/(-RESULT(2,1,1)*WIDTH**2)
+C BEG OCT 1996
+      WIDLM2 = 1000000.
+C END OCT 1996
+      IF (ISTIF(1).EQ.5.AND.RESULT(2,3,1).LT.0.0) THEN
+         EICOL2 = CX(5,5,3) - CX(2,5,3)**2/CX(2,2,3)
+         WIDLM2 = FACT*PI*PI*EICOL2/(-RESULT(2,3,1)*WIDTH**2)
+         IF (WIDLM2.GT.0.) WIDLAM = MIN(WIDLAM,WIDLM2)
+      ENDIF
+      IF (ISTIF(1).EQ.4) THEN
+         ID = 2
+         IF (IFAY(1).EQ.1) ID = 1
+         EICOL2 = CX(5,5,ID) - CX(2,5,ID)**2/CX(2,2,ID)
+C BEG OCT 1996
+         IF (RESULT(2,ID,1).LT.0.0)
+     1    WIDLM2 = FACT*PI*PI*EICOL2/(-RESULT(2,ID,1)*W2(1)**2)
+C END OCT 1996
+         IF (WIDLM2.GT.0.) WIDLAM = MIN(WIDLAM,WIDLM2)
+      ENDIF
+      IF (NPRT.GE.2) WRITE(IFILE,1014) WIDLAM
+ 1014 FORMAT(/' WIDTH-WISE WIDE COLUMN BUCKLING LOAD FACTOR = '/
+     1    ' pi**2*EI/[abs(local hoop load)*WIDTH**2]=',
+     1      1PE12.4)
+      RETURN
+      END
+C     
+C     
+C     
+C=DECK      INTMOD
+      SUBROUTINE INTMOD(IFILE8,IPRINT,NSEG,I5,HC,ILOCAL,IGLOB,N,R,
+     1                  W,WD,WDD,UU,VV,VP,W2,W2D,W2DD,W3,W3D,W3DD,
+     1                  W4,W4D,W4DD,W5,W5D,W5DD,W6,W6D,W6DD,Z,ILONG,
+C BEG MAY 1997
+     1                  INDX,IDISCR)
+C END MAY 1997
+C     
+C  PURPOSE IS TO INTEGRATE PRODUCTS OF MODAL QUANTITIES.
+C     
+C BEG JUN 2004
+      COMMON/SEGS/NSEGB5,M2,I5X(95),I2,I2G
+      COMMON/GEOM5/RAD2,CURV2
+      COMMON/GEOM1/AXIAL,CIRC,RRR
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADS,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMXX,XMIN,YMXX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END JUN 2004
+      DIMENSION I5(*),HC(*),DUM(5)
+      DIMENSION W(23,8),WD(23,8),WDD(23,8),UU(23,8),VV(23,8),VP(23,8)
+      DIMENSION W2(23,8),W2D(23,8),W2DD(23,8)
+      DIMENSION W3(23,8),W3D(23,8),W3DD(23,8),Z(23,8)
+      DIMENSION W4(23,8),W4D(23,8),W4DD(23,8)
+      DIMENSION W5(23,8),W5D(23,8),W5DD(23,8)
+      DIMENSION W6(23,8),W6D(23,8),W6DD(23,8)
+      COMMON/GEOM2/B(2),B2(2),HHH(2),WWW(2),WW2(2)     
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C BEG JULY 1996
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+C END JULY 1996
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NNSEG(2),INTEXT(2)  
+C BEG NOV 1995
+      COMMON/KCOEF/A(140,6)
+C END NOV 1995
+      REAL N
+C     
+      ITOT  = 1   
+      IWEB  = 3
+      MAXSEG = 2
+      MAXALL = 4
+      IF (ISTIF(1).EQ.0) MAXALL = 1
+      IF (ISTIF(1).EQ.3) MAXALL = 3
+C BEG JULY 1996
+      IF (ISTIF(1).EQ.4.AND.B20(1).GT.W20(1)) THEN
+C END JULY 1996
+         IWEB   = 4
+         MAXSEG = 3
+         MAXALL = 5
+      ENDIF
+      IF (ISTIF(1).EQ.5) THEN
+         IWEB = 2
+         MAXSEG = 4
+         MAXALL = 4
+C BEG NOV 1995
+         IF (B2(1).GT.0.0) THEN
+            MAXSEG = 6
+            MAXALL = 6
+         ENDIF
+C END NOV 1995
+      ENDIF
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) THEN
+         MAXSEG = 5
+         MAXALL = 5
+      ENDIF
+C END MAY 1997
+C
+C BEG NOV 1995
+C     CALL MOVER(0.,0,A,1,560)
+      CALL MOVER(0.,0,A,1,840)
+C END NOV 1995
+C BEG MAY 1997
+      IF (IDISCR.EQ.0) RETURN
+C END MAY 1997
+C
+      I5TOT = 0
+C     
+      DO 240 ISEG =1,NSEG     
+C     
+C BEG JULY 1996
+C BEG JUN 2004
+      CALL IDSEG(ISTIF(1),ISEG,NSEG,B20(1),W20(1),J,IFAY)
+C END JUN 2004
+C END JULY 1996
+C BEG JUN 2004
+      CALL GETGEO(ISEG,DUM,RATIO,B(2),R,
+     1 B,B2,B0,B20,HHH,H0,WWW,W0,WW2,W20,IZSTIF,ISTIF,INTEXT,NSEGB5,
+     1 AXIAL,CIRC,IBEAM,RAD2)
+C END JUN 2004
+      FMULT = 1.0
+C BEG MAY 1997
+      IF (ISEG.LT.MAXSEG.AND.ISTIF(1).NE.5.AND.IZSTIF(1).EQ.0)
+     1   FMULT = 2.0
+C END MAY 1997
+      IF (ISEG.GT.MAXALL) FMULT = 0.0
+      JSEG = J
+      IF (ISTIF(1).EQ.5) JSEG = ISEG
+C BEG MAY 1997
+      IF (IZSTIF(1).EQ.1) JSEG = ISEG
+C END MAY 1997
+      IF (ISTIF(1).EQ.4.AND.ISEG.EQ.IWEB) FMULT = 2.0
+C     
+      I5I = I5(ISEG)    
+      DS  = HC(ITOT)*RATIO
+C
+C     WRITE(8,*) ISEG,I5I,JSEG,ITOT,IWEB,FMULT,RATIO,DS
+C     
+C  INTEGRATE TO GET KOITER CONSTANTS FOR POSTBUCKLING ANALYSIS... 
+C     
+      IF (ILOCAL.EQ.1.AND.IGLOB.EQ.0) THEN
+         IF (ISEG.LE.MAXALL) THEN
+            IF (ISTIF(1).NE.4)
+     1         CALL INTEG(ISEG,DS,I5I,N,W(1,ISEG),WD(1,ISEG),
+     1              WDD(1,ISEG),UU(1,ISEG),VV(1,ISEG),VP(1,ISEG),
+     1              Z(1,ISEG),FMULT,A(1,JSEG),B(1),INDX)
+            IF (ISTIF(1).EQ.4)
+     1         CALL INTEGH(ISEG,DS,I5I,N,W(1,ISEG),WD(1,ISEG),
+     1              WDD(1,ISEG),UU(1,ISEG),VV(1,ISEG),VP(1,ISEG),
+     1              Z(1,ISEG),FMULT,A(1,JSEG),B(1),INDX)
+C
+      ICURV = 0
+            IF (ICURV.EQ.1) THEN
+             CALL INTEG4(DS,I5I,W(1,ISEG),WD(1,ISEG),WDD(1,ISEG),
+     1               W2(1,ISEG),W2D(1,ISEG),W2DD(1,ISEG),
+     1               W3(1,ISEG),W3D(1,ISEG),W3DD(1,ISEG),
+     1               W4(1,ISEG),W4D(1,ISEG),W4DD(1,ISEG),
+     1               W5(1,ISEG),W5D(1,ISEG),W5DD(1,ISEG),
+     1               W6(1,ISEG),W6D(1,ISEG),W6DD(1,ISEG),
+     1               FMULT,A(1,JSEG),B(1))
+            ENDIF
+         ENDIF
+C
+         IF (ISEG.LE.MAXSEG.AND.ILONG.EQ.1) THEN
+             CALL INTEG2(DS,I5I,W(1,ISEG),WD(1,ISEG),WDD(1,ISEG),
+     1               W2(1,ISEG),W2D(1,ISEG),W2DD(1,ISEG),
+     1               W3(1,ISEG),W3D(1,ISEG),W3DD(1,ISEG),
+     1               W4(1,ISEG),W4D(1,ISEG),W4DD(1,ISEG),
+     1               FMULT,A(1,JSEG),B(1))
+C
+             CALL INTEG3(DS,I5I,W(1,ISEG),WD(1,ISEG),WDD(1,ISEG),
+     1               W2(1,ISEG),W2D(1,ISEG),W2DD(1,ISEG),
+     1               W3(1,ISEG),W3D(1,ISEG),W3DD(1,ISEG),
+     1               W4(1,ISEG),W4D(1,ISEG),W4DD(1,ISEG),
+     1               W5(1,ISEG),W5D(1,ISEG),W5DD(1,ISEG),
+     1               W6(1,ISEG),W6D(1,ISEG),W6DD(1,ISEG),
+     1               FMULT,A(1,JSEG),B(1))
+C
+         ENDIF
+C
+C        WRITE(8,*)' J,DS,I5I,N,ISEG,B(1),W(I5I,ISEG),A(21,J)=',
+C    1               J,DS,I5I,N,ISEG,B(1),W(I5I,ISEG),A(21,J)
+C
+      ENDIF 
+C
+  120 CONTINUE    
+C     
+      I5TOT = I5TOT + I5I + 2 
+      ITOT  = ITOT + I5I
+  240 CONTINUE    
+C
+C BEG MAY 1997
+      IF (IPRINT.GE.2) THEN
+C END MAY 1997
+      
+          WRITE(IFILE8,594)
+C BEG MAY 1997
+  594     FORMAT(/'        INTEGRATED MODAL PRODUCTS A(I,ISEG)',/,
+     1' FORMULA SEGMENT 1   SEGMENT 2   SEGMENT 3   SEGMENT 4',
+     1'   SEGMENT 5   SEGMENT 6',/,
+C END MAY 1997
+     1'   NO.')
+          DO 600 I = 1,30
+C BEG NOV 1995
+             WRITE(IFILE8,595) I,A(I,1),A(I,2),A(I,3),A(I,4),A(I,5),
+     1                           A(I,6)
+  595     FORMAT(I6,1P,6E12.4)
+C END NOV 1995
+  600     CONTINUE
+      ENDIF
+C BEG NOV 1995
+      IF (ISTIF(1).EQ.5) THEN
+C      add the A's from the sections of widths B2 to the A's for
+C      the lower skin (A(i,1)) and the A's for the upper skin (A(i,3)).
+C      This is valid in a model in which it is assumed that the
+C      total laminates in the sections of widths B2 are the same
+C      as the laminates in the face sheets where there is no bonding
+C      between the core and the face sheets, that is, in the sections of
+C      width B - B2. Doing this means that the very long library KOITER
+C      does not have to be changed much.
+         DO 700 I = 1,30
+             A(I,1) = A(I,1) + A(I,5)
+             A(I,3) = A(I,3) + A(I,6)
+  700    CONTINUE
+      ENDIF
+C END NOV 1995
+C BEG MAY 1997
+C     In the case of a Z-stiffened panel, add, A(i,5) to A(i,1), because
+C     the wall properties of Segment 5 are the same as those of Seg. 1.
+      IF (IZSTIF(1).EQ.1) THEN
+         DO 800 I = 1,30
+             A(I,1) = A(I,1) + A(I,5)
+  800    CONTINUE
+      ENDIF
+C END MAY 1997
+C     
+      RETURN
+      END   
+C     
+C     
+C     
+C=DECK      WWDWDD
+      SUBROUTINE WWDWDD(FM,ISEG,F,HI,H,I5TOT,I,IW,IC,NUNK,KLAP,W,WD,WDD,
+     1                  U,V,VD)
+C
+C  PURPOSE IS TO COMPUTE W, WD, WDD FROM F AND FINITE DIFFERENCE FORMS
+C
+      DOUBLE PRECISION F,H,HPAST,HI,C1,C2,C3
+      DIMENSION F(*),IW(*),W(23,8),WD(23,8),WDD(23,8)
+C
+      HPAST = HI  
+      HI = 2.*H-HPAST   
+      II = I5TOT + I + 1
+      I3M = IW(II - 1)  
+      I0 = IW(II) 
+      I3P = IW(II + 1)  
+      I2M = I0-2  
+      I1M = I0-1  
+      I1P = I0+1  
+      I2P = I0+2  
+      IF ((I3P-I0).EQ.(IC+NUNK-KLAP)) I1P = I0 + IC + 1     
+      IF ((I3P-I0).EQ.(IC+NUNK-KLAP)) I2P = I0 + IC + 2     
+C     DISPLACEMENTS AND DERIVATIVES FOR VARIABLE SPACING MESH     
+C     
+      C1 = (HPAST-HI)*(HI + H)/(16.*HPAST*H)    
+      C2 = (HI + H)*(HPAST + H)/(4.*HPAST*HI)   
+      C3 = - (HPAST-HI)*(HPAST + H)/(16.*HI*H)  
+      W(I,ISEG) = FM*(C1*F(I3M) + C2*F(I0) + C3*F(I3P))    
+      U = FM*(F(I2M) + F(I1P))/2.
+      V = FM*(F(I1M) + F(I2P))/2.
+      VD= FM*(F(I2P) - F(I1M))/H
+C     
+      C1 = -.5/HPAST    
+      C3 = .5/HI  
+      C2 = -C1 -C3
+      WD(I,ISEG) = FM*(C1*F(I3M) + C2*F(I0) + C3*F(I3P))  
+C     
+      C1 = 1./(HPAST*H) 
+      C2 = -2./(HPAST*HI)     
+      C3 = 1./(HI*H)    
+      WDD(I,ISEG) = FM*(C1*F(I3M) + C2*F(I0) + C3*F(I3P))  
+C     
+      RETURN
+      END
+C
+C
+C
+C=DECK      INTEG 
+      SUBROUTINE INTEG(ISEG,H,I5I,N,W,WD,WDD,U,V,VD,Z,FMULT,A,B,
+     1                 INDX)
+C     
+C  Purpose is to compute following integrals:   
+C     
+C     
+C This version of Koiter's 1943 theory programmed on Feb. 22, 1985 
+C     
+C     
+      DIMENSION W(*),WD(*),WDD(*),U(*),V(*),VD(*),Z(*)   
+      DIMENSION F(25),A(*)
+      REAL N
+      COMMON/NEUTRL/DNEUTX,DNEUTY,DSURF
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      FACT = 0.0
+      IF (ISTIF(1).EQ.5) FACT = 1.0
+C     
+      IC = I5I - 1
+      SN = SQRT(N)
+      DY = FMULT*H/(3.*B)
+C
+      DO 400 K = 1,26
+      DO 300 I = 1,I5I   
+C
+      F(I) = 0.0
+C
+      IF (INDX.EQ.1) THEN
+         GO TO (10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 
+     1          110,120,130,140,150,160,170,180,190,200,
+     1          210,220,230,240,250,260),K
+      ELSE
+C
+C  THE NEW COMPUTED GOTO INCLUDED JUNE 1987 FOR THE NEW KOITER FORMULATION
+C  IN WHICH IT IS ASSUMED THAT THE CIRCUMFERENTIAL STRAIN, e2 = e2(N2).
+C  IT IS AS IF THE PANEL WERE FREE TO SHRINK IN THE CIRCUMFERENTIAL
+C  DIRECTION FOR THE PURPOSE OF CALCULATING POSTBUCKLING EQUILIBRIUM.
+C  SEE THE YELLOW NOTES DATED JUNE 1987, PP 1 - 10, IN THE WHITE BINDER
+C  LABELLED "NEW KOITER". THE TERMS A11 - A15 AND A26 ARE SKIPPED OVER
+C  BECAUSE THE TERM 
+C
+C              C22*( (1)**2 + (2)**2 + (3)**2 + (4)**2 )/4
+C
+C  NO LONGER APPEARS IN THE EXPRESSION FOR EXTENSIONAL STRAIN ENERGY IN
+C  THE PANEL SKIN.
+C
+         GO TO (10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 
+     1          300,300,300,300,300,160,170,180,190,200,
+     1          210,220,230,240,250,300),K
+C
+      ENDIF
+C
+   10 F(I) = W(I)**2
+      GO TO 300
+   20 F(I) = W(I)**4
+      GO TO 300
+   30 F(I) = W(I)**6
+      GO TO 300
+   40 F(I) = WD(I)**2
+      GO TO 300
+   50 F(I) = (W(I)*WD(I))**2
+      GO TO 300
+   60 F(I) = W(I)**4*WD(I)**2
+      GO TO 300
+   70 F(I) = W(I)*WDD(I)
+      GO TO 300
+   80 F(I) = W(I)**8
+      GO TO 300
+   90 F(I) = W(I)**10
+      GO TO 300
+  100 F(I) = W(I)**12
+      GO TO 300
+  110 F(I) = (W(I)*WDD(I) - WD(I)**2)**2
+      GO TO 300
+  120 F(I) = 2.*(W(I)*WDD(I) - WD(I)**2)*4.*W(I)**3*WDD(I)
+      GO TO 300
+  130 F(I) =16.*W(I)**6*WDD(I)**2 +2.*(W(I)*WDD(I)-WD(I)**2)*
+     1                        3.*(W(I)**5*WDD(I)-W(I)**4*WD(I)**2)
+      GO TO 300
+  140 F(I) =8.*W(I)**3*WDD(I)*3.*(W(I)**5*WDD(I)-W(I)**4*WD(I)**2)
+      GO TO 300
+  150 F(I) =                  9.*(W(I)**5*WDD(I)-W(I)**4*WD(I)**2)**2
+      GO TO 300
+  160 F(I) = W(I)**3*WDD(I)
+      GO TO 300
+  170 F(I) = W(I)**5*WDD(I)
+      GO TO 300
+  180 F(I) = WDD(I)**2
+      GO TO 300
+  190 F(I) = (6.*W(I)**2*WDD(I) + 12.*W(I)*WD(I)**2)*WDD(I)
+      GO TO 300
+  200 F(I) =(3.*W(I)**2*WDD(I) +  6.*W(I)*WD(I)**2)**2
+      GO TO 300
+  210 F(I) = U(I)**2 + W(I)**2
+C     WRITE(8,*)' K, I, (U(I)**2+W(I)**2),DY=', K,I,F(I),DY
+      GO TO 300
+  220 F(I) = (VD(I) +2.*SN*U(I))**2
+      GO TO 300
+  230 F(I) = V(I)**2
+      GO TO 300
+  240 F(I) = (U(I)**2 + W(I)**2)*(Z(I)-FACT*DNEUTX)
+      GO TO 300
+  250 F(I) = (U(I)**2 + W(I)**2)**2
+      GO TO 300
+  260 F(I) = 16.*W(I)**6*WDD(I)**2
+C
+  300 CONTINUE
+C
+      DO 350 I = 1,IC,2  
+C     
+         A(K) = A(K) + (F(I) + 4.*F(I+1) + F(I+2))*DY  
+C        IF (K.EQ.21) WRITE(8,*)' A(21) =',A(K)
+C     
+  350 CONTINUE    
+C     
+  400 CONTINUE
+C
+      RETURN
+      END   
+C
+C
+C
+C=DECK      INTEGH
+      SUBROUTINE INTEGH(ISEG,H,I5I,N,W,WD,WDD,U,V,VD,Z,FMULT,A,B,
+     1                  INDX)
+C     
+C  Purpose is to compute integrals analogous to those shown as
+C  Eqs. (35) in the 1987 ASME PVP PANDA2 paper entitled "Use of
+C  PANDA2 to optimize...".  Here the integrals are developed
+C  for the special case of the panel with hat-shaped stringers. For
+C  this case the local buckling mode is symmetric with respect to
+C  the plane of symmetry of the single panel module, so that the
+C  post buckling normal deflection in the panel skin and stringer
+C  base is assumed to have the form:
+C
+C         w = f*(phi + a*phi**2) or f*(W + a*W**2)
+C
+C  phi and W mean the same thing: buckling modal displacement field.
+C  f and "a" are undetermined coefficents to be calculated later from
+C  minimization of the strain energy with respect to f, a, m. (done in
+C  the KOITER.NEW library).
+C  
+C  This is in contrast to the analysis for the T, J, and R (blade)
+C  stiffened panels, for which the post buckling normal deflection in
+C  the panel skin and stringer base is assumed to have the form:
+C     
+C         w = f*(phi + a*phi**3) or f*(W + a*W**3)
+C
+      DIMENSION W(*),WD(*),WDD(*),U(*),V(*),VD(*),Z(*)   
+      DIMENSION F(25),A(*)
+      REAL N
+      COMMON/NEUTRL/DNEUTX,DNEUTY,DSURF
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+C     
+      IC = I5I - 1
+      SN = SQRT(N)
+      DY = FMULT*H/(3.*B)
+C
+      DO 400 K = 1,27
+      DO 300 I = 1,I5I   
+C
+      F(I) = 0.0
+C     
+      IF (INDX.EQ.1) THEN
+         GO TO (10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 
+     1          110,120,130,140,150,160,170,180,190,200,
+     1          210,220,230,240,250,260,270),K
+      ELSE
+C
+         GO TO (10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 
+     1          300,300,300,300,300,160,170,180,190,200,
+     1          210,220,230,240,250,300,270),K
+C
+      ENDIF
+   10 F(I) = W(I)**2
+      GO TO 300
+   20 F(I) = W(I)**3
+      GO TO 300
+   30 F(I) = W(I)**4
+      GO TO 300
+   40 F(I) = WD(I)**2
+      GO TO 300
+   50 F(I) = W(I)*WD(I)**2
+      GO TO 300
+   60 F(I) = W(I)**2*WD(I)**2
+      GO TO 300
+   70 F(I) = W(I)*WDD(I)
+      GO TO 300
+   80 F(I) = W(I)**6
+      GO TO 300
+   90 F(I) = W(I)**7
+      GO TO 300
+  100 F(I) = W(I)**8
+      GO TO 300
+  110 F(I) = (W(I)*WDD(I) - WD(I)**2)**2
+      GO TO 300
+  120 F(I) = (6.*W(I)**2*WDD(I)-4.*W(I)*WD(I)**2)
+     1       *(W(I)*WDD(I) - WD(I)**2)
+      GO TO 300
+  130 F(I) = (3.*W(I)**2*WDD(I)-2.*W(I)*WD(I)**2)**2
+     1 +4.*(W(I)*WDD(I)-WD(I)**2)*(W(I)**3*WDD(I)-W(I)**2*WD(I)**2)
+      GO TO 300
+  140 F(I) =  4.*(3.*W(I)**2*WDD(I)-2.*W(I)*WD(I)**2)
+     1          *(W(I)**3*WDD(I)-W(I)**2*WD(I)**2)
+      GO TO 300
+  150 F(I) = 4.*(W(I)**3*WDD(I)-W(I)**2*WD(I)**2)**2
+      GO TO 300
+  160 F(I) = W(I)**2*WDD(I)
+      GO TO 300
+  170 F(I) = W(I)**3*WDD(I)
+      GO TO 300
+  180 F(I) = WDD(I)**2
+      GO TO 300
+  190 F(I) = 4.*WDD(I)*(W(I)*WDD(I) + WD(I)**2)
+      GO TO 300
+  200 F(I) = 4.*(W(I)*WDD(I) + WD(I)**2)**2
+      GO TO 300
+  210 F(I) = U(I)**2 + W(I)**2
+      GO TO 300
+  220 F(I) = (VD(I) +2.*SN*U(I))**2
+      GO TO 300
+  230 F(I) = V(I)**2
+      GO TO 300
+  240 F(I) = (U(I)**2 + W(I)**2)*Z(I)
+      GO TO 300
+  250 F(I) = (U(I)**2 + W(I)**2)**2
+      GO TO 300
+  260 F(I) = (3.*W(I)**2*WDD(I)-2.*W(I)*WD(I)**2)**2
+      GO TO 300
+  270 F(I) = W(I)**5
+C
+  300 CONTINUE
+C
+      DO 350 I = 1,IC,2  
+C     
+         A(K) = A(K) + (F(I) + 4.*F(I+1) + F(I+2))*DY  
+C     
+  350 CONTINUE    
+C     
+  400 CONTINUE
+C
+      RETURN
+      END   
+C
+C
+C
+C=DECK      INTEG2
+      SUBROUTINE INTEG2(H,I5I,W,WD,WDD,W2,W2D,W2DD,
+     1                  W3,W3D,W3DD,W4,W4D,W4DD,FMULT,A,B)
+C     
+C  Purpose is to compute integrals of products of buckling
+C  modes and their derivatives. Programmed in May, 1987.
+C  The integrals are identified on pp. 51 and 55 of the yellow
+C  notes, and on the copy of p. ? of the ASME paper.
+C     
+      DIMENSION W(*),WD(*),WDD(*),W2(*),W2D(*),W2DD(*)
+      DIMENSION W3(*),W3D(*),W3DD(*),W4(*),W4D(*),W4DD(*)
+      DIMENSION F(25),A(*)
+C     
+      IC = I5I - 1
+      DY = FMULT*H/(3.*B)
+C
+      DO 900 K = 27,64
+      KK = K - 26
+      DO 700 I = 1,I5I   
+C     
+      F(I) = 0.0
+C
+      C1 = W(I)*WDD(I) - WD(I)**2
+      C2 = 4.*W(I)**3*WDD(I)
+      C3 = 3.*(W(I)**5*WDD(I) - W(I)**4*WD(I)**2)
+      C4 = 3.*W(I)**2*WDD(I) +6.*W(I)*WD(I)**2
+      C5 = 3.*W(I)**2*WD(I)
+      C6 =.5*W(I)*W2DD(I) +2.*WD(I)*W2D(I) +2.*WDD(I)*W2(I)
+      C7 =.5*W(I)**3*W2DD(I) +2.*C5*W2D(I) +2.*C4*W2(I)
+      C8 =(.5*W(I)*W2DD(I) -2.*WD(I)*W2D(I) +2.*WDD(I)*W2(I))/9.
+      C9 =(.5*W(I)**3*W2DD(I) -2.*C5*W2D(I) +2.*C4*W2(I))/9.
+C
+C     GO TO (270,280,290,300,310,320,330,340,350,360,
+C    1       370,380,390,400,410,420,430,440,450,460,
+C    1       470,480,490,500,510,520,530,540,550,560,
+C    1       570,580,590,600,610,620,630,640),KK
+C
+      GO TO (700,700,700,300,310,320,330,340,350,360,
+     1       370,700,700,700,700,700,700,700,700,700,
+     1       700,700,700,700,700,700,700,700,550,560,
+     1       570,700,590,700,700,700,700,640),KK
+C
+  270 F(I) = C6**2 + C8**2
+      GO TO 700
+  280 F(I) = 2.*(C6*C7 +C8*C9)
+      GO TO 700
+  290 F(I) = C7**2 + C9**2
+      GO TO 700
+  300 F(I) = W2(I)**2
+      GO TO 700
+  310 F(I) = W2D(I)**2
+      GO TO 700
+  320 F(I) = W3D(I)**2
+      GO TO 700
+  330 F(I) = W3(I)
+      GO TO 700
+  340 F(I) = W2(I)**4
+      GO TO 700
+  350 F(I) = W(I)**2*W2(I)**2
+      GO TO 700
+  360 F(I) = W(I)**4*W2(I)**2
+      GO TO 700
+  370 F(I) = W(I)**6*W2(I)**2
+      GO TO 700
+  380 F(I) = 2.*W3DD(I)*C6*W(I)
+      GO TO 700
+  390 F(I) = .25*W2(I)*W3DD(I)*C1 +2.*W3DD(I)*C6*W(I)
+      GO TO 700
+  400 F(I) = .25*W2(I)*W3DD(I)*C2
+     1      +2.*W3DD(I)*(C7*W(I) +C6*W(I)**3)
+      GO TO 700
+  410 F(I) = .25*W2(I)*W3DD(I)*C3 +2.*W3DD(I)*C7*W(I)**3
+      GO TO 700
+  420 F(I) = .5*W2(I)*C1 +2.*C6*W(I)
+      GO TO 700
+  430 F(I) = .25*W2(I)*C2 +2.*C6*W(I)**3
+      GO TO 700
+  440 F(I) = .25*W2(I)*C1 +2.*C6*W(I)
+      GO TO 700
+  450 F(I) = .25*W2(I)*C2 +2.*C6*W(I)**3 +2.*C7*W(I)
+      GO TO 700
+  460 F(I) = .25*W2(I)*C3 +2.*C7*W(I)**3
+      GO TO 700
+  470 F(I) = W2(I)**2*W3DD(I)**2
+      GO TO 700
+  480 F(I) = W3DD(I)**2*W(I)**2
+      GO TO 700
+  490 F(I) = 2.*W3DD(I)**2*W(I)**4
+      GO TO 700
+  500 F(I) = W3DD(I)**2*W(I)**6
+      GO TO 700
+  510 F(I) = 2.*W3DD(I)*W(I)**2
+      GO TO 700
+  520 F(I) = 2.*W3DD(I)*W(I)**4
+      GO TO 700
+  530 F(I) = 2.*W3DD(I)*W(I)**6
+      GO TO 700
+  540 F(I) = (W2(I)**2*W2DD(I)**2 +W2D(I)**4
+     1        -2.*W2(I)*W2D(I)**2*W2DD(I))/64.
+      GO TO 700
+  550 F(I) = W2(I)*W2DD(I)
+      GO TO 700
+  560 F(I) = W2DD(I)**2
+      GO TO 700
+  570 F(I) = W3DD(I)**2
+      GO TO 700
+  580 F(I) = W2(I)**2*W3DD(I)
+      GO TO 700
+  590 F(I) = W4D(I)**2
+      GO TO 700
+  600 F(I) = W2(I)**2*W4DD(I)**2
+      GO TO 700
+  610 F(I) = W(I)**2*W4DD(I)**2
+      GO TO 700
+  620 F(I) = 2.*W(I)**4*W4DD(I)**2
+      GO TO 700
+  630 F(I) = W(I)**6*W4DD(I)**2
+      GO TO 700
+  640 F(I) = W4DD(I)**2
+  700 CONTINUE
+C
+      DO 800 I = 1,IC,2  
+C     
+         A(K) = A(K) + (F(I) + 4.*F(I+1) + F(I+2))*DY  
+C     
+  800 CONTINUE    
+C   
+  900 CONTINUE
+C  
+      RETURN
+      END   
+C     
+C     
+C     
+C=DECK      INTEG3
+      SUBROUTINE INTEG3(H,I5I,W,WD,WDD,W2,W2D,W2DD,
+     1                  W3,W3D,W3DD,W4,W4D,W4DD,
+     1                  W5,W5D,W5DD,W6,W6D,W6DD,FMULT,A,B)
+C     
+C  Purpose is to compute integrals of products of buckling
+C  modes and their derivatives. Programmed in June, 1987.
+C  The integrals are identified on pp. 75 and 85 of the yellow
+C  notes.
+C     
+      DIMENSION W(*),WD(*),WDD(*),W2(*),W2D(*),W2DD(*)
+      DIMENSION W3(*),W3D(*),W3DD(*),W4(*),W4D(*),W4DD(*)
+      DIMENSION W5(*),W5D(*),W5DD(*),W6(*),W6D(*),W6DD(*)
+      DIMENSION F(25),A(*)
+C     
+      IC = I5I - 1
+      DY = FMULT*H/(3.*B)
+C
+      DO 1100 K = 65,99
+      KK = K - 64
+      DO 1000 I = 1,I5I   
+C     
+      F(I) = 0.
+C
+      C4 = 3.*W(I)**2*WDD(I) +6.*W(I)*WD(I)**2
+C
+C     GO TO (650,660,670,680,690,700,710,720,730,740,
+C    1       750,760,770,780,790,800,810,820,830,840,
+C    1       850,860,870,880,890,900,910,920,930,940,
+C    1       950,960,970,980,990),KK
+C
+      GO TO (650,660,670,680,690,700,710,720,730,740,
+     1       750,760,770,780,790,800,810,1000,1000,1000,
+     1      1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,
+     1      1000,1000,970,980,990),KK
+C
+  650 F(I) = W5(I)*W5(I)
+      GO TO 1000
+  660 F(I) = W6(I)*W6(I)
+      GO TO 1000
+  670 F(I) = W5D(I)*W5D(I)
+      GO TO 1000
+  680 F(I) = W6D(I)*W6D(I)
+      GO TO 1000
+  690 F(I) = W(I)**2*W5(I)**2
+      GO TO 1000
+  700 F(I) = W(I)**4*W5(I)**2
+      GO TO 1000
+  710 F(I) = W(I)**6*W5(I)**2
+      GO TO 1000
+  720 F(I) = W5(I)**4
+      GO TO 1000
+  730 F(I) = W2(I)**2*W6(I)**2
+      GO TO 1000
+  740 F(I) = W6(I)**4
+      GO TO 1000
+  750 F(I) = W(I)**2*W6(I)**2
+      GO TO 1000
+  760 F(I) = W(I)**4*W6(I)**2
+      GO TO 1000
+  770 F(I) = W(I)**6*W6(I)**2
+      GO TO 1000
+  780 F(I) = W(I)*W2(I)*W5(I)*W6(I)
+      GO TO 1000
+  790 F(I) = W(I)**3*W2(I)*W5(I)*W6(I)
+      GO TO 1000
+  800 F(I) = W2(I)**2*W5(I)**2
+      GO TO 1000
+  810 F(I) = W5(I)**2*W6(I)**2
+      GO TO 1000
+  820 F(I) = 4.*W(I)*W3DD(I)*W4DD(I)*W5(I)
+      GO TO 1000
+  830 F(I) = 4.*W(I)**3*W3DD(I)*W4DD(I)*W5(I)
+      GO TO 1000
+  840 F(I) = W3DD(I)**2*W5(I)**2
+      GO TO 1000
+  850 F(I) = W4DD(I)**2*W5(I)**2
+      GO TO 1000
+  860 F(I) = W(I)*W4DD(I)*W5(I)
+      GO TO 1000
+  870 F(I) = 2.*W(I)**3*W4DD(I)*W5(I)
+      GO TO 1000
+  880 F(I) = W3DD(I)*W5(I)**2
+      GO TO 1000
+  890 F(I) = W5(I)**2
+      GO TO 1000
+  900 F(I) = W(I)**2*W5DD(I)**2 +2.*WDD(I)*W5(I)*W5DD(I)*W(I)
+     1      -4.*WD(I)*W5D(I)*W5DD(I)*W(I) +W5(I)**2*WDD(I)**2
+     1      -4.*WD(I)*WDD(I)*W5(I)*W5D(I) +4.*WD(I)**2*W5D(I)**2
+      F(I) = F(I)/64.
+      GO TO 1000
+  910 F(I) = 2.*W(I)**2*W5DD(I)**2 +W5(I)*W5DD(I)*(8.*W(I)*WDD(I)
+     1      -4.*WD(I)**2) +2.*WDD(I)**2*W5(I)**2
+     1      -8.*W(I)*WD(I)*W5D(I)*W5DD(I) -4.*W(I)*WDD(I)*W5D(I)**2
+     1      -8.*WD(I)*WDD(I)*W5(I)*W5D(I) +12.*WD(I)**2*W5D(I)**2
+      F(I) = F(I)/64.
+      GO TO 1000
+  920 F(I) = 2.*W(I)**4*W5DD(I)**2 +W5(I)*W5DD(I)*(16.*WDD(I)*W(I)**3
+     1      +12.*W(I)**2*WD(I)**2) +2.*WDD(I)*C4*W5(I)**2
+     1      -16.*W(I)**3*WD(I)*W5D(I)*W5DD(I)
+     1      +8.*W5D(I)**2*(3.*W(I)**2*WD(I)**2 -W(I)**3*WDD(I))
+     1      -24.*W5(I)*W5D(I)*(W(I)*WD(I)**3 +W(I)**2*WD(I)*WDD(I))
+      F(I) = F(I)/64.
+      GO TO 1000
+  930 F(I) = W(I)**2*W5DD(I)**2 +4.*W(I)*WDD(I)*W5(I)*W5DD(I)
+     1      +WDD(I)**2*W5(I)**2 -4.*W(I)*WD(I)*W5D(I)*W5DD(I)
+     1      -4.*WD(I)*WDD(I)*W5(I)*W5D(I)
+     1      -2.*WD(I)**2*W5(I)*W5DD(I)
+     1      -W5D(I)**2*(2.*W(I)*WDD(I) +6.*WD(I)**2)
+      F(I) = F(I)/64.
+      GO TO 1000
+  940 F(I) = 2.*W(I)**4*W5DD(I)**2 +W5(I)*W5DD(I)*(16.*WDD(I)*W(I)**3
+     1      +12.*W(I)**2*WD(I)**2) +2.*WDD(I)*C4*W5(I)**2
+     1      -16.*W(I)**3*WD(I)*W5D(I)*W5DD(I)
+     1      +8.*W5D(I)**2*(3.*W(I)**2*WD(I)**2 -W(I)**3*WDD(I))
+     1      -24.*W5(I)*W5D(I)*(W(I)*WD(I)**3 +W(I)**2*WD(I)*WDD(I))
+      F(I) = F(I)/64.
+      GO TO 1000
+  950 F(I) = W(I)**6*W5DD(I)**2 +4.*W5(I)*W5DD(I)*W(I)**3*C4
+     1      +W5(I)**2*C4**2 -12.*W5D(I)*W5DD(I)*W(I)**5*WD(I)
+     1      -12.*W5(I)*W5D(I)*C4*W(I)**2*WD(I)
+     1      -18.*W5(I)*W5DD(I)*W(I)**4*WD(I)**2
+     1      -2.*W5D(I)**2*W(I)**3*C4 +54.*W5D(I)**2*W(I)**4*WD(I)**2
+      F(I) = F(I)/64.
+      GO TO 1000
+  960 F(I) = W5(I)**2*W5DD(I)**2 +W5D(I)**4
+     1      -2.*W5(I)*W5D(I)**2*W5DD(I)
+      F(I) = F(I)/64.
+      GO TO 1000
+  970 F(I) = W5(I)*W5DD(I)
+      GO TO 1000
+  980 F(I) = W5D(I)**2
+      GO TO 1000
+  990 F(I) = W5DD(I)**2
+ 1000 CONTINUE
+C
+      DO 1050 I = 1,IC,2  
+C     
+         A(K) = A(K) + (F(I) + 4.*F(I+1) + F(I+2))*DY  
+C     
+ 1050 CONTINUE    
+C   
+ 1100 CONTINUE
+C  
+      RETURN
+      END   
+C     
+C     
+C     
+C=DECK      INTEG4
+      SUBROUTINE INTEG4(H,I5I,W,WD,WDD,W2,W2D,W2DD,
+     1                  W3,W3D,W3DD,W4,W4D,W4DD,
+     1                  W5,W5D,W5DD,W6,W6D,W6DD,FMULT,A,B)
+C     
+C  Purpose is to compute integrals of products of buckling
+C  modes and their derivatives. Programmed in June, 1987.
+C  The integrals are identified on pp. 75 and 85 of the yellow
+C  notes.
+C     
+      DIMENSION W(*),WD(*),WDD(*),W2(*),W2D(*),W2DD(*)
+      DIMENSION W3(*),W3D(*),W3DD(*),W4(*),W4D(*),W4DD(*)
+      DIMENSION W5(*),W5D(*),W5DD(*),W6(*),W6D(*),W6DD(*)
+      DIMENSION F(25),A(*)
+C     
+      IC = I5I - 1
+      DY = FMULT*H/(3.*B)
+C
+      DO 2100 K = 101,132
+      KK = K - 100
+      DO 2000 I = 1,I5I   
+C
+      F(I) = 0.0
+C
+C  C1 THRU C14 ARE ASSOCIATED WITH (1)**2...
+C     
+      C1 = .5*W5(I)*W6DD(I) +2.*W5D(I)*W6D(I) +2.*W5DD(I)*W6(I)
+      C2 = .5*W2DD(I)*W5(I) +2.*W2D(I)*W5D(I) +2.*W2(I)*W5DD(I)
+      C3 = 3.*W(I)**2*WD(I)
+      C4 = 3.*W(I)**2*WDD(I) +6.*W(I)*WD(I)**2
+      C5 = .5*W(I)*W2DD(I) +2.*WD(I)*W2D(I) +2.*WDD(I)*W2(I)
+      C6 = .5*W(I)**3*W2DD(I) +2.*C3*W2D(I) +2.*C4*W2(I)
+      C7 = .5*W(I)*W6DD(I) +2.*WD(I)*W6D(I) +2.*WDD(I)*W6(I)
+      C8 = .5*W(I)**3*W6DD(I) +2.*C3*W6D(I) +2.*C4*W6(I)
+      C9 = W(I)*W3DD(I)
+      C10= W(I)**3*W3DD(I)
+      C11= W4DD(I)*W5(I)
+      C12= W(I)*W4DD(I)
+      C13= W(I)**3*W4DD(I)
+      C14= W3DD(I)*W5(I)
+C
+C  C15 THRU C24 ARE ASSOCIATED WITH (2)**2
+C
+      C15= (W(I)*W5DD(I) -2.*WD(I)*W5D(I) +WDD(I)*W5(I))/8.
+      C16= (W(I)**3*W5DD(I) -2.*C3*W5D(I) +C4*W5(I))/8.
+      C17= W3DD(I)*W6(I)
+      C18= W2(I)*W4DD(I)
+      C19= (W(I)*WDD(I) - WD(I)**2)/8.
+      C20= (W(I)*C4 +W(I)**3*WDD(I) -2.*WD(I)*C3)/8.
+      C21= (W(I)**3*C4 -C3**2)/8.
+      C22= (W5(I)*W5DD(I) - W5D(I)**2)/8.
+      C23= W4DD(I)*W6(I)
+      C24= W2(I)*W3DD(I)
+C
+C  C25 THRU C30 ARE ASSOCIATED WITH (3)**2
+C
+      C25= (W(I)*W2DD(I) +4.*WDD(I)*W2(I) -4.*WD(I)*W2D(I))/18.
+      C26= (W(I)**3*W2DD(I) +4.*C4*W2(I) -4.*C3*W2D(I))/18.
+      C27= (W5(I)*W6DD(I)+4.*W5DD(I)*W6(I)-4.*W5D(I)*W6D(I))/18.
+      C28= (W(I)*W6DD(I) +4.*WDD(I)*W6(I) -4.*WD(I)*W6D(I))/18.
+      C29= (W(I)**3*W6DD(I) +4.*C4*W6(I) -4.*C3*W6D(I))/18.
+      C30= (W2DD(I)*W5(I)+4.*W2(I)*W5DD(I)-4.*W2D(I)*W5D(I))/18.
+C
+C  C31 THRU C33 ARE ASSOCIATED WITH (4)**2..
+C
+      C31= (W2DD(I)*W6(I) +W2(I)*W6DD(I) -2.*W2D(I)*W6D(I))/8.
+      C32= (W2D(I)**2 -W2(I)*W2DD(I))/8.
+      C33= (W6D(I)**2 -W6(I)*W6DD(I))/8.
+C
+C     GO TO (1010,1020,1030,1040,1050,1060,1070,1080,1090,1100,
+C    1       1110,1120,1130,1140,1150,1160,1170,1180,1190,1200,
+C    1       1210,1220,1230,1240,1250,1260,1270,1280,1290,1300,
+C    1       1310,1320),KK
+C
+      GO TO (2000,2000,2000,2000,2000,2000,2000,2000,2000,2000,
+     1       2000,2000,2000,2000,2000,2000,2000,2000,2000,2000,
+     1       2000,2000,2000,2000,1250,2000,2000,2000,2000,1300,
+     1       1310,1320),KK
+C
+ 1010 F(I) = 2.*(C1*C5 +C2*C7 +C25*C27 +C28*C30)
+      GO TO 2000
+ 1020 F(I) =-2.*(C5*C11 +C2*C12 +C15*C18)
+      GO TO 2000
+ 1030 F(I) = 2.*(C1*C6 +C2*C8 +C26*C27 +C29*C30)
+      GO TO 2000
+ 1040 F(I) =-2.*(C6*C11 +C2*C13 +C16*C18)
+      GO TO 2000
+ 1050 F(I) =     C1*C1 +C27*C27
+      GO TO 2000
+ 1060 F(I) =-2.*(C1*C9 +C7*C14 +C15*C17)
+      GO TO 2000
+ 1070 F(I) =-2.*(C1*C10 +C8*C14 +C16*C17)
+      GO TO 2000
+ 1080 F(I) =-2.*(C1*C11 +C22*C23)
+      GO TO 2000
+ 1090 F(I) =-2.*(C1*W(I) +C7*W5(I) +C15*W6(I))
+      GO TO 2000
+ 1100 F(I) =-2.*(C1*W(I)**3 +C8*W5(I) +C16*W6(I))
+      GO TO 2000
+ 1110 F(I) =     C7*C7 +C28*C28
+      GO TO 2000
+ 1120 F(I) = 2.*(C7*C8 +C28*C29)
+      GO TO 2000
+ 1130 F(I) =-2.*C7*C12
+      GO TO 2000
+ 1140 F(I) =-2.*(C7*C13 +C8*C12 +C20*C23)
+      GO TO 2000
+ 1150 F(I) =-2.*(C7*W5(I) +C15*W6(I))
+      GO TO 2000
+ 1160 F(I) =     C8*C8 +C29*C29
+      GO TO 2000
+ 1170 F(I) =-2.*(C8*C13 +C21*C23)
+      GO TO 2000
+ 1180 F(I) =     C2*C2 +C30*C30
+      GO TO 2000
+ 1190 F(I) =-2.*(C2*C14 +C22*C24)
+      GO TO 2000
+ 1200 F(I) =-2.*(C2*W5(I) +C22*W2(I))
+      GO TO 2000
+ 1210 F(I) =     C17*C17
+      GO TO 2000
+ 1220 F(I) = 2.*(C17*C18 +C23*C24)
+      GO TO 2000
+ 1230 F(I) = 2.*C17*W6(I)
+      GO TO 2000
+ 1240 F(I) = 2.*(C18*W6(I) +C23*W2(I))
+      GO TO 2000
+ 1250 F(I) = W6(I)**2
+      GO TO 2000
+ 1260 F(I) =-2.*C19*C23
+      GO TO 2000
+ 1270 F(I) =    C23*C23
+      GO TO 2000
+ 1280 F(I) =    C31*C31 +2.*C32*C33
+      GO TO 2000
+ 1290 F(I) =    C33*C33
+      GO TO 2000
+ 1300 F(I) = W6(I)*W6DD(I)
+      GO TO 2000
+ 1310 F(I) = W6D(I)**2
+      GO TO 2000
+ 1320 F(I) = W6DD(I)**2
+ 2000 CONTINUE
+C
+      DO 2050 I = 1,IC,2  
+C     
+         A(K) = A(K) + (F(I) + 4.*F(I+1) + F(I+2))*DY  
+C     
+ 2050 CONTINUE    
+C   
+ 2100 CONTINUE
+C  
+      RETURN
+      END   
+C     
+C     
+C     
+C=DECK      OUTPRS
+      SUBROUTINE OUTPRS(IFILE,NSEGB5,I5,WPRESG,WPRES,WDDPRS,IGLFLT,
+     1AXLEN,RESPRS,EPSPRS,IGLOB,EAVEP,CIRC,IUNK,FNXP0,FNYP0,NPRT,P,
+     1 DSURF,DNEUTX,DNEUTY,CS,NXAVEP,IFREEX,IMOD,JJJ,INEUT,IBPRE,
+     1 ICASE)
+C
+C  Purpose is to print out state at midlength of panel portion due to
+C  uniform external pressure.
+C
+      DOUBLE PRECISION FNBAR,FK2
+      COMMON/ALLCIJ/CX(6,6,5),CY(180),CSSKIN(6,6)
+      DIMENSION DELEX(5),DELEY(5),DNX(5)
+      COMMON/GEOM6/IFAY(2),IMISCL(28)
+      COMMON/SHRWEB/SHEARX,XMAX,SHEARY,YMAX
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/GEOM2/B(2),B2(2),H(2),WW(2),W2(2)
+C BEG JULY 1996
+      COMMON/GEOM0/B0(2),B20(2),H0(2),W0(2),W20(2)
+C END JULY 1996
+      COMMON/MODAL1/W(23,8),WD(23,8),WDD(23,8),UU(23,8),VV(23,8),
+     1             VP(23,8)
+      COMMON/PMD/PW(23,8),PWD(23,8),PWDD(23,8),PU(23,8),PV(23,8),
+     1 PVP(23,8)
+C BEG OCT 1996
+      COMMON/MODAL7/WDDD(23,8),PWDDD(23,8),WDDDVR(23,8)
+      COMMON/WXXXPR/WXXXGL,WYYYGL,WXXXGT
+C END OCT 1996
+      COMMON/NPRESS/NXPRES(23,8),NYPRES(23,8),EP1MID(23,8),EP2MID(23,8)
+      COMMON/MPRESS/MXPRES(23,8),MYPRES(23,8),EP4MID(23,8),EP5MID(23,8)
+      COMMON/PRWAVE/NAFN
+      DIMENSION I5(*),RESPRS(3,5,2),EPSPRS(3,5,2),EAVEP(6),NAPPL(3)
+      DIMENSION CS(6,6)
+      REAL NXPRES,NYPRES,NAPPL,MXPRES,MYPRES,NXAVEP
+      REAL KAPPA1,KAPPA2
+      COMMON/REDGEN/CSREDU(6,6)
+      COMMON/LOADS/FNX,FNY,FNXY,RESULT(3,5,2)
+      COMMON/LOADS2/FNX0,FNY0,FNXY0,RESFIX(3,5,2)
+C BEG MAY 1998
+      COMMON/EBEAMX/EBEAMR,EIEFF,FSAFE2,EFFLEN,EIGBM1
+C END MAY 1998
+      COMMON/EBEAXX/EIEFF0,EIEFFR,EIEFFX
+      COMMON/ISOGR/ISOGRD,ISOANG
+      DIMENSION RSDUM(3,5,3)
+      COMMON/EDGCON/PEDG
+      LOGICAL PEDG
+C
+      IF (NAFN.EQ.0) WPRESG = 0.
+      IF (WPRESG.NE.0.) WPRES = 0.
+      PI = 3.1415927
+      IF (IGLOB.EQ.0) WDDPRS = -PI*PI*WPRES/AXLEN**2
+C
+C BEG MAY 1998
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     WRITE(8,'(A,3I3)')' In OUTPRS: IGLOB,IBPRE,IUNK=',IGLOB,IBPRE,IUNK
+C END MAY 1998
+      IF (IGLOB.EQ.0) THEN
+         ITEST = 0
+         EAVEP(4) = WDDPRS
+         CALL MOVER(W,1,PW,1,1104)
+C BEG OCT 1996
+         CALL MOVER(WDDD,1,PWDDD,1,184)
+C END OCT 1996
+    3    CONTINUE
+         IFLAG = 0
+         IWEBM = 2
+C BEG APR 1996
+         IF (ISTIF(1).EQ.5) GO TO 6
+C END APR 1996
+         IF (ISTIF(1).EQ.5) IWEBM = 1
+         DO 5 ISEG = 1,NSEGB5
+C BEG JULY 1996
+C BEG JUN 2004
+            CALL IDSEG(ISTIF(1),ISEG,NSEGB5,B20(1),W20(1),J,IFAY)
+C END JUN 2004
+C END JULY 1996
+            K = 1
+            IF (J.GE.IWEBM) K = I5(ISEG)/2+1
+            IF (J.GT.IWEBM) IFLAG = 1
+            IF (J.LE.IWEBM.AND.IFLAG.EQ.1) GO TO 6
+            IF (IFAY(1).EQ.1.AND.ISEG.EQ.3) GO TO 5
+            RESPRS(1,J,1) = NXPRES(K,ISEG)
+            RESPRS(2,J,1) = NYPRES(K,ISEG)
+            RESPRS(3,J,1) = 0.
+            EPSPRS(1,J,1) = EP1MID(K,ISEG)
+            EPSPRS(2,J,1) = EP2MID(K,ISEG)
+            EPSPRS(3,J,1) = 0.
+    5    CONTINUE
+    6    CONTINUE
+C
+         RESPRS(1,1,2) = RESPRS(2,1,1)
+         RESPRS(2,1,2) = RESPRS(1,1,1)
+         EPSPRS(1,1,2) = EPSPRS(2,1,1)
+         EPSPRS(2,1,2) = EPSPRS(1,1,1)
+         CALL EQUFCE(ISTIF,B,B2,H,WW,W2,RESPRS,RSDUM,NAPPL)
+         FNXP0 = NAPPL(1)
+         FNYP0 = NAPPL(2)
+C
+         IF (ITEST.EQ.0.AND.(IFREEX.EQ.1.OR.IBPRE.EQ.1)) THEN
+C
+C           NO AXIAL LOAD CAN DEVELOP IN THE PANEL MODULE, SINCE EITHER:
+C            1. THE ENDS ARE ALLOWED TO APPROACH EACH OTHER (IFREEX=1)
+C            2. OR THE LINEAR BEAM BENDING THEORY IS USED FOR THE OVERALL
+C               DEFORMATION OF THE PANEL WITH SMEARED STRINGERS(IBPRE = 1).
+C           THEREFORE, REMOVE THE NET AXIAL LOAD, FNXP0, ASSUMING THERE IS
+C           NO CURVATURE CHANGE AND THAT FNYP0 DOES NOT CHANGE. CALCULATE
+C           MEMBRANE STRAIN AND AXIAL RESULTANT INCREMENTS IN THE SEGMENTS
+C           AND THEN GO BACK TO 3.
+C
+            ITEST = 1
+            DEL = CX(1,1,5)*CX(2,2,5) - CX(1,2,5)**2
+            IF (DEL.LE.0.) GO TO 16
+            DELEXA = -CX(2,2,5)*FNXP0/DEL
+            NSEG1 = NSEG(1)
+            DO 15 J = 1,NSEG1
+               DELEX(J) = DELEXA
+               DELEY(J) = -DELEXA*CX(1,2,J)/CX(2,2,J)
+               DNX(J)   = CX(1,1,J)*DELEX(J) + CX(1,2,J)*DELEY(J)
+   15       CONTINUE
+C
+            DO 152 ISEG = 1,NSEGB5
+C BEG JULY 1996
+C BEG JUN 2004
+               CALL IDSEG(ISTIF(1),ISEG,NSEGB5,B20(1),W20(1),J,IFAY)
+C END JUN 2004
+C END JULY 1996
+               I5I = I5(ISEG)
+               DO 151 I = 1,I5I
+                  NXPRES(I,ISEG) = NXPRES(I,ISEG) + DNX(J)
+                  EP1MID(I,ISEG) = EP1MID(I,ISEG) + DELEX(J)
+                  EP2MID(I,ISEG) = EP2MID(I,ISEG) + DELEY(J)
+  151          CONTINUE
+  152       CONTINUE
+            GO TO 3
+   16       CONTINUE
+         ENDIF
+C
+      ELSE
+         ISEG = 1
+C BEG OCT 1996
+         WXXXGL = 0.
+         WYYYGL = 0.
+         IF (.NOT.PEDG.AND.IBPRE.EQ.0.AND.ICASE.EQ.1) THEN
+            WXXXGL = ABS(PI*PI*PI*PW(IUNK,1)/AXLEN**3)
+            WYYYGL = ABS(PI*EP5MID(IUNK,1)/CIRC)
+C           WRITE(8,'(A,1P,4E12.4)')
+C    1        ' WXXXGL,WYYYGL,EP5MID(2,1),EP5MID(1,1)=',
+C    1          WXXXGL,WYYYGL,EP5MID(2,1),EP5MID(1,1)
+         ENDIF
+C END OCT 1996
+         IF (.NOT.PEDG.AND.IBPRE.EQ.1) THEN
+C
+C           CLAMPED PREBUCKLING BRANCH; 
+C              MOVABLE EDGES; BENDING ABOUT NEUTRAL AXIS;
+C              PANEL ASSUMED TO BE FLAT; NO TRANSVERSE FORCE DEVELOPED.
+C              IF (ISOGRD.EQ.0.AND.ISTIF(1).NE.5.AND.ISTIF(1).NE.0)
+C                 (NOT ISOGRID CONSTRUCTION OR TRUSS-CORE SANDWICH):
+C                  LINEAR  BEAM THEORY FOR AXIAL BENDING;
+C                  NO TRANSVERSE BENDING.
+C              IF (ISOGRD.EQ.1.OR.ISTIF(1).EQ.5.OR.ISTIF(1).EQ.0)
+C                 (YES, ISOGRID CONSTRUCTION OR TRUSS-CORE SANDWICH):
+C                  LINEAR ORTHOTROPIC PLATE BENDING THEORY WITH
+C                  ASSUMPTION THAT THE NORMAL DISPLACEMENT FIELD IS:
+C                      w(x,y) = C*sin(pi*y/b)*(1.-cos(2*pi*x/a))
+C
+            I5I = I5(ISEG)
+            DO 7  I = 1,I5I
+              NXPRES(I,ISEG) = 0.
+              MXPRES(I,ISEG) = 0.
+              EP1MID(I,ISEG) = 0.
+              NYPRES(I,ISEG) = 0.
+              MYPRES(I,ISEG) = 0.
+              EP1MID(I,ISEG) = 0.
+              EP2MID(I,ISEG) = 0.
+              EP5MID(I,ISEG) = 0.
+    7       CONTINUE
+            IEND = IUNK
+            IF (ICASE.EQ.2) IEND = 1
+            NXAVEP = 0.
+            E1AVE  = 0.
+            E2AVE  = 0.
+            FREDU = CSREDU(4,4) - CSREDU(1,4)**2/CSREDU(1,1)
+            EIEFF1 = CS(4,4)
+            IF (FREDU.GT.0.0.AND.FREDU.LT.CS(4,4)) EIEFF1 = FREDU
+            IF (EIEFF.GT.0.0.AND.(EIEFF*EIEFFR).LT.EIEFF1)
+     1                                      EIEFF1 = EIEFF*EIEFFR
+            EP4MID(IUNK,1) =  P*AXLEN**2/(EIEFF1*24.)
+            EP4MID(1,1)    = -P*AXLEN**2/(EIEFF1*12.)
+            WPRESG         = -P*EIEFFX*AXLEN**4/(EIEFF1*384.)
+            KAPPA2 = 0.
+            IF (ICASE.EQ.1) KAPPA1 =  P*AXLEN**2/(EIEFF1*24.)
+            IF (ICASE.EQ.2) KAPPA1 = -P*AXLEN**2/(EIEFF1*12.)
+C BEG MAY 1998
+C           WRITE(8,'(A,1P,4E12.4)')' EBEAMR,EIGBM1,WPRESG,KAPPA1=',
+C    1                                EBEAMR,EIGBM1,WPRESG,KAPPA1
+C END MAY 1998
+C
+C  UNTIL NOW THE LINEAR BEAM BENDING THEORY (ROARK TABLE 3) DID NOT
+C  ACCOUNT FOR THE PRESENCE OF AXIAL COMPRESSION, IF ANY. THIS SECTION
+C  CORRECTS THAT OVERSIGHT.  FORMULAS FROM REF. [1] ARE USED.
+C  [1] Roark, R. J. and Young, W. C., FORMULAS FOR STRESS AND STRAIN, 5th
+C  Edition, McGraw-Hill, 1975. Table 10, p. 158, Formulas 2d.
+C
+            FNXTOT = (FNX + FNX0)*EBEAMR
+C BEG MAY 1998
+C           IF (FNXTOT.LT.0.) THEN
+            IF (FNXTOT.LT.0.0.AND.EIGBM1.LT.1000.) THEN
+C END MAY 1998
+               FK = SQRT(-FNXTOT/EIEFF1)
+               ARG= FK*AXLEN/2.
+               SARG = SIN(ARG)
+               TARG = TAN(ARG)
+               TARG2 = TAN(ARG/2.)
+               IF (ARG.GE.3.1415927) THEN
+                  SARG = .0000001*ARG
+                  TARG = -SARG
+                  TARG2= 10000000.*ARG
+               ENDIF
+               IF (ICASE.EQ.1) THEN
+                  FK1 =  P*(ARG/SARG - 1.)/(EIEFF1*FK**2)
+               ELSE
+                  FK1 = -P*(1. - ARG/TARG)/(EIEFF1*FK**2)
+               ENDIF
+               WPRMID=EIEFFX*P*AXLEN*(TARG2-ARG/2.)/(2.*FK*FNXTOT)
+               IF (ABS(FK1).GT.ABS(KAPPA1)) THEN
+                  KAPPA1 = FK1
+                  WPRESG = WPRMID
+                  IF (ICASE.EQ.1) EP4MID(IUNK,1) = FK1
+                  IF (ICASE.EQ.2) EP4MID(1,1)    = FK1
+               ENDIF
+            ENDIF
+            IF (NPRT.GE.2) WRITE(IFILE,*)
+     1    ' Effective overall panel axial bending stiffness=',EIEFF1
+C BEG MAY 1998
+C           WRITE(8,'(A,2I3)')' ISOGRD,ISTIF(1)=',ISOGRD,ISTIF(1)
+C           WRITE(8,'(A,1P,2E12.4)')' AXLEN,B(2)=',AXLEN,B(2)
+C           WRITE(8,'(A,1P,2E12.4)')' KAPPA1,WPRESG=',KAPPA1,WPRESG
+C END MAY 1998
+            IF (ISOGRD.EQ.1.OR.ISTIF(1).EQ.5.OR.ISTIF(1).EQ.0
+     1                       .OR.AXLEN.GT.1.2*B(2)) THEN
+C BEG MAY 1998
+C              WRITE(8,'(A)')' Now in part where FLXFLY is computed'
+C END MAY 1998
+               FLXFLY = AXLEN/(CIRC*SQRT(CS(4,4)/CS(5,5)))
+               IF (FLXFLY.LT.0.5) THEN
+                  FACT3 = 1.642
+                  FACT2 = 0.822
+                  FACT1 = 0.5
+               ENDIF
+               IF (FLXFLY.GE.0.5.AND.FLXFLY.LT.1.0) THEN
+                  FACT3 = 2.284 - 1.284*FLXFLY
+                  FACT2 = 0.644 + 0.356*FLXFLY
+                  FACT1 = 0.36338 + 0.27324*FLXFLY
+               ENDIF
+               IF (FLXFLY.GE.1.0) THEN
+                  FACT3 = 1.0
+                  FACT2 = 1.0
+                  FACT1 = 0.63662
+               ENDIF
+               IF (FLXFLY.LE.2.0) THEN
+                  FACT4 = 1.0
+                  FACT0 = 1.0
+               ENDIF
+               IF (FLXFLY.GE.5.0) THEN
+                  FACT4 = 0.66667
+                  FACT0 = 0.5
+               ENDIF
+               IF (FLXFLY.GT.2.0.AND.FLXFLY.LT.5.0) THEN
+                  FACT0 = 1.33333 - 0.16667*FLXFLY
+                  FACT4 = 1.22222 - 0.11111*FLXFLY
+               ENDIF
+C
+               PI = 3.1415927
+               FM = 2.*PI/AXLEN
+               FN = PI/CIRC
+               WPRESG = -8.*FACT0*P*FACT1/(CS(4,4)*FM**4
+     1                            +(2.*CS(4,5)+4.*CS(6,6))*FM**2*FN**2
+     1                            +3.*FACT4*CS(5,5)*FN**4)
+               EP4MID(IUNK,1) = -0.5*FM**2*WPRESG*FACT2
+               EP4MID(1,1)    =  0.5*FM**2*WPRESG*FACT3
+               IF (ICASE.EQ.1) THEN
+                  KAPPA1 = EP4MID(IUNK,1)
+                  KAPPA2 = -FN**2*WPRESG
+                  EP5MID(1,1) = KAPPA2
+C BEG OCT 1996
+                  WXXXGL = ABS(0.5*FM**3*WPRESG*FACT2)
+                  WYYYGL = ABS(FN**3*WPRESG)
+C END OCT 1996
+               ELSE
+                  KAPPA1 = EP4MID(1,1)
+                  KAPPA2 = 0.
+C BEG OCT 1996
+                  WXXXGL = 0.
+                  WYYYGL = 0.
+C END OCT 1996
+               ENDIF
+            ENDIF
+            DEN = CS(1,1)*CS(2,2) - CS(1,2)*CS(1,2)
+            F1  = - CS(1,4)*KAPPA1 - CS(1,5)*KAPPA2
+            F2  = - CS(2,4)*KAPPA1 - CS(2,5)*KAPPA2
+            E1AVE = (CS(2,2)*F1 - CS(1,2)*F2)/DEN
+            E2AVE = (CS(1,1)*F2 - CS(1,2)*F1)/DEN
+C   TRANSFER TO PANEL SKIN FROM THE NEUTRAL PLANE...
+            EAVEP(1)       =  E1AVE +DSURF*KAPPA1
+            EAVEP(2)       =  E2AVE +DSURF*KAPPA2
+C
+C           WRITE(8,*)' ICASE, F1,F2,E1AVE,E2AVE,DSURF,EP5MID(IEND,1)=',
+C    1                  ICASE, F1,F2,E1AVE,E2AVE,DSURF,EP5MID(IEND,1)
+C           WRITE(8,*)' DEN,CS(1,1),CS(1,2),CS(1,4),CS(1,5)=',
+C    1                  DEN,CS(1,1),CS(1,2),CS(1,4),CS(1,5)
+C           WRITE(8,*)' KAPPA2,CS(1,2),CS(2,2),CS(2,4),CS(2,5)=',
+C    1                  KAPPA2,CS(1,2),CS(2,2),CS(2,4),CS(2,5)
+C
+C            IF (CSSKIN(2,2).GT.0.)
+C    1        EAVEP(2)     = -(CSSKIN(1,2)*EAVEP(1)
+C    1                        +CSSKIN(2,4)*EP4MID(IEND,1))/CSSKIN(2,2)
+C
+C
+            EAVEP(3) = 0.
+C           EAVEP(4) = EP4MID(IEND,1)
+            EAVEP(4) = KAPPA1
+            EAVEP(5) = KAPPA2
+            EAVEP(6) = 0.
+            FNXP0    = 0.
+            FNYP0    = 0.
+            WDDPRS   = EAVEP(4)
+            FNBAR = 0.
+            FK2   = 0.
+            IF (ICASE.EQ.2) CALL WEBSHR(IFILE,FNBAR,0.,0.,0.,FK2,0)
+            GO TO 80
+         ENDIF
+C
+C  GET AVERAGE AXIAL RESULTANT ACROSS WIDTH...
+C
+         I5I = I5(1)
+         NXAVEP = 0.
+         DO 87 I = 1,I5I
+         NXAVEP = NXAVEP + NXPRES(I,1)
+   87    CONTINUE
+         FI5I = I5I
+         NXAVEP = NXAVEP/FI5I
+         DET = CS(1,1)*CS(2,2) - CS(1,2)**2
+C BEG MAY 1997
+C        E1AVE = -NXAVEP*CS(2,2)/DET
+C        E2AVE = +NXAVEP*CS(1,2)/DET
+C END MAY 1997
+         FACTX =  INEUT
+         EAVEP(1) = EP1MID(IUNK,1) +  FACTX*DSURF*EP4MID(IUNK,1)
+C    1             +E1AVE
+         EAVEP(2) = EP2MID(IUNK,1) + FACTX*DSURF*EP5MID(IUNK,1)
+C    1             +E2AVE
+         EAVEP(3) = 0.
+         EAVEP(4) = EP4MID(IUNK,1)
+         EAVEP(5) = EP5MID(IUNK,1)
+         EAVEP(6) = 0.
+         FNXP0    = NXPRES(IUNK,1)
+C    1              - NXAVEP
+         FNYP0    = NYPRES(IUNK,1)
+         WDDPRS   = EAVEP(4)
+C
+         IF (IGLFLT.EQ.1) THEN
+            EAVEP(2) = 0.
+            EAVEP(5) = 0.
+            FNYP0    = 0.
+C BEG OCT 1996
+            WYYYGL = 0.
+C END OCT 1996
+            I5I = I5(ISEG)
+            DO 8  I = 1,I5I
+              NYPRES(I,ISEG) = 0.
+              MYPRES(I,ISEG) = 0.
+              EP2MID(I,ISEG) = 0.
+              EP5MID(I,ISEG) = 0.
+    8       CONTINUE
+         ENDIF
+C BEG JAN 1999
+C        IF (ICASE.EQ.2.AND.IBPRE.EQ.0) THEN
+         IF (ICASE.EQ.2.AND.IBPRE.EQ.0.AND.ISTIF(2).EQ.0) THEN
+C END JAN 1999
+            WDDPRS = 0.
+C BEG MAY 1997
+            EAVEP(1) = NXPRES(IUNK,1)/CS(1,1)
+            EAVEP(2) = 0.0
+            EAVEP(4) = 0.
+            EAVEP(5) = 0.
+            FNYP0 = CS(1,2)*EAVEP(1)
+            WPRESG = 0.
+            I5I = I5(ISEG)
+            DO 88  I = 1,I5I
+              EP1MID(I,ISEG) = EAVEP(1)
+              EP4MID(I,ISEG) = 0.
+              EP5MID(I,ISEG) = 0.
+   88       CONTINUE
+C END MAY 1997
+C BEG OCT 1996
+            WXXXGL = 0.
+            WYYYGL = 0.
+C END OCT 1996
+         ENDIF
+      ENDIF
+   80 CONTINUE
+      IF (NPRT.LT.1) RETURN
+      IF (IMOD.NE.0.OR.JJJ.NE.0) RETURN
+      IF (IGLOB.EQ.1) THEN
+         WRITE(IFILE,81)
+   81    FORMAT(//' OVERALL STATIC RESPONSE OF ENTIRE PANEL'/
+     1 ' LOADED BY UNIFORM NORMAL PRESSURE, p.')
+         IF (IFREEX.EQ.0.AND.IBPRE.EQ.0) WRITE(IFILE,82)
+         IF (IFREEX.EQ.1.OR.IBPRE.EQ.1) WRITE(IFILE,83)
+   82    FORMAT(' Edges of the panel are held (immovable)'/
+     1 ' (In a flat panel, in-plane resultants will develop as'/
+     1 '  the panel bends under the normal pressure. The solution'/
+     1 '  of the static response is found from nonlinear theory.)'/)
+   83    FORMAT(' Edges of the panel are free to move horizontally'/
+     1 ' (In a flat panel, in-plane resultants will NOT develop as'/
+     1 '  the panel bends under the normal pressure. The solution'/
+     1 '  of the static response is found from linear theory.)'/)
+         IF (EAVEP(4).EQ.0.0.AND.EAVEP(5).EQ.0.0) WRITE(IFILE,84)
+   84    FORMAT(' The panel is assumed to deform as would a complete'/
+     1 ' cylindrical shell. The hoop resultant is given by p*R. The'/
+     1 ' axial resultant is given by p*R/2 if you indicated that the'/
+     1 ' pressure is hydrostatic and zero otherwise.'/
+     1 ' There is no bending. This solution is used under the'/
+     1 ' following conditions:'/
+     1 '  1. The curved panel spans more than 0.6 radians of circum.'/
+     1 '  2. The axial length of the panel is greater than the'/
+     1 '    "boundary layer" length, BLL=2.73*SQRT(R*Teff). The value'/
+     1 '     of BLL is given later.')
+         IF (EAVEP(4).EQ.0.0.AND.EAVEP(5).NE.0.0) WRITE(IFILE,85)
+   85    FORMAT(' The panel is assumed to deform prismatically.'/
+     1 ' That is, there is no axial variation of displacement.'/
+     1 ' This solution is used if EITHER of the following is true:'/
+     1 '  1. The circumferential dimension is less than (1/10)th the'/
+     1 '     axial dimension.'/
+     1 '  2. The axial length of the panel is greater than the'/
+     1 '    "boundary layer" length, BLL=2.73*SQRT(R*Teff). The value'/
+     1 '     of BLL is given later.')
+         WRITE(IFILE,9) P,IUNK,FNXP0,FNYP0,NXAVEP,(EAVEP(I),I=1,6),
+     1                  SHEARX,XMAX,SHEARY,YMAX
+    9    FORMAT(/' "Sample" Nx(p), Ny(p), ex(p), ey(p), kx(p), ky(p)'/
+     1' for entire panel with smeared stiffeners. Normal pressure, p=',
+     1 1PE12.4/
+     1' Nodal point number of "sample"  values =              ',I6/
+     1' Axial stress resultant            Nx(p) =             ',1PE12.4/
+     1' Circumferential stress resultant, Ny(p) =             ',1PE12.4/
+     1' Average axial stress resultant,Nxave(p) =             ',1PE12.4/
+     1' Axial reference surface strain,   ex(p) =             ',1PE12.4/
+     1' Circ. reference surface strain,   ey(p) =             ',1PE12.4/
+     1' In-plane shearing strain,        exy(p) =             ',1PE12.4/
+     1' Axial change in curvature,        kx(p) =             ',1PE12.4/
+     1' Circumferential change in curv.,  ky(p) =             ',1PE12.4/
+     1' Twist                            kxy(p) =             ',1PE12.4/
+     1/' Maximum in-plane shear force resultant in the stiffener webs:'/
+     1' Max. in-plane shear resultant in the stringer,SHEARX= ',1PE12.4/
+     1' Axial coord. of the maximum stringer web shear      = ',1PE12.4/
+     1' Max. in-plane shear resultant in the ring,    SHEARY= ',1PE12.4/
+     1' Transverse coordinate of the maximum ring web shear = ',1PE12.4)
+C BEG DEC 1998
+      IF (NPRT.GE.2) WRITE(IFILE,'(/,A,/,A,1P,E12.4,/,A,1P,E12.4,/)')
+     1' Distance from neutral plane for axial bending to skin',
+     1'                           reference surface,    DSURF=',DSURF,
+     1' Bowing amplitude, middle of the panel,         WPRESG=',WPRESG
+C END DEC 1998
+      ENDIF
+C
+      IF (NPRT.LT.2) RETURN
+      IF (IGLOB.EQ.1) WPRESP = WPRESG
+      IF (IGLOB.EQ.0) WPRESP = WPRES
+      WRITE(IFILE,10) P,WPRESP,WDDPRS
+   10 FORMAT(//' STATE OF PANEL AS DEFORMED BY PRESSURE, p=',1PE12.4/
+     1'  NORMAL DEFLECTION AT CENTER, WPRES=',1PE12.4,' AXIAL CURVATURE 
+     1CHANGE=',1PE12.4//
+     1'  BOSOR   NODAL     NORMAL    CIRCUMFER.    AXIAL STRESS   CIRC. 
+     1STRESS    AXIAL REF.      CIRC. REF.     CIRC. MOMENT'/
+     1' TYPE OF  POINT   DEFLECTION  CURVATURE      RESULTANT      RESUL
+     1TANT    SURFACE STRAIN  SURFACE STRAIN     RESULTANT'/
+     1' SEGMENT   NO.        W      CHANGE W,yy    Nx(pressure)   Ny(pre
+     1ssure)  ex(ref.surface) ey(ref.surface)  My(ref.surface)'/)
+C
+      IF (IGLOB.EQ.1.AND.IBPRE.EQ.1) RETURN
+      DO 100 ISEG = 1,NSEGB5
+      I5I = I5(ISEG)
+      DO 50  I = 1,I5I
+C
+       IF (IGLOB.EQ.0) THEN
+        WRITE(IFILE,20) ISEG,I,W(I,ISEG),EP5MID(I,ISEG),
+     1                  NXPRES(I,ISEG),NYPRES(I,ISEG),EP1MID(I,ISEG),
+     1                  EP2MID(I,ISEG),MYPRES(I,ISEG)
+       ELSE
+C       WRITE(IFILE,20) ISEG,I,PW(I,ISEG),EP5MID(I,ISEG),
+C    1                  NXPRES(I,ISEG)-NXAVEP,NYPRES(I,ISEG),
+C    1                  EP1MID(I,ISEG)+E1AVE,EP2MID(I,ISEG)+E2AVE,
+C    1                  MYPRES(I,ISEG)
+C
+        WRITE(IFILE,20) ISEG,I,PW(I,ISEG),EP5MID(I,ISEG),
+     1                  NXPRES(I,ISEG),NYPRES(I,ISEG),
+     1                  EP1MID(I,ISEG),EP2MID(I,ISEG),
+     1                  MYPRES(I,ISEG)
+       ENDIF
+C
+   20  FORMAT(I5,I8,1PE15.4,1PE12.4,1PE15.4,1PE15.4,1PE15.4,1P,2E16.4)
+C
+   50 CONTINUE
+      WRITE(IFILE,*)' '
+  100 CONTINUE
+C
+      RETURN
+      END

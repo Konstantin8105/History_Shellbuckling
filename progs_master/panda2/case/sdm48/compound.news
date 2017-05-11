@@ -1,0 +1,942 @@
+643. April 2006
+NOTE: This news item was updated in February and March, 2007. The
+version given here is that updated version. It also appears as the
+file, ..panda2/doc/compound.news .
+
+The STAGSUNIT processor (main program stagun.src) was modified to make
+it relatively easy to generate compound models of the type shown in Figs.
+56-60 of [31]:
+
+[31] Bushnell, D. and Rankin, C.C.,
+ "Difficulties in optimization of imperfect stiffened
+ cylindrical shells",
+ AIAA Paper 1943, 47th AIAA Structures, Structural Dynamics and
+ Materials Meeting, Newport RI, April 2006
+
+This is a specialized application and not very flexible as
+of this writing. The compound model must be a closed cylindrical shell and
+the most complicated section of the compound model must be the first section
+to be processed. ("most complicated" = both stringers and rings as shell units).
+
+There are several new input data in STAGSUNIT, as indicated in the following
+lists:
+
+1. section of the *.STG file for part 1 of the compound model:
+------------------------------------------------------------------------------------------
+      y         $ Are the dimensions in this case in inches?
+         1      $ Nonlinear (0) or linear (1) kinematic relations?, ILIN      <--new input
+         1      $ Type 1 for closed (360-deg) cyl. shell, 0 otherwise, ITOTAL <--new input
+   300.0000     $ X-direction length of the STAGS model of the panel: XSTAGS
+   104.71973    $ Panel length in the plane of the screen, L2
+         0      $ Starting angle for STAGS model, ANGBEG                      <--new input
+         0      $ How many shell units in previous sections? IUNITX           <--new input
+      y         $ Is the nodal point spacing uniform along the stringer axis?
+------------------------------------------------------------------------------------------
+
+2. section of the *.STG file for part 2 of the compound model:
+------------------------------------------------------------------------------------------
+      y         $ Are the dimensions in this case in inches?
+         1      $ Nonlinear (0) or linear (1) kinematic relations?, ILIN      <--new input
+         1      $ Type 1 for closed (360-deg) cyl. shell, 0 otherwise, ITOTAL <--new input
+   300.0000     $ X-direction length of the STAGS model of the panel: XSTAGS
+   523.5988     $ Panel length in the plane of the screen, L2
+        60.     $ Starting angle for STAGS model, ANGBEG                      <--new input
+        63      $ How many shell units in previous sections? IUNITX           <--new input
+        61      $ Number of columns in Unit 1 of compound Part 1, IUNITC      <--new input
+        40      $ Unit number of the first ring or subring segment, IUNITR    <--new input
+      y         $ Is the nodal point spacing uniform along the stringer axis?
+------------------------------------------------------------------------------------------
+
+
+Corresponding changes were made to the PROMPT.DAT file. The change pertaining to the
+index ILIN is described in the previous news item, Item No. 642. The changes relating
+to the other five new input data, ITOTAL, ANGBEG, IUNITX, IUNITC, and IUNITR are
+described as follows in the PROMPT.DAT file:
+----------------------------------------------------------------------------------------
+91.1  Type 1 for closed (360-deg) cyl. shell, 0 otherwise, ITOTAL 
+91.2 
+      If you are modeling a cylindrical shell that spans 360
+      degrees, answer ITOTAL = 1
+
+      If you are modeling a flat or cylindrical panel that spans
+      less than 360 degrees then answer ITOTAL = 0 except in the
+      following circumstance:
+
+      If you are setting up a compound cylindrical model and the
+      compound model spans 360 degrees, answer ITOTAL = 1.
+
+      See Fig. 56 in the paper, "Difficulties in optimization of
+      imperfect stiffened cylindrical shells", AIAA Paper 2006-1943,
+      47th AIAA SDM Meeting, Newport, RI May 1-4, 2006, for an
+      example of a "compound" model. If the compound model is a
+      complete (360-degree) cylindrical shell it is closed (ITOTAL=1).
+      The logic will proceed as if the shell is closed even though
+      you set YSTAGS to a value considerably less than that which
+      corresponds to 360 degrees. 
+
+92.1  Starting angle for STAGS model, ANGBEG
+92.2  
+      ANGBEG = circumferential angle in degrees to the first nodal
+      point in the cylindrical shell skin in this particular part
+      of the compound STAGS model. For example, in the
+      compound model shown in Fig. 56 of the paper "Difficulties in
+      optimization of imperfect stiffened cylindrical shells", AIAA
+      Paper 2006-1943. 47th AIAA SDM Meeting, Newport, RI May 1-4,
+      2006, there are two major parts of the compound STAGS model:
+      a 60-degree sector in which both the stringers and rings are
+      modeled as shell units and a 300-degree sector in which the
+      stringers are smeared out and only the rings are modeled as
+      shell units.
+
+      ANGBEG for the 60-degree sector with the stringers as
+      shell branches would be zero. ANGBEG for the remaining 300
+      degrees of the cylindrical shell, that is, the sector in
+      which the stringers are smeared out, would be 60 degrees.
+      ANGBEG = 60 degrees corresponds to the end circumferential
+      coordinate of the 60-degree sector part of the compound
+      STAGS model.
+
+93.1  How many shell units in previous sections? IUNITX
+93.2  
+      This question applies to compound STAGS models of the type
+      shown in Fig. 56 of the paper "Difficulties in optimization
+      of imperfect stiffened cylindrical shells", AIAA Paper
+      2006-1943. 47th AIAA SDM Meeting, Newport, RI May 1-4, 2006.
+      The compound model is built up by adding sections from
+      previous STAGSUNIT runs, with some modifications. Each of
+      these sections has a number of shell units.
+     
+      What is wanted here is the total number of shell units
+      in previously processed sections of the compound model.
+
+      Most often there will be only one previous section, for
+      example, the 60-degree sector in which both stringers
+      and rings are modeled as shell units. (See Fig. 56).
+      In this example, the 60-degree sector has 63 shell units.
+      Hence, in this example, the user would set IUNITX = 63 if
+      he/she were now dealing with the 300-degree remainder of
+      the cylindrical shell, the part in Fig. 56 in which the
+      stringers are smeared out and only the skin-with-smeared-
+      stringers and the rings are modeled as shell units.
+
+      If you are now dealing with the first section of the
+      compound STAGS model, set IUNITX = 0
+
+ (lines skipped to save space)
+
+392.1 Number of columns in Unit 1 of compound Part 1, IUNITC
+392.2
+      Look for the first line of the "F-1" (or "f-1") records
+      in the *.inp file corresponding to Part 1 of the compound
+      STAGS model.
+
+      The number of rows and number of columns in unit 1 appear
+      there: "$ F-1 NROWS( 1),  NCOLS( 1) unit 1".
+
+393.1 Unit number of the first ring or subring segment, IUNITR
+393.2
+      What is wanted here is the unit number of the first
+      ring segment or subring segment (whichever is lowest)
+      in the first part of the 2-part compound STAGS model.
+
+      This input datum is needed for the second part of a
+      compound STAGS model. You can find IUNITR by inspecting
+      the *.inp file corresponding to the first part of a
+      compound STAGS model. Search for the string, "ring" or
+      "subring" (if there exist substiffeners) and look for
+      the shell unit number of the first unit processed which
+      is a ring segment or a subring segment. That unit number
+      is the required input datum, IUNITR .
+------------------------------------------------------------------
+
+In the following discussion the strings, "section 1" and "part 1"
+and "section 2" and "part 2" are used. "section" and "part" mean
+the same thing.
+
+The rules for setting up a compound model follow:
+
+1. You must first run STAGSUNIT twice:
+
+  (a) generate section 1 (or part1) of the compound model, for example,
+      the 60-degree sector with both stringers and rings modeled
+      as shell units. (See Fig. 56 of [31] and the file,
+      panda2/case/sdm47/testax3.60degree.stg). Save the *.inp file
+      in a file called "part1.inp".
+
+  (b) generate section 2 (or part2) of the compound model, for example,
+      the 300-degree sector with the stringers smeared out and
+      the rings modeled as shell units. (See Fig. 56 of [31]
+      and the file. panda2/case/sdm47/testax3.remainder.stg).
+      Save the *.inp file in a file called "part2.inp".
+
+2. Generating the compound model involves properly combining
+   the *.inp files from the two STAGSUNIT runs, (a) part1 and (b) part2.
+   Please make STAGSUNIT Run (a) (part1) correspond to the complicated part of
+   the compound model and STAGSUNIT Run (b) (part2) correspond to the
+   simpler remainder of the closed cylindrical shell. The
+   remainder is simpler most likely because the stringers are
+   probably smeared in part2.
+
+3. It is a good idea to copy the output from STAGSUNIT Run (a)
+   (part1) as follows: cp *.inp part1.inp, and copy the output from
+   STAGSUNIT Run (b) (part2) as follows: cp *.inp part2.inp, in which
+   "*" denotes the user-selected name for the case, such as
+   "testax3" in Fig. 56 of [31]. In the following instructions
+   it is assumed here that these two "inp" files are named
+   "part1.inp" and "part2.inp" . Further, it is assumed here that the
+   combined file (the file for the compound model suitable as
+   input for STAGS) is called "compound.inp".
+
+4. The initial part of the STAGS input file, *.inp, requires
+   input data with names such as NUNITS, NUNITE, NINTS, NPATS,
+   NCONST and NTAW. In the compound input file called "compound.inp",
+   NUNITS, NPATS, and NCONST will be the sums of NUNITS, NPATS,
+   and NCONST from STAGSUNITS Runs (a) (part1.inp) and (b) (part2.inp):
+
+  compound   part1       part2
+   NUNITS = NUNITS(a) + NUNITS(b)
+   NPATS  = NPATS(a)  + NPATS(b)
+   NCONST = NCONST(a) + NCONST(b)
+
+   If you use the "least-square" loading option, which you should
+   always do for a closed cylindrical shell under torque, you
+   will have to set NUNITE = 1 . Also, you must increase the
+   value of NTAW given in part1.inp by one. You must do this because
+   part 2 most likely has a wall fabrication type that is unlike any
+   from part 1. (For example, smeared stringers in part 2 only).
+   Later you will add to the "compound.inp" file the records in part 2
+   pertaining to ITAW = 1 immediately following  all the ITAW data
+   pertaining to part 1, and you will change the value of ITAW of
+   that addition from 1 to a value equal to 1 higher than the
+   last (highest) value of ITAW that appears in the file, part1.inp.
+   Also, if part1.inp and part2.inp use GCP input you will add a new
+   "shell fabrication" set of input such as the following:
+
+  C Not edge; cyl.skin;   skin   (shell unit wall props   )
+  SHELL_FABRICATION  6 1 0 0 0 $ I-5a fabid,nlayer,ipts,ishr,isym
+  1  $ I-21a MATL=layer matl no. Wall type: 6, Layer:  1
+  5.819E-02  $ I-21c TL=layer thickness. Wall type: 6, Layer:  1
+  0.000E+00  $ I-21d ZETL=fiber angle.   Wall type: 6, Layer:  1
+
+  corresponding to the additional wall type, ITAW. These entries
+  in the compound.inp file must be entered just before the "END GCP"
+  record:
+
+  END     $ I-5a cease (end of GCP input data, all matl,all walls)
+
+
+5. The F-1 records (NROWS(i), NCOLS(i)) for the compound model
+can easily be generated by combining
+the F-1 records from STAGSUNIT Run (a) [part1.inp] and STAGSUNIT Run (b)
+[part2.inp].
+
+********* NOTE ************** NOTE ************ NOTE **************
+**** NOTE:  Make sure that you insert a comma after the second input datum
+on the last line of the F-1 records from part1.inp! That is easy to forget,
+and will cause a BOMB if forgotten. *********
+********* END NOTE ******** END NOTE ********* END NOTE ************
+
+The G-1 records for the compound model are those contained in the file, part2.inp,
+and the number of G-1 records, NINTS, is that listed in the file, part2.inp.
+
+6. As with the F-1 records, you generate the partial compatibility records
+(NPATS records) for the compound model simply by combining the g-2 records
+from STAGSUNIT Runs (a) (part1.inp) and (b) (part2.inp).
+
+7. As with the g-2 records, you generate the NCONST Lagrange multiplier
+records by combining the g-4 records from STAGSUNIT Runs (a) and (b).
+
+8. Following the "Lagrange" records, you should have the following
+record for a closed cylindrical shell:
+--------------------------------------------------------------------------
+C
+  1 $ h-1 NUPT (user-point for torque at beg. of cyl. shell.
+C
+--------------------------------------------------------------------------
+NOTE: Corresponding to this record you MUST have NUNITE = 1
+
+9. The next records pertain to materials (ITAM; "I" records), fasteners
+(more "I" records), beam properties (ITAB; "J" records), and wall type
+records (ITAW; "K" records). You should use the version generated by
+STAGSUNIT Run (a) (part1.inp), to which must be added an additional set
+of "ITAW" records: those corresponding to ITAW = 1 in Run (b) (part2.inp
+of the compound model. You must change ITAW for that added set of "ITAW"
+records from 1 to a value equal to 1 higher than the highest value of ITAW
+corresponding to Run (a) (part1.inp of the compound model).
+
+You do NOT combine these "I", "J", and "K" records from part1.inp
+and part2.inp. Just use those from part1.inp with the added set
+of "ITAW" records from part2.inp, as just described. 
+
+10. Following the "I", "J", and "K" records are the records pertaining
+to the shell units. First add the shell units from part1.inp to the
+growing compound.inp file after deleting the "element unit" records
+that immediately follow the last shell unit.  Then add the
+shell units from part2.inp. Here you MUST make two important changes:
+
+(1) the wall type index, IWALL, of the FIRST shell unit in part2.inp
+must be changed from 1 to whatever value
+of ITAW corresponds to the highest ITAW in the "K" records in the
+compound.inp file developed so far [that is, ITAW = 1 + (highest value
+of ITAW from part1.inp)].
+
+(2) An ordinary closed (360-degree) cylindrical shell model (NOT a compound
+model, but a simple model such as shown in Fig. 28 of [31]), has
+the input for the one finite element unit (see NUNITE and the h-1 record)
+as follows:
+-------------------------------------------------------------------------
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 1  26 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+-------------------------------------------------------------------------
+
+For the compound model with two sectors, part1.inp and part2.inp,
+there are TWO circumferential arc segments rather than one. Therefore,
+the corresponding "s" and "u" records should be as follows (in the
+particular example of Fig. 56 in Ref. [31]):
+-------------------------------------------------------------------------
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 2  89 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1. 64 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+-------------------------------------------------------------------------
+
+In your configuration the numbers will change, but you get the idea.
+You must have a "2" as the first input datum on the u-8a record, and you
+must have TWO u-8b records instead of one, corresponding to the TWO
+circumferential arcs of the panel skin from Shell unit 1 in part1.inp and
+from Shell unit 1 in part2.inp.
+
+More details will be given later concerning what values must be used
+for IUNIT, LU, and LU on the three lines:
+ 2  89 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location  <--IUNIT
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)           <--LU
+ 1. 64 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)           <--LU
+----------------------------------------------------------------------------
+
+
+SAMPLE RUNSTREAM
+
+Here is a sample runstream to generate a compound model. The case name here is
+"testax3" for each section of the compound model and the case name is "compound"
+for the compound model.
+
+The compound model for this sample runstream is displayed in Fig. 56 of [31].
+
+The input data for STAGSUNIT for Section 1 of the compound model (the 60-degree
+sector in which both stringers and rings are modeled as shell units) are contained
+in the file called testax3.60degree.stg. A list of these input data follows:
+-------------------------- testax3.60degree.stg file -----------------------------
+      n         $ Do you want a tutorial session and tutorial output?
+         1      $ Choose type of STAGS analysis (1,3,4,5,6),INDIC
+         0      $ Restart from ISTARTth load step (0=1st nonlinear soln), ISTART
+   1.000000     $ Local buckling load factor from PANDA2, EIGLOC
+      y         $ Are the dimensions in this case in inches?
+         1      $ Nonlinear (0) or linear (1) kinematic relations?, ILIN
+         1      $ Type 1 for closed (360-deg) cyl. shell, 0 otherwise, ITOTAL
+   300.0000     $ X-direction length of the STAGS model of the panel: XSTAGS
+   104.7198     $ Panel length in the plane of the screen, L2
+         0      $ Starting angle for STAGS model, ANGBEG
+         0      $ How many shell units in previous sections? IUNITX
+      y         $ Is the nodal point spacing uniform along the stringer axis?
+        51      $ Number of nodes in the X-direction: NODEX
+  -100000.0     $ Resultant (e.g. lb/in) normal to the plane of screen, Nx
+  -20000.00     $ Resultant (e.g. lb/in) in the plane of the screen,    Ny
+   0.000000     $ In-plane shear in load set A,                  Nxy
+  -200.0000     $ Normal pressure in STAGS model in Load Set A, p
+         0      $ Resultant (e.g. lb/in) normal to the plane of screen, Nx0
+         0      $ Resultant (e.g. lb/in) in the plane of the screen,    Ny0
+         0      $ Normal pressure in STAGS model in Load Set B, p0
+         1      $ Starting load factor for Load System A, STLD(1)
+         0      $ Load factor increment for Load System A, STEP(1)
+         1      $ Maximum load factor for Load System A, FACM(1)
+         0      $ Starting load factor for Load System B, STLD(2)
+         0      $ Load factor increment for Load System B, STEP(2)
+         0      $ Maximum load factor for Load System B, FACM(2)
+         6      $ How many eigenvalues do you want? NEIGS
+       480      $ Choose element type (410 or 411 or 480) for panel skin
+      n         $ Have you obtained buckling modes from STAGS for this case?
+       108      $ Number of stringers in STAGS model of 360-deg. cylinder
+        12      $ Number of rings in the STAGS model of the panel
+      y         $ Are there rings at the ends of the panel?
+         2      $ Number of finite elements between adjacent stringers
+         4      $ Number of finite elements between adjacent rings
+         3      $ Stringer model: 1 or 2 or 3 or 4 or 5(Type H(elp))
+         3      $ Ring model: 1 or 2 or 3 or 4 or 5 (Type H(elp))
+         1      $ Reference surface of cyl: 1=outer, 0=middle, -1=inner
+      n         $ Do you want to use fasteners (they are like rigid links)?
+      n         $ Are the stringers to be "smeared out"?
+      n         $ Are the rings to be "smeared out"?
+         5      $ Number of nodes over height of stiffener webs, NODWEB
+      y         $ Do you want to use the "least-squares" model for torque?
+      n         $ Is stiffener sidesway permitted at the panel edges?
+         0      $ Edges normal to screen (0) in-plane deformable; (1) rigid
+--------------------- end of testax3.60degree.stg file ---------------------------
+
+The input data for STAGSUNIT for Section 2 of the compound model (the 300-degree
+sector in which the stringers are smeared out and the rings are modeled as shell units)
+are contained in the file called testax3.remainder.stg. A list of these input data follows:
+-------------------------- testax3.remainder.stg file -----------------------------
+      n         $ Do you want a tutorial session and tutorial output?
+         1      $ Choose type of STAGS analysis (1,3,4,5,6),INDIC
+         0      $ Restart from ISTARTth load step (0=1st nonlinear soln), ISTART
+   1.000000     $ Local buckling load factor from PANDA2, EIGLOC
+      y         $ Are the dimensions in this case in inches?
+         1      $ Nonlinear (0) or linear (1) kinematic relations?, ILIN
+         1      $ Type 1 for closed (360-deg) cyl. shell, 0 otherwise, ITOTAL
+   300.0000     $ X-direction length of the STAGS model of the panel: XSTAGS
+   523.5988     $ Panel length in the plane of the screen, L2
+        60      $ Starting angle for STAGS model, ANGBEG
+        63      $ How many shell units in previous sections? IUNITX
+        61      $ Number of columns in Unit 1 of compound Part 1, IUNITC 
+        40      $ Unit number of the first ring or subring segment, IUNITR 
+      y         $ Is the nodal point spacing uniform along the stringer axis?
+        51      $ Number of nodes in the X-direction: NODEX
+  -100000.0     $ Resultant (e.g. lb/in) normal to the plane of screen, Nx
+  -20000.00     $ Resultant (e.g. lb/in) in the plane of the screen,    Ny
+   20000.00     $ In-plane shear in load set A,                  Nxy
+  -200.0000     $ Normal pressure in STAGS model in Load Set A, p
+         0      $ Resultant (e.g. lb/in) normal to the plane of screen, Nx0
+         0      $ Resultant (e.g. lb/in) in the plane of the screen,    Ny0
+         0      $ Normal pressure in STAGS model in Load Set B, p0
+         1      $ Starting load factor for Load System A, STLD(1)
+         0      $ Load factor increment for Load System A, STEP(1)
+         1      $ Maximum load factor for Load System A, FACM(1)
+         0      $ Starting load factor for Load System B, STLD(2)
+         0      $ Load factor increment for Load System B, STEP(2)
+         0      $ Maximum load factor for Load System B, FACM(2)
+         1      $ How many eigenvalues do you want? NEIGS
+       480      $ Choose element type (410 or 411 or 480) for panel skin
+      n         $ Have you obtained buckling modes from STAGS for this case?
+       108      $ Number of stringers in STAGS model of 360-deg. cylinder
+        12      $ Number of rings in the STAGS model of the panel
+      y         $ Are there rings at the ends of the panel?
+         0      $ Number of finite elements between adjacent stringers
+        60      $ Number of finite elements over circumference, NELCIR
+         4      $ Number of finite elements between adjacent rings
+         3      $ Stringer model: 1 or 2 or 3 or 4 or 5(Type H(elp))
+         3      $ Ring model: 1 or 2 or 3 or 4 or 5 (Type H(elp))
+         1      $ Reference surface of cyl: 1=outer, 0=middle, -1=inner
+      n         $ Do you want to use fasteners (they are like rigid links)?
+      y         $ Are the stringers to be "smeared out"?
+      y         $ Is the nodal point spacing uniform around the circumference?
+      n         $ Are the rings to be "smeared out"?
+         5      $ Number of nodes over height of stiffener webs, NODWEB
+      y         $ Do you want to use the "least-squares" model for torque?
+      n         $ Is stiffener sidesway permitted at the panel edges?
+         0      $ Edges normal to screen (0) in-plane deformable; (1) rigid
+------------------------ end of testax3.remainder.stg file -----------------------
+
+
+The rather long runstream to create the file called "compound.inp" follows:
+
+------------------------------------------------------------------------------------
+TASK 1 Generate the files, part1.inp and part2.inp:
+
+cp testax3.60degree.stg testax3.STG        (get input for STAGSUNIT, Section 1)
+stagsunit testax3                          (execute STAGSUNIT to generate testax3.inp)
+cp testax3.inp part1.inp                   (copy testax3.inp into part1.inp)
+cp testax3.remainder.stg testax3.STG       (get input for STAGSUNIT, Section 2)
+stagsunit testax3                          (execute STAGSUNIT to generate testax3.inp)
+cp testax3.inp part2.inp                   (copy testax3.inp into part2.inp)
+------------------------------------------------------------------------------------
+
+TASK 2 Generate the first portion of the compound.inp file with the
+       correct "counting" indices, NUNITS, NUNITE, NINTS, NPATS, NCONST, NTAW
+
+cp part1.inp temp.inp                      (establish temporary file, temp.inp)
+
+Edit the temp.inp file: delete everything after the last f-1 record.
+
+****NOTE: ADD A COMMA IMMEDIATELY AFTER THE SECOND INPUT DATUM ON THE
+          LAST f-1 RECORD. ****************************************
+
+ Also, do the following:
+
+  1. increase NUNITS by the value of NUNITS in part2.inp.
+  2. make sure that NUNITE = 1
+  3. set NINTS equal to the value of NINTS in part2.inp.
+  4. increase NPATS by the value of NPATS in part2.inp.
+  5. increase NCONST by the value of NCONST in part2.inp.
+  6. increase NTAW by 1
+
+cp temp.inp compound.inp                   (start generating compound.inp)
+------------------------------------------------------------------------------
+
+TASK 3 Complete the F-1 and G-1 records for the compound model, "compound.inp":
+
+Next, add the F-1 records and the G-1 records from part2.inp to compound.inp.
+
+cp part2.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp file: delete everything before the first f-1 record and
+everything following the two lines:
+
+C
+C Begin partial compatability (g-2) records.
+
+including those two lines.
+
+The temp.inp file now contains the F-1 records for part 2 of the
+compound model and the G-1 records valid for the entire compound model.
+
+Append the temp.inp file to compound.inp. Now you have everything up
+to the partial compatibility records for the compound model.
+-----------------------------------------------------------------------------
+
+TASK 4 Complete the  G-2 records for the compound model, "compound.inp":
+
+Next, add the partial compatibility (G-2) records corresponding to part 1
+of the compound model.
+
+cp part1.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp file: delete everything above the following lines:
+
+C
+C Begin partial compatability (g-2) records.
+C Partial compatability (g-2) records for the cylindrical shell
+
+Delete everything below the following lines:
+
+C
+C lagrange constraints for stringer sidesway
+
+including those two lines. Then append the resulting temp.inp file to the
+end of the compound.inp file. You now have the partial compatibility records
+(G-2) corresponding to part 1 of the compound model.
+
+Next, add the partial compatibility records from part2 of the compound model.
+
+cp part2.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp file: delete everything above the following lines:
+
+C
+C Begin partial compatability (g-2) records.
+C Partial compatability (g-2) records for the cylindrical shell
+
+Delete everything below the following lines, including the lines:
+
+C
+C lagrange constraints for stringer sidesway
+
+[NOTE: There may not be any Lagrange records, especially for Section 2
+of the compound model. If not, then delete everything after the
+last partial compatibility record.] Append the resulting temp.inp file to the
+end of the compound.inp file. You now have the partial compatibility records
+corresponding to Section 2 of the compound model. You have now completed
+the "partial compatibility" part (G-2) of the compound.inp file.)
+-------------------------------------------------------------------------
+
+TASK 5 Complete the  G-3 records for the compound model, "compound.inp":
+
+Next, add the lagrange multiplier section of part 1 to the compound model.
+
+cp part1.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp file: Delete everything above the following lines:
+
+C
+C lagrange constraints for stringer sidesway
+
+Delete everything following the two lines:
+
+C
+  1 $ h-1 NUPT (user-point for torque at beg. of cyl. shell.
+
+including those two lines. Append the resulting temp.inp file to the end
+of the compound.inp file. You now have completed the "Lagrange" records
+corresponding to Section 1 of the compound model.
+
+Next, add the lagrange multiplier records from part 2 to the compound model.
+
+cp part2.inp temp.inp                       (establish a new temp.inp file)
+
+Edit the temp.inp file: Delete everything above the two lines:
+
+C
+C lagrange constraints for stringer sidesway
+
+(NOTE: if there are no lagrange constraints, which happens if you
+have chosen to smear all the stringers, delete everything
+above the lines:
+C
+  1 $ h-1 NUPT (user-point for torque at beg. of cyl. shell.
+
+but keep those two lines.)
+
+Delete everything following the two lines:
+
+C
+C Material in one or more of shell unit walls NOT at an edge
+
+including those two lines. Append the resulting temp.inp file to the end
+of the compound.inp file. You now have completed the "Lagrange" records
+corresponding to Section 2 of the compound model, or if there are no
+"Lagrange" records, you have included the "h-1" record in compound.inp.
+------------------------------------------------------------------------------
+
+TASK 6 Complete the "I", "J", "K" records for the compound model, "compound.inp":
+
+Next, add the material properties, beam properties, and wall fabrications
+from part 1 to the compound model. These are the "I", "J", "K" STAGS records
+corresponding to part 1 of the compound model.
+
+cp part1.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp  Delete everything above the following lines:
+
+C
+C Material in one or more of shell unit walls NOT at an edge
+
+Delete everything following the line,
+
+C Begin unit 1: cylindrical shell
+
+including that line. Append the resulting temp.inp file to the end
+of the compound.inp file. You now have completed the I, J, K records
+corresponding to Part 1 of the compound model.
+
+Next, we must add one wall fabrication type to those already included
+in the compound.inp file: that corresponding to ITAW = 1 in part2.inp.
+
+cp part2.inp temp.inp                      (establish a new temp.inp file)
+
+Edit the temp.inp  Delete everything above the following lines:
+
+C Not edge; cyl.skin;   skin   (shell unit wall props   )
+ 1, $ ITAW = wall configuration number.        BEGIN K-1 rec.
+
+Keep those two lines and the rest of the lines associated with ITAW = 1.
+Delete everything below the two lines:
+
+C Not edge; stringer;   web    (shell unit wall props   )
+ 2, $ ITAW = wall configuration number.        BEGIN K-1 rec.
+
+including those two lines. temp.inp will now have only the records
+corresponding to ITAW = 1 of part 2 of the compound model.
+
+***NOTE:  Change the value of ITAW in the temp.inp file from ITAW = 1
+to a value equal to one higher than the last value of ITAW
+in the compound.inp file as it presently exists that is, to a
+value equal to one higher than the last value of ITAW in part1.inp. ****
+
+***ANOTHER NOTE:
+   Also, if part1.inp and part2.inp use GCP input you will add a new
+   "shell fabrication" set of input to the compound.inp file such as
+   the following:
+
+  C Not edge; cyl.skin;   skin   (shell unit wall props   )
+  SHELL_FABRICATION  6 1 0 0 0 $ I-5a fabid,nlayer,ipts,ishr,isym
+  1  $ I-21a MATL=layer matl no. Wall type: 6, Layer:  1
+  5.819E-02  $ I-21c TL=layer thickness. Wall type: 6, Layer:  1
+  0.000E+00  $ I-21d ZETL=fiber angle.   Wall type: 6, Layer:  1
+
+  This new "GCP" information corresponds to the additional wall type,
+  ITAW. These entries in the compound.inp file must be entered
+  just before the "END GCP" record in the compound.inp file, that
+  is, just before the record:
+
+  END     $ I-5a cease (end of GCP input data, all matl,all walls)
+
+
+Append the edited temp.inp file to the end
+of the compound.inp file. You now have completed the I, J, K records
+corresponding to both Parts 1 and 2 of the 2-part compound model.)
+-------------------------------------------------------------------------
+
+TASK 7 Complete the shell unit records for the compound model, "compound.inp":
+
+Next, the shell units for Sections 1 and 2 must now be added to the end of the
+steadily growing compound.inp file.
+
+First, add the shell units from Part 1 of the compound model.
+
+cp part1.inp temp.inp                         (establish a new temp.inp file)
+
+Edit the temp.inp file. Delete everything above the line:
+
+C Begin unit 1: cylindrical shell
+
+Keep that line and everything following it to the 2 lines:
+
+< C
+< C    A finite element unit is needed for the torque at x=0
+
+Delete those two lines and all the following lines to the end of the file.
+
+Append the resulting temp.inp file to the end of the compound.inp file. You
+now have all the shell units in Section 1.
+
+Next, add the shell units from Part 2 of the compound model.
+
+cp part2.inp temp.inp                         (establish a new temp.inp file)
+
+Edit the temp.inp file. Delete everything above the line:
+
+C Begin unit 1: cylindrical shell
+
+Keep that line and everything following it to the end of the temp.inp file.
+
+Edit the temp.inp file as follows:
+
+ 1. The beginning of the temp.inp file reads as follows:
+
+C Begin unit 1: cylindrical shell
+ 5  0  0  0  0  1 $ m-1 ISHELL,IGLOBE,NROWS,NCOLS,NLAYS,NFABS
+ 0.0  7.50000E+01  3.000000E+01  3.600000E+02  2.500000E+01 $ m-2 X1,X4,th1,th2,r
+  1  0 0.0  0.00000E+00 0 0 0 $ m-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,IRAMP
+  480    0    0 0  0  0  0 $ n-1 KELT,NNX,NNY,IRREG,IUGRID,INTEG,IPENL
+
+You must change IWALL to whatever value corresponds to the
+highest value of ITAW in the compound.inp file. (That will be
+a value equal to ITAW for the last "ITAW" records in the compound.inp
+file, the records you added just BEFORE you added the shell units from
+Part 1 of the compound model).
+
+Append the resulting temp.inp file to the end of the compound.inp file. You
+now have all the shell units in Part 2 of the compound model.
+-----------------------------------------------------------------------------
+
+TASK 8 Edit the compound.inp file, as follows:
+
+Now you have one, possibly 2, more things to do:
+
+1. Edit the last few lines of the compound.inp file, as follows.
+
+    The lines from the part2.inp file presently read:
+
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 1  26 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+
+     The proper lines (to account for the fact that in the compound model
+     there are TWO arc lengths over which torque is applied rather than just
+     one arc length) should read as follows:
+
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 2  89 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location              <--IUNIT
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)                       <--LU
+ 1. 64 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)                       <--LU
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+
+
+NOTE 3 ITEMS: (1)IUNIT, (2) LU, (3)LU, as highlighted on the right-hand
+side of the list above::
+
+(1) IUNIT in the fourth line from the bottom of the list is the unit
+number of the element unit used for the torque. In the case shown
+in Fig. 56 of [31] IUNIT = NUNITS + 1 = 89. IUNIT is always NUNITS+1,
+in which NUNITS is the total number of shell units in the compound.inp file.
+
+(2) LU in the third line from the bottom of the list is Unit 1, the
+panel skin in Part 1 of the 2-part compound model.
+
+(3) LU in the second line from the bottom of the list is unit 64 (in this
+particular case), the panel skin in Part 2 of the 2-part compound model.
+LU in the second line from the bottom of the list above should always be:
+LU = IUNITX + 1, in which IUNITX = number of shell units (called NUNITS)
+in Part 1 of the 2-part compound model, that is, NUNITS in the file, part1.inp.
+
+
+2. If you have not already done so, you MUST change the "counting" integers, 
+NUNITS, NUNITE, NINTS, NPATS, NCONST, NTAW
+to reflect the fact that you have combined two STAGS models into one.
+In the compound model corresponding to Figs. 56-60 of [31], the present
+compound.inp file, generated as described above, will contain the following
+lines before they are changed to their proper values:
+
+C Begin B-2 input data...
+  63, $ NUNITS=number of shell units.            BEGIN B-2 rec.
+   0, $ NUNITE=number of fastener strips = finite element units
+   0, $ NSTFS = number of shell units with discrete stiffeners
+  25, $ NINTS means number of connections between shell units
+ 105, $ NPATS=number of records for partial nodal compatibility
+  -76, $ NCONST= number of Lagrange constraint conditions
+ 0, $ NIMPFS=number of bucklng modal imperfections.
+ 0, $ INERT = 0 means no inertial load records
+ 0  $ NINSR = 0 means no crack tip element sets. END B-2 rec.
+C
+C Begin B-3 input data...
+10, $ NTAM = number of entries in material tabl.BEGIN B-3 rec.
+ 8, $ NTAB = number of beam cross section entries
+ 9, $ NTAW = number of entries in shell wall table.
+ 0, $ NTAP = 0 means user parameters not included.
+ 2  $ NTAMT = 2 means two fastener element tables.END B-3 rec.
+C
+
+The analogous records in the final compound.inp file (corresponding to
+Figs. 56-60 of [31]) must read as follows:
+
+C Begin B-2 input data...
+  88, $ NUNITS=number of shell units.            BEGIN B-2 rec.
+   1, $ NUNITE=number of fastener strips = finite element units
+   0, $ NSTFS = number of shell units with discrete stiffeners
+  50, $ NINTS means number of connections between shell units
+ 134, $ NPATS=number of records for partial nodal compatibility
+ -76, $ NCONST= number of Lagrange constraint conditions
+ 0, $ NIMPFS=number of bucklng modal imperfections.
+ 0, $ INERT = 0 means no inertial load records
+ 0  $ NINSR = 0 means no crack tip element sets. END B-2 rec.
+C
+C Begin B-3 input data...
+10, $ NTAM = number of entries in material tabl.BEGIN B-3 rec.
+ 8, $ NTAB = number of beam cross section entries
+10, $ NTAW = number of entries in shell wall table.
+ 0, $ NTAP = 0 means user parameters not included.
+ 2  $ NTAMT = 2 means two fastener element tables.END B-3 rec.
+C
+
+Note that in this case NUNITS, NUNITE, NINTS, NPATS, and NTAW have
+been changed. In this particular case there are no "Lagrange"
+records corresponding to part2.inp (Section 2 of the compound
+model), so that NCONST remains at -76, the value in part1.inp.
+--------------------------------------------------------------------
+
+TASK 9 Edit the *.bin file:
+
+cp testax3.bin compound.bin
+
+The compound.bin file for the compound model can remain the same
+as it is for either Part 1 or Part 2. You may want to change
+the eigenvalue shift and you may want to change the number of
+eigenvalues sought.
+----------------------------------------------------------------------------
+
+CHANGING THE STAGS INDEX, ILIN
+
+The compound.bin file now has ILIN = 1, meaning to use linear
+kinematic relations. The choice, ILIN = 1, leads to a STAGS model
+that tends to "filter out" short-wavelength buckling modes. (The
+eigenvalues corresponding to short-wavelength buckling modes are
+overestimated by STAGS more than are the long-wavelength buckling modes,
+such as general buckling modes.) For the nonlinear analysis (INDIC=3) of
+a shell with a general buckling modal imperfection, it is necessary to
+use ILIN = 0. Otherwise, the collapse load will be overestimated.
+Therefore, we must create a compound.inp file in which ILIN has been
+changed from 1 to 0 in every unit. This can be done in either of two
+ways:
+
+(a) The user can simply change ILIN from 1 to 0 everywhere it occurs
+in the compound.inp file. Do this only after you have completed the
+linear buckling analysis (INDIC = 1)!
+
+(b) A new compound.inp file can be created as follows (this sequence
+is a repeat of part of the runstream listed above):
+
+(Save a copy of the compound.inp file somewhere, the version suitable
+ for linear buckling analysis in which ILIN = 1).
+
+(Edit the compound.inp file: remove everything following the first
+ occurrence of the line:
+
+C Begin unit 1: cylindrical shell
+
+including that line.
+
+(Now the shell units for Sections 1 and 2 can be added to the end of the
+ compound.inp file You must first re-run STAGSUNIT twice, just as at the beginning
+ of the runstream above except that this time you have answered the prompt:)
+
+  $ Nonlinear (0) or linear (1) kinematic relations?, ILIN  
+
+ with a 0 instead of with a 1 (Edit the *.STG file to make this simple change!)
+
+cp testax3.60degree.stg testax3.STG        (get input for STAGSUNIT, Section 1)
+(Edit testax3.STG: change ILIN from 1 to 0)
+stagsunit testax3                          (execute STAGSUNIT to generate testax3.inp)
+cp testax3.inp part1.inp                   (copy testax3.inp into part1.inp)
+cp testax3.remainder.stg testax3.STG       (get input for STAGSUNIT, Section 2)
+(Edit testax3.STG: change ILIN from 1 to 0)
+stagsunit testax3                          (execute STAGSUNIT to generate testax3.inp)
+cp testax3.inp part2.inp                   (copy testax3.inp into part2.inp)
+
+(Once you have the new part1.inp and part2.inp files, with ILIN now equal to 0
+ instead of 1, do the following, just as in the original runstream:)
+
+cp part1.inp temp.inp                         (establish a new temp.inp file)
+(Edit the temp.inp file. Delete everything above the line:
+
+C Begin unit 1: cylindrical shell
+
+ Keep that line and everything following it to the end of the temp.inp file.
+ Append the resulting temp.inp file to the end of the compound.inp file. You
+ now have all the shell units in Section 1.)
+
+cp part2.inp temp.inp                         (establish a new temp.inp file)
+(Edit the temp.inp file. Delete everything above the line:
+
+C Begin unit 1: cylindrical shell
+
+ Keep that line and everything following it to the end of the temp.inp file.
+ Append the resulting temp.inp file to the end of the compound.inp file. You
+ now have all the shell units in Section 2.)
+
+(Edit the last few lines of the compound.inp file, as follows.
+ The lines from the part2.inp file read:
+
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 1  26 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+
+
+ The proper lines (to account for the fact that in the compound model
+ there are two arc lengths over which torque is applied rather than just
+ one arc length) should read as follows:
+
+C    A finite element unit is needed for the torque at x=0
+ 1 0 0 0 0. 0. 0. 111 111 $ s-1 Point of torque application
+ 1 0 0 0 0 0 1 $ u-1 One "least squares" loading case
+ 1 1           $ u-2 torque in Load Set A; 1 record needed.
+C    The torque at x=0 is given by TORQUE = Nxy*2*pi*r**2
+  1.256637E+09 1  4  1 $ u-3 P,LT.LD.LI; torque at userpoint 1 in ru sense
+ 2  89 1 0 1. $ u-8a NSQR,IUNIT,IROW,ICOL,SCALE. torque location
+ 1.  1 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1. 64 1 0 $ u-8b P,LU,LR.LC (wgt.,slave unit,row,col.)
+ 1 0 0 0 0 1 $ v-1 print displacement, nodal reaction
+
+You now have a version of compound.inp with ILIN = 0 everywhere. While
+the second way of producing the new compound.inp file with ILIN = 0
+appears to be much more difficult than the first way, that is, simply
+replacing the value 1 for ILIN everywhere with the value 0, when there are
+lots of shell units (there are 88 in the model shown in Fig. 56 of [31])
+the second way goes much faster than the first, once you are used to
+creating "compound.inp" files.
+
+You can easily check the new compound.inp file: the only difference between the
+new compound.inp file and the old compound.inp file (which you should have
+saved somewhere!) are the values of ILIN in the NUNITS lines containing the string:
+
+        $ m-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,IRAMP
+
+(There may also be comment lines that are different).

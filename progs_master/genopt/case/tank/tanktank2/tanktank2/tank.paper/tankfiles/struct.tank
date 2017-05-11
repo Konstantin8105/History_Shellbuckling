@@ -1,0 +1,1721 @@
+C=DECK      STRUCT
+      SUBROUTINE STRUCT(IMODX,CONSTX,OBJGEN,CONMAX,NCONSX,IPOINC,
+     1 PCWORD,CPLOTX,ILOADX,ISTARX,NUSERC,IBEHV,IDV,IFAST,JJJ1)
+C
+C  PURPOSE IS TO PERFORM THE ANALYSIS FOR A GIVEN DESIGN AND LOADING.
+C  CONSTRAINT CONDITIONS ARE ALSO GENERATED.
+C
+C  Common blocks already present in the struct.tmpl file, that is,
+C  in the "skeletal" file possibly to be augmented by the user:
+      COMMON/PRMFIL/IFILEX,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/INDAT/INFILE
+      COMMON/LWRUPR/VLBX(98),VUBX(98),CLINKX(98,45),VLINKX(98),VBVX(99)
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/PARAMS/PARX(99),VARX(98),ALLOWX(99),CONSXX(99),DECX(98),
+     1              ESCX(98)
+      COMMON/WORDS1/WORDPX(99),WORDVX(98),WORDAX(99),WORDCC(99),
+     1              WORDDX(98)
+      COMMON/WORDS2/WORDLX(98),WORDEX(98),WORDIQ(45)
+      COMMON/OPTVAR/IDVX(98),ILVX(98),IDLINK(98,45),IEVX(98),JTERMS(45)
+      COMMON/NUMPR2/ILARX,ICARX,IOARX,IFLATX,NCASES,NPRINX
+      COMMON/PARAM2/FLARX(98),CARX(99),OARX(98),FSAFEX(99),CPWRX(98,45)
+      COMMON/PARAM3/CINEQX(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQX,JINEQX(45),IEQTYP(45)
+      COMMON/WORDS3/WORDFX(98),WORDBX(99),WORDOB(98),WORDSX(99)
+      COMMON/WORDS4/WORDMX(99)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/ISKIPX/ISKIP(30)
+      DIMENSION IBEHV(99)
+C
+C==========================================================================
+C  Start of first part of STRUCT written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      REAL GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      COMMON/FV09/DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      REAL DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      COMMON/FV24/ZTANK(10),IZTANK
+      REAL ZTANK
+      COMMON/IV02/STRTYP(10)
+      INTEGER STRTYP
+      COMMON/IV03/NPAIRS(3 ),INPAIRS
+      INTEGER NPAIRS
+      COMMON/FV25/ZGRND(10),FITTNK(3 ),FEATNK(3 ),ALFITT(3 ),FITVEH(3 )
+      REAL ZGRND,FITTNK,FEATNK,ALFITT,FITVEH
+      COMMON/FV30/FEAVEH(3 ),ALFITV(3 ),ATANK(3 ),AGRND(3 ),IDTUBE(3 )
+      REAL FEAVEH,ALFITV,ATANK,AGRND,IDTUBE
+      COMMON/IV06/WALTYP(3 )
+      INTEGER WALTYP
+      COMMON/FV17/STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WEBHI
+      REAL STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WEBHI
+      COMMON/IV07/RNGTYP(3 )
+      INTEGER RNGTYP
+      COMMON/FV35/FACLEN(3 ),DTSUP(3 ),ODINNR(3 ),FLINNR(3 )
+      REAL FACLEN,DTSUP,ODINNR,FLINNR
+      COMMON/FV43/DUBAXL(3 ),IDUBAXL
+      REAL DUBAXL
+      COMMON/FV44/DUBTHK(3 ),TRNGTH(3 ),TRNGHI(3 ),TRNGE(3 ),ALRNGT(3 )
+      REAL DUBTHK,TRNGTH,TRNGHI,TRNGE,ALRNGT
+      COMMON/FV49/THICK(15),ITHICK
+      REAL THICK
+      COMMON/IV08/MATTYP(15)
+      INTEGER MATTYP
+      COMMON/IV09/LAYTYP(90,3 ),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/FV50/ANGLE(15)
+      REAL ANGLE
+      COMMON/FV51/E1(3 ),IE1
+      REAL E1
+      COMMON/FV52/E2(3 ),G12(3 ),NU(3 ),G13(3 ),G23(3 ),ALPHA1(3 )
+      REAL E2,G12,NU,G13,G23,ALPHA1
+      COMMON/FV58/ALPHA2(3 ),TEMTUR(3 ),COND1(3 ),COND2(3 ),DENSTY(3 )
+      REAL ALPHA2,TEMTUR,COND1,COND2,DENSTY
+      COMMON/FV66/PRESS(20)
+      REAL PRESS
+      COMMON/FV72/FREQ(20,4 ),JFREQ  ,FREQA(20,4 ),FREQF(20,4 )
+      REAL FREQ,FREQA,FREQF
+      COMMON/FV75/STRES1(20,6 ),JSTRES1,STRES1A(20,6 ),STRES1F(20,6 )
+      REAL STRES1,STRES1A,STRES1F
+      COMMON/FV78/STRES2(20,6 ),STRES2A(20,6 ),STRES2F(20,6 )
+      REAL STRES2,STRES2A,STRES2F
+      COMMON/FV81/STRES3(20,6 ),STRES3A(20,6 ),STRES3F(20,6 )
+      REAL STRES3,STRES3A,STRES3F
+      COMMON/FV84/COLBUK(20,3 ),JCOLBUK,COLBUKA(20,3 ),COLBUKF(20,3 )
+      REAL COLBUK,COLBUKA,COLBUKF
+      COMMON/FV87/SHLBUK(20,3 ),SHLBUKA(20,3 ),SHLBUKF(20,3 )
+      REAL SHLBUK,SHLBUKA,SHLBUKF
+      COMMON/FV90/FORCE(20,3 ),FORCEA(20,3 ),FORCEF(20,3 )
+      REAL FORCE,FORCEA,FORCEF
+      COMMON/FV93/TNKSTR(20,3 ),TNKSTRA(20,3 ),TNKSTRF(20,3 )
+      REAL TNKSTR,TNKSTRA,TNKSTRF
+      COMMON/FV96/TNKBUK(20,3 ),TNKBUKA(20,3 ),TNKBUKF(20,3 )
+      REAL TNKBUK,TNKBUKA,TNKBUKF
+      COMMON/IV01/IAXIS,NTUBES,ISTRUT,IPHASE
+      INTEGER IAXIS,NTUBES,ISTRUT,IPHASE
+      COMMON/FV40/WEBTHK,FLGHI,FLGTHK,WGT,TNKNRM,CONNRM,CONDCT
+      REAL WEBTHK,FLGHI,FLGTHK,WGT,TNKNRM,CONNRM,CONDCT
+      COMMON/FV67/GAXIAL(20),GLATRL(20),TNKCOOL(20)
+      REAL GAXIAL,GLATRL,TNKCOOL
+C
+C
+      CHARACTER*80 PHRASE,CODPHR,PCWORD
+      CHARACTER*80 WORDPX,WORDVX,WORDAX,WORDCX,WORDDX,WORDLX,WORDEX
+      CHARACTER*80 WORDFX,WORDBX,WORDOB,WORDSX,WORDMX,WORDCC,WORDIQ
+c     CHARACTER*4 ANSOUT,CHARAC,ANSWER
+      CHARACTER*2 CIX
+      character*2 CJX
+      CHARACTER*13 CODNAM
+c     DIMENSION ISUBX(100)
+c     LOGICAL ANSL1
+C
+      DIMENSION CONSTX(*),IPOINC(*),PCWORD(*),CPLOTX(*)
+C  End of first part of STRUCT written by "GENTEXT"
+C==========================================================================
+C
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE PERSUING.  MAKE SURE THAT YOU DO NOT
+C  INTRODUCE NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS
+C  LISTED ABOVE.
+C
+C  Please note that you do not have to modify STRUCT.NEW if you would
+C  rather provide all of your algorithms via the BEHAVIOR.NEW library.
+C  (See instructions in BEHAVIOR.NEW).
+C
+C  If you are using a lot of software previously written either by
+C  yourself or others, or if there are a lot of behavioral constraints
+C  that are best generated by looping over array indices (such as
+C  occurs, for example, with stress constraints in laminates of
+C  composite materials), then it may be best to insert your common
+C  blocks and dimension statements here, your subroutine calls
+C  below (where indicated), and your subroutines in any of the libraries
+C  called ADDCODEn.NEW, n = 1,2,...,5.  Please note that you
+C  may also have to add statements to SUBROUTINE TRANFR, the
+C  purpose of which is described below (in TRANFR).
+C
+C  The several test cases provided with GENOPT demonstrate different
+C  methods:
+C
+C  PLATE  : leave STRUCT.NEW unchanged and modify BEHAVIOR.NEW
+C  SPHERE : leave STRUCT.NEW unchanged and modify BEHAVIOR.NEW
+C  TORISPH: leave BEHAVIOR.NEW unchanged except possibly for the objective
+C           function (SUBROUTINE OBJECT), modify STRUCT.NEW,
+C           possibly add a subroutine library called ADDCODE1.NEW, and
+C           possibly augment the usermake.linux file to collect object
+C           libraries from other directories. In the "TORISPH" case
+C           BEHAVIOR.NEW remains unchanged, no ADDCODE1.NEW library is
+C           added, and usermake.linux is not changed.  Instead, the
+C           BIGBOSOR4 code is added and SUBROUTINE BOSDEC is written
+C           by the genopt user. The BIGBOSOR4 code and SUBROUTINE
+C           BOSDEC must be stored in /home/progs/bosdec/sources, as
+C           follows:
+C    BIGBOSOR4 code:
+C     -rw-r--r--  1 bush bush 579671 Feb 29 07:19 addbosor4.src
+C     -rw-r--r--  1 bush bush  83175 Feb 22 09:13 b4plot.src
+C     -rw-r--r--  1 bush bush  89671 Feb 28 16:20 b4util.src
+C     -rw-r--r--  1 bush bush  22723 Feb 10 14:27 bio.c
+C     -rw-r--r--  1 bush bush  31175 Feb 10 14:27 bio_linux.c
+C     -rw-r--r--  1 bush bush  37152 Feb 10 14:27 bio_linux.o
+C     -rw-r--r--  1 bush bush  15650 Feb 10 14:26 gasp.F
+C     -rw-r--r--  1 bush bush  18364 Feb 10 14:26 gasp_linux.o
+C     -rw-r--r--  1 bush bush   6310 Feb 13 10:12 opngen.src
+C     -rw-r--r--  1 bush bush  22440 Feb 10 14:25 prompter.src
+C     -rw-r--r--  1 bush bush  13426 Feb 22 09:14 resetup.src
+C    BOSDEC.src code:
+C     -rw-r--r--  1 bush bush  33851 Mar  1 08:34 bosdec.src
+C
+C  WAVYCYL: both BEHAVIOR.NEW and STRUCT.NEW are both changed. Otherwise
+C           the activity is the same as that described for TORISPH,
+C           except, of course, that struct.new is different from
+C           that used in connection with TORISPH.
+C
+C  CYLINDER:same as the description for WAVYCYL.
+C
+C
+C  INSERT YOUR ADDITIONAL COMMON BLOCKS FOR THIS GENERIC CASE HERE:
+C
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+      COMMON/CSKINY/CSKIN1(6,6,295),THERM1(4,295)
+      COMMON/CMODIF/C111MD(3),SPRCON(3)
+      COMMON/STRUTP/THKTOT(3),LENGTH(3),CONDUT(3),LOAD(30,10)
+      COMMON/STRUTP2/LODMAX(10),LODMIN(10),DISMAX(10),FKTOTL(10)
+      COMMON/STRUTP5/LODMX2(10),LODMN2(10)
+      REAL LENGTH,LOAD,LODMAX,LODMIN,LODMX2,LODMN2,LOAD1,LOAD2,LODSPR
+      COMMON/RING12/SPRLNG(30,198),SPRDLG(30,198),SPRLOD(30,198)
+      COMMON/RING13/VERMX(198),CIRMX(198),RADMX(198),FMOMX(198)
+      COMMON/RING15/YPLUS1(50,198),YPLUS2(50,198)
+      COMMON/RING17/VERMXS(792)
+      DIMENSION YPLUSS(19800)
+      COMMON/RING18/CIRANG(198)
+      COMMON/TANK1/NSEGS,NSEGDM,NMESH(50),NRING(50),IRNGTP(50),IRING(50)
+      COMMON/TANK11/SPRANG(30,50),SPRKON(50),SPREC1(50),SPREC2(50)
+      COMMON/TANK16/CIRCANG(3),RDOME(2)
+      COMMON/TANK19/IZDOM1,IZDOM2
+      COMMON/CONDTX/CONDT,CON1L(90),CON2L(90)
+      COMMON/LAYUP1/NLAYER(3),LAYID(90,3),MATLID(90,3),NEWLAY(90,3)
+      COMMON/ITYPMX/ITYPEM
+      COMMON/ANGTWO/ANGMAX,ANGMIN
+      COMMON/STRUTP4/CCC(6,6,3),GTS(2,3),THERMX(6,3),ETHRMX(6,3),TEFF(2)
+      COMMON/GEOM3/ISTIFX(2),NLAYERX(4,2),NSEGX(2),INTEXTX(2)
+      COMMON/GEOM28/ALDEWX,DTDEWX,ALRNGDX(2),DTRNGDX(2),ALSUPX(2),
+     1 DTSUPX(2)
+      COMMON/LAYERX/MATLX(90),LTYPEX(99,5,2),TXXX(90),ANGLEX(90)
+      COMMON/MATER1/E1X(20),E2X(20),GX(20),FNUX(20),COND1X(20),
+     1 COND2X(20)
+      COMMON/MATERT/ALPHA1X(20),ALPHA2X(20),CURETPX(20),ICOCURX(2)
+      COMMON/MATER3/STSMAX(10),EALLOW(5,10)
+      COMMON/MATER4/TAPE(20),TMINUM(20),FAILSC(100)
+      COMMON/MATER5/DEGRAD(10,5,10)
+      COMMON/MATRAN/G13X(20),G23X(20)
+      DIMENSION LOADMX(10)
+      REAL LOADMX
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  THE FOLLOWING CODE WAS WRITTEN BY "GENTEXT":
+C
+C================================================================
+C  Start the second portion of STRUCT written by "GENTEXT":
+C
+      ICARX   = ISTARX
+      INUMTT = 0
+      ICONSX = 0
+      KCONX   = 0
+      IF (IMODX.EQ.0) THEN
+         CALL MOVERX(0.,0,CONSTX,1,99)
+         CALL MOVERX(0, 0,IPOINC,1,1500)
+      ENDIF
+C
+      IF (ILOADX.EQ.1) THEN
+C
+C  ESTABLISH FIRST ANY CONSTRAINTS THAT ARE INEQUALITY RELATIONSHIPS
+C  AMONG THE VARIABLES IN THE ARRAY VARX(*) (THAT IS, VARIABLES THAT
+C  ARE EITHER DECISION VARIABLES, LINKED VARIABLES, ESCAPE VARIABLES,
+C  OR CANDIDATES FOR ANY OF THESE TYPES OF VARIABLES.
+C
+         IF (NINEQX.GT.0)
+     1        CALL VARCON(WORDIQ,WORDMX,CINEQX,DPWREQ,IDINEQ,
+     1        NINEQX,JINEQX,IEQTYP,INUMTT,IMODX,CONMAX,IPOINC,
+     1        ICONSX,CONSTX,VARX,PCWORD,CPLOTX,ICARX)
+C
+C  NEXT, ESTABLISH USER-WRITTEN CONSTRAINTS. AT PRESENT, THE PROGRAM
+C  ALLOWS ONLY ONE USER-WRITTEN CONSTRAINT. HOWEVER, THE USER CAN
+C  EASILY EXPAND THIS CAPABILITY SIMPLY BY ADDING SUBROUTINES THAT
+C  ARE ANALOGOUS TO USRCON (WITH NAMES SUCH AS USRCN2, USRCN3, ETC.
+C  TO THE  BEHAVIOR.NEW LIBRARY, AND ADD CALLS TO THESE ADDITIONAL
+C  SUBROUTINES FOLLOWING THE CALL TO USRCON IMMEDIATELY BELOW.
+C
+         CALL USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1            WORDMX,PCWORD,CPLOTX,ICARX,IFILE8)
+C
+         NUSERC = ICARX - NINEQX
+      ENDIF
+C
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A,I2,A)')
+     1 ' BEHAVIOR FOR ',ILOADX,' ENVIRONMENT (LOAD SET)'
+         WRITE(IFILE8,'(A)')'  '
+         WRITE(IFILE8,'(A)')
+     1 ' CONSTRAINT  BEHAVIOR              DEFINITION'
+         WRITE(IFILE8,'(A)')
+     1 '   NUMBER     VALUE'
+      ENDIF
+C
+      CALL CONVR2(ILOADX,CIX)
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A)')'  '
+         WRITE(IFILE8,'(1X,A,I2)')
+     1 ' BEHAVIOR FOR LOAD SET NUMBER, ILOADX=',ILOADX
+      ENDIF
+C
+C  End of the second portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+      CALL OPNGEN
+      CALL RWDGEN
+C
+      WRITE(IFILE8,'(A,A,A,I3)')
+     1 ' Name of case= ',CASE,'; ITYPEX=',ITYPEX
+C
+      DO 1 JRING = 1,IZTANK
+         FKTOTL(JRING) = 1000000. 
+    1 CONTINUE
+C
+      ITYPEM = 0
+      DO 2 I = 1,IZTANK
+       ITYPE = STRTYP(I)
+       ITYPEM = MAX(ITYPEM,ITYPE)
+       CIRCANG(ITYPE) = ATANK(ITYPE)
+    2 CONTINUE
+C
+C  CHAPTER 1
+      IF (IMODX.EQ.0.AND.NPRINX.GE.2)
+     1 WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' CHAPTER 1 (BEHX01x, x = 1,2,...; x=load case):',
+     1' Find the lengths of struts and the axial loads in the',
+     1' struts from a BIGBOSOR4 model of the propellant tank',
+     1' supported by springs with an arbitrarily assigned spring',
+     1' constant. The flexibility of the propellant tank is',
+     1' neglected, the strut end fittings are neglected, and the',
+     1' propellant tank is loaded by ullage pressure, PRESS, tank',
+     1' cool-down, TNKCOOL, axial acceleration, GAXIAL, and lateral',
+     1' acceleration, GLATRL. This is a first approximation.',
+     1' The BIGBOSOR4 model is stored in *.BEHX01x, x = 1, 2...,',
+     1' in which "x" represents the load case.'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C     Find the lengths of struts and axial loads in the struts
+      INDIC=3
+      CALL BOSDEC(4,24,ILOADX,INDIC,1)
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+      IF (ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+        IF (ILOADX.EQ.1) THEN
+C        Get CASE.BEHX011 file for input for BIGBOSOR4...
+C        CASE.BEHX011 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank with struts (springs)
+C        for Load Case 1.
+C        The purpose is to obtain the axial loads in the
+C        various strut types and to obtain the lengths of
+C        the various strut types (INDX = 4)
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX011'
+         ELSE
+            CASA=CASE//'.BEHX011'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(4,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for propellant tank supported',
+     1 ' by struts; Load Case 1',
+     1   CASA
+        ENDIF
+C
+        IF (ILOADX.EQ.2) THEN
+C        Get CASE.BEHX012 file for input for BIGBOSOR4...
+C        CASE.BEHX012 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank with struts (springs)
+C        for Load Case 2.
+C        The purpose is to obtain the axial loads in the
+C        various strut types and to obtain the lengths of
+C        the various strut types (INDX = 4)
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX012'
+         ELSE
+            CASA=CASE//'.BEHX012'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(4,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for propellant tank supported',
+     1 ' by struts; Load Case 2',
+     1   CASA
+        ENDIF
+C
+      ENDIF
+C     end of "IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)" condition
+C
+C     Store lengths of various types of struts and axial loads
+C     in those struts...
+      NRTOT = 0
+      NSPTOT = 0
+C BEG MAR 2012
+      IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+       WRITE(IFILE8,'(/,A,I3)') ' NSEGS=',NSEGS
+       WRITE(IFILE8,'(A,/,(10I3))') ' IRNGTP(I)=',(IRNGTP(I),I=1,NSEGS)
+      ENDIF
+C END MAR 2012
+      DO 4 ISEG = 1,NSEGS
+       IF (IRNGTP(ISEG).NE.0) THEN
+          NRTOT = NRTOT + 1
+          IF (IRNGTP(ISEG).EQ.-1) THEN
+             NSPTOT = NSPTOT + 1
+             ITYPE = STRTYP(NSPTOT)
+             LENGTH(ITYPE) = SPRLNG(1,NRTOT)
+             NSTRUT = 2*NPAIRS(ITYPE)
+             LODMAX(NSPTOT) = 0.
+             LODMIN(NSPTOT) = 0.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+             IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+              WRITE(IFILE8,'(/,A,I3,A,/,(1P5E12.4))')
+     1      ' Axial loads in the struts at tank support ring no.',
+     1        NSPTOT,' SPRLOD(K,NRTOT) =', (SPRLOD(K,NRTOT),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Circ. angles to strut pinned end at tank ring no. ',
+     1        NSPTOT,' SPRANG(K,ISEG) =', (SPRANG(K,ISEG),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Axial length change in struts at tank support ring no.',
+     1        NSPTOT,' SPRDLG(K,NRTOT) =', (SPRDLG(K,NRTOT),K=1,NSTRUT)
+             ENDIF
+C
+             DO 3 K = 1,NSTRUT
+              LOAD(K,NSPTOT) = SPRLOD(K,NRTOT)
+              LODMAX(NSPTOT) =
+     1           MAX(LODMAX(NSPTOT),LOAD(K,NSPTOT))
+              LODMIN(NSPTOT) =
+     1           MIN(LODMIN(NSPTOT),LOAD(K,NSPTOT))
+    3        CONTINUE
+          ENDIF
+       ENDIF
+    4 CONTINUE
+C
+      IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+       DO 5 JRING = 1,IZTANK
+         ITYPE = STRTYP(JRING)
+         WRITE(IFILE8,'(/,A,I2,A,I3,/,A,1P,3E12.4)')
+     1 ' Length of strut, max. load, min. load for strut type',ITYPE,
+     1 '; strut ring no.',JRING,
+     1 ' LENGTH(ITYPE),LODMAX(JRING),LODMIN(JRING)=',
+     1   LENGTH(ITYPE),LODMAX(JRING),LODMIN(JRING)
+    5  CONTINUE
+      ENDIF
+C
+C  END OF CHAPTER 1, BEGIN CHAPTER 2
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GE.2)
+     1 WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' CHAPTER 2:',
+     1' Optain PostScript plot files, *.PL6.ps, *.PL7.ps, *.PL8.ps,',
+     1' which contain a plan view of the AFT set of struts (*.PL6.ps),',
+     1' a plan view of the FORWARD set of struts (*.PL7.ps, if any),',
+     1' and an elevation view of both AFT and FORWARD sets of struts',
+     1' (*.PL8.ps). The FORTRAN software is "borrowed" from the',
+     1' "DEWAR" system (SUBROUTINE STPLOT and the subroutines called',
+     1' by STPLOT). These FORTRAN subroutines are part of the',
+     1' bosdec.tank library.'
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C     Get *.PL6, *,PL7, and *.PL8 files for future plotting of
+C     plan views of the strut arrangements (*.PL6 and *.PL7) and
+C     and elevation view of the strut arrangments (*.PL8). This
+C     capability only holds if there are just one or two sets of
+C     struts (IZTANK = 1 or IZTANK = 2).
+C
+      IF (ITYPEX.EQ.2.AND.IMOD.EQ.0) CALL STPLOT(NPRINX)
+C
+C     Find axial stiffnesses of the launch tubes of various types
+C
+      PI = 3.1415927
+C
+      CALL MOVER(1.,0,DEGRAD,1,500)
+      CALL MOVER(0.,0,TAPE,1,140)
+C
+C  END OF CHAPTER 2, BEGIN CHAPTER 3
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GE.2) THEN
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' CHAPTER 3 (BEHX02x, x=1,2,...; x=load case):',
+     1' 1. Fill the "DEWAR" labelled common blocks with the',
+     1' proper quantities so that buckling load factors of',
+     1' the strut launch tubes (buckling as thin shells) and',
+     1' so that the 5 stress components in composite laminate',
+     1' plies can be determined from "PANDA-type" of analyses',
+     1' similar to those analyses that are used in the "DEWAR"',
+     1' system for buckling and stress of the strut launch tubes.'
+C
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' 2. Compute from SUBROUTINE GETCIJ the 6 x 6 constitutive',
+     1' stiffness matrix for each type of strut tube. SUBROUTINE',
+     1' GETCIJ is very like a subroutine of the same name in PANDA2.',
+     1'  ',
+     1' 3. Find the axial stiffnesses of aft and forward strut',
+     1' tubes. These strut tube stiffnesses are to be used in the',
+     1' computation of spring constants associated with each strut',
+     1' in the AFT set of struts and associated with each strut in',
+     1' the FORWARD set of struts (if any). In the "DO 20" loop of',
+     1' SUBROUTINE STRUCT, I = 1 corresponds to the AFT set of struts',
+     1' and I = 2 corresponds to the FORWARD set of struts.'
+C
+      ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      DO 20 I = 1,ITYPEM
+C
+        ITYPE = WALTYP(I)
+        THKTOT(ITYPE) = 0.
+        LAYIDM = 0
+        DO 6 J = 1,90
+          IF (LAYTYP(J,ITYPE).EQ.0) THEN
+           NLAYER(ITYPE) = J - 1
+           GO TO 7
+          ENDIF
+          IF (LAYTYP(J,ITYPE).GT.LAYIDM) THEN
+             LAYIDM = LAYIDM + 1
+          ENDIF
+          LTYPE = LAYTYP(J,ITYPE)
+          MATLID(J,ITYPE) = MATTYP(LTYPE)
+          THKTOT(ITYPE) = THKTOT(ITYPE) + THICK(LTYPE)
+          MATID = MATLID(J,ITYPE)
+          CON1L(J) = COND1(MATID)
+          CON2L(J) = COND2(MATID)
+C
+C    The following "Fill the "xxxxx" common blocks"
+C    puts the correct values in the labelled common
+C    blocks that are used in the "DEWAR" system. This
+C    is done in order successfully to use the modified
+C    "DEWAR" software libraries, GENSTB, GETCIJ and STRAIN,
+C    which are already modified forms of libraries of the
+C    same names originally created for the "PANDA2" system.
+C
+C         Fill the "LAYERX" common block...
+          MATLX(LTYPE) = MATID
+          LTYPEX(J,1,1) = LAYTYP(J,ITYPE)
+          TXXX(LTYPE) = THICK(LTYPE)
+          ANGLEX(LTYPE) = ANGLE(LTYPE)
+C
+C         Fill the "MATER1" common block...
+          E1X(MATID) = E1(MATID)
+          E2X(MATID) = E2(MATID)
+          GX(MATID)  = G12(MATID)
+          FNUX(MATID) = NU(MATID)
+          COND1X(MATID) = COND1(MATID)
+          COND2X(MATID) = COND2(MATID) 
+C
+C         Fill the "MATER3" common block...
+          STSMAX(MATID) = E1X(MATID)
+          IF (MATID.EQ.1) THEN
+           EALLOW(1,MATID) = STRES1A(ILOADX,1)
+           EALLOW(2,MATID) = STRES1A(ILOADX,2)
+           EALLOW(3,MATID) = STRES1A(ILOADX,3)
+           EALLOW(4,MATID) = STRES1A(ILOADX,4)
+           EALLOW(5,MATID) = STRES1A(ILOADX,5)
+          ENDIF
+          IF (MATID.EQ.2) THEN
+           EALLOW(1,MATID) = STRES2A(ILOADX,1)
+           EALLOW(2,MATID) = STRES2A(ILOADX,2)
+           EALLOW(3,MATID) = STRES2A(ILOADX,3)
+           EALLOW(4,MATID) = STRES2A(ILOADX,4)
+           EALLOW(5,MATID) = STRES2A(ILOADX,5)
+          ENDIF
+          IF (MATID.EQ.3) THEN
+           EALLOW(1,MATID) = STRES3A(ILOADX,1)
+           EALLOW(2,MATID) = STRES3A(ILOADX,2)
+           EALLOW(3,MATID) = STRES3A(ILOADX,3)
+           EALLOW(4,MATID) = STRES3A(ILOADX,4)
+           EALLOW(5,MATID) = STRES3A(ILOADX,5)
+          ENDIF
+C
+C         Fill the "MATER4" common block...
+C         This is done via "CALL MOVER(0.,0,TAPE,1,140)"
+C
+C         Fill the "MATER5" common block...
+C         This is done via "CALL MOVER(1.,0,DEGRAD,1,500)"
+
+C         Fill the "MATERT" common block...
+          ALPHA1X(MATID) = ALPHA1(MATID)
+          ALPHA2X(MATID) = ALPHA2(MATID)
+          CURETPX(MATID) = TEMTUR(MATID)
+          ICOCURX(1) = 1
+          ICOCURX(2) = 1 
+C
+C         Fill the "MATRAN" common block...
+          G13X(MATID) = G13(MATID)
+          G23X(MATID) = G23(MATID)
+C
+    6   CONTINUE
+    7   CONTINUE
+C
+        IF (ILOADX.EQ.1.AND.ITYPEX.EQ.2.AND.NPRINX.GE.2) THEN
+          WRITE(IFILE8,'(/,A,I2)')
+     1  ' Composite laminate layup of the wall of strut tube type',I
+          CALL OUTWAL(IFILE8,NLAYER,LAYTYP,THICK,ANGLE,MATTYP,I)
+        ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C       Fill the "GEOM3" common block...
+        ISTIFX(1) = 2
+        ISTIFX(2) = 0
+        INTEXTX(1) = 0
+        INTEXTX(2) = 0
+        NSEGX(1) = 1
+        NSEGX(2) = 1
+        NLAYERX(1,1) = NLAYER(ITYPE)
+        NLAYERX(2,1) = NLAYER(ITYPE)
+        NLAYERX(1,2) = NLAYER(ITYPE)
+        NLAYERX(2,2) = NLAYER(ITYPE)
+C
+C       Fill the "GEOM28" common block...
+        ALDEWX = ALTNK
+        DTDEWX = TNKCOOL(ILOADX) 
+        ALRNGDX(1) = ALRNGT(1)
+        ALRNGDX(2) = ALRNGT(1)
+        DTRNGDX(1) = TNKCOOL(ILOADX)
+        DTRNGDX(2) = TNKCOOL(ILOADX)
+        ALSUPX(1) = 0.
+        ALSUPX(2) = 0.
+        DTSUPX(1) = DTSUP(ITYPE)
+        DTSUPX(2) = DTSUP(ITYPE)
+C
+C    Get the 6 x 6 C(i,j) matrix from modified PANDA-type
+C    routine, SUBROUTINE GETCIJ, taken from "DEWAR" and
+C    modified further to work with the generic case, "tank".
+C
+        CALL GETCIJ(NPRINX,IFILE8,ISTIFX,CCC(1,1,I),THERMX(1,I),
+     1              GTS(1,I),TEFF,ETHRMX(1,I),ICOCUR,NSEG,I)
+C
+        INDIC=4
+        CALL BOSDEC(0,24,ILOADX,INDIC,I)
+        CALL B4READ
+        CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+        IF (I.EQ.1.AND.ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+          IF (ILOADX.EQ.1) THEN
+C          Get CASE.BEHX021 file for input for BIGBOSOR4...
+C          CASE.BEHX021 is an input file for BIGBOSOR4 for linear
+C          buckling of a single launch tube under Load Case 1.
+C          The purpose is to
+C          obtain the axial stiffness of a single launch tube.:
+           J=INDEX(CASE,' ')
+           IF(J.NE.0) THEN
+            CASA=CASE(:J-1)//'.BEHX021'
+           ELSE
+            CASA=CASE//'.BEHX021'
+           ENDIF
+           OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+           CALL BOSDEC(0,61,ILOADX,INDIC,I)
+           CLOSE(UNIT=61)
+           WRITE(IFILE8,'(/,/,A,/,A,I2,/,A)')
+     1   ' BIGBOSOR4 input file for Load Case 1:',
+     1   ' axial stiffness of a single launch tube, type',I,
+     1     CASA
+          ENDIF
+C
+          IF (ILOADX.EQ.2) THEN
+C          Get CASE.BEHX022 file for input for BIGBOSOR4...
+C          CASE.BEHX022 is an input file for BIGBOSOR4 for linear
+C          buckling of a single launch tube under Load Case 2.
+C          The purpose is to
+C          obtain the axial stiffness of a single launch tube.:
+           J=INDEX(CASE,' ')
+           IF(J.NE.0) THEN
+            CASA=CASE(:J-1)//'.BEHX022'
+           ELSE
+            CASA=CASE//'.BEHX022'
+           ENDIF
+           OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+           CALL BOSDEC(0,61,ILOADX,INDIC,I)
+           CLOSE(UNIT=61)
+           WRITE(IFILE8,'(/,/,A,/,A,I2,/,A)')
+     1   ' BIGBOSOR4 input file for Load Case 2:',
+     1   ' axial stiffness of a single launch tube, type',I,
+     1     CASA
+          ENDIF
+C
+        ENDIF
+C       end of "(I.EQ.1.AND.ITYPEX.EQ.2.AND.IMODX.EQ.0)" condition
+C
+C  Store CCC(i,j,I) and get spring constant of strut type I...
+C       CALL MOVER (CSKIN1(1,1,1),1,CCC(1,1,I),1,36)
+        C111MD(I) = CSKIN1(1,1,1) - CSKIN1(1,2,1)**2/CSKIN1(2,2,1)
+        RADIUS = (IDTUBE(I)+THKTOT(I))/2.0
+        TUBEEA = C111MD(I)*2.*PI*RADIUS
+        TUBLNG = LENGTH(I) - FITTNK(I) - FITVEH(I)
+        TUBEK = TUBEEA/TUBLNG
+        FITK1 = FEATNK(I)/FITTNK(I)
+        FITK2 = FEAVEH(I)/FITVEH(I)
+        SPRCON(I) = 1./(1./FITK1 + 1./TUBEK + 1./FITK2)
+C
+C  Get conductance of strut type I...
+        CONDUT(I) = CONDT*2.*PI*RADIUS/TUBLNG
+C
+        IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+          WRITE(IFILE8,'(/,A,/,A,1P,3E12.4)')
+     1  ' In SUBROUTINE STRUCT after 2nd CALL B4READ',
+     1  ' CSKIN1(1,1,1),CSKIN1(1,2,1),CSKIN1(2,2,1)=',
+     1    CSKIN1(1,1,1),CSKIN1(1,2,1),CSKIN1(2,2,1)
+          WRITE(IFILE8,'(A,I3,/,A,1P,E12.4)')
+     1  ' C111MD=axial stiffness/circ.length of launch tube type',I,
+     1  '   =CSKIN1(1,1,1)-CSKIN1(1,2,1)**2/CSKIN1(2,2,1)=',C111MD(I)
+          WRITE(IFILE8,'(A,A,I3,/,A,1P,3E12.4)')
+     1  ' Launch tube "EA" and length and "spring constant" for tube',
+     1  ' type',I,
+     1  '   = TUBEEA,TUBLNG,TUBEK =',TUBEEA,TUBLNG,TUBEK
+          WRITE(IFILE8,'(A,/,A,1P,2E12.4)')
+     1  ' "Spring constants" for tank end and launch vehicle end',
+     1  ' fittings, FITK1 and FITK2 =', FITK1,FITK2
+          WRITE(IFILE8,'(A,I3,A,1P,E12.4,/,A,/,A,/,A)')
+     1  ' Spring constant for compound strut type',I,' =',SPRCON(I),
+     1  ' The flexibility of the propellant tank is neglected in the',
+     1  ' model that yields SPRCON. See below for model that includes',
+     1  ' the flexibility of the propellant tank and that yields FKTOTL'
+          WRITE(IFILE8,'(/,A,I3,A,1P,E12.4)')
+     1  ' Conductance of one strut of type',I,' =',CONDUT(I)
+        ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+   20 CONTINUE
+C
+      DO 21 JRING = 1,IZTANK
+         ITYPE = STRTYP(JRING)
+         FKTOTL(JRING) = SPRCON(ITYPE)
+   21 CONTINUE
+C
+C  END OF CHAPTER 3, BEGIN CHAPTER 4
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GE.2) THEN
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' CHAPTER 4 (BEHX03x, x = 1,2,...; x=load case):',
+     1' Compute the linear static response of the propellant tank',
+     1' to concentrated loads applied by the struts (springs) to',
+     1' the tank along the tank support ring no. 1 (aft strut set)',
+     1' and along the tank support ring no. 2 (forward strut set).',
+     1' In this BIGBSOSOR4 model of the propellant tank the springs',
+     1' (struts) are replaced by concentrated loads obtained from',
+     1' the CHAPTER 1 computations. The concentrated loads are modeled',
+     1' in BIGBOSOR4 as line loads with little triangular "pulses"'
+       WRITE(IFILE8,'(A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' centered about the circumferential angles where the struts',
+     1' are pinned to the propellant tank and at the global axial',
+     1' coordinates that corresponds to the global axial coordinates',
+     1' of the centroids of the aft and forward propellant tank',
+     1' support rings. The circumferential distributions of the line',
+     1' loads are expanded in Fourier series, and the static response',
+     1' to each Fourier component is superposed by BIGBOSOR4 in what',
+     1' is called in BIGBOSOR4 jargon an "INDIC=3" type of analysis.',
+     1' Sixty Fourier terms are used in the Fourier series expansion.'
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' The purpose of this calculation is to find the maximum',
+     1' displacement of the propellant tank wall in the same direction',
+     1' as the axis of one of the struts: 1. the strut associated with',
+     1' the greatest tank wall displacement produced by the AFT strut',
+     1' set and 2. the strut associated with the greatest tank wall',
+     1' displacement produced by the FORWARD strut set. These two',
+     1' maximum local tank wall displacements are used in the',
+     1' determination of the spring constants to be associated with',
+     1' each of the AFT struts and with each of the FORWARD struts in',
+     1' the models in which the flexibility of the propellant tank is',
+     1' accounted for in the computation of the behavior(e.g.vibration)'
+       WRITE(IFILE8,'(/,A,/,A,/,A)')
+     1' In this BIGBOSOR4 model there exist "fake" springs, that is,',
+     1' springs with zero axial stiffness. These "fake" springs have',
+     1' no influence on the behavior.'
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+
+C
+C     Find the tank deformations due to point loads applied by
+C     the struts. 
+      INDIC=3
+      CALL BOSDEC(5,24,ILOADX,INDIC,1)
+      IF (ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+        CALL MOVER(VERMX,1,VERMXS,1,792)
+        CALL MOVER(YPLUS1,1,YPLUSS,1,19800)
+      ENDIF
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+      IF (ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+        IF (ILOADX.EQ.1) THEN
+C        Get CASE.BEHX031 file for input for BIGBOSOR4...
+C        CASE.BEHX031 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank with concentrated loads
+C        obtained from Load Case 1.
+C        The purpose is to obtain the "delta lengths" of the
+C        various strut types from an analysis in which the
+C        springs are replaced by concentrated loads (INDX=5).
+         J=INDEX(CASE,' ')
+         IF(J.NE.0) THEN
+            CASA=CASE(:J-1)//'.BEHX031'
+         ELSE
+            CASA=CASE//'.BEHX031'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL MOVER(VERMXS,1,VERMX,1,792)
+         CALL MOVER(YPLUSS,1,YPLUS1,1,19800)
+         CALL BOSDEC(5,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file, Load Case 1, for the propellant',
+     1 ' tank with springs replaced by concentrated loads (INDX=5)',
+     1   CASA
+        ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+        IF (ILOADX.EQ.2) THEN
+C        Get CASE.BEHX032 file for input for BIGBOSOR4...
+C        CASE.BEHX032 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank with concentrated loads
+C        obtained from Load Case 2.
+C        The purpose is to obtain the "delta lengths" of the
+C        various strut types from an analysis in which the
+C        springs are replaced by concentrated loads (INDX=5).
+         J=INDEX(CASE,' ')
+         IF(J.NE.0) THEN
+            CASA=CASE(:J-1)//'.BEHX032'
+         ELSE
+            CASA=CASE//'.BEHX032'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL MOVER(VERMXS,1,VERMX,1,792)
+         CALL MOVER(YPLUSS,1,YPLUS1,1,19800)
+         CALL BOSDEC(5,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file, Load Case 2, for the propellant',
+     1 ' tank with springs replaced by concentrated loads (INDX=5)',
+     1   CASA
+        ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      ENDIF
+C     end of the "(ITYPEX.EQ.2.AND.IMODX.EQ.0)" condition
+C
+C     Store the absolute values of the propellant tank
+C     deformations parallel to the strut axes...
+      NRTOT = 0
+      NSPTOT = 0
+      DO 27 ISEG = 1,NSEGS
+       IF (IRNGTP(ISEG).NE.0) THEN
+          NRTOT = NRTOT + 1
+          IF (IRNGTP(ISEG).EQ.-1) THEN
+             NSPTOT = NSPTOT + 1
+             ITYPE = STRTYP(NSPTOT)
+             NSTRUT = 2*NPAIRS(ITYPE)
+C
+             IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+              WRITE(IFILE8,'(/,A,I3,A,/,(1P5E12.4))')
+     1      ' Axial loads in the struts at tank support ring no.',
+     1        NSPTOT,' SPRLOD(K,NRTOT) =', (SPRLOD(K,NRTOT),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Circ. angles to strut pinned end at tank ring no. ',
+     1        NSPTOT,' SPRANG(K,ISEG) =', (SPRANG(K,ISEG),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Axial length change in struts at tank support ring no.',
+     1        NSPTOT,' SPRDLG(K,NRTOT) =', (SPRDLG(K,NRTOT),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,/,A,/,A,I3,A,1PE12.4)')
+     1      ' Circ. angle where the maximum concentrated AXIAL load is',
+     1      ' applied to the propellant tank by the struts at the tank',
+     1      ' support ring no.',NSPTOT,'. Circumferential angle =',
+     1        CIRANG(NRTOT)
+             ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+             DISMAX(NSPTOT) = 0.
+             DO 23 K = 1,NSTRUT
+              DISMAX(NSPTOT) =
+     1           MAX(DISMAX(NSPTOT),ABS(SPRDLG(K,NRTOT)))
+   23        CONTINUE
+          ENDIF
+C
+          IF (IZDOM1.NE.0) THEN
+            ITYPE = STRTYP(1)
+            NSTRUT = 2*NPAIRS(ITYPE)
+            DISMAX(1) = 0.
+            DO 24 K = 1,NSTRUT
+              DISMAX(1) =
+     1           MAX(DISMAX(1),ABS(SPRDLG(K,NRTOT)))
+   24       CONTINUE
+          ENDIF
+C
+          IF (IZDOM2.NE.0) THEN
+            ITYPE = STRTYP(IZTANK)
+            NSTRUT = 2*NPAIRS(ITYPE)
+            DISMAX(IZTANK) = 0.
+            DO 25 K = 1,NSTRUT
+              DISMAX(IZTANK) =
+     1           MAX(DISMAX(IZTANK),ABS(SPRDLG(K,NRTOT)))
+   25       CONTINUE
+          ENDIF
+C
+       ENDIF
+C
+   27 CONTINUE
+C  End of the loop over the number of shell segments.
+C
+      IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+       DO 30 JRING = 1,IZTANK
+         ITYPE = STRTYP(JRING)
+         WRITE(IFILE8,'(/,A,A,I3,/,A,1P,E12.4,/,A,/,A,/,A)')
+     1 ' Absolute value of maximum "change in length" of any',
+     1 ' strut at strut ring no.',JRING,
+     1 ' DISMAX(JRING)=',DISMAX(JRING),
+     1 ' DISMAX is used in the derivation of the strut spring',
+     1 ' constant, FKTOTL, that accounts for the flexibility of the',
+     1 ' propellant tank.'
+   30  CONTINUE
+      ENDIF
+C
+      DO 33 JRING = 1,IZTANK
+        ITYPE = STRTYP(JRING)
+        LOAD1 = ABS(LODMAX(JRING))
+        LOAD2 = ABS(LODMIN(JRING))
+        LODSPR = MAX(LOAD1,LOAD2)
+        FKSHEL = LODSPR/DISMAX(JRING)
+        FKTOTL(JRING) = 1./(1./SPRCON(ITYPE) + 1./FKSHEL)
+        IF (NPRINX.GE.2.AND.IMODX.EQ.0)
+     1   WRITE(IFILE8,'(/,A,I3,A,1PE12.4,/,A,/,A,/,A,1PE12.4,A,/,A)')
+     1' Spring constant at ring no.',JRING,': FKTOTL(JRING)=',
+     1  FKTOTL(JRING),
+     1' The reduced spring constant, FKTOTL, includes the flexibility',
+     1' of the propellant tank. Compare with the spring constant',
+     1' SPRCON=',SPRCON(ITYPE),' which is the value of the spring',
+     1' constant obtained neglecting the propellant tank flexibility.'
+   33 CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C
+C  END OF CHAPTER 4, BEGIN CHAPTER 5
+C
+      IF (IMODX.EQ.0.AND.NPRINX.GE.2) THEN
+       WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' CHAPTER 5 (BEHX04x, x = 1, 2,...; x = load case):',
+     1' Repeat the CHAPTER 1 type of computations with the new',
+     1' (significantly smaller) spring constants that now account',
+     1' for the flexibility of the propellant tank. The purpose of',
+     1' this computation is to determine more accurate values of the',
+     1' loads in each strut (spring) caused by the loads, PRESS,',
+     1' GAXIAL, GLATRL, and TNKCOOL. The updated strut loads are',
+     1' used in the following computations:',
+     1' 1. Buckling of the most highly compressed strut of each type',
+     1' (type 1 = "AFT"; type 2 = "FORWARD") as a column (BEHX5) and',
+     1' as a shell (BEHX6).' 
+       WRITE(IFILE8,'(A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' 2. Maximum of each of five stress components in each type',
+     1' of strut (BEHX2 for AFT struts and BEHX3 for FORWARD struts).',
+     1' 3. Maximum stress in the propellant tank due to loading by',
+     1' the AFT and FORWARD sets of struts and by the loads, PRESS,',
+     1' GAXIAL, GLATRL, and TNKCOOL (BEHX8).',
+     1' 4. Minimum buckling of the propellant tank under the AFT and',
+     1' FORWARD sets of struts and by the loads, PRESS, GAXIAL,',
+     1' GLATRL, and TNKCOOL (BEHX9).'
+      ENDIF
+C
+C     Find the axial loads in the struts from a second approximation...
+      INDIC=3
+      CALL BOSDEC(4,24,ILOADX,INDIC,1)
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+C
+      IF (ITYPEX.EQ.2.AND.IMODX.EQ.0) THEN
+        IF (ILOADX.EQ.1) THEN
+C        Get CASE.BEHX041 file for input for BIGBOSOR4...
+C        CASE.BEHX041 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank under Load Case 1
+C        with struts (springs).
+C        The purpose is to obtain the axial loads in the
+C        various strut types and to obtain the lengths of
+C        the various strut types (INDX = 4)
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX041'
+         ELSE
+            CASA=CASE//'.BEHX041'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(4,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for propellant tank under',
+     1 ' Load Case 1 supported by struts (second approximation)',
+     1   CASA
+        ENDIF
+C
+        IF (ILOADX.EQ.2) THEN
+C        Get CASE.BEHX042 file for input for BIGBOSOR4...
+C        CASE.BEHX042 is an input file for BIGBOSOR4 for linear
+C        stress of a propellant tank under Load Case 2
+C        with struts (springs).
+C        The purpose is to obtain the axial loads in the
+C        various strut types and to obtain the lengths of
+C        the various strut types (INDX = 4)
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX042'
+         ELSE
+            CASA=CASE//'.BEHX042'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(4,61,ILOADX,INDIC,1)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for propellant tank under',
+     1 ' Load Case 2 supported by struts (second approximation)',
+     1   CASA
+        ENDIF
+C
+      ENDIF
+C     end of the "IF (ITYPEX.EQ.2.AND.IMODX.EQ.0)" condition
+C
+C     Store axial loads in the struts...
+      NRTOT = 0
+      NSPTOT = 0
+      DO 40 ISEG = 1,NSEGS
+       IF (IRNGTP(ISEG).NE.0) THEN
+          NRTOT = NRTOT + 1
+          IF (IRNGTP(ISEG).EQ.-1) THEN
+             NSPTOT = NSPTOT + 1
+             ITYPE = STRTYP(NSPTOT)
+             NSTRUT = 2*NPAIRS(ITYPE)
+             LODMAX(NSPTOT) = 0.
+             LODMIN(NSPTOT) = 0.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+             IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+              WRITE(IFILE8,'(/,A,I3,A,/,(1P5E12.4))')
+     1      ' Axial loads in the struts at tank support ring no.',
+     1        NSPTOT,' SPRLOD(K,NRTOT) =', (SPRLOD(K,NRTOT),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Circ. angles to strut pinned end at tank ring no. ',
+     1        NSPTOT,' SPRANG(K,ISEG) =', (SPRANG(K,ISEG),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,I3,A,/,(1P5E12.4))')
+     1      ' Axial length change in struts at tank support ring no.',
+     1        NSPTOT,' SPRDLG(K,NRTOT) =', (SPRDLG(K,NRTOT),K=1,NSTRUT)
+              WRITE(IFILE8,'(A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1      ' NOTE: The changes in axial length, SPRDLG, just listed',
+     1      ' are significantly greater than those listed previously',
+     1      ' because the springs are softer in this "BEHX04*" model',
+     1      ' than those in the "BEHX01*" model, NOT because there is',
+     1      ' more local deformation of the tank under these spring',
+     1      ' loads. The change in length of the "effective" spring',
+     1      ' caused by local deformation of the propellant tank is',
+     1      ' listed above as the quantity called "DISMAX", which is',
+     1      ' computed from the "BEHX03*" model in which the springs',
+     1      ' are replaced by concentrated loads acting on the tank.'
+              WRITE(IFILE8,'(/,A,/,A,/,A,I3,A,1PE12.4)')
+     1      ' Circ. angle where the maximum concentrated AXIAL load is',
+     1      ' applied to the propellant tank by the struts at the tank',
+     1      ' support ring no.',NSPTOT,'. Circumferential angle =',
+     1        CIRANG(NRTOT) 
+             ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+             CIRCANG(ITYPE) = CIRANG(NRTOT)
+C
+             DO 35 K = 1,NSTRUT
+              LOAD(K,NSPTOT) = SPRLOD(K,NRTOT)
+              LODMAX(NSPTOT) =
+     1           MAX(LODMAX(NSPTOT),LOAD(K,NSPTOT))
+              LODMIN(NSPTOT) =
+     1           MIN(LODMIN(NSPTOT),LOAD(K,NSPTOT))
+   35        CONTINUE
+C
+             KSTMAX = 0
+             ANGMAX = 0.
+             DO 36 K = 1,NSTRUT
+              DIFF =
+     1         ABS(LODMAX(NSPTOT) - LOAD(K,NSPTOT))/ABS(LODMAX(NSPTOT))
+              IF (DIFF.LT.0.0001) THEN
+                KSTMAX = K
+                ANGMAX = SPRANG(KSTMAX,ISEG)
+                GO TO 37
+              ENDIF
+   36        CONTINUE
+   37        CONTINUE 
+C
+             KSTMIN = 0
+             ANGMIN = 0. 
+             DO 38 K = 1,NSTRUT
+              DIFF =
+     1         ABS(LODMIN(NSPTOT) - LOAD(K,NSPTOT))/ABS(LODMIN(NSPTOT))
+              IF (DIFF.LT.0.0001) THEN
+                KSTMIN = K
+                ANGMIN = SPRANG(KSTMIN,ISEG)
+                GO TO 39
+              ENDIF
+   38        CONTINUE
+   39        CONTINUE
+C
+             IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+              IF (KSTMAX.NE.0)
+     1        WRITE(IFILE8,'(/,A,/,A,I3,A,I3,A,1PE12.4)')
+     1      ' Maximum load in a strut (NSPTOT,KSTMAX,ANGMAX):',
+     1      ' Ring Number',NSPTOT,': Strut no.',KSTMAX,
+     1      '; Circ. angle to strut=',ANGMAX
+              IF (KSTMIN.NE.0)
+     1        WRITE(IFILE8,'(A,/,A,I3,A,I3,A,1PE12.4)')
+     1      ' Minimum load in a strut (NSPTOT,KSTMIN,ANGMIN):',
+     1      ' Ring Number',NSPTOT,': Strut no.',KSTMIN,
+     1      '; Circ. angle to strut=',ANGMIN
+              WRITE(IFILE8,'(A,I3,A,1PE12.4)')
+     1      ' Strut type =',ITYPE,'; CIRCANG(ITYPE)=',CIRCANG(ITYPE)
+             ENDIF
+C
+             IF (KSTMAX.NE.0) CIRCANG(1) = ANGMAX
+             IF (KSTMIN.NE.0) CIRCANG(2) = ANGMIN
+             IF (CIRCANG(1).EQ.CIRCANG(2)) THEN
+                IF (CIRCANG(1).NE.ATANK(1)) CIRCANG(1) = ATANK(1)
+             ENDIF
+C
+          ENDIF
+C         end of "IF (IRNGTP(ISEG).EQ.-1)" condition
+       ENDIF
+C      end of "IF (IRNGTP(ISEG).NE.0)" condition
+   40 CONTINUE
+C     end of the loop over the number of segments.
+C
+      IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+       DO 60 JRING = 1,IZTANK
+         ITYPE = STRTYP(JRING)
+         WRITE(IFILE8,'(/,A,I2,A,I3,/,A,1P,3E12.4)')
+     1 ' Length of strut, max. load, min. load for strut type',ITYPE,
+     1 '; strut ring no.',JRING,
+     1 ' LENGTH(ITYPE),LODMAX(JRING),LODMIN(JRING)=',
+     1   LENGTH(ITYPE),LODMAX(JRING),LODMIN(JRING)
+   60  CONTINUE
+      ENDIF
+C
+      DO 64 JRING = 1,IZTANK
+         LODMX2(JRING) = LODMAX(JRING)
+         LODMN2(JRING) = LODMIN(JRING)
+C        WRITE(IFILE8,'(A,2I3,1P2E12.4)')
+C    1 ' IZTANK,JRING,LODMX2(JRING),LODMAX(JRING)=',
+C    1   IZTANK,JRING,LODMX2(JRING),LODMAX(JRING)
+C        WRITE(IFILE8,'(A,2I3,1P2E12.4)')
+C    1 ' IZTANK,JRING,LODMN2(JRING),LODMIN(JRING)=',
+C    1   IZTANK,JRING,LODMN2(JRING),LODMIN(JRING)
+   64 CONTINUE
+C
+      IF (ABS(GLATRL(ILOADX)).GE.ABS(GAXIAL(ILOADX))) THEN
+       DO 65 JRING = 1,IZTANK
+         LOADMX(JRING) = MAX(ABS(LODMAX(JRING)),ABS(LODMIN(JRING)))
+   65  CONTINUE
+C
+       DO 70 JRING = 1,IZTANK
+         LODMX2(JRING) =  LOADMX(JRING)
+         LODMN2(JRING) = -LOADMX(JRING)
+         IF (NPRINX.GE.2.AND.IMODX.EQ.0) THEN
+          WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1  ' Maximum and minimum strut loads using the maximum absolute',
+     1  ' value of any strut load associated with the struts attached',
+     1  ' to propellant tank ring number',JRING,' with plus and minus',
+     1  ' signs attached to that maximum absolute load value. This is',
+     1  ' a conservative model, representing approximately the case in',
+     1  ' which both plus and minus values of the user-specified',
+     1  ' g-loading are accounted for. This conservative approach is',
+     1  ' used only if the absolute value of GLATRL is greater than or',
+     1  ' equal to the absolute value of GAXIAL.'
+          ITYPE = STRTYP(JRING)
+          WRITE(IFILE8,'(A,I2,A,I3,/,A,1P,3E12.4)')
+     1  ' Length of strut, max. load, min. load for strut type',ITYPE,
+     1  '; strut ring no.',JRING,
+     1  ' LENGTH(ITYPE),LODMX2(JRING),LODMN2(JRING)=',
+     1    LENGTH(ITYPE),LODMX2(JRING),LODMN2(JRING)
+         ENDIF
+   70  CONTINUE
+      ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C=======================================================================
+C  Start of the final portion of STRUCT written by "GENTEXT"
+C
+C  INSERT THE PROGRAM FILE HERE:
+C
+C  Behavior and constraints generated next for FREQ:
+C  FREQ = free vibration frequency (cps)
+C
+      IF (JFREQ  .EQ.0) GO TO 586
+      IF (NPRINX.GT.0) THEN
+         IF (JFREQ  .GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'vibration mode type'
+         ENDIF
+      ENDIF
+      DO 585  J=1,JFREQ
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'free vibration frequency (cps)'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (J.EQ.1) JXX = 0
+      JXX = JXX + 1
+      FREQ(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX1
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'free vibration frequency (cps)')
+      IF (FREQ(ILOADX,J).EQ.0.)  FREQ(ILOADX,J) = 1.E+10
+      IF (FREQA(ILOADX,J).EQ.0.)  FREQA(ILOADX,J) = 1.0
+      IF (FREQF(ILOADX,J).EQ.0.)  FREQF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =FREQ(ILOADX,J)
+      WORDCX= '(FREQ('//CIX//','//CJX//')/FREQA('//CIX//','//CJX//
+     1  ')) / FREQF('//CIX//','//CJX//')'
+      CALL CONX(FREQ(ILOADX,J),FREQA(ILOADX,J),FREQF(ILOADX,J)
+     1,'free vibration frequency (cps)',
+     1 'minimum allowable frequency (cps)',
+     1 'factor of safety for freqency',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  free vibration frequency (cps): '
+         IENDP4 =34
+         CODNAM ='FREQ('//CIX//','//CJX//')'
+         MLET4 =4 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  585 CONTINUE
+  586 CONTINUE
+C
+C  Behavior and constraints generated next for STRES1:
+C  STRES1 = maximum stress in material 1
+C
+      IF (JSTRES1.EQ.0) GO TO 611
+      IF (NPRINX.GT.0) THEN
+         IF (JSTRES1.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'stress component number'
+         ENDIF
+      ENDIF
+      DO 610  J=1,JSTRES1
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in material 1'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      STRES1(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX2
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in material 1')
+      IF (STRES1(ILOADX,J).EQ.0.)  STRES1(ILOADX,J) = 1.E-10
+      IF (STRES1A(ILOADX,J).EQ.0.)  STRES1A(ILOADX,J) = 1.0
+      IF (STRES1F(ILOADX,J).EQ.0.)  STRES1F(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRES1(ILOADX,J)
+      WORDCX= '(STRES1A('//CIX//','//CJX//')/STRES1('//CIX//','//CJX//
+     1  ')) / STRES1F('//CIX//','//CJX//')'
+      CALL CONX(STRES1(ILOADX,J),STRES1A(ILOADX,J),STRES1F(ILOADX,J)
+     1,'maximum stress in material 1',
+     1 'maximum allowable stress in material 1',
+     1 'factor of safety for stress, matl 1',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in material 1: '
+         IENDP4 =32
+         CODNAM ='STRES1('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  610 CONTINUE
+  611 CONTINUE
+C
+C  Behavior and constraints generated next for STRES2:
+C  STRES2 = maximum stress in material 2
+C
+      IF (JSTRES1.EQ.0) GO TO 626
+      IF (NPRINX.GT.0) THEN
+         IF (JSTRES1.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'stress component number'
+         ENDIF
+      ENDIF
+      DO 625  J=1,JSTRES1
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in material 2'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      STRES2(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX3
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in material 2')
+      IF (STRES2(ILOADX,J).EQ.0.)  STRES2(ILOADX,J) = 1.E-10
+      IF (STRES2A(ILOADX,J).EQ.0.)  STRES2A(ILOADX,J) = 1.0
+      IF (STRES2F(ILOADX,J).EQ.0.)  STRES2F(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRES2(ILOADX,J)
+      WORDCX= '(STRES2A('//CIX//','//CJX//')/STRES2('//CIX//','//CJX//
+     1  ')) / STRES2F('//CIX//','//CJX//')'
+      CALL CONX(STRES2(ILOADX,J),STRES2A(ILOADX,J),STRES2F(ILOADX,J)
+     1,'maximum stress in material 2',
+     1 'maximum allowable stress in material 2',
+     1 'factor of safety for stress, matl 2',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in material 2: '
+         IENDP4 =32
+         CODNAM ='STRES2('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  625 CONTINUE
+  626 CONTINUE
+C
+C  Behavior and constraints generated next for STRES3:
+C  STRES3 = maximum stress in material 3
+C
+      IF (JSTRES1.EQ.0) GO TO 641
+      IF (NPRINX.GT.0) THEN
+         IF (JSTRES1.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'stress component number'
+         ENDIF
+      ENDIF
+      DO 640  J=1,JSTRES1
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in material 3'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      STRES3(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX4
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in material 3')
+      IF (STRES3(ILOADX,J).EQ.0.)  STRES3(ILOADX,J) = 1.E-10
+      IF (STRES3A(ILOADX,J).EQ.0.)  STRES3A(ILOADX,J) = 1.0
+      IF (STRES3F(ILOADX,J).EQ.0.)  STRES3F(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRES3(ILOADX,J)
+      WORDCX= '(STRES3A('//CIX//','//CJX//')/STRES3('//CIX//','//CJX//
+     1  ')) / STRES3F('//CIX//','//CJX//')'
+      CALL CONX(STRES3(ILOADX,J),STRES3A(ILOADX,J),STRES3F(ILOADX,J)
+     1,'maximum stress in material 3',
+     1 'maximum allowable stress in material 3',
+     1 'factor of safety for stress, matl 3',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in material 3: '
+         IENDP4 =32
+         CODNAM ='STRES3('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  640 CONTINUE
+  641 CONTINUE
+C
+C  Behavior and constraints generated next for COLBUK:
+C  COLBUK = buckling of a strut as a column
+C
+      IF (JCOLBUK.EQ.0) GO TO 661
+      IF (NPRINX.GT.0) THEN
+         IF (JCOLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'strut set number (1 for aft-most set)'
+         ENDIF
+      ENDIF
+      DO 660  J=1,JCOLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'buckling of a strut as a column'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      COLBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX5
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'buckling of a strut as a column')
+      IF (COLBUK(ILOADX,J).EQ.0.)  COLBUK(ILOADX,J) = 1.E+10
+      IF (COLBUKA(ILOADX,J).EQ.0.)  COLBUKA(ILOADX,J) = 1.0
+      IF (COLBUKF(ILOADX,J).EQ.0.)  COLBUKF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =COLBUK(ILOADX,J)
+      WORDCX= '(COLBUK('//CIX//','//CJX//')/COLBUKA('//CIX//','//CJX//
+     1  ')) / COLBUKF('//CIX//','//CJX//')'
+      CALL CONX(COLBUK(ILOADX,J),COLBUKA(ILOADX,J),COLBUKF(ILOADX,J)
+     1,'buckling of a strut as a column',
+     1 'allowable for column buckling of strut',
+     1 'factor of safety for Euler strut buckling',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling of a strut as a column: '
+         IENDP4 =35
+         CODNAM ='COLBUK('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  660 CONTINUE
+  661 CONTINUE
+C
+C  Behavior and constraints generated next for SHLBUK:
+C  SHLBUK = buckling of strut as a shell
+C
+      IF (JCOLBUK.EQ.0) GO TO 676
+      IF (NPRINX.GT.0) THEN
+         IF (JCOLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'strut set number (1 for aft-most set)'
+         ENDIF
+      ENDIF
+      DO 675  J=1,JCOLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'buckling of strut as a shell'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      SHLBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX6
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'buckling of strut as a shell')
+      IF (SHLBUK(ILOADX,J).EQ.0.)  SHLBUK(ILOADX,J) = 1.E+10
+      IF (SHLBUKA(ILOADX,J).EQ.0.)  SHLBUKA(ILOADX,J) = 1.0
+      IF (SHLBUKF(ILOADX,J).EQ.0.)  SHLBUKF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =SHLBUK(ILOADX,J)
+      WORDCX= '(SHLBUK('//CIX//','//CJX//')/SHLBUKA('//CIX//','//CJX//
+     1  ')) / SHLBUKF('//CIX//','//CJX//')'
+      CALL CONX(SHLBUK(ILOADX,J),SHLBUKA(ILOADX,J),SHLBUKF(ILOADX,J)
+     1,'buckling of strut as a shell',
+     1 'allowable for shell buckling of strut',
+     1 'factor of safety for shell buckling of strut',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling of strut as a shell: '
+         IENDP4 =32
+         CODNAM ='SHLBUK('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  675 CONTINUE
+  676 CONTINUE
+C
+C  Behavior and constraints generated next for FORCE:
+C  FORCE = launch-hold force in a strut
+C
+      IF (JCOLBUK.EQ.0) GO TO 691
+      IF (NPRINX.GT.0) THEN
+         IF (JCOLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'strut set number (1 for aft-most set)'
+         ENDIF
+      ENDIF
+      DO 690  J=1,JCOLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'launch-hold force in a strut'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      FORCE(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX7
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'launch-hold force in a strut')
+      IF (FORCE(ILOADX,J).EQ.0.)  FORCE(ILOADX,J) = 1.E-10
+      IF (FORCEA(ILOADX,J).EQ.0.)  FORCEA(ILOADX,J) = 1.0
+      IF (FORCEF(ILOADX,J).EQ.0.)  FORCEF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =FORCE(ILOADX,J)
+      WORDCX= '(FORCEA('//CIX//','//CJX//')/FORCE('//CIX//','//CJX//
+     1  ')) / FORCEF('//CIX//','//CJX//')'
+      CALL CONX(FORCE(ILOADX,J),FORCEA(ILOADX,J),FORCEF(ILOADX,J)
+     1,'launch-hold force in a strut',
+     1 'maximum allowable launch-hold force in strut',
+     1 'factor of safety for launch-hold force',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  launch-hold force in a strut: '
+         IENDP4 =32
+         CODNAM ='FORCE('//CIX//','//CJX//')'
+         MLET4 =5 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  690 CONTINUE
+  691 CONTINUE
+C
+C  Behavior and constraints generated next for TNKSTR:
+C  TNKSTR = maximum stress in the propellant tank
+C
+      IF (JCOLBUK.EQ.0) GO TO 706
+      IF (NPRINX.GT.0) THEN
+         IF (JCOLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'strut set number (1 for aft-most set)'
+         ENDIF
+      ENDIF
+      DO 705  J=1,JCOLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'maximum stress in the propellant tank'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      TNKSTR(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX8
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'maximum stress in the propellant tank')
+      IF (TNKSTR(ILOADX,J).EQ.0.)  TNKSTR(ILOADX,J) = 1.E-10
+      IF (TNKSTRA(ILOADX,J).EQ.0.)  TNKSTRA(ILOADX,J) = 1.0
+      IF (TNKSTRF(ILOADX,J).EQ.0.)  TNKSTRF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =TNKSTR(ILOADX,J)
+      WORDCX= '(TNKSTRA('//CIX//','//CJX//')/TNKSTR('//CIX//','//CJX//
+     1  ')) / TNKSTRF('//CIX//','//CJX//')'
+      CALL CONX(TNKSTR(ILOADX,J),TNKSTRA(ILOADX,J),TNKSTRF(ILOADX,J)
+     1,'maximum stress in the propellant tank',
+     1 'allowable for propellant tank stress',
+     1 'factor of safety for tank stress',
+     1 3,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in the propellant tank: '
+         IENDP4 =41
+         CODNAM ='TNKSTR('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  705 CONTINUE
+  706 CONTINUE
+C
+C  Behavior and constraints generated next for TNKBUK:
+C  TNKBUK = propellant tank buckling load factor
+C
+      IF (JCOLBUK.EQ.0) GO TO 721
+      IF (NPRINX.GT.0) THEN
+         IF (JCOLBUK.GT.1) THEN
+            WRITE(IFILE8,'(1X,A)')'  '
+            WRITE(IFILE8,'(1X,A,$)')' BEHAVIOR OVER J = '
+            WRITE(IFILE8,'(1X,A)')
+     1      'strut set number (1 for aft-most set)'
+         ENDIF
+      ENDIF
+      DO 720  J=1,JCOLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'propellant tank buckling load factor'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      TNKBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX9
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'propellant tank buckling load factor')
+      IF (TNKBUK(ILOADX,J).EQ.0.)  TNKBUK(ILOADX,J) = 1.E+10
+      IF (TNKBUKA(ILOADX,J).EQ.0.)  TNKBUKA(ILOADX,J) = 1.0
+      IF (TNKBUKF(ILOADX,J).EQ.0.)  TNKBUKF(ILOADX,J) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =TNKBUK(ILOADX,J)
+      WORDCX= '(TNKBUK('//CIX//','//CJX//')/TNKBUKA('//CIX//','//CJX//
+     1  ')) / TNKBUKF('//CIX//','//CJX//')'
+      CALL CONX(TNKBUK(ILOADX,J),TNKBUKA(ILOADX,J),TNKBUKF(ILOADX,J)
+     1,'propellant tank buckling load factor',
+     1 'allowable for propellant tank buckling',
+     1 'factor of safety for tank buckling',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  propellant tank buckling load factor: '
+         IENDP4 =40
+         CODNAM ='TNKBUK('//CIX//','//CJX//')'
+         MLET4 =6 + 7
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  720 CONTINUE
+  721 CONTINUE
+C
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'WGTxTOTMAS/TNKNRM +(1-WGT)xCONDCT/CONNRM')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN
+C
+      RETURN
+      END
+C
+C
+C
+C
+C
+C  End of the final portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C=DECK      TRANFR
+      SUBROUTINE TRANFR(ARG1,ARG2,ARG3,ARG4,ARG5)
+C
+C  USER:  DO NOT FORGET TO MODIFY THE ARGUMENT LIST OF TRANFR AS
+C         APPROPRIATE FOR YOUR CASE!
+C
+C  PURPOSE IS TO TRANSFER DATA FROM THE LABELLED COMMON BLOCKS
+C  SET UP BY THE GENOPT CODE TO LABELLED COMMON OR ARGUMENTS IN
+C  THE SUBROUTINE ARGUMENT LIST THAT MATCH PREVIOUSLY WRITTEN CODE
+C  BY YOURSELF OR OTHER PROGRAM DEVELOPERS.  THE USER SHOULD ESTABLISH
+C  THE ARGUMENT LIST AND/OR LABELLED COMMON BLOCKS THAT MATCH VARIABLES
+C  IN THE PREVIOUSLY WRITTEN CODE.  FOR AN EXAMPLE, SEE THE DISCUSSION
+C  OF THE CASE CALLED "PANEL".
+C
+C==========================================================================
+C  Start of part of TRANFR written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      REAL GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      COMMON/FV09/DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      REAL DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      COMMON/FV24/ZTANK(10),IZTANK
+      REAL ZTANK
+      COMMON/IV02/STRTYP(10)
+      INTEGER STRTYP
+      COMMON/IV03/NPAIRS(3 ),INPAIRS
+      INTEGER NPAIRS
+      COMMON/FV25/ZGRND(10),FITTNK(3 ),FEATNK(3 ),ALFITT(3 ),FITVEH(3 )
+      REAL ZGRND,FITTNK,FEATNK,ALFITT,FITVEH
+      COMMON/FV30/FEAVEH(3 ),ALFITV(3 ),ATANK(3 ),AGRND(3 ),IDTUBE(3 )
+      REAL FEAVEH,ALFITV,ATANK,AGRND,IDTUBE
+      COMMON/IV06/WALTYP(3 )
+      INTEGER WALTYP
+      COMMON/FV17/STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WEBHI
+      REAL STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WEBHI
+      COMMON/IV07/RNGTYP(3 )
+      INTEGER RNGTYP
+      COMMON/FV35/FACLEN(3 ),DTSUP(3 ),ODINNR(3 ),FLINNR(3 )
+      REAL FACLEN,DTSUP,ODINNR,FLINNR
+      COMMON/FV43/DUBAXL(3 ),IDUBAXL
+      REAL DUBAXL
+      COMMON/FV44/DUBTHK(3 ),TRNGTH(3 ),TRNGHI(3 ),TRNGE(3 ),ALRNGT(3 )
+      REAL DUBTHK,TRNGTH,TRNGHI,TRNGE,ALRNGT
+      COMMON/FV49/THICK(15),ITHICK
+      REAL THICK
+      COMMON/IV08/MATTYP(15)
+      INTEGER MATTYP
+      COMMON/IV09/LAYTYP(90,3 ),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/FV50/ANGLE(15)
+      REAL ANGLE
+      COMMON/FV51/E1(3 ),IE1
+      REAL E1
+      COMMON/FV52/E2(3 ),G12(3 ),NU(3 ),G13(3 ),G23(3 ),ALPHA1(3 )
+      REAL E2,G12,NU,G13,G23,ALPHA1
+      COMMON/FV58/ALPHA2(3 ),TEMTUR(3 ),COND1(3 ),COND2(3 ),DENSTY(3 )
+      REAL ALPHA2,TEMTUR,COND1,COND2,DENSTY
+      COMMON/FV66/PRESS(20)
+      REAL PRESS
+      COMMON/FV72/FREQ(20,4 ),JFREQ  ,FREQA(20,4 ),FREQF(20,4 )
+      REAL FREQ,FREQA,FREQF
+      COMMON/FV75/STRES1(20,6 ),JSTRES1,STRES1A(20,6 ),STRES1F(20,6 )
+      REAL STRES1,STRES1A,STRES1F
+      COMMON/FV78/STRES2(20,6 ),STRES2A(20,6 ),STRES2F(20,6 )
+      REAL STRES2,STRES2A,STRES2F
+      COMMON/FV81/STRES3(20,6 ),STRES3A(20,6 ),STRES3F(20,6 )
+      REAL STRES3,STRES3A,STRES3F
+      COMMON/FV84/COLBUK(20,3 ),JCOLBUK,COLBUKA(20,3 ),COLBUKF(20,3 )
+      REAL COLBUK,COLBUKA,COLBUKF
+      COMMON/FV87/SHLBUK(20,3 ),SHLBUKA(20,3 ),SHLBUKF(20,3 )
+      REAL SHLBUK,SHLBUKA,SHLBUKF
+      COMMON/FV90/FORCE(20,3 ),FORCEA(20,3 ),FORCEF(20,3 )
+      REAL FORCE,FORCEA,FORCEF
+      COMMON/FV93/TNKSTR(20,3 ),TNKSTRA(20,3 ),TNKSTRF(20,3 )
+      REAL TNKSTR,TNKSTRA,TNKSTRF
+      COMMON/FV96/TNKBUK(20,3 ),TNKBUKA(20,3 ),TNKBUKF(20,3 )
+      REAL TNKBUK,TNKBUKA,TNKBUKF
+      COMMON/IV01/IAXIS,NTUBES,ISTRUT,IPHASE
+      INTEGER IAXIS,NTUBES,ISTRUT,IPHASE
+      COMMON/FV40/WEBTHK,FLGHI,FLGTHK,WGT,TNKNRM,CONNRM,CONDCT
+      REAL WEBTHK,FLGHI,FLGTHK,WGT,TNKNRM,CONNRM,CONDCT
+      COMMON/FV67/GAXIAL(20),GLATRL(20),TNKCOOL(20)
+      REAL GAXIAL,GLATRL,TNKCOOL
+C
+C
+C  End of part of TRANFR written by "GENTEXT"
+C==========================================================================
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE NOW PERSUING.  MAKE SURE THERE ARE
+C  NO NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS.
+C
+C
+C  INSERT APPROPRIATE FORTRAN STATEMENTS HERE (DON'T FORGET TO CORRECT
+C  THE ARGUMENT LIST OF SUBROUTINE TRANFR!)
+C  PROGRAM FILE:
+C
+C
+      RETURN
+      END
+C
+C
+C

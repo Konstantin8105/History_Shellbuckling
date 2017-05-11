@@ -1,0 +1,812 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: PLATE
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called CONMIN, and was
+C written by G. Vanderplaats [1]. It is based on the method
+C of feasible directions [2].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although both example cases (See the files
+C        PLATE.CAS    and    PANEL.CAS)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "PLATE".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "PLATE" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [3 - 6]. That
+C        is, a typical runstream is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.
+ 
+C                     REFERENCES
+ 
+C [1] Vanderplaats, G. N., "CONMIN--a FORTRAN program for
+C constrained function minimization", NASA TM X 62-282,
+C version updated in March, 1975, Ames Research Center,
+C Moffett Field, CA (Aug.1973)
+ 
+C [2] Vanderplaats, G. N. and Moses, F., "Structural
+C optimization by methods of feasible directions", Computers
+C and Structures, Vol. 3, pp 739-755, 1973
+ 
+C [3] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [4] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [5] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [6] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+C     GETLIB       (GENOPT user generate a relocatable elemnt.)
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPTST.ORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (2 cases: PLATE.CAS, PANEL.CAS)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = PLATE)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "PLATE"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (PLATE.PRO)
+C==============================================================
+C    n   (   0,   0)    1      15   THICK   = thickness of the plate
+C    n   (   0,   0)    1      20   LENGTH  = Length of the plate
+C    n   (   0,   0)    1      25   WIDTH   = Width of the plate
+C    n   (   0,   0)    2      30   E       = Young's modulus of the plate mater
+C    n   (   0,   0)    2      35   NU      = Poisson's ratio of the plate mater
+C    n   (   0,   0)    2      40   RHO     = Weight density (e.g. lb/in**3) of
+C    n   (   0,   0)    2      50   IAOBAX  = Number of entries in the table of
+C    y   (  30,   0)    2      55   AOBAXL  = (plate length, LENGTH)/(plate widt
+C    y   (  30,   0)    2      60   KAXL    = Coefficient for buckling under uni
+C    n   (   0,   0)    2      70   IAOBSH  = Number of entries in the table of
+C    y   (  20,   0)    2      75   AOBSHR  = (plate length, LENGTH)/(plate widt
+C    y   (  20,   0)    2      80   KSHR    = Coefficient for buckling under uni
+C    n   (   0,   0)    2      90   NCASES  = Number of load cases (number of en
+C    y   (  20,   0)    3      95   Nx      = Axial tension per unit width of th
+C    y   (  20,   0)    3     100   Ny      = Transverse tension per unit length
+C    y   (  20,   0)    3     105   Nxy     = In-plane shear per unit edge lengt
+C    y   (  20,   0)    3     110   PRESS   = Uniform normal pressure on the pla
+C    y   (  20,   0)    4     120   STRESS  = Maximum effective (von Mises) stre
+C    y   (  20,   0)    5     125   MAXSTR  = Maximum effective (von Mises) stre
+C    y   (  20,   0)    6     130   FSTRES  = Factor of safety for effective str
+C    y   (  20,   0)    4     135   BUCKLE  = Buckling load factor
+C    y   (  20,   0)    5     140   MINBUC  = Minimum allowable buckling load fa
+C    y   (  20,   0)    6     145   FBUCKL  = Factor of safety for buckling load
+C    y   (  20,   0)    4     150   FREQ    = Fundamental frequency of unloaded
+C    y   (  20,   0)    5     155   MINCPS  = Minimum allowable value for the fu
+C    y   (  20,   0)    6     160   FSFREQ  = Factor of safety for FREQ
+C    y   (  20,   0)    4     165   W       = Normal deflection under uniform pr
+C    y   (  20,   0)    5     170   AW      = Maximum allowable normal deflectio
+C    y   (  20,   0)    6     175   FW      = Factor of safety for max deflectio
+C    n   (   0,   0)    7     185   WEIGHT  = Weight of the plate
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN Maximum effective (von Mises) stress
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRESS(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX  = ith LOADING COMBINATION
+C     PHRASE = Maximum effective (von Mises) stress
+C
+C   OUTPUT:
+C
+C     STRESS(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+      SA1 = Nx(ILOADX)/THICK
+      SB1 = Ny(ILOADX)/THICK
+      SAB = Nxy(ILOADX)/THICK
+      ALPHA = WIDTH/LENGTH
+C
+C  MAX. EFFECTIVE STRESS UNDER UNIFORM PRESSURE (LINEAR THEORY)
+C  (TAKEN FROM ROARK, 3RD EDITION, 1954, TABLE X, FORMULA 36, P. 203
+C   VALID FOR POISSON RATIO NU = 0.3)
+C
+      SA2 = (PRESS(ILOADX)*WIDTH**2/THICK**2)*(0.225 +0.382*ALPHA**2
+     1                                        -0.320*ALPHA**3)
+      SB2 = 0.75*PRESS(ILOADX)*WIDTH**2/
+     1               (THICK**2*(1. +1.61*ALPHA**3))
+C
+C  EFFECTIVE STRESS AT SURFACE WHERE PRESSURE IS APPLIED:
+C
+      SATOP = SA1 - SA2
+      SBTOP = SB1 - SB2
+      SEFTOP= SQRT(SATOP**2 +SBTOP**2 - SATOP*SBTOP +3.*SAB**2)
+C
+C  EFFECTIVE STRESS AT OPPOSITE SURFACE:
+C
+      SABOT = SA1 + SA2
+      SBBOT = SB1 + SB2
+      SEFBOT= SQRT(SABOT**2 +SBBOT**2 - SABOT*SBBOT +3.*SAB**2)
+C
+      STRESS(ILOADX) = MAX(SEFTOP,SEFBOT)
+C
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN Buckling load factor
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     BUCKLE(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX  = ith LOADING COMBINATION
+C     PHRASE = Buckling load factor
+C
+C   OUTPUT:
+C
+C     BUCKLE(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+C
+      BUCKLE(ILOADX) = 0.
+C
+      GO TO (10,20,30), ILOADX
+C
+   10 CONTINUE
+C
+C  BUCKLING LOAD FACTOR UNDER UNIFORM AXIAL COMPRESSION, Nx:
+C  TAKEN FROM ROARK, 3RD EDITION, 1954, TABLE XVI, FORMULA 1, P. 312
+C
+      CALL INTERP(IFILE,IAOBAX,AOBAXL,KAXL,LENGTH/WIDTH,COEFAX)
+C     WRITE(6,*)' COEFAX,LENGTH/WIDTH =',COEFAX,LENGTH/WIDTH
+      IF (Nx(ILOADX).LT.0.)
+     1 BUCKLE(ILOADX) =(COEFAX*(E*THICK/(1.-NU**2))*(THICK/WIDTH)**2)/
+     1 ABS(Nx(ILOADX))
+      GO TO 50
+C
+   20 CONTINUE
+C
+C  BUCKLING UNDER UNIFORM IN-PLANE SHEAR, Nxy:
+C  AGAIN, TAKEN FROM ROARK, 3RD EDITION, TABLE XVI, FORMULA 10, P. 313
+C
+      CALL INTERP(IFILE,IAOBSH,AOBSHR,KSHR,LENGTH/WIDTH,COEFSH)
+C     WRITE(6,*)' COEFSH,LENGTH/WIDTH =',COEFSH,LENGTH/WIDTH
+      IF (Nxy(ILOADX).NE.0.)
+     1 BUCKLE(ILOADX)=(COEFSH*(E*THICK/(1.-NU**2))*(THICK/WIDTH)**2)/
+     1 ABS(Nxy(ILOADX))
+      GO TO 50
+C
+   30 CONTINUE
+C
+C  THERE IS NO BUCKLING UNDER UNIFORM NORMAL PRESSURE.
+C
+   50 CONTINUE
+C
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN Fundamental frequency of unloaded plate
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     FREQ(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX  = ith LOADING COMBINATION
+C     PHRASE = Fundamental frequency of unloaded plate
+C
+C   OUTPUT:
+C
+C     FREQ(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+C
+      FREQ(ILOADX) = 0.
+C
+      GO TO (50,50,30),ILOADX
+C
+C  FIND FUNDAMENTAL NATURAL FREQUENCY FOR UNLOADED PLATE.
+C  THE VALUE ESTABLISHED FOR ILOADX = 3 IGNORES THE EFFECT OF ANY TENSION
+C  THAT MAY DEVELOP IN THE PLATE WHEN IT IS LOADED BY NORMAL
+C  PRESSURE.  NO FREQUENCIES ARE CALCULATED FOR THE PLATE AS
+C  LOADED AXIALLY (LOAD CASE 1) OR IN UNIFORM IN-PLANE SHEAR
+C  (LOAD CASE 2).
+C
+   30 CONTINUE
+      D = E*THICK**3/(12.*(1.-NU**2))
+      DMASS = RHO/386.4
+      PI = 3.1415927
+C
+C  CALCULATE FUNDAMENTAL FREQUENCY IN CPS, NOT RADIANS/SECOND:
+C  TAKEN FROM LEISSA, "VIBRATION OF PLATES", NASA SP-160, P. 44, 
+C  EQ. 4.20:
+C
+      FREQ(ILOADX)
+     1       = SQRT(D/DMASS)*((1./LENGTH)**2 + (1./WIDTH)**2)*.5*PI
+C
+   50 CONTINUE
+C
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX4
+      SUBROUTINE BEHX4
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN Normal deflection under uniform pressure
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     W(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX  = ith LOADING COMBINATION
+C     PHRASE = Normal deflection under uniform pressure
+C
+C   OUTPUT:
+C
+C     W(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+C
+C  AS WITH THE VIBRATION OF THE UNLOADED PLATE, HERE WE ARE
+C  NOT CONCERNED WITH THE NORMAL DEFLECTION UNDER AXIAL COMPRESSION
+C  (Nx, ILOADX=1) OR UNDER UNIFORM IN-PLANE SHEAR (Nxy, ILOADX=2).
+C
+       W(ILOADX) = 0
+       GO TO (50,50,30),ILOADX
+C
+   30 CONTINUE
+C
+C  TAKEN FROM ROARK, 3RD EDITION, TABLE X, FORMULA 36, P. 203, 1954:
+C
+      W(ILOADX) = .1422*PRESS(ILOADX)*WIDTH**4/
+     1          (E*THICK**3*(1. +2.21*(WIDTH/LENGTH)**3))
+C
+   50 CONTINUE
+C
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1    WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDCX
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:Weight of the plate
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = Weight of the plate
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV07/AOBAXL(30),IAOBAX
+      REAL AOBAXL
+      COMMON/FV08/KAXL(30)
+      REAL KAXL
+      COMMON/FV09/AOBSHR(20),IAOBSH
+      REAL AOBSHR
+      COMMON/FV10/KSHR(20)
+      REAL KSHR
+      COMMON/FV11/Nx(20)
+      REAL Nx
+      COMMON/FV17/STRESS(20),MAXSTR(20),FSTRES(20)
+      REAL STRESS,MAXSTR,FSTRES
+      COMMON/FV20/BUCKLE(20),MINBUC(20),FBUCKL(20)
+      REAL BUCKLE,MINBUC,FBUCKL
+      COMMON/FV23/FREQ(20),MINCPS(20),FSFREQ(20)
+      REAL FREQ,MINCPS,FSFREQ
+      COMMON/FV26/W(20),AW(20),FW(20)
+      REAL W,AW,FW
+      COMMON/FV01/THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      REAL THICK,LENGTH,WIDTH,E,NU,RHO,WEIGHT
+      COMMON/FV12/Ny(20),Nxy(20),PRESS(20)
+      REAL Ny,Nxy,PRESS
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C  CALCULATE THE WEIGHT OF THE RECTANGULAR PLATE...
+C
+      WEIGHT = RHO*LENGTH*WIDTH*THICK
+C
+      OBJGEN =WEIGHT 
+C
+C
+      RETURN
+      END
+C
+C
+C

@@ -1,0 +1,1095 @@
+C=DECK      STORE
+      PROGRAM STORE
+C
+C  GENOPT "STORE"
+C  PURPOSE IS TO READ DATA FROM LAST SET OF DESIGN ITERATIONS
+C  AND TO ADD DESIGN PARAMETERS V. ITERATIONS AND MARGINS V. ITERATIONS
+C  AND OBJECT V. ITERATIONS TO THE CORRESPONDING DATA ACCUMULATED
+C  FROM PREVIOUS SETS OF DESIGN ITERATIONS.
+C
+C BEG SEP 2013
+      COMMON/IAUTOG/IAUTOF
+C END SEP 2013
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDCC(99),WORDD(98)
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      COMMON/NUMPAR/IPAR,NVAR,IALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/NUMPR2/ILAR,NCAR,IOAR,IFLAT,NCASES,NPRINT
+      COMMON/WORDS5/PCWORD(99)
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+C BEG JULY 2013
+      COMMON/ITERX/ITERS,ITIGHTS,ITERCHG,ITERNEW,ITRCHG2,ITRCHG3
+C END JULY 2013
+C BEG NOV 2005
+C BEG JAN 2006
+      COMMON/ISKIPX/ISKIP(30)
+C END JAN 2006
+      COMMON/GRADMZ/GRADMX(30)
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+      DIMENSION ILINE2(500)
+      DIMENSION IGOOD(500),OBJIVE(500),DWORDM(500)
+      DIMENSION VARBST(100),MARBST(100)
+      DIMENSION IGOOD1(500),OBJVE1(500),VARBS1(100),MARBS1(100)
+      DIMENSION IGOOD2(500),OBJVE2(500),VARBS2(100),MARBS2(100)
+      DIMENSION IGOOD3(500),OBJVE3(500),VARBS3(100),MARBS3(100)
+      DIMENSION IGOOD4(500),OBJVE4(500),VARBS4(100),MARBS4(100)
+      DIMENSION IGOOD5(500),OBJVE5(500),VARBS5(100),MARBS5(100)
+      REAL MARBST,MARBS1,MARBS2,MARBS3,MARBS4,MARBS5
+C END NOV 2005
+C BEG JAN 1998
+      DIMENSION ILINE(500),ISUB(100)
+C BEG FEB 2012
+      COMMON/ADDRSS/IADDV(98),IADDP(99),IADDA(99),IADDC(99),IADDD(98)
+C END FEB 2012
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+C BEG AUG 2009
+      COMMON/PARAM2/FLAR(98),CAR(99),OAR(98),FSAFE(99),CPWR(98,45)
+      COMMON/LWRUPR/VARLOW(98),VARHI(98),CLINK(98,45),VLINK(98),VBV(99)
+      COMMON/OPTVAR/IDV(98),ILV(98),IDLINK(98,45),ISCAPE(98),JTERMS(45)
+C END AUG 2009
+      DIMENSION VUB(98),VLB(98),X(98)
+      CHARACTER*80 DWORDM,DWRDM
+      COMMON/ITRSNX/ITRSEN,ITRALL,IRESET
+C END JAN 1998
+      DIMENSION CCPLOT(500), DDPLOT(500), OBJPLT(500),DWORD(500)
+C BEG NOV 2005
+      DIMENSION GRDPLT(500)
+C END NOV 2005
+      DIMENSION IACTIV(500)
+      CHARACTER*15 DWORD
+C BEG OCT 2005
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2, CASE3, CASE7, CASE8
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2, CASE3, CASE7, CASE8
+C END OCT 2005
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDCC,WORDD
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS,PCWORD
+      CHARACTER*72 ARGSTR
+
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      IUNAME = 12
+      OPEN(UNIT=12,STATUS='OLD')
+      CALL CASSPC(IUNAME,CASE)
+      CLOSE(IUNAME)
+      I=INDEX(CASE,' ')
+C BEG DEC 1990
+      IF(I.NE.0) THEN
+         CASE3=CASE(:I-1)//'.PL2'
+         CASE7=CASE(:I-1)//'.CBL'
+         CASE8=CASE(:I-1)//'.OPP'
+      ELSE
+         CASE3=CASE//'.PL2'
+         CASE7=CASE//'.CBL'
+         CASE8=CASE//'.OPP'
+      ENDIF
+C END DEC 1990
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28
+C END OCT 2005
+C
+      IFILE2 = 2
+      IFILE3 = 3
+      IFILE7 = 7
+      IFILE8 = 8
+C BEG DEC 1990
+      OPEN(UNIT=3,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=7,FILE=CASE7,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE8,STATUS='UNKNOWN')
+      CALL GETCOM(IFILE7)
+      IF (ITYPE.EQ.2) stop
+      IF(I.NE.0) THEN
+         IF (ITYPE.EQ.1) CASE2=CASE(:I-1)//'.PL1'
+      ELSE
+         IF (ITYPE.EQ.1) CASE2=CASE//'.PL1'
+      ENDIF
+      if (ITYPE .eq. 1)
+     1 OPEN(UNIT=2,FILE=CASE2,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C
+C BEG SEP 2013
+C BEG FEB 2014
+      WRITE(IFILE8,'(A)')
+     1' ************ February, 2014 VERSION OF GENOPT *************'
+C END FEB 2014
+C END SEP 2013
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPP FILE ******************'
+C END JULY 1989
+      WRITE(IFILE8,4) CASE(1:NLET),CASE(1:NLET)
+    4 FORMAT(/
+     1' *********************** STORE PROCESSOR **********************'/
+     1' The purpose of STORE is to add the latest results for'/
+     1' margins, design variables, and objective to those for previous'/
+     1' iterations for the specific case called ',A,'.  Later, when'/
+     1' the final design has been obtained, the entire history of the'/
+     1' design evolution for the specific case ',A,' can be plotted.'/
+     1' ************************************************************'/)
+C
+C BEG DEC 1990
+C BEG FEB 1998
+C     IF (ITYPE.NE.3) ITRALL = ITRTOT
+      IF (ITYPE.EQ.3) ITRTOT = ITRSEN
+      ITER1  = ITER + 1
+      ITRLST = ITRTOT - ITER1
+C END FEB 1998
+C BEG JULY 2013
+      IF (ITYPE.EQ.1.AND.ITRLST.LE.1) THEN
+         ITERS = ITER
+         ITIGHTS = ITIGHT
+         ITERCHG = 0
+         ITRCHG2 = 0
+         ITRCHG3 = 0
+      ENDIF
+C END JULY 2013
+C BEG JULY 2011
+      ITERUP = ITER1
+      IF (ITYPE.EQ.1.AND.ITRTOT.GT.470.AND.ITRLST.LT.ITRTOT) THEN
+         ITRTOT = 471
+         ITERUP = 471 - ITRLST
+C BEG AUG 2011 (comment out the following statement)
+C        ITRALL = ITRTOT
+C END AUG 2011
+      ENDIF
+C END JULY 2011
+C BEG MAY 2006
+      IF (ITRLST.EQ.0) THEN
+C BEG SEP 2013
+         ITIGHT = 0
+C END SEP 2013
+         IITIGH(1) = 0
+         IITIGH(2) = 0
+         IITIGH(3) = 0
+         ITRMIN(1) = 100000
+         ITRMIN(2) = 100000
+         ITRMIN(3) = 100000
+      ENDIF
+      WRITE(IFILE8,*) ' IAUTOC,ITIGHT,IDESGN,ITRLST,ITRTOT,ITRALL=',
+     1                  IAUTOC,ITIGHT,IDESGN,ITRLST,ITRTOT,ITRALL
+      WRITE(IFILE8,*) ' IITIGH(i),i=1,3=',(IITIGH(I),I=1,3)
+      WRITE(IFILE8,*) ' ITRMIN(i),i=1,3=',(ITRMIN(I),I=1,3)
+C END MAY 2006
+C END DEC 1990
+      REWIND IFILE2
+      REWIND IFILE3
+C BEG DEC 1997
+      CALL MOVER(0,0,ILINE,1,500)
+C BEG NOV 2005
+      CALL MOVER(0,0,ILINE2,1,500)
+C END NOV 2005
+C BEG JAN 1998
+      IRESET = 0
+      WRITE(IFILE8,'(A,A,A,2I5,/)') 
+     1  ' casename=',CASE(1:NLET),': ITER, ITRLST=',ITER,ITRLST 
+C END JAN 1998
+      IF (ITRLST.GT.0) READ(IFILE2) (ILINE(I),I=1,ITRLST)
+      IF (ITYPE.EQ.1) ILINE(ITRLST+1) = 1
+      WRITE(IFILE3) (ILINE(I), I=1,ITRTOT)
+C BEG NOV 2005
+      IF (ITRLST.GT.0) READ(IFILE2) (ILINE2(I),I=1,ITRLST)
+      IF (ITYPE.EQ.1.AND.IAUTOC.EQ.1) ILINE2(ITRLST+1) = 1
+      WRITE(IFILE3) (ILINE2(I), I=1,ITRTOT)
+C END NOV 2005
+C END DEC 1997
+C BEG JAN 1998
+      IF (ITYPE.EQ.1) THEN
+C BEG NOV 2005
+         IF (ITRTOT.GT.500) THEN
+         WRITE(IFILE8,*)' TOTAL NUMBER OF ITERATIONS CANNOT EXCEED 500'
+C END NOV 2005
+         WRITE(IFILE8,*)' USE CHOOSEPLOT NOW TO GET ALL PLOTS YOU NEED'
+         WRITE(IFILE8,*)' OF OBJECTIVE, DESIGN VARIABLES, AND MARGINS.'
+         WRITE(IFILE8,*)' TOTAL NUMBER OF ITERATIONS, ITRTOT, WILL BE'
+         WRITE(IFILE8,*)' RESET TO ZERO AFTER YOUR NEXT USE OF'
+         WRITE(IFILE8,*)' CHOOSEPLOT AND DIPLOT.'
+         IRESET = 1
+         ENDIF
+      ENDIF
+C END JAN 1998
+C
+C  FIRST, ADD TO THE COLLECTION OF MARGINS...
+C
+      WRITE(IFILE8,5) ITRTOT
+    5 FORMAT(/' *********** MARGINS FOR ',I3,' ITERATIONS **********')
+      DO 8 I = 1,ITRTOT
+      IACTIV(I) = 0
+    8 DWORD(I) = '    FEASIBLE   '
+      DO 20 ICAR = 1,NCAR
+        IF (ITRLST.GT.0) READ(IFILE2) (CCPLOT(I), I=1,ITRLST)
+C BEG JULY 2011
+C       DO 10 I = 1,ITER1
+        DO 10 I = 1,ITERUP
+C END JULY 2011
+           ITERP = ITRLST + I
+           CCPLOT(ITERP) = CPLOT(ICAR,I)
+C BEG JAN 2006
+           IF (ISKIP(I).EQ.1) DWORD(ITERP) = ' NOT FEASIBLE  '
+C END JAN 2006
+   10   CONTINUE
+        WRITE(IFILE3) (CCPLOT(I), I=1,ITRTOT)
+        CALL BLANKX(PCWORD(ICAR),IEND)
+        WRITE(IFILE8,15) PCWORD(ICAR)(1:IEND),(CCPLOT(I),I=1,ITRTOT)
+   15   FORMAT(1X,A,' = '/(1P10E12.4))
+        DO 17 I = 1,ITRTOT
+           IF (CCPLOT(I).LT.0.05) IACTIV(I) = IACTIV(I) + 1
+           IF (DWORD(I).EQ.' NOT FEASIBLE  ') GO TO 17
+C BEG NOV 2005
+           IF (CCPLOT(I).LE.-0.20) DWORD(I) = ' NOT FEASIBLE  '
+           IF (DWORD(I).EQ.'MOSTLY UNFEASIB') GO TO 17
+           IF (CCPLOT(I).GT.-0.20.AND.CCPLOT(I).LE.-0.15)
+     1                             DWORD(I) = 'MOSTLY UNFEASIB'
+           IF (DWORD(I).EQ.'MORE UNFEASIBLE') GO TO 17
+           IF (CCPLOT(I).GT.-0.15.AND.CCPLOT(I).LE.-0.10)
+     1                             DWORD(I) = 'MORE UNFEASIBLE'
+           IF (DWORD(I).EQ.'MILDLY UNFEASIB') GO TO 17
+           IF (CCPLOT(I).GT.-0.10.AND.CCPLOT(I).LE.-0.05)
+     1                             DWORD(I) = 'MILDLY UNFEASIB'
+C END NOV 2005
+           IF (CCPLOT(I).GT.-0.05.AND.CCPLOT(I).LT.-0.01)
+     1                             DWORD(I) = 'ALMOST FEASIBLE'
+   17   CONTINUE
+   20 CONTINUE
+C
+C  NEXT, ADD TO THE COLLECTION OF DESIGN VARIABLES...
+C
+      WRITE(IFILE8,25) ITRTOT
+   25 FORMAT(/' ****** DESIGN VARIABLES FOR ',I3,' ITERATIONS ******')
+      DO 40 IVAR = 1,NVAR
+        IF (ITRLST.GT.0) READ(IFILE2) (DDPLOT(I), I=1,ITRLST)
+C BEG JULY 2011
+C       DO 30 I = 1,ITER1
+        DO 30 I = 1,ITERUP
+C END JULY 2011
+           ITERP = ITRLST + I
+           DDPLOT(ITERP) = DPLOT(IVAR,I)
+   30   CONTINUE
+        WRITE(IFILE3) (DDPLOT(I), I=1,ITRTOT)
+        CALL BLANKX(WORDV(IVAR),IEND)
+        WRITE(IFILE8,15) WORDV(IVAR)(1:IEND),(DDPLOT(I),I=1,ITRTOT)
+   40 CONTINUE
+C
+C  NEXT, ADD TO THE COLLECTION OF OBJECTIVES...
+C
+      WRITE(IFILE8,45) ITRTOT
+   45 FORMAT(/' ********** OBJECTIVE FOR ',I3,' ITERATIONS *********')
+      IF (ITRLST.GT.0) READ(IFILE2) (OBJPLT(I), I=1,ITRLST)
+C BEG NOV 2005
+      IF (ITRLST.GT.0) READ(IFILE2) (GRDPLT(I), I=1,ITRLST)
+C END NOV 2005
+C BEG JULY 2011
+C     DO 50 I = 1,ITER1
+      DO 50 I = 1,ITERUP
+C END JULY 2011
+         ITERP = ITRLST + I
+         OBJPLT(ITERP) = OBPLOT(I)
+C BEG NOV 2005
+         GRDPLT(ITERP) = GRADMX(I)
+C END NOV 2005
+   50 CONTINUE
+      WRITE(IFILE3) (OBJPLT(I), I=1,ITRTOT)
+C BEG NOV 2005
+      WRITE(IFILE3) (GRDPLT(I), I=1,ITRTOT)
+C END NOV 2005
+      CALL BLANKX(WORDOB(1),IEND)
+      WRITE(IFILE8,15) WORDOB(1)(1:IEND),(OBJPLT(I),I=1,ITRTOT)
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFILE8,15)
+     1' Absolute values of maximum constraint gradients, GRDPLT',
+     1 (GRDPLT(I),I=1,ITRTOT)
+C END NOV 2005
+C BEG JAN 1998
+      IF (ITYPE.EQ.1) THEN
+C   COPY .PL2 TO .PL1 FOR OPTIMIZATION (ITYPE=1) RUN...
+         REWIND IFILE2
+         REWIND IFILE3
+         READ(IFILE3)  (ILINE(I), I=1,ITRTOT)
+         WRITE(IFILE2) (ILINE(I), I=1,ITRTOT)
+C BEG NOV 2005
+         READ(IFILE3)  (ILINE2(I), I=1,ITRTOT)
+         WRITE(IFILE2) (ILINE2(I), I=1,ITRTOT)
+C END NOV 2005
+         DO 51 ICAR = 1,NCAR
+            READ(IFILE3)  (CCPLOT(I), I=1,ITRTOT)
+            WRITE(IFILE2) (CCPLOT(I), I=1,ITRTOT)
+   51    CONTINUE
+C
+         DO 52 IVAR = 1,NVAR
+            READ(IFILE3)  (DDPLOT(I),I=1,ITRTOT)
+            WRITE(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+   52    CONTINUE
+         READ(IFILE3)  (OBJPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (OBJPLT(I),I=1,ITRTOT)
+C BEG NOV 2005
+         READ(IFILE3)  (GRDPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2) (GRDPLT(I),I=1,ITRTOT)
+C END NOV 2005
+      ENDIF
+C END JAN 1998
+C
+C BEG FEB 1998
+      IF (ITYPE.EQ.1.OR.ITYPE.EQ.3) THEN
+         IF (ITYPE.EQ.1) WRITE(IFILE8,60)
+C END FEB 1998
+   60    FORMAT(/ 
+     1' =============================================================='/
+     1' ITERATION                                        NUMBER OF'/
+     1'  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS'/
+     1' --------------------------------------------------------------')
+         IF (ITYPE.EQ.3) WRITE(IFILE8,61)
+   61    FORMAT(/ 
+     1' =============================================================='/
+     1' INCREMENT                                        NUMBER OF'/
+     1'  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS'/
+     1' --------------------------------------------------------------')
+C BEG NOV 2005
+         OBJMN0 = 10.E+25
+         OBJMN1 = 10.E+25
+         OBJMN2 = 10.E+25
+         OBJMN3 = 10.E+25
+         OBJMN4 = 10.E+25
+         OBJMN5 = 10.E+25
+C
+         KOUNT  = 0
+         KOUNT1 = 0
+         DO 66 I = 1,ITRTOT
+C BEG FEB 2014
+            IF (OBJPLT(I).EQ.0.0) GO TO 66
+C END FEB 2014
+            IF (ILINE2(I).EQ.1) WRITE(IFILE8,63)
+            IF (ILINE(I).EQ.1) WRITE(IFILE8,64) 
+   63          FORMAT(
+     1' ----------------------------------------------------AUTOCHANGE')
+   64          FORMAT(
+     1' ------------------------------------------------------OPTIMIZE')
+            WRITE(IFILE8,65) I,OBJPLT(I),DWORD(I),IACTIV(I)
+   65       FORMAT(I6,7X,1PE12.4,5X,A,8X,I2)
+            IF (ITYPE.EQ.1.AND.DWORD(I).NE.' NOT FEASIBLE  ') THEN
+               IF (KOUNT.EQ.0) OBJMN0 = OBJPLT(I)
+               KOUNT = KOUNT + 1
+               IGOOD(KOUNT) = I
+               OBJIVE(KOUNT) = OBJPLT(I)
+               DWORDM(KOUNT) = DWORD(I)
+               OBJMN0 = MIN(OBJMN0,OBJIVE(KOUNT))
+            ENDIF
+C
+            IF (ITYPE.EQ.1.AND.DWORD(I).EQ.'    FEASIBLE   ') THEN
+               IF (KOUNT1.EQ.0) OBJMN1 = OBJPLT(I)
+               KOUNT1 = KOUNT1 + 1
+               IGOOD1(KOUNT1) = I
+               OBJVE1(KOUNT1) = OBJPLT(I)
+               OBJMN1 = MIN(OBJMN1,OBJVE1(KOUNT1))
+            ENDIF
+   66    CONTINUE
+      ENDIF
+C     End of (ITYPE.EQ.1.OR.ITYPE.EQ.3) condition
+C
+      WRITE(IFILE8,660)
+  660 FORMAT(
+     1' ================================================================
+     1=============')
+C
+      IF (ITYPE.EQ.1.AND.KOUNT.GT.0) THEN
+C
+         DO 658 I = 1,KOUNT
+            DIF = ABS(OBJIVE(I) - OBJMN0)/OBJMN0
+            IF (DIF.LT.0.00001) THEN
+               IBEST = IGOOD(I)
+               DWRDM = DWORDM(I)
+               GO TO 659
+            ENDIF
+  658    CONTINUE
+  659    CONTINUE
+C
+         IF (KOUNT1.GT.0) THEN
+            DO 662 I = 1,KOUNT1
+               DIF = ABS(OBJVE1(I) - OBJMN1)/OBJMN1
+               IF (DIF.LT.0.00001) THEN
+                  IBEST1 = IGOOD1(I)
+                  GO TO 663
+               ENDIF
+  662       CONTINUE
+  663       CONTINUE
+         ENDIF
+C
+         KOUNT2 = 0
+         DO 665 I = 1,ITRTOT
+C BEG FEB 2014
+            IF (OBJPLT(I).EQ.0.0) GO TO 665
+C END FEB 2014
+            IF (DWORD(I).EQ.'ALMOST FEASIBLE') THEN
+               IF (KOUNT2.EQ.0) OBJMN2 = OBJPLT(I)
+               KOUNT2 = KOUNT2 + 1
+               IGOOD2(KOUNT2) = I
+               OBJVE2(KOUNT2) = OBJPLT(I)
+               OBJMN2 = MIN(OBJMN2,OBJPLT(I))
+            ENDIF
+  665    CONTINUE
+         IF (KOUNT2.GT.0) THEN
+            DO 666 I = 1,KOUNT2
+               DIF = ABS(OBJVE2(I) - OBJMN2)/OBJMN2
+               IF (DIF.LT.0.00001) THEN
+                  IBEST2 = IGOOD2(I)
+                  GO TO 667
+               ENDIF
+  666       CONTINUE
+  667       CONTINUE
+         ENDIF
+C
+         KOUNT3 = 0
+         DO 669 I = 1,ITRTOT
+C BEG FEB 2014
+            IF (OBJPLT(I).EQ.0.0) GO TO 669
+C END FEB 2014
+            IF (DWORD(I).EQ.'MILDLY UNFEASIB') THEN
+               IF (KOUNT3.EQ.0) OBJMN3 = OBJPLT(I)
+               KOUNT3 = KOUNT3 + 1
+               IGOOD3(KOUNT3) = I
+               OBJVE3(KOUNT3) = OBJPLT(I)
+               OBJMN3 = MIN(OBJMN3,OBJPLT(I))
+            ENDIF
+  669    CONTINUE
+         IF (KOUNT3.GT.0) THEN
+            DO 670 I = 1,KOUNT3
+               DIF = ABS(OBJVE3(I) - OBJMN3)/OBJMN3
+               IF (DIF.LT.0.00001) THEN
+                  IBEST3 = IGOOD3(I)
+                  GO TO 671
+               ENDIF
+  670       CONTINUE
+  671       CONTINUE
+         ENDIF
+C
+         KOUNT4 = 0
+         DO 675 I = 1,ITRTOT
+C BEG FEB 2014
+            IF (OBJPLT(I).EQ.0.0) GO TO 675
+C END FEB 2014
+            IF (DWORD(I).EQ.'MORE UNFEASIBLE') THEN
+               IF (KOUNT4.EQ.0) OBJMN4 = OBJPLT(I)
+               KOUNT4 = KOUNT4 + 1
+               IGOOD4(KOUNT4) = I
+               OBJVE4(KOUNT4) = OBJPLT(I)
+               OBJMN4 = MIN(OBJMN4,OBJPLT(I))
+            ENDIF
+  675    CONTINUE
+         IF (KOUNT4.GT.0) THEN
+            DO 676 I = 1,KOUNT4
+               DIF = ABS(OBJVE4(I) - OBJMN4)/OBJMN4
+               IF (DIF.LT.0.00001) THEN
+                  IBEST4 = IGOOD4(I)
+                  GO TO 677
+               ENDIF
+  676       CONTINUE
+  677       CONTINUE
+         ENDIF
+C
+         KOUNT5 = 0
+         DO 682 I = 1,ITRTOT
+C BEG FEB 2014
+            IF (OBJPLT(I).EQ.0.0) GO TO 682
+C END FEB 2014
+            IF (DWORD(I).EQ.'MOSTLY UNFEASIB') THEN
+               IF (KOUNT5.EQ.0) OBJMN5 = OBJPLT(I)
+               KOUNT5 = KOUNT5 + 1
+               IGOOD5(KOUNT5) = I
+               OBJVE5(KOUNT5) = OBJPLT(I)
+               OBJMN5 = MIN(OBJMN5,OBJPLT(I))
+            ENDIF
+  682    CONTINUE
+         IF (KOUNT5.GT.0) THEN
+            DO 684 I = 1,KOUNT5
+               DIF = ABS(OBJVE5(I) - OBJMN5)/OBJMN5
+               IF (DIF.LT.0.00001) THEN
+                  IBEST5 = IGOOD5(I)
+                  GO TO 685
+               ENDIF
+  684       CONTINUE
+  685       CONTINUE
+         ENDIF
+C
+         CALL MOVER (0.,0,VARBST,1,100)
+         CALL MOVER (0.,0,VARBS1,1,100)
+         CALL MOVER (0.,0,VARBS2,1,100)
+         CALL MOVER (0.,0,VARBS3,1,100)
+         CALL MOVER (0.,0,VARBS4,1,100)
+         CALL MOVER (0.,0,VARBS5,1,100)
+         CALL MOVER (0.,0,MARBST,1,100)
+         CALL MOVER (0.,0,MARBS1,1,100)
+         CALL MOVER (0.,0,MARBS2,1,100)
+         CALL MOVER (0.,0,MARBS3,1,100)
+         CALL MOVER (0.,0,MARBS4,1,100)
+         CALL MOVER (0.,0,MARBS5,1,100)
+C
+         REWIND IFILE2
+         READ(IFILE2)  (ILINE(I), I=1,ITRTOT)
+         READ(IFILE2)  (ILINE2(I), I=1,ITRTOT)
+         DO 690 ICAR = 1,NCAR
+            READ(IFILE2)  (CCPLOT(I), I=1,ITRTOT)
+            IF (KOUNT1.GT.0) MARBS1(ICAR) = CCPLOT(IBEST1)
+            IF (KOUNT2.GT.0) MARBS2(ICAR) = CCPLOT(IBEST2)
+            IF (KOUNT3.GT.0) MARBS3(ICAR) = CCPLOT(IBEST3)
+            IF (KOUNT4.GT.0) MARBS4(ICAR) = CCPLOT(IBEST4)
+            IF (KOUNT5.GT.0) MARBS5(ICAR) = CCPLOT(IBEST5)
+  690    CONTINUE
+         DO 692 IVAR = 1,NVAR
+            READ(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+            IF (KOUNT1.GT.0) VARBS1(IVAR) = DDPLOT(IBEST1)
+            IF (KOUNT2.GT.0) VARBS2(IVAR) = DDPLOT(IBEST2)
+            IF (KOUNT3.GT.0) VARBS3(IVAR) = DDPLOT(IBEST3)
+            IF (KOUNT4.GT.0) VARBS4(IVAR) = DDPLOT(IBEST4)
+            IF (KOUNT5.GT.0) VARBS5(IVAR) = DDPLOT(IBEST5)
+  692    CONTINUE
+C
+         OBJBST = 10.E+25
+         GO TO (710,720,730,740,750), IDESGN
+  710    CONTINUE
+C      Only the best FEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0) THEN
+            CALL MOVER(VARBS1,1,VARBST,1,100)
+            CALL MOVER(MARBS1,1,MARBST,1,100)
+            OBJBST = OBJMN1
+         ENDIF
+         GO TO 760
+  720    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0) THEN
+            IF (OBJMN2.LT.OBJMN1) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               CALL MOVER(MARBS2,1,MARBST,1,100)
+               OBJBST = OBJMN2
+            ELSE
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               CALL MOVER(MARBS1,1,MARBST,1,100)
+               OBJBST = OBJMN1
+            ENDIF
+C BEG JULY 2013
+            ITER = ITERS
+            ITERNEW = ITER
+            IF (IITIGH(1).EQ.0.AND.IITIGH(2).EQ.0.AND.IITIGH(3).EQ.0)
+     1       ITIGHT = ITIGHTS
+            WRITE(IFILE8,'(A,/,5I5)')
+     1    ' KOUNT1,KOUNT2,KOUNT3,KOUNT4,KOUNT5=',
+     1      KOUNT1,KOUNT2,KOUNT3,KOUNT4,KOUNT5
+            WRITE(IFILE8,'(A,/,1P6E12.4)')
+     1    ' OBJMN1,OBJMN2,OBJMN3,OBJMN4,OBJMN5,OBJBST=',
+     1      OBJMN1,OBJMN2,OBJMN3,OBJMN4,OBJMN5,OBJBST 
+C
+            IF (ITERCHG.EQ.0.AND.KOUNT3.GT.0.AND.
+     1                           OBJMN3.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS3,1,VARBST,1,100)
+C              CALL MOVER(MARBS3,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITERCHG = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ITRCHG2.EQ.0.AND.KOUNT4.GT.0.AND.
+     1                           OBJMN4.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS4,1,VARBST,1,100)
+C              CALL MOVER(MARBS4,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15 
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITRCHG2 = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ITRCHG3.EQ.0.AND.KOUNT5.GT.0.AND.
+     1                           OBJMN5.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS5,1,VARBST,1,100)
+C              CALL MOVER(MARBS5,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15 
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITRCHG3 = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C END JULY 2013
+         ENDIF
+         GO TO 760
+  730    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.KOUNT3.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               CALL MOVER(MARBS1,1,MARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               CALL MOVER(MARBS2,1,MARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               CALL MOVER(MARBS3,1,MARBST,1,100)
+               OBJBST = OBJMN3
+            ENDIF
+         ENDIF
+         GO TO 760
+  740    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       or MORE UNFEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.
+     1       KOUNT3.GT.0.OR.KOUNT4.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            OBJMIN = MIN(OBJMIN,OBJMN4)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               CALL MOVER(MARBS1,1,MARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               CALL MOVER(MARBS2,1,MARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               CALL MOVER(MARBS3,1,MARBST,1,100)
+               OBJBST = OBJMN3
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN4 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS4,1,VARBST,1,100)
+               CALL MOVER(MARBS4,1,MARBST,1,100)
+               OBJBST = OBJMN4
+            ENDIF
+         ENDIF
+         GO TO 760
+  750    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE or MILDLY UNFEASIBLE
+C       or MORE UNFEASIBLE or MOSTLY UNFEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0.OR.
+     1       KOUNT3.GT.0.OR.KOUNT4.GT.0.OR.KOUNT5.GT.0) THEN
+            OBJMIN = MIN(OBJMN1,OBJMN2)
+            OBJMIN = MIN(OBJMIN,OBJMN3)
+            OBJMIN = MIN(OBJMIN,OBJMN4)
+            OBJMIN = MIN(OBJMIN,OBJMN5)
+            DIFF = ABS(OBJMN1 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               CALL MOVER(MARBS1,1,MARBST,1,100)
+               OBJBST = OBJMN1
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN2 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               CALL MOVER(MARBS2,1,MARBST,1,100)
+               OBJBST = OBJMN2
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN3 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS3,1,VARBST,1,100)
+               CALL MOVER(MARBS3,1,MARBST,1,100)
+               OBJBST = OBJMN3
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN4 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS4,1,VARBST,1,100)
+               CALL MOVER(MARBS4,1,MARBST,1,100)
+               OBJBST = OBJMN4
+               GO TO 760
+            ENDIF
+            DIFF = ABS(OBJMN5 - OBJMIN)/OBJMIN
+            IF (DIFF.LT.0.00001) THEN
+               CALL MOVER(VARBS5,1,VARBST,1,100)
+               CALL MOVER(MARBS5,1,MARBST,1,100)
+               OBJBST = OBJMN5
+            ENDIF
+         ENDIF
+  760    CONTINUE
+C END NOV 2005
+         CALL MOVER(0,0,ISUB,1,100)
+         ITRMAX = 470 
+         IF (ITYPE.EQ.1.AND.ITRTOT.GT.ITRMAX) THEN
+            IRESET = 1
+            ITRALL = ITRALL + ITRTOT
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,995) OBJBST
+  995       FORMAT(/' ******* NOTE ******** NOTE ******** NOTE *******'/
+     1   ' THE "BEST" DESIGN HAS JUST BEEN STORED IN THE PROPER COMMON'/
+     1  ' BLOCKS FOR THE NEXT "OPTIMIZE". THE OBJECTIVE IS',1PE12.4,'.'/
+     1   ' ***** END NOTE ******** END NOTE ******** END NOTE ********')
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C BEG NOV 2005
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+C
+            ARGSTR =    'MARGINS CORRESPONDING TO THE BEST '//
+     $                  'DESIGN (F.S.= FACTOR OF SAFETY)   '
+            CALL OUTVAR(NCAR,MARBST,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,19)
+   19    FORMAT(/' ***************************************************'/
+     1    ' ******************** DESIGN OBJECTIVE *******************'/
+     1    ' *************                             ***********')
+C
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+C
+            WRITE(IFILE8,21)
+   21    FORMAT(/' *************                          ************'/
+     1    ' ******************** DESIGN OBJECTIVE *******************'/
+     1    ' *****************************************************')
+C
+         ENDIF
+C        End of (ITYPE.EQ.1.AND.ITRTOT.GT.ITRMAX) condition
+C
+         IF (KOUNT1.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO BEST FEASIBLE DESIGN   '
+            CALL OUTVAR(NVAR,VARBS1,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBS1,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN1,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT1.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT2.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO ALMOST FEASIBLE DESIGN '
+            CALL OUTVAR(NVAR,VARBS2,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBS2,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN2,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT2.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT3.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MILDLY UNFEASIB DESIGN '
+            CALL OUTVAR(NVAR,VARBS3,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBS3,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN3,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT3.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT4.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MORE UNFEASIBLE DESIGN '
+            CALL OUTVAR(NVAR,VARBS4,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBS4,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN4,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT4.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (KOUNT5.GT.0) THEN
+            ARGSTR =    ' VALUES OF DESIGN VARIABLES CORRES'//
+     $                  'PONDING TO MOSTLY UNFEASIB DESIGN '
+            CALL OUTVAR(NVAR,VARBS5,WORDV,IADDV,ARGSTR,IFILE8,80,1,
+     1                  ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBS5,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJMN5,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+         ENDIF
+C        End of (KOUNT5.GT.0) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  best design found so far and to set an index, ITIGHT, to unity. ITIGHT
+C  = 1 will tell the mainprocessor, main.src, to tighten the move limits
+C  in the neighborhood of the best design found after ITRMX2 iterations
+C  but before the end of a SUPEROPT run. IAUTOC is set equal to 1 in
+C  chauto.src (AUTOCHANGE) and ITIGHT is set equal to 0 in AUTOCHANGE.
+C  IAUTOC, ITIGHT and IITIGH(i) are all initialized to zero in BEGIN.
+C
+         ITRMX2 = 150
+C BEG SEP 2013
+         IF (IAUTOF.EQ.7) ITRMX2 = 10000
+C END SEP 2013
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(1).EQ.0) THEN
+            ITRMIN(1) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(1) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBST,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)=',
+     1               IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)
+         ENDIF
+C
+         ITRMX2 = 300 
+C BEG SEP 2013
+         IF (IAUTOF.EQ.7) ITRMX2 = 10000
+C END SEP 2013
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(2).EQ.0) THEN
+            CALL MOVER(0,0,ISUB,1,100)
+            ITRMIN(2) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(2) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBST,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)=',
+     1               IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)
+         ENDIF
+C
+         ITRMX2 = 430 
+C BEG SEP 2013
+         IF (IAUTOF.EQ.7) ITRMX2 = 10000
+C END SEP 2013
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(3).EQ.0) THEN
+            CALL MOVER(0,0,ISUB,1,100)
+            ITRMIN(3) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(3) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,995) OBJBST
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+            ARGSTR =    'MARGINS CORRESPONDING TO THE DESIG'//
+     $                  'N (F.S.= FACTOR OF SAFETY)        '
+            CALL OUTVAR(NCAR,MARBST,PCWORD,IADDB,ARGSTR,IFILE8,80,0,
+     1                  ISUB,1)
+            WRITE(IFILE8,19)
+            ARGSTR = ' CORRESPONDING VALUE OF THE OBJECT'//
+     $               'IVE FUNCTION:                    '
+            CALL OUTVAR(1,OBJBST,WORDOB,IADDD,ARGSTR,IFILE8,65,0,ISUB,1)
+            WRITE(IFILE8,21)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)=',
+     1               IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)
+         ENDIF
+C
+         IAUTOC = 0
+C END NOV 2005
+      ENDIF
+C     End of (ITYPE.EQ.1.AND.KOUNT.GT.0) condition
+C END JAN 1998
+C
+      IF (ITYPE.EQ.1) THEN
+         REWIND IFILE2
+         REWIND IFILE3
+C BEG DEC 1997
+         READ(IFILE3)    (ILINE(I), I=1,ITRTOT)
+         WRITE(IFILE2)   (ILINE(I), I=1,ITRTOT)
+C END DEC 1997
+C BEG NOV 2005
+         READ(IFILE3)    (ILINE2(I), I=1,ITRTOT)
+         WRITE(IFILE2)   (ILINE2(I), I=1,ITRTOT)
+C END NOV 2005
+         DO 85 ICAR = 1,NCAR
+            READ(IFILE3) (CCPLOT(I),I=1,ITRTOT)
+            WRITE(IFILE2)(CCPLOT(I),I=1,ITRTOT)
+   85    CONTINUE
+         DO 90 IVAR = 1,NVAR
+            READ(IFILE3) (DDPLOT(I),I=1,ITRTOT)
+            WRITE(IFILE2)(DDPLOT(I),I=1,ITRTOT)
+   90    CONTINUE
+         READ(IFILE3) (OBJPLT(I),I=1,ITRTOT)
+C BEG FEB 2014
+         DO 91 I = 1,ITRTOT
+            IF (OBJPLT(I).GT.(10.0*OBJBST)) OBJPLT(I) = 0.
+   91    CONTINUE
+C END FEB 2014
+         WRITE(IFILE2)(OBJPLT(I),I=1,ITRTOT)
+C BEG NOV 2005
+         READ(IFILE3) (GRDPLT(I),I=1,ITRTOT)
+         WRITE(IFILE2)(GRDPLT(I),I=1,ITRTOT)
+C END NOV 2005
+      ENDIF
+C
+      WRITE(IFILE8,202)
+C BEG JUL 2009
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  202 FORMAT(
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  "OPTIMIZE"  MANY TIMES DURING AN OPTIMIZATION AND/OR USE'/
+     1' THE "GLOBAL" OPTIMIZING SCRIPT, "SUPEROPT".'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "OPTIMIZE" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' **** "How many design iterations in this run (3 to 25)?" ****'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' *** "5   $ How many design iterations in this run (3 to 25)?"'/)
+C END JUL 2009
+C END DEC 1990
+C BEG JULY 1989
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPP FILE ******************'
+C END JULY 1989
+C
+      CLOSE(UNIT=2)
+      CLOSE(UNIT=3)
+C BEG JAN 1998
+      CLOSE(UNIT=8)
+      CALL STORCM(IFILE7)
+      CLOSE(UNIT=7)
+      IF (IRESET.EQ.1) THEN
+         CALL EXIT(2)
+      ENDIF
+C END JAN 1998
+C
+      END

@@ -1,0 +1,2421 @@
+readme.equivellipse
+
+OPTIMIZATION AND ANALYSIS OF AN IMPERFECT INTERNALLY ISOGRID-STIFFENED
+"EQUIVALENT" ELLIPSOIDAL HEAD UNDER UNIFORM EXTERNAL PRESSURE
+
+******* NOTE ******** NOTE ******** NOTE *************
+Please read the report: .../genopt/case/torisph/sdm50.report.pdf
+***** END NOTE ***** END NOTE *** END NOTE ***********
+
+12 April, 2008, revised September, 2008, re-revised Feb. 2009
+
+Some of this file is still out of date. It is important for you
+to read the report:
+
+ .../genopt/case/torisph/sdm50.report.pdf,
+
+and to inspect the figures associated with that report:
+
+.../genopt/case/torisph/sdm50pdf.report.figures
+
+and to inspect the tables associated with that report:
+
+.../genopt/case/torisph/sdm50pdf.report.tables
+
+and to inspect the appendix associated with that report:
+
+.../genopt/case/torisph/sdm50pdf.report.appendix
+
+Many input/output files associated with "sdm50.report" cases
+are contained in the directory,
+
+.../genopt/case/torisph/miscellaneous
+
+
+********************** NOTE **************************
+In the following the string, "/home/progs", frequently
+occurs. This is the PARENT directory of BOSOR4, BIGBOSOR4,
+BOSOR5, PANDA2, and GENOPT on the writer's computer. You
+must replace the string, "/home/progs", with whatever is
+the PARENT directory of BOSOR4, BIGBOSOR4, BOSOR5, PANDA2,
+and GENOPT at your facility.
+******************** END NOTE ************************
+
+"equivellipse" is an externally pressurized internally isogrid-stiffened
+ellipsoidal shell to be optimized.
+
+The ellipsoidal shell of revolution is analyzed as an "equivalent
+ellipsoid", hence the name, "equivellipse". The "equivalent
+ellipsoid" is modeled as a shell of 12 segments in each of which
+the meridional curvature is constant and equal to the average of
+the meridional curvatures at the beginning and at the end of the
+segment. The first segment (nearest the pole) is a spherical
+segment. Segments 2 - 12 are toroidal segments.
+
+The software used to derive the (x,y) coordinates of the ends of
+each toroidal shell segment and of the (x,y) coordinates
+of the center of meridional curvature of each toroidal shell segment are
+derived in the /home/progs/genopt/case/torisph/bosdec.equivellipse library.
+
+The decision variables in the optimization problem include
+the 13 skin thicknesses, THKSKN(i), i = 1,13,
+and 13 isogrid heights,  HIGHST(i), i = 1,13, along a meridian
+at the beginning of the shell (the apex or pole),
+at the 11 junctions between the 12 segments, and at
+the end of the shell (the equator). The isogrid spacing, SPACNG,
+and the thickness of all the isogrid members, THSTIF, are constant
+along the meridian from pole to equator. SPACNG and THSTIF are
+also decision variables. The isogrid members have
+rectangular cross sections with thickness THSTIF and height HIGHST(i),
+i = 1,13.
+
+There are two "specific" cases explored here, both with the
+"specific" case name, eqellipse (unfortunately). In the first
+case the equivalent ellipse is stiffened by an internal isogrid
+with "real" height and isogrid member thickness. The isogrid
+height and isogrid member thickness and spacing are decision
+variables that change during optimization cycles. The files,
+"eqellipse.xxxxx", referred to in the following text for this
+specific case, contain the string, "eqellipse.stiffened.xxxx".
+
+In the second specific case the equivalent ellipse still has
+the internal isogrid stiffeners, but the height and isogrid
+member thickness are extremely small (essentially zero) and
+they and the isogrid stiffener spacing are NOT decision variables.
+The files pertaining to this second specific case contain the
+string, "eqellipse.unstiffened.xxxxx". If, by chance, there
+are any files without either the string, "stiffened" or
+"unstiffened", they probably pertain to the "stiffened" class.
+
+
+---------------------- ANALYSIS -----------------------------------
+The following section describes the analyses on which the derivation
+of an optimum design is based. This text is printed in the *.OPM
+file if the output index, NPRINT, in the *.OPT file is greater than
+or equal to 1 .
+
+abridged eqellipse.stiffened.opm4 file:
+
+The part of eqellipse.stiffened.opm4 that describes the analysis
+of the equivalent ellipsoidal shell.
+
+ **************************************************************
+ Start of all analyses:
+ Design iteration 1, Load Set 1, IMODX= 0, Dec.var.no.,IDV= 0
+ **************************************************************
+ SUBROUTINE STRUCT computes seven "behaviors" (stress, col-
+ lapse, bifurcation buckling, etc.). The seven behaviors are:
+ 1. linear axisymmetric buckling of the perfect ellipsoid in
+    order to obtain 2 or 4 axisymmetric buckling modes (NCASES
+    = 2 or 4) which are to be used as initial imperfection
+    shapes in the following analyses 2 - 7, listed next.
+ 2. nonlinear axisymmetric stress with mode 1 imperfection
+ 3. nonlinear axisymmetric stress with mode 2 imperfection
+ 4. axisymmetric collapse with mode 1 imperfection
+ 5. axisymmetric collapse with mode 2 imperfection
+ 6. nonlinear bifurcation buckling with mode 1 imperfection
+ 7. nonlinear bifurcation buckling with mode 2 imperfection.
+
+ Brief description of each of the seven analyses corresponding
+ to the seven "behaviors" just listed:
+
+ 1. Ten axisymmetric buckling modes are computed from linear
+    analysis. Only two modes are used for imperfection shapes:
+    A. The mode corresponding to the lowest buckling load, and
+    B. one other mode, usually the 2nd mode.
+
+    For each of mode 1 and mode 2, the actual imperfection is
+    the normalized buckling modal w-deflection times an
+    amplitude factor supplied by the user by means of "BEGIN".
+
+    In MAINSETUP (*.OPT file) the user can choose whether or
+    not the linear axisymmetric buckling modes, (that is, the
+    imperfection shapes) are to be recomputed for each of the
+    PERTURBED designs. If the user answers the prompt,
+      Take "shortcuts" for perturbed designs (Y or N)?
+    with "N" (NO), then the axisymmetric buckling modal
+    imperfection shapes will be recomputed for each PERTURBED
+    design. (This is the preferred choice, even though it
+    leads to some high constraint gradients). If the user
+    answers "Y" (YES), then the imperfection shapes will NOT
+    be recomputed for the PERTURBED designs. The constraint
+    gradients will be lower, but GENOPT will usually have a
+    harder time finding the "global" optimum design.
+
+ 2. Nonlinear axisymmetric stress analysis with "mode 1" Wimp:
+    This analysis is performed for both +(mode 1) and -(mode 1)
+    For each of these "sub-analyses" the following is done:
+    a. The nonlinear equilibrium path is traced over the range
+       P(design)/10. < P < P(design) in 10 steps of dP, where
+       P(design) = design pressure and dP = P(design)/10.
+    b. If the shell collapses nonlinearly (convergence failure)
+       for P < P(design), then step 2a is redone with the range
+       P(collapse)/10. < P < P(collapse); dP=P(collapse)/10.
+    c. At the maximum load (either P(collapse) or P(design),
+       whichever is smaller) the following quantities are
+       computed:
+       Region 1 local skin buckling load factor,       BUCMIN
+       Region 1 isogrid member buckling load factor,   BUCMNS
+       Region 1 skin maximum effective stress,         SKNMAX
+       Region 1 isogrid member max. effective stress,  STFMXS
+       Region 2 local skin buckling load factor,       BUCMIN
+       Region 2 isogrid member buckling load factor,   BUCMNS
+       Region 2 skin maximum effective stress,         SKNMAX
+       Region 2 isogrid member max. effective stress,  STFMXS
+       Normal displacement of the shell at its apex,   ENDUV
+       The quantities, BUCMIN, BUCMNS, etc. may constrain the
+       evolution of the optimum design.
+
+       Region 1 represents the ellipsoidal cap region, and
+       Region 2 represents the rest of the ellipsoidal shell.
+       Note that typical margins contain the following strings:
+          (SKNBK1(1,1)/SKNBK1A(1,1))/SKNBK1F(1,1)-1
+          (SKNBK1(1,2)/SKNBK1A(1,2))/SKNBK1F(1,2)-1
+       with two-dimensional arrays, SKNBK1, SKNBK1A, SKNBK1F,
+       in this example signifying "skin buckling for mode 1".
+       The analogous margins,
+          (SKNBK2(1,1)/SKNBK2A(1,1))/SKNBK2F(1,1)-1
+          (SKNBK2(1,2)/SKNBK2A(1,2))/SKNBK2F(1,2)-1
+       with two-dimensional arrays, SKNBK2, SKNBK2A, SKNBK2F,
+       in this example signify "skin buckling for mode 2".
+       The "i" in the arrays *(i,j) is the load set number.
+       The "j" is the region number, called "Region 1" for
+       Region no. 1 and "Region 2" for region no. 2 above.
+       Region no. 1: the radial coordinate, x,  0 < x < xlimit.
+       Region no. 2: the radial coordinate, x,xlimit < x < xmax
+       where xmax is the value of the x-coord. at the equator,
+       and xlimit is a user-provided input datum, usually
+       equal to about half the semimajor axis (xlimit=a/2).
+       This scheme of computing minimum buckling load factors
+       and maximum stresses in two regions of the ellipsoidal
+       head and having margins for each smooths the values of
+       the margins from design iteration to iteration, making
+       it easier to find a "global" optimum design.
+
+
+       The quantities, BUCMIN, BUCMNS, SKNMAX, STFMXS, are
+       computed in SUBROUTINE PLOCAL in the BIGBOSOR4 code,
+       ..bosdec/sources/addbosor4.src, as follows:
+
+       COMPUTATION OF BUCMIN: In the following code fragment
+       the critical buckling resultant is NSCRIT; BUCLOD(I) =
+       buckling load factor at nodal point I in Segment No. IS;
+       BUCMIN(IS) = minimum buckling load factor in Segment IS.
+       FCOEF = 0.5
+       NSCRIT = FCOEF*PI**2*CSKIN(4,4,I)/SIDE**2            (1)
+       NSMAX  = MIN(N1SKIN,N2SKIN)                          (2)
+       BUCLOD(I) = NSCRIT/ABS(NSMAX)                        (3)
+       BUCMIN(IS) = MIN(BUCMIN(IS),BUCLOD(I))               (4)
+       in which the variables used in Eqs.(1-4) are as follows:
+       CSKIN(i,j,I) = 6 x 6 matrix of shell wall stiffnesses at
+                      nodal point I
+       SIDE = length of a side of the equilateral triangle
+              formed by the isogrid configuration
+       N1SKIN, N2SKIN are the meridional and hoop resultants
+                      in the shell skin, given by:
+       N1SKIN = CSKIN(1,1,I)*EPS1 + CSKIN(1,2,I)*EPS2
+               +CSKIN(1,4,I)*K1   + CSKIN(1,5,I)*K2
+       N2SKIN = CSKIN(1,2,I)*EPS1 + CSKIN(2,2,I)*EPS2
+               +CSKIN(2,4,I)*K1   + CSKIN(2,5,I)*K2
+
+       EPS1, K1 = meridional reference surface membrane
+                  strain and curvature change at nodal point I
+       EPS2, K2 = circumferential reference surface membrane
+                  strain and curvature change at nodal point I
+
+       The buckling load, NSCRIT, is for a flat equilateral
+       triangular piece of skin. The formula for NSCRIT is from
+       NACA TN-3781, July 1957 by Gerard & Becker: "Handbook of
+       Structural Stability, Part I - Buckling of Flat Plates".
+       The formula is for buckling of an equilateral flat plate
+       with N1SKIN = N2SKIN (compression). The result here is
+       approximate because in general N1SKIN is not equal to
+       N2SKIN, and in general the skin is not isotropic.
+       The prediction of the shell skin buckling load factor
+       should be conservative because:
+       a. The compressive stress resultant used in the formula
+          for buckling load factor is NSMAX=MIN(N1SKIN,N2SKIN).
+       b. The triangular piece of skin is assumed to be flat
+          when in fact it is curved.
+       c. The triangular piece of skin is assumed to be simply
+          supported when in fact it is supported by isogrid
+          stiffeners along all three edges.
+
+       COMPUTATION OF BUCMNS AND STFMXS: In the code fragment
+       in PLOCAL that computes stiffener buckling and stress,
+       BUCMNS(IS) and STFMXS(IS), useful definitions are:
+       NUSTIF = Poisson ratio for stringer/isogrid member
+       SIGCR  = buckling stress for stringer/isogrid member
+       STRTIP = stress at the tip of stringer/isogrid member
+       STRROT = stress at the root of the stringer/isogrid
+       BUCSTR(I) = buckling load factor for stringer/isogrid
+                   at nodal point I
+       BUCMNS(IS)= minimum buckling load factor for stiffener
+                   in shell segment IS
+       STRSTR(I) = maximum stress in stringer/isogrid at nodal
+                   point I
+       STFMXS(IS)= maximum stress in stringer/isogrid in shell
+                   segment IS
+
+       The critical buckling load of stiffener is derived from
+       formulas from ROARK: FORMULAS FOR STRESS AND STRAIN,
+       3rd Edition, McGraw-Hill, 1954, Table XVI, p. 312,
+       Formulas 4 (s.s.,free) and 5 (clamped,free). Roark has
+       SIGCR = k*[ESTIFF/(1-NUSTIF**2)]*(TSTIFF/HEIGHT)**2
+       in which k is a coefficient that depends on the aspect
+       ratio of the plate (stiffener). For long, uniformly
+       axially compressed plates:
+       a. k = 0.375 if the plate is simply-supported-free
+       b. k = 1.1   if the plate is clamped-free
+       Later edition of "ROARK":
+       Seventh Edition by Warren C. Young and Richard G.
+       Budynas, McGraw-Hill 2002, Chapter 15, Table 15.2,
+       Formulas 1.d and 1.e, on p. 730
+
+     More definitions...
+       IRECT(1,IS) = 1 if stringer/isogrid member has a
+                       rectangular cross section
+                   = 0 if stringer/isogrid member does not have
+                       a rectangular cross section
+       INTEXT(1,IS)= 0 for stringer/isogrid attached to the
+                       leftmost shell skin surface
+                       (e.g. internal smeared stringer/isogrid)
+       INTEXT(1,IS)= 1 for stringer/isogrid attached to the
+                       rightmost shell skin surface
+       Z(I) = distance from the shell skin leftmost surface to
+              the reference surface at nodal point I. (The
+              reference surface is where the membrane strain
+              and curvature changes (EPS1,K1,EPS2,K2) are
+              measured].
+       T(I) = thickness of shell skin at nodal point I of
+              shell segment IS
+       ZTIP = distance from shell reference surface to the tip
+              of stringer/isogrid
+       STRTIP = stress at the tip of a smeared stringer/isogrid
+                member.
+
+       STFPRP(j,1,I) = properties of smeared stringer/isogrd
+                       at nodal point I, defined as follows:
+          STFPRP(1,1,I) = stiffener thickness, TSTIFF
+          STFPRP(2,1,I) = stiffener height from nearest shell
+                          skin surface
+          STFPRP(3,1,I) = stiffener spacing: SIDE*SQRT(3.)/2.
+          STFPRP(4,1,I) = stiffener elastic modulus
+       STFPRP(j,2,I), j = 1,2,3,4 = same as above, for smeared
+                           rings.
+
+       SUBROUTINE PLOCAL has the following code for computing
+       buckling and stress in the stiffener/isogrid member:
+       IF (INTEXT(1,IS).EQ.0) ZTIP = -(STFPRP(2,1,I) + Z(I))
+       IF (INTEXT(1,IS).EQ.1) ZTIP = STFPRP(2,1,I) + T(I) -Z(I)
+       STRTIP = STFPRP(4,1,I)*(EPS1 - ZTIP*K1)
+       EDGSTF = 0.5
+       NUSTIF = 0.3
+       SIGCR =(0.375+0.7*EDGSTF)*(STFPRP(4,1,I)/(1.-NUSTIF**2))
+                              *(STFPRP(1,1,I)/STFPRP(2,1,I))**2
+       IF (STRTIP.LT.0.0) THEN
+          BUCSTR(I) = SIGCR/ABS(STRTIP)
+          BUCMNS(IS) = MIN(BUCMNS(IS),BUCSTR(I))
+       ENDIF
+       IF (INTEXT(1,IS).EQ.0) ZROOT = -Z(I)
+       IF (INTEXT(1,IS).EQ.1) ZROOT =  T(I) - Z(I)
+       STRROT = STFPRP(4,1,I)*(EPS1 - ZROOT*K1)
+       STRSTR(I) = MAX(ABS(STRTIP),ABS(STRROT))
+       STFMXS(IS) = MAX(STFMXS(IS),STRSTR(I))
+
+       The stiffener buckling load factor and maximum stress
+       used here should be conservative compared to what
+       happens in the case of an actual isogrid member because:
+       a. The compressive stress STRTIP at the tip of the
+          stiffener is used, which in the worst case would be
+          the maximum compressive stress over the height of the
+          stiffener, whereas the ROARK formula for buckling
+          is for a uniformly compressed flat plate.
+       b. For typical optimum designs the aspect ratio of the
+          plate is about 2.0, for which ROARK gives a buckling
+          coefficient, k = 0.574 for a plate simply supported
+          along one edge and free along the opposite edge.
+       c. Where the isogrid members intersect the actual b.c.
+          should probably be clamped, whereas the formula is
+          for simple support along plate edges "b".
+       d. The formula for maximum stress at the stiffener tip,
+          STRTIP = STFPRP(4,1,I)*(EPS1 - ZTIP*K1)
+          is based on the assumption that the isogrid member
+          is oriented meridionally. This is the worst possible
+          orientation from the point of view of maximum stress
+          for a stiffener attached to an axisymmetrically
+          deformed shell.
+
+       COMPUTATION OF SKNMAX: The maximum effective stress in
+       the skin of the shell segment IS is computed by
+       BIGBOSOR4 as it always has been. No new coding was added
+       to BIGBOSOR4 in order to generate SKNMAX(IS).
+
+       COMPUTATION OF ENDUV:  The normal displacement w at the
+       apex of the ellipsoidal head is computed by BIGBOSOR4
+       as it always has been. No new coding has been added.
+       NOTE: prebuckling axial displacement at the first nodal
+       point in the cylindrical segment (Segment NSEG) is set
+       to zero in the prebuckling phase of the analysis only.
+       This is done so that ENDUV is for the ellipsoidal head
+       by itself (does not include any axial deformation of the
+       cylindrical segment to which the ellipsoidal head is
+       attached).
+
+    d. Steps 2a, 2b, 2c are repeated for the negative of mode 1
+       that is, for -(mode 1).
+    e. Both +(mode 1) and -(mode 1) behavior are investigated
+       for both the UNPERTURBED (current) and PERTURBED designs
+    f. Based on the results from the +(mode 1) and -(mode 1)
+       nonlinear analyses, SUBROUTINE STRUCT may choose which
+       condition is worst for determination of the items listed
+       under 2c (BUCMIN, BUCMNS, etc) and which condition is
+       worst for determination of the collapse pressure, which
+       later becomes one of the margins. These choices hold for
+       the nonlinear stress and collapse analyses of the
+       PERTURBED designs (IMODX = 1).
+
+    g. It is generally best to use multiple load sets in order
+       to compute margins with +(modal imperfection shapes) and
+       -(modal imperfection shapes) separately instead of using
+       SUBROUTINE STRUCT to choose the worst of (+) and (-)
+       imperfection shapes in a single load set, as described
+       in f. Experience has demonstrated that processing (+)
+       and (-) imperfection shapes in separate load sets leads
+       to smoother plots of margins vs design iterations and
+       also to smaller minimum weights.
+
+ 3. Nonlinear axisymmetric stress analysis with "mode 2" Wimp:
+    This analysis is performed for both +(mode 2) and -(mode 2)
+    in exactly the same manner as just described for mode 1.
+ 
+ 4. Axisymmetric collapse with + or - mode 1 imperfection.
+    Which of the +(mode 1) or -(mode 1) imperfections is used
+    has already been determined as described in Steps 2a-f.
+    The nonlinear equilibrium path is traced over the range
+    PMAX/10. < P < 2.*PMAX in 20 steps of dP, where
+    PMAX=either P(design) or P(collapse), whichever is smaller
+    and dP = PMAX/10.
+
+ 5. Axisymmetric collapse with + or - mode 2 imperfection.
+    Which of the +(mode 2) or -(mode 2) imperfections is used
+    has already been determined as described in Step 3.
+
+ 6. Nonlinear bifurcation buckling with mode 1 imperfection:
+    For the UNPERTURBED (current) design (IMODX=0), nonlinear
+    bifurcation buckling is investigated over a range of
+    circumferential wave numbers from 0 to 10 with the load
+    set equal to PMAX if PMAX = P(design) or 0.9*PMAX if
+    PMAX = P(collapse). This is done for BOTH +(mode 1) and for
+    -(mode 1) imperfections. SUBROUTINE STRUCT decides which
+    of the conditions, +(mode 1) or -(mode 1), is the worst.
+    This choice holds for the mode 1 bifurcation buckling
+    analyses of the PERTURBED (IMODX=1) designs.
+
+ 7. Nonlinear bifurcation buckling with mode 2 imperfection:
+    This is done in exactly the same way as for the mode 1
+    imperfection; see Step 6.
+
+ A NOTE ABOUT DESIGN Margins...
+ The margins for an optimized isogrid-stiffened ellipsoidal
+ shell with shell skin thickness and isogrid height varying
+ along the meridian (callout points at the pole, at the
+ junctions between each toroidal segment of the equivalent
+ ellipsoid, and at the equator of the equivalent ellipsoid:
+ (case name =eqellipse                   ) are as follows:
+
+ For mode 1 buckling modal imperfection shape:
+
+ MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1    6.209E-01  (CLAPS1(1 )/CLAPS1A(1 )) / CLAPS1F(1 )-1; F.S.=  1.00
+  2    1.589E+00  (GENBK1(1 )/GENBK1A(1 )) / GENBK1F(1 )-1; F.S.=  1.00
+  3    1.686E+00  (SKNBK1(1 ,1 )/SKNBK1A(1 ,1 )) / SKNBK1F(1 ,1 )-1; F.S.=  1.00
+  4    1.689E+00  (SKNBK1(1 ,2 )/SKNBK1A(1 ,2 )) / SKNBK1F(1 ,2 )-1; F.S.=  1.00
+  5    1.919E+00  (STFBK1(1 ,1 )/STFBK1A(1 ,1 )) / STFBK1F(1 ,1 )-1; F.S.=  1.00
+  6    5.813E-01  (STFBK1(1 ,2 )/STFBK1A(1 ,2 )) / STFBK1F(1 ,2 )-1; F.S.=  1.00
+  7    3.470E-01  (SKNST1A(1 ,1 )/SKNST1(1 ,1 )) / SKNST1F(1 ,1 )-1; F.S.=  1.00
+  8    1.382E-01  (SKNST1A(1 ,2 )/SKNST1(1 ,2 )) / SKNST1F(1 ,2 )-1; F.S.=  1.00
+  9    3.923E-01  (STFST1A(1 ,1 )/STFST1(1 ,1 )) / STFST1F(1 ,1 )-1; F.S.=  1.00
+ 10   -3.816E-02  (STFST1A(1 ,2 )/STFST1(1 ,2 )) / STFST1F(1 ,2 )-1; F.S.=  1.00
+ 11    1.427E+00  (WAPEX1A(1 )/WAPEX1(1 )) / WAPEX1F(1 )-1; F.S.=  1.00
+
+ For mode 2 buckling modal imperfection shape:
+
+ 12    6.727E-01  (CLAPS2(1 )/CLAPS2A(1 )) / CLAPS2F(1 )-1; F.S.=  1.00
+ 13    1.682E+00  (GENBK2(1 )/GENBK2A(1 )) / GENBK2F(1 )-1; F.S.=  1.00
+ 14    1.992E+00  (SKNBK2(1 ,1 )/SKNBK2A(1 ,1 )) / SKNBK2F(1 ,1 )-1; F.S.=  1.00
+ 15    2.149E+00  (SKNBK2(1 ,2 )/SKNBK2A(1 ,2 )) / SKNBK2F(1 ,2 )-1; F.S.=  1.00
+ 16    8.143E-01  (STFBK2(1 ,1 )/STFBK2A(1 ,1 )) / STFBK2F(1 ,1 )-1; F.S.=  1.00
+ 17    7.200E-01  (STFBK2(1 ,2 )/STFBK2A(1 ,2 )) / STFBK2F(1 ,2 )-1; F.S.=  1.00
+ 18    4.290E-01  (SKNST2A(1 ,1 )/SKNST2(1 ,1 )) / SKNST2F(1 ,1 )-1; F.S.=  1.00
+ 19    4.917E-02  (SKNST2A(1 ,2 )/SKNST2(1 ,2 )) / SKNST2F(1 ,2 )-1; F.S.=  1.00
+ 20   -2.078E-02  (STFST2A(1 ,1 )/STFST2(1 ,1 )) / STFST2F(1 ,1 )-1; F.S.=  1.00
+ 21   -2.687E-02  (STFST2A(1 ,2 )/STFST2(1 ,2 )) / STFST2F(1 ,2 )-1; F.S.=  1.00
+ 22    1.205E+00  (WAPEX2A(1 )/WAPEX2(1 )) / WAPEX2F(1 )-1; F.S.=  1.00
+
+
+ In these margins the "A" endings in names such as "CLAPS1A"
+ denote "allowable". The "F" endings in names such as "CLAPS1F"
+ denote "factor of safety". The margins are equal to the
+ corresponding behavioral constraints minus 1.0. The chart
+ below lists names that characterize the margin depending on
+ its value, as follows:
+
+                   The most negative    The most negative
+ Designation       margin must be       margin must be less
+                   greater than:        than or equal to:
+ -----------       --------------       ------------------
+ "FEASIBLE"            -0.01              ------
+ "ALMOST FEASIBLE"     -0.05              -0.01
+ "MILDLY UNFEASIBLE"   -0.10              -0.05
+ "MORE UNFEASIBLE"     -0.15              -0.10
+ "MOSTLY UNFEASIBLE"   -0.20              -0.15
+ "NOT FEASIBLE"        ------             -0.20
+
+----------------- END OF ANALYSIS SECTION -----------------------
+
+
+
+The next rather long section, ------- RUNSTREAM ----------, describes
+how to optimize this shell and how, for the optimum design, to obtain
+comparisons of predictions with predictions from BIGBOSOR4, BOSOR5, and STAGS.
+Also see Table 39 in the report, .../genopt/case/torisph/sdm50.report.pdf
+
+
+---------------------- RUNSTREAM -------------------------------------
+Please read /home/progs/genopt/doc/getting.started for additional information.
+
+The runstream to produce the generic "equivellipse" files and
+the specific "eqellipse" files contained in this directory is as follows:
+
+(go to the directory /home/progs/genoptcase)
+cd /home/progs/genoptcase
+
+genoptlog (activate the GENOPT command set)
+
+(Create equivellipse.INP from scratch via "gentext" or retrieve the
+existing file created by the writer as follows:
+ cp /home/progs/genopt/case/torisph/equivellipse.INP equivellipse.INP)
+
+gentext   (creates or reads from existing equivellipse.INP file and creates
+           FORTRAN code fragments needed for the generation of skeletal
+           "struct.new" and "behavior.new" subroutines. Generates the skeletal
+           "struct.new" and "behavior.new" subroutines. Creates an information
+           file, equivellipse.DEF, which you should read.)
+
+(Make sure all the required BIGBOSOR4 software is in /home/progs/bosdec/sources . 
+ See /home/progs/genopt/doc/getting.started for what is required there. NOTE:
+ these BIGBOSOR4 routines must be in /home/progs/bosdec/sources even if your
+ particular case does not use BIGBOSOR4 software.)
+
+(Create /home/progs/bosdec/sources/bosdec.src from scratch
+ or if a suitable file, such as /home/progs/genopt/case/torisph/bosdec.equivellipse,
+ already exists, use that one and copy it as shown in the next "cp" statement.
+ For guidance on how to create bosdec.src from scratch, see the file,
+ /home/progs/genopt/case/cylinder/howto.bosdec  .
+ If a suitable "bosdec" routine, such as bosdec.equivellipse, already exists,
+ copy it to the correct location as follows:
+ cp /home/progs/genopt/case/torisph/bosdec.equivellipse /home/progs/bosdec/sources/bosdec.src)
+
+("Flesh out" the skeletal struct.new produced by GENTEXT [see the file,
+ /home/progs/genopt/case/cylinder/howto.struct]
+ or if a suitable "struct" routine, such as struct.equivellipse, already exists
+ copy it to the correct location as follows [assuming you are at /home/progs/genoptcase]:
+ cp /home/progs/genopt/case/torisph/struct.equivellipse struct.new)
+
+NOTE: Often (but not in this particular case) you will have to do the following:
+
+("Flesh out" the skeletal behavior.new produced by GENTEXT [see the file,
+ /home/progs/genopt/case/cylinder/howto.behavior]
+ or if a suitable "behavior" routine, such as behavior.equivellipse, already exists
+ copy it to the correct location as follows [assuming you are at /home/progs/genoptcase]:
+ cp /home/progs/genopt/case/torisph/behavior.equivellipse behavior.new)
+
+In this particular case the behavior.new file generated automatically by GENTEXT
+does not need to be augmented by the user.
+
+You now have the following required software in the required locations:
+
+1. BIGBOSOR4 software:  /home/progs/bosdec/sources/(many files, see "getting.started")
+2. "bosdec" software:   /home/progs/bosdec/sources/bosdec.src
+3. "struct" software:   /home/progs/genoptcase/struct.new
+4. "behavior" software: /home/progs/genoptcase/behavior.new
+
+You have debugged this software to the best of your ability and its logic (you hope)
+is correct.
+
+Therefore you may now execute GENPROGRAMS, which compiles all the software needed to
+run specific cases that belong to the class, "equivellipse". The following executable
+elements should be created in the directory, /home/progs/genoptcase, by GENPROGRAMS
+if GENPROGRAMS finishes without bombing:
+autochange, begin, change, chooseplot, decide, mainsetup, optimize, and store.
+
+GENPROGRAMS may bomb because you made FORTRAN coding errors while creating
+/home/progs/bosdec/sources/bosdec.src and/or /home/progs/genoptcase/behavior.new and/or
+/home/progs/genoptcase/struct.new. You will have to correct your errors and then
+execute GENPROGRAMS again. You may find it necessary to "go around this loop"
+several times in order to get rid of all your coding and/or logic errors. Also,
+GENPROGRAMS may complete its task successfully, but you may find later during
+execution of a specific case that there remain logical errors in your software or
+other kinds of bugs. The writer has found from experience that this usually happens.
+
+
+You type the command:
+
+genprograms (this GENOPT command employs the "make" file,
+             /home/progs/genopt/execute/usermake.linux
+             to create the executable elements, autochange, begin,
+             change, chooseplot, decide, mainsetup, optimize, and
+             store.)
+
+(If "genprograms" runs successfully to completion you now have compiled
+ code that is valid for any specific case that fits within the generic class,
+ "equivellipse".)
+
+
+ You next execute BEGIN, DECIDE, MAINSETUP, SUPEROPT or OPTIMIZE, CHOOSEPLOT,
+ DIPLOT, CHANGE, etc. in order to generate results in a specific case of your
+ choice. In this example the specific case is called "eqellipse", which stands
+ for "equivalent ellipse" and which is spelled differently from "equivellipse",
+ the generic case name in this particular example. NOTE: The specific case
+ name MUST be different from the generic case name!)
+
+
+(Next, find the optimum design for the specific case, "eqellipse". Please
+ see Table 39 of the file, /home/progs/genopt/case/torisph/sdm50.report.pdf
+ to see the actual sequence of commands that lead to the final optimum
+ design, which is presented in the file,
+ /home/progs/genopt/case/torisph/eqellipse.stiffened.opm4 . In the following
+ more detail is given associated with each command than appears in Table 39
+ of the file, sdm50.report.pdf .)
+
+begin       (You interactively provide a starting design, material properties,
+             amplitude of initial general buckling modal imperfection,
+             loading for one or more load cases, allowables and factors of safety
+             for various types of failure, such as axisymmetric collapse,
+             general bifurcation buckling, skin bifurcation buckling,
+             stiffener bifurcation buckling, skin maximum stress, stiffener
+             maximum stress for one or more load cases.
+             See the file, eqellipse.stiffened.BEG or Table 35 in the file,
+             /home/progs/genopt/case/torisph/sdm50.report.pdf)
+
+decide      (You choose decision variables and lower and upper bounds of them,
+             as well as linked variables, inequality constraints, and
+             "escape" variables. ["escape" variables are decision variables
+             that, when made bigger, force the design toward the feasible
+             region in design space. A shell wall thickness is a good
+             choice for an "escape" variable, called "escape variable" because
+             increasing it causes the design to escape from the infeasible
+             region in design space.] See the file, eqellipse.stiffened.DEC or
+             Table 36 in /home/progs/genopt/case/torisph/sdm50.report.pdf)
+
+mainsetup   (You choose behaviors you DON'T want processed for each load set,
+             a print output index, an analysis type, how many design iterations
+             per execution of "OPTIMIZE", a quality-of-design index IDESIGN, a move
+             limit index IMOVE, an index for move limit jump RATIO, a decision variable
+             perturbation amplitude ratio dx/x. For more information on these somewhat
+             obscure input quantities, please consult the "help" paragraphs
+             associated with "shortcuts", IDESIGN, IMOVE, RATIO, and dx/x
+             in the file, /home/progs/genopt/execute/URPROMPT.DAT . See the file,
+             eqellipse.stiffened.OPT or Table 37 in the file,
+             /home/progs/genopt/case/torisph/sdm50.report.pdf)
+
+superopt    (You launch a "SUPEROPT" run. SUPEROPT tries to find a global
+             optimum design, as described in the paper: Bushnell, David,
+             "Recent enhancements to PANDA2", AIAA Paper 96-1337-CP, AIAA
+             37th Structures, Structural Dynamics, and Materials Meeting,
+             April 1996, pp. 126-182. In particular read the section entitled,
+             INTRODUCTION OF A "GLOBAL" OPTIMIZER IN PANDA2", pp. 127-130,)
+
+chooseplot  (You choose what to plot versus design iterations in the SUPEROPT
+             run. Here the user's choice leads to the file, eqellipse.5.ps
+             which here is saved as "eqellipse.stiffened.5.4.ps".)
+
+diplot      (Obtain the postscript plot file(s), in this case eqellipse.5.ps,
+             which contains the objective versus design iterations. Here the
+             name eqellipse.5.ps from DIPLOT has been changed to eqellipse.stiffened.5.4.ps.
+             Plot the file eqellipse.5.ps on your computer screen by using the
+             utility, "gv", that is via the command: gv eqellipse.5.ps. Please
+             see Fig. 3 of the file, /home/progs/genopt/case/torisph/sdm50.report.pdf)
+
+change      (Preserve the optimum design listed near the bottom of the
+             file, eqellipse.OPP that corresponds
+             to the best "FEASIBLE" or "ALMOST FEASIBLE" design determined during the
+             iterations processed in the SUPEROPT run. The file produced by this
+             execution of "change", eqellipse.CHG, is called "eqellipse.stiffened.CHG"
+             here. See Table 38 of the file,
+             /home/progs/genopt/case/torisph/sdm50.report.pdf .
+             NOTE: Over the years the writer's experience has led him ALWAYS to
+             preserve optimum designs through the use of the "change" processor.
+             Then at some later date this same optimum design can easily be resurrected
+             simply by execution of "change" with use of the appropriate *.CHG
+             input file.)
+
+
+(Edit the eqellipse.OPT file by changing NPRINT from 0 to 1 and ITYPE from 1 to 2,
+ that is, obtain more output and perform calculations for a fixed design, in this
+ case, the optimum design determined from SUPEROPT.)
+
+mainsetup   (Execute MAINSETUP for a fixed design [ITYPE=2], not optimization)
+
+optimize    (Perform the computations corresponding to the fixed design,
+             which is the optimum design listed in the eqellipse.stiffened.CHG
+             file. The output from "optimize" is eqellipse.OPM, saved here as 
+             "eqellipse.stiffened.opm4")
+
+(From the plot, eqellipse.stiffened.5.4.ps, [Fig. 3 of the file,
+ /home/progs/genopt/case/torisph/sdm50.report.pdf], we see the dramatic
+ effect that restriction of the move limits (IMOVE=4) has on the behavior of
+ the objective and of the design margins as functions of design iteration.
+ Near Iteration 150 and Iteration 330 and Iteration 430 the move limit, IMOVE,
+ is temporarily reduced from 0.1 to 0.02 for several executions of PANADOPT.
+ The strategy is described in Item 626 of the file, /home/progs/panda2/doc/panda2.news
+ and on page 9 of the paper, "Optimization of an axially compressed ring and
+ stringer stiffened cylindrical shell with a general buckling modal imperfection",
+ AIAA Paper 2007-2216, 48th AIAA Structures meeting, Honolulu, Hawaii, April 2007.)
+
+
+----------Running BIGBOSOR4 to check results and to get plots-------------
+Next, we want to run several cases with use of BIGBOSOR4, using as input
+in each successive case one of the following files produced by execution
+of "optimize" with anaylsis type, ITYPE = 2 (analysis of a fixed design):
+
+ eqellipse.ALL1  (linear axisymmetric bifurcation buckling to get mode 1 & mode 2)
+ eqellipse.ALL2N (nonlinear stress analysis, -mode 1 imperfection shape)
+ eqellipse.ALL2P (nonlinear stress analysis, +mode 1 imperfection shape)
+ eqellipse.ALL4N (nonlinear stress analysis, -mode 2 imperfection shape)
+ eqellipse.ALL4P (nonlinear stress analysis, +mode 2 imperfection shape)
+ eqellipse.ALL6N (nonlinear collapse analysis, -mode 1 imperfection shape)
+ eqellipse.ALL6P (nonlinear collapse analysis, +mode 1 imperfection shape)
+ eqellipse.ALL7N (nonlinear collapse analysis, -mode 2 imperfection shape)
+ eqellipse.ALL7P (nonlinear collapse analysis, +mode 2 imperfection shape)
+ eqellipse.ALL8N (nonlinear bifurcation buckling, -mode 1 imperfection shape)
+ eqellipse.ALL8P (nonlinear bifurcation buckling, +mode 1 imperfection shape)
+ eqellipse.ALL9N (nonlinear bifurcation buckling, -mode 2 imperfection shape)
+ eqellipse.ALL9P (nonlinear bifurcation buckling, +mode 2 imperfection shape)
+
+In order to run BIGBOSOR4, do the following:
+
+1. go to a directory where you want to run BIGBOSOR4:
+cd /home/progs/bigbosor4/work
+
+2. copy one of the files *.ALL* to that directory:
+cp /home/progs/genoptcase/eqellipse.ALL1 eqellipse.ALL1 
+
+3. change the name from *.ALL* to *.ALL:
+mv eqellipse.ALL1 eqellipse.ALL
+
+4. type the following BIGBOSOR4 commands:
+   bigbosor4log        (activates the BIGBOSOR4 set of commands)
+   bigbosorall         (executes BIGBOSOR4; <casename> = "eqellipse")
+   (inspect the BIGBOSOR4 output file, eqellipse.OUT)
+   bosorplot           (generates plots)
+
+Running BIGBOSOR4 for all 13 eqellipse.ALLxx cases listed above
+yields the following files containing plots (*.ps files) and abridged
+list output (*.out files):
+
+-rw-r--r--  1 bush bush 25138 Mar  5 07:58 eqellipse.bigbosor4.ALL1.eig1.ps
+-rw-r--r--  1 bush bush 25137 Mar  5 08:00 eqellipse.bigbosor4.ALL1.eig2.ps
+-rw-r--r--  1 bush bush   298 Mar  5 06:45 eqellipse.bigbosor4.ALL1.out
+-rw-r--r--  1 bush bush  8325 Mar  5 06:44 eqellipse.bigbosor4.ALL2N.out
+-rw-r--r--  1 bush bush 25395 Mar  5 08:18 eqellipse.bigbosor4.ALL2N.ps
+-rw-r--r--  1 bush bush  8460 Mar  5 06:44 eqellipse.bigbosor4.ALL2P.out
+-rw-r--r--  1 bush bush 25394 Mar  5 08:19 eqellipse.bigbosor4.ALL2P.ps
+-rw-r--r--  1 bush bush  8325 Mar  5 06:42 eqellipse.bigbosor4.ALL4N.out
+-rw-r--r--  1 bush bush 25395 Mar  5 08:16 eqellipse.bigbosor4.ALL4N.ps
+-rw-r--r--  1 bush bush  8325 Mar  5 06:43 eqellipse.bigbosor4.ALL4P.out
+-rw-r--r--  1 bush bush 25394 Mar  5 08:22 eqellipse.bigbosor4.ALL4P.ps
+-rw-r--r--  1 bush bush  9890 Mar  5 07:16 eqellipse.bigbosor4.ALL6N.out
+-rw-r--r--  1 bush bush 25396 Mar  5 08:27 eqellipse.bigbosor4.ALL6N.ps
+-rw-r--r--  1 bush bush 10316 Mar  5 07:13 eqellipse.bigbosor4.ALL6P.out
+-rw-r--r--  1 bush bush 25396 Mar  5 08:30 eqellipse.bigbosor4.ALL6P.ps
+-rw-r--r--  1 bush bush 10102 Mar  5 07:24 eqellipse.bigbosor4.ALL7N.out
+-rw-r--r--  1 bush bush 25396 Mar  5 08:31 eqellipse.bigbosor4.ALL7N.ps
+-rw-r--r--  1 bush bush 10263 Mar  5 07:21 eqellipse.bigbosor4.ALL7P.out
+-rw-r--r--  1 bush bush 25110 Mar  5 08:33 eqellipse.bigbosor4.ALL7P.ps
+-rw-r--r--  1 bush bush  1077 Mar  5 07:33 eqellipse.bigbosor4.ALL8N.out
+-rw-r--r--  1 bush bush 25143 Mar  5 08:39 eqellipse.bigbosor4.ALL8N.ps
+-rw-r--r--  1 bush bush  1077 Mar  5 07:29 eqellipse.bigbosor4.ALL8P.out
+-rw-r--r--  1 bush bush 25143 Mar  5 08:41 eqellipse.bigbosor4.ALL8P.ps
+-rw-r--r--  1 bush bush  1077 Mar  5 07:41 eqellipse.bigbosor4.ALL9N.out
+-rw-r--r--  1 bush bush 25143 Mar  5 08:43 eqellipse.bigbosor4.ALL9N.ps
+-rw-r--r--  1 bush bush  1077 Mar  5 07:37 eqellipse.bigbosor4.ALL9P.out
+-rw-r--r--  1 bush bush 25144 Mar  5 08:45 eqellipse.bigbosor4.ALL9P.ps
+
+the *.ps files were edited in order to provide additional information in the
+title of each plot.
+
+You may want to use /home/progs/bin/plotps.linux (a plot routine written
+by Bill Bushnell) in order to obtain (x,y) plots of the load-apex-deflection
+curves corresponding to the four "collapse" models, results for which are
+listed in the files,
+
+ eqellipse.bigbosor4.ALL6N.out
+ eqellipse.bigbosor4.ALL6P.out
+ eqellipse.bigbosor4.ALL7N.out
+ eqellipse.bigbosor4.ALL7P.out
+
+Each of these four files has a section in it with the following type of
+information:
+
+ The following data are written in a format suitable
+ for use as input data for the PLOTPS utility by Bill Bushnell
+ PLOTPS for LINUX is located in /home/progs/bin/plotps.linux
+ End Displacement   Pressure
+    ENDUVS           PSTEP
+  2.595390E-02  4.600000E+01
+  5.196189E-02  9.200000E+01
+  7.802621E-02  1.380000E+02
+  1.041556E-01  1.840000E+02
+  1.303679E-01  2.300000E+02
+  1.566934E-01  2.760000E+02
+    ....            ....
+    ....            ....
+   etc.
+
+You can use this output directly to build an input file for Bill 
+Bushnell's plotting processor, /home/progs/bin/plotps.linux . An example
+of such an input file for plotps.linux is listed in:
+
+ eqellipse.bigbosor4.plotps.input .
+
+To generate a postscript file called
+
+ eqellipse.bigbosor4.plotps.ps
+
+you type the command:
+
+/home/progs/bin/plotps.linux < eqellipse.bigbosor4.plotps.input > eqellipse.bigbosor4.plotps.ps
+
+To view the plot on the computer screen, you type the command:
+
+gv eqellipse.bigbosor4.plotps.ps
+
+
+------Running BOSOR5 to determine the effects of plasticity, if any---------
+Next, we wish to use BOSOR5 to analyze the optimized design, eqellipse.stiffened.opm4,
+that is, the design that is preserved in the file, eqellipse.stiffened.CHG,
+which is the best design found since the beginning of this case.
+
+We concentrate our effort on the following case:
+
+axisymmetric collapse with a -(mode 1) imperfection shape with amplitude 0.2 inch.
+
+This is the most critical case for nonlinear collapse, that is, nonlinear collapse
+for this case occurs at the lowest external pressure, as seen from the multiple
+traces in the plot shown in Fig. 16 of the file,
+/home/progs/genopt/case/torisph/sdm50.report.pdf .
+
+This is the case for which the
+BIGBOSOR4 input file is called "eqellipse.ALL6N". We must create a valid input file
+for BOSOR5 starting from the existing input file for BIGBOSOR4: eqellipse.ALL6N.
+
+First, we execute BIGBOSOR4 simply to obtain a properly annotated BIGBOSOR4 input
+file. Using the file, eqellipse.ALL6N as input (with the string "ALL6N" changed
+to "ALL", of course) we type the commands,
+
+bigbosorall       (case name is "eqellipse")
+cleanup           (case name is "eqellipse")
+
+Assuming that "bigbosorall" finished successfully, we now have a properly
+annotated BIGBOSOR4 input file named "eqellipse.ALL". This properly
+annotated input file is used as a starting point for generating a valid
+BOSOR5 input file.
+
+It is rather a chore to convert a valid BIGBOSOR4 input file to a valid BOSOR5
+input file because the BOSOR5 input requirements for each of the 12 shell
+segments is quite different from those for BOSOR4. BIGBOSOR4 permits input of the
+internal isogrid stiffeners as stiffeners even though these stiffeners are smeared
+out in the BIGBOSOR4 model. However, BOSOR5 requires that the isogrid stiffeners be
+represented from the beginning as the inner layer of a two-layered shell wall.
+The BOSOR5 user must compute the effective moduli of that inner layer. Of course,
+the user must also provide valid stress-strain data for both layers of the shell.
+(The outer layer is the skin of the shell). Fortunately, it is required in this
+case that the thickness and spacing of the rectangular isogrid stiffeners are
+constant along the meridian of the shell. Therefore, the "effective" stress-strain
+data for both layers of the shell are independent of the meridional coordinate.
+
+After completion of this rather tedious task, the valid input file for BOSOR5 was
+generated by the writer. This file is called:
+
+/home/progs/genopt/case/torisph/eqellipse.stiffened.bosor5.-mode1.ALL .
+
+It is valid input for the BOSORREAD processor of BOSOR5.
+
+There is another much shorter file called:
+
+/home/progs/genopt/case/torisph/eqellipse.stiffened.bosor5.-mode1.IMP .
+
+which is valid input for the BOSORMAIN processor of BOSOR5.
+
+
+To run BOSOR5, do the following:
+
+Go to a directory from which you want to execute the BOSOR5 processors:
+cd /home/progs/bosor5/work
+
+Copy the two files, eqellipse.stiffened.bosor5.-mode1.ALL and
+eqellipse.stiffened.bosor5.-mode1.IMP ,
+into that directory, changing the name to a valid 2-part simple name such as "test":
+
+cp /home/progs/genopt/case/torisph/eqellipse.stiffened.bosor5.-mode1.ALL test.ALL
+cp /home/progs/genopt/case/torisph/eqellipse.stiffened.bosor5.-mode1.IMP test.IMP
+
+Initialize and run BOSOR5:
+bosor5log       (activates the BOSOR5 command set)
+bosorread       (runs the BOSOR5 preprocessor:  input data = test.ALL)
+bosormain       (runs the BOSOR5 mainprocessor: input data = test.IMP)
+
+Inspect the output from bosormain: test.MAI . We have abridged that file
+and here call the abridged test.MAI file:
+
+ eqellipse.stiffened.bosor5.-mode1.MAI
+
+Part of this file near its end has the following information:
+
+ Maximum prebuckling displacement, WPREMX=  7.0694E-01
+ Displacement margin,              WPRMAR= -9.8237E-03
+
+   Maximum
+ Displacement       time      time step
+    WPREMX          TIME        KSTEP= 24
+  0.000000E+00  0.000000E+00
+  3.087015E-01  3.000000E+02
+  3.208418E-01  3.100000E+02
+  3.331703E-01  3.200000E+02
+  3.456991E-01  3.300000E+02
+  3.584419E-01  3.400000E+02
+  3.714139E-01  3.500000E+02
+  3.846323E-01  3.600000E+02
+  3.981164E-01  3.700000E+02
+  4.118887E-01  3.800000E+02
+  4.259747E-01  3.900000E+02
+  4.404038E-01  4.000000E+02
+  4.552112E-01  4.100000E+02
+  4.704378E-01  4.200000E+02
+  4.861343E-01  4.300000E+02
+  5.023636E-01  4.400000E+02
+  5.191984E-01  4.500000E+02
+  5.367470E-01  4.600000E+02
+  5.551440E-01  4.700000E+02
+  5.745716E-01  4.800000E+02
+  5.952600E-01  4.900000E+02
+  6.176170E-01  5.000000E+02
+  6.422852E-01  5.100000E+02
+  6.707623E-01  5.200000E+02
+  7.069448E-01  5.300000E+02
+
+
+NOTE: In BOSOR5 the user, for convenience, usually sets
+"time" numerically equal to the magnitude of the most important load
+component in the case. In this particular example, the most important
+load quantity (the only load quantity) is the value of the external pressure.
+Therefore, the above list contains apex deflection, WPREMX, vs TIME,
+in which TIME is numerically equal to the external pressure.
+(TIME can be significant in a BOSOR5 case because BOSOR5 accounts for
+creep if the user has a case in which he/she wants to include creep.
+Also, TIME provides a convenient way to have different "loading programs"
+for different loading components in a given case.)
+
+As with the BIGBOSOR4 output, we can transfer the load-deflection curve,
+actually "time-deflection" in the list above, directly into a file
+
+ eqellipse.stiffened.mode1mode2.collapse.input
+
+which is valid input for Bill Bushnell's plotting routine,
+/home/progs/bin/plotps.linux.
+
+We have constructed a valid input file for plotps.linux called,
+
+ eqellipse.stiffened.mode1mode2.collapse.input
+
+in which the elastic load-deflection curve corresponding to
+the BIGBOSOR4 case, eqellipse.ALL6N (collapse of the imperfect
+pressure vessel head with a -mode 1 imperfection shape, that is,
+the first trace in the file, eqellipse.stiffened.mode1mode2.collapse.input)
+is compared to the elastic-plastic prediction of collapse from
+BOSOR5 under the same condition: a -mode 1 imperfection shape.
+
+The command to generate the postscript plot file is:
+
+/home/progs/bin/plotps.linux < eqellipse.stiffened.mode1mode2.collapse.input 
+                             > eqellipse.stiffened.mode1mode2.collapse.ps 
+
+To view the plot, eqellipse.stiffened.mode1mode2.collapse.ps , on screen, type:
+
+gv eqellipse.stiffened.mode1mode2.collapse.ps 
+
+This plot is given in Fig. 16 of the file, sdm50.report.pdf.
+
+
+For information on how to use STAGS to continue the evaluation
+of the optimum design, eqellipse.stiffened.CHG (or eqellipse.stiffened.opm4),
+please see the file called "howto.stags". BIGBOSOR4, BOSOR5, and
+elastic STAGS results for this configuration are "plotted" in the file,
+
+ eqellipse.stiffened.mode1mode2.collapse.ps
+
+See Table 40 in the file, sdm50.report.pdf , and the file,
+
+/home/progs/genopt/case/torisph/howto.stags
+
+for advice on how to generate results from STAGS for the
+optimum design, eqellipse.stiffened.opm4 .
+
+---- END OF DISCUSSION RELATING TO THE EVALUATION OF THE OPTIMUM      ---- 
+---- DESIGN, eqellpse.stiffened.opm2, with use of BOSOR4, BOSOR5, STAGS ----
+
+----------------------- END OF RUNSTREAM----------------------------------
+
+
+Please see Table 39 in the file, sdm50.report.pdf , for the
+runstream used to produce the optimum design of the isogrid-stiffened
+equivalent ellipsoidal shell under uniform external pressure.
+
+
+FILES RELATING TO THE GENERIC CASE, "equivellipse"
+
+The files in the directory, /home/progs/genopt/case/torisph,
+relating to the GENERIC case, "equivellipse" are:
+
+-rw-r--r--  1 bush bush  34243 Mar 30 06:08 bosdec.equivellipse
+-rw-r--r--  1 bush bush   1775 Aug 16 09:30 equivellipse.COM
+-rw-r--r--  1 bush bush  22979 Aug 16 09:33 equivellipse.CON
+-rw-r--r--  1 bush bush  38057 Aug 16 09:29 equivellipse.DAT
+-rw-r--r--  1 bush bush  32640 Aug 15 20:13 equivellipse.DEF
+-rw-r--r--  1 bush bush  37739 Aug  9 09:06 equivellipse.INP
+-rw-r--r--  1 bush bush  58537 Aug 16 09:34 equivellipse.NEW
+-rw-r--r--  1 bush bush  11058 Aug 15 20:13 equivellipse.PRO
+-rw-r--r--  1 bush bush   2626 Aug 16 09:35 equivellipse.REA
+-rw-r--r--  1 bush bush    376 Aug 16 09:36 equivellipse.SET
+-rw-r--r--  1 bush bush  23867 Aug 16 09:36 equivellipse.SUB
+-rw-r--r--  1 bush bush   2626 Aug 16 09:35 equivellipse.WRI
+-rw-r--r--  1 bush bush  70681 Aug 16 09:57 equivellipse.behavior.new
+-rw-r--r--  1 bush bush  33090 Aug  9 07:40 equivellipse.old.INP
+-rw-r--r--  1 bush bush  35959 Aug 16 09:58 equivellipse.struct.new
+-rw-r--r--  1 bush bush 137365 Sep  3 10:38 readme.equivellipse
+-rw-r--r--  1 bush bush 241443 Apr  7 13:28 struct.equivellipse
+
+Note that there is no "behavior.equivellipse" file. In this particular
+case the "behavior.new" file created by GENOPT during execution
+of GENTEXT is NOT modified by the GENOPT user. Only the struct.new
+file is modified, becoming what is here called "struct.equivellipse".
+Also, the GENOPT user creates the source file, bosdec.equivellipse,
+to be called bosdec.src before the execution of genprograms by the
+GENOPT user.
+
+There are many files relating to the specific case, "eqellipse". These
+include files for the isogrid-stiffened equivalent ellipsoidal shell
+and files for the unstiffened equivalent ellipsoidal shell (shell with
+a tiny isogrid). Please see the file, sdm50.report.pdf , for details.
+
+
+BIGBOSOR4 input files
+
+The files,
+
+-rw-r--r--  1 bush bush  26078 Mar  4 05:39 eqellipse.ALL1
+-rw-r--r--  1 bush bush  31243 Mar  4 05:39 eqellipse.ALL2N
+-rw-r--r--  1 bush bush  31243 Mar  4 05:39 eqellipse.ALL2P
+-rw-r--r--  1 bush bush  31243 Mar  4 05:39 eqellipse.ALL4N
+-rw-r--r--  1 bush bush  31243 Mar  4 05:39 eqellipse.ALL4P
+-rw-r--r--  1 bush bush  31245 Mar  4 05:39 eqellipse.ALL6N
+-rw-r--r--  1 bush bush  31245 Mar  4 05:39 eqellipse.ALL6P
+-rw-r--r--  1 bush bush  31245 Mar  4 05:39 eqellipse.ALL7N
+-rw-r--r--  1 bush bush  31245 Mar  4 05:39 eqellipse.ALL7P
+-rw-r--r--  1 bush bush  31326 Mar  4 05:39 eqellipse.ALL8N
+-rw-r--r--  1 bush bush  31326 Mar  4 05:39 eqellipse.ALL8P
+-rw-r--r--  1 bush bush  31326 Mar  4 05:39 eqellipse.ALL9N
+-rw-r--r--  1 bush bush  31326 Mar  4 05:39 eqellipse.ALL9P
+
+are suitable input files for BIGBOSOR4 (or BOSOR4) as described next.
+
+ NOTE: If (ITYPE.EQ.2), that is, analysis of a fixed design, SUBROUTINE
+       STRUCT automatically produces BIGBOSOR4 input files for each type
+       of analysis performed. For this particular case, "equivellipse",
+       The files have the following names:
+
+       1. linear axisymmetric bifurcation buckling of perfect shell:
+          *.ALL1 (the "*" represents the user-provided specific case name,
+                  in this example "*" = "eqellipse".)
+
+       2. nonlinear axisymmetric stress analysis of mode 1 (and possibly
+          mode 3) imperfect shell:
+          *.ALL2P  and *.ALL2N  and possibly *.ALL3P  and *.ALL3N and possibly
+          *.ALL2P3 and *.ALL2N3 and possibly *.ALL3P3 and *.ALL3N3
+
+        (Typical here and below: The "P" in *.ALL2P means "positive mode x".
+         Typical here and below: The "N" in *.ALL2N means "negative mode x".
+         Typical here and below; the ending "3" in *.ALL2P3 means "mode x + 2".
+         The files *.ALLnP and *.ALLnN, n = 1,9, are generated by Load Sets 1 and 2.
+         The files *.ALLnP3 and *.ALLnN3, n = 1,9 are generated by Load Sets 3 and 4.
+         Load Set 1 corresponds to +(mode 1) and +(mode 2) imperfection shapes.
+         Load Set 2 corresponds to -(mode 1) and -(mode 2) imperfection shapes.
+         Load Set 3 corresponds to +(mode 3) and +(mode 4) imperfection shapes.
+         Load Set 4 corresponds to -(mode 3) and -(mode 4) imperfection shapes.
+         NOTE: in the particular case run here, "eqellipse", there are only
+               two load cases. Hence, no "ALLnP3" or "ALLnN3" files are generated.)
+
+       3. nonlinear axisymmetric stress analysis of mode 2 (and possibly
+          mode 4) imperfect shell:
+          *.ALL4P  and *.ALL4N  and possibly *.ALL5P  and *.ALL5N and possibly
+          *.ALL4P3 and *.ALL4N3 and possibly *.ALL5P3 and *.ALL5N3
+
+       4. nonlinear axisymmetric collapse of mode 1 and possibly mode 3
+          imperfect shell:
+          *.ALL6P and *.ALL6N (mode 1) and possibly *.ALL6P3 and *.ALL6N3 (mode 3)
+
+       5. nonlinear axisymmetric collapse of mode 2 and possibly mode 4
+          imperfect shell:
+          *.ALL7P and *.ALL7N (mode 2) and possibly *.ALL7P3 and *.ALL7N3 (mode 4)
+
+       6. nonlinear bifurcation buckling of mode 1 and possibly mode 3
+          imperfect shell.
+          *.ALL8P and *.ALL8N (mode 1) and possibly *.ALL8P3 and *.ALL8N3 (mode 3)
+
+       7. nonlinear bifurcation buckling of mode 2 and possibly mode 4
+          imperfect shell.
+          *.ALL9P and *.ALL9N (mode 2) and possibly *.ALL9P3 and *.ALL9N3 (mode 4)
+
+NOTES ON ITEMS 2 To 7 JUST LISTED:
+
+      *.ALL2P is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 1) imperfection shape. (Load set no. ILOADX=1)
+
+      *.ALL2N is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 1) imperfection shape. (Load set no. ILOADX=2)
+
+      *.ALL2P3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 3) imperfection shape. (Load set no. ILOADX=3)
+
+      *.ALL2N3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 3) imperfection shape. (Load set no. ILOADX=4)
+
+      *.ALL3P is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 1) imperfection shape (Load set no. ILOADX=1)
+      in which P(COLLAPSE) is less than P(design).
+ 
+      *.ALL3N is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 1) imperfection shape (Load set no. ILOADX=2)
+      in which P(COLLAPSE) is less than P(design).
+ 
+      *.ALL3P3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 3) imperfection shape (Load set no. ILOADX=3)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL3N3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 3) imperfection shape (Load set no. ILOADX=4)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL4P is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 2) imperfection shape. (Load set no. ILOADX=1)
+
+      *.ALL4N is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 2) imperfection shape. (Load set no. ILOADX=2)
+
+      *.ALL4P3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 4) imperfection shape. (Load set no. ILOADX=3)
+
+      *.ALL4N3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 4) imperfection shape. (Load set no. ILOADX=4)
+
+      *.ALL5P is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 2) imperfection shape (Load set no. ILOADX=1)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL5N is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 2) imperfection shape (Load set no. ILOADX=2)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL5P3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 4) imperfection shape (Load set no. ILOADX=3)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL5N3 is an input file for BIGBOSOR4 for nonlinear stress
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 4) imperfection shape (Load set no. ILOADX=4)
+      in which P(COLLAPSE) is less than P(design).
+
+      *.ALL6P is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 1) imperfection shape if Load set no. ILOADX=1 .
+
+      *.ALL6P3 is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 3) imperfection shape if Load set no. ILOADX=3 .
+
+      *.ALL6N is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 1) imperfection shape if Load set no. ILOADX=2 .
+
+      *.ALL6N3 is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 3) imperfection shape if Load set no. ILOADX=4 .
+
+      *.ALL7P is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 2) imperfection shape if Load set no. ILOADX=1 .
+
+      *.ALL7P3 is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 4) imperfection shape if Load set no. ILOADX=3 .
+
+      *.ALL7N is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 2) imperfection shape if Load set no. ILOADX=2 .
+
+      *.ALL7N3 is an input file for BIGBOSOR4 for nonlinear collapse
+      analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 4) imperfection shape if Load set no. ILOADX=4 .
+
+      *.ALL8P is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 1) imperfection shape if Load set no. ILOADX=1 .
+
+      *.ALL8P3 is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 3) imperfection shape if Load set no. ILOADX=3 .
+
+      *.ALL8N is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 1) imperfection shape if Load set no. ILOADX=1 .
+
+      *.ALL8N3 is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 3) imperfection shape if Load set no. ILOADX=3 .
+
+      *.ALL9P is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 2) imperfection shape if Load set no. ILOADX=2 .
+
+      *.ALL9P3 is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a +(mode 4) imperfection shape if Load set no. ILOADX=4 .
+
+      *.ALL9N is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 2) imperfection shape if Load set no. ILOADX=2 .
+
+      *.ALL9N3 is an input file for BIGBOSOR4 for nonlinear bifurcation
+      buckling analysis of the axisymmetrically imperfect ellipsoidal shell
+      with a -(mode 4) imperfection shape if Load set no. ILOADX=4 .
+
+
+ In order to run BIGBOSOR4, do the following:
+ 1. go to a directory where you want to run BIGBOSOR4.
+ 2. copy one of the files *.ALL*  (Example: eqellipse.ALL6P)
+    to that directory.
+ 3. change the name from *.ALL* to *.ALL
+    Example: cp eqellipse.ALL6P eqellipse.ALL
+ 4. type the following BIGBOSOR4 commands:
+    bigbosor4log        (activates the BIGBOSOR4 set of commands)
+    bigbosorall         (executes BIGBOSOR4)
+    (inspect the BIGBOSOR4 output file, *.OUT)
+    bosorplot           (generates plots)
+
+
+The optimized decision variables are (after the 2nd optimum design was obtained,
+that is, the design contained in the file, eqellipse.stiffened.chg2):
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO ALMOST FEASIBLE DESI
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    1.783E-01  skin thickness at xinput: THKSKN(1 )
+  2    1.870E-01  skin thickness at xinput: THKSKN(2 )
+  3    1.269E-01  skin thickness at xinput: THKSKN(3 )
+  4    1.001E-01  skin thickness at xinput: THKSKN(4 )
+  5    1.121E-01  skin thickness at xinput: THKSKN(5 )
+  6    1.000E-01  skin thickness at xinput: THKSKN(6 )
+  7    1.003E-01  skin thickness at xinput: THKSKN(7 )
+  8    1.481E-01  skin thickness at xinput: THKSKN(8 )
+  9    1.455E-01  skin thickness at xinput: THKSKN(9 )
+ 10    1.431E-01  skin thickness at xinput: THKSKN(10)
+ 11    1.238E-01  skin thickness at xinput: THKSKN(11)
+ 12    1.320E-01  skin thickness at xinput: THKSKN(12)
+ 13    2.268E-01  skin thickness at xinput: THKSKN(13)
+ 14    5.906E-01  height of isogrid members at xinput: HIGHST(1 )
+ 15    5.023E-01  height of isogrid members at xinput: HIGHST(2 )
+ 16    8.183E-01  height of isogrid members at xinput: HIGHST(3 )
+ 17    9.592E-01  height of isogrid members at xinput: HIGHST(4 )
+ 18    1.052E+00  height of isogrid members at xinput: HIGHST(5 )
+ 19    8.832E-01  height of isogrid members at xinput: HIGHST(6 )
+ 20    6.734E-01  height of isogrid members at xinput: HIGHST(7 )
+ 21    6.662E-01  height of isogrid members at xinput: HIGHST(8 )
+ 22    5.731E-01  height of isogrid members at xinput: HIGHST(9 )
+ 23    5.195E-01  height of isogrid members at xinput: HIGHST(10)
+ 24    3.858E-01  height of isogrid members at xinput: HIGHST(11)
+ 25    2.433E-01  height of isogrid members at xinput: HIGHST(12)
+ 26    2.020E-01  height of isogrid members at xinput: HIGHST(13)
+ 27    2.701E+00  spacing of the isogrid members: SPACNG
+ 28    1.034E-01  thickness of an isogrid stiffening member: THSTIF
+
+
+The corresponding design margins are:
+
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+
+Load Set 1 +(mode 1) and +(mode 2)::
+  1    3.164E-01  (CLAPS1(1 )/CLAPS1A(1 )) / CLAPS1F(1 )-1; F.S.=  1.00
+  2    7.193E-01  (GENBK1(1 )/GENBK1A(1 )) / GENBK1F(1 )-1; F.S.=  1.00
+  3    1.851E+00  (SKNBK1(1 ,1 )/SKNBK1A(1 ,1 )) / SKNBK1F(1 ,1 )-1; F.S.=  1.
+  4    2.270E+00  (SKNBK1(1 ,2 )/SKNBK1A(1 ,2 )) / SKNBK1F(1 ,2 )-1; F.S.=  1.
+  5    2.299E+00  (STFBK1(1 ,1 )/STFBK1A(1 ,1 )) / STFBK1F(1 ,1 )-1; F.S.=  1.
+  6    1.494E+00  (STFBK1(1 ,2 )/STFBK1A(1 ,2 )) / STFBK1F(1 ,2 )-1; F.S.=  1.
+  7    1.299E-01  (SKNST1A(1 ,1 )/SKNST1(1 ,1 )) / SKNST1F(1 ,1 )-1; F.S.=  1.
+  8    1.266E-01  (SKNST1A(1 ,2 )/SKNST1(1 ,2 )) / SKNST1F(1 ,2 )-1; F.S.=  1.
+  9   -5.287E-03  (STFST1A(1 ,1 )/STFST1(1 ,1 )) / STFST1F(1 ,1 )-1; F.S.=  1.
+ 10   -1.048E-02  (STFST1A(1 ,2 )/STFST1(1 ,2 )) / STFST1F(1 ,2 )-1; F.S.=  1.
+ 11    1.237E+00  (WAPEX1A(1 )/WAPEX1(1 )) / WAPEX1F(1 )-1; F.S.=  1.00
+ 12    4.954E-01  (CLAPS2(1 )/CLAPS2A(1 )) / CLAPS2F(1 )-1; F.S.=  1.00
+ 13    1.143E+00  (GENBK2(1 )/GENBK2A(1 )) / GENBK2F(1 )-1; F.S.=  1.00
+ 14    2.134E+00  (SKNBK2(1 ,1 )/SKNBK2A(1 ,1 )) / SKNBK2F(1 ,1 )-1; F.S.=  1.
+ 15    2.126E+00  (SKNBK2(1 ,2 )/SKNBK2A(1 ,2 )) / SKNBK2F(1 ,2 )-1; F.S.=  1.
+ 16    4.046E+00  (STFBK2(1 ,1 )/STFBK2A(1 ,1 )) / STFBK2F(1 ,1 )-1; F.S.=  1.
+ 17    2.363E+00  (STFBK2(1 ,2 )/STFBK2A(1 ,2 )) / STFBK2F(1 ,2 )-1; F.S.=  1.
+ 18    3.304E-01  (SKNST2A(1 ,1 )/SKNST2(1 ,1 )) / SKNST2F(1 ,1 )-1; F.S.=  1.
+ 19    1.883E-01  (SKNST2A(1 ,2 )/SKNST2(1 ,2 )) / SKNST2F(1 ,2 )-1; F.S.=  1.
+ 20    2.625E-01  (STFST2A(1 ,1 )/STFST2(1 ,1 )) / STFST2F(1 ,1 )-1; F.S.=  1.
+ 21   -3.901E-02  (STFST2A(1 ,2 )/STFST2(1 ,2 )) / STFST2F(1 ,2 )-1; F.S.=  1.
+ 22    1.647E+00  (WAPEX2A(1 )/WAPEX2(1 )) / WAPEX2F(1 )-1; F.S.=  1.00
+
+Load Set 2 -(mode 1) and -(mode 2):
+ 23    7.818E-03  (CLAPS1(2 )/CLAPS1A(2 )) / CLAPS1F(2 )-1; F.S.=  1.00
+ 24    4.535E-01  (GENBK1(2 )/GENBK1A(2 )) / GENBK1F(2 )-1; F.S.=  1.00
+ 25    2.522E+00  (SKNBK1(2 ,1 )/SKNBK1A(2 ,1 )) / SKNBK1F(2 ,1 )-1; F.S.=  1.
+ 26    2.466E+00  (SKNBK1(2 ,2 )/SKNBK1A(2 ,2 )) / SKNBK1F(2 ,2 )-1; F.S.=  1.
+ 27    6.963E-01  (STFBK1(2 ,1 )/STFBK1A(2 ,1 )) / STFBK1F(2 ,1 )-1; F.S.=  1.
+ 28    4.699E+00  (STFBK1(2 ,2 )/STFBK1A(2 ,2 )) / STFBK1F(2 ,2 )-1; F.S.=  1.
+ 29    1.115E-01  (SKNST1A(2 ,1 )/SKNST1(2 ,1 )) / SKNST1F(2 ,1 )-1; F.S.=  1.
+ 30    1.697E-01  (SKNST1A(2 ,2 )/SKNST1(2 ,2 )) / SKNST1F(2 ,2 )-1; F.S.=  1.
+ 31   -3.444E-02  (STFST1A(2 ,1 )/STFST1(2 ,1 )) / STFST1F(2 ,1 )-1; F.S.=  1.
+ 32   -9.259E-03  (STFST1A(2 ,2 )/STFST1(2 ,2 )) / STFST1F(2 ,2 )-1; F.S.=  1.
+ 33    3.904E-01  (WAPEX1A(2 )/WAPEX1(2 )) / WAPEX1F(2 )-1; F.S.=  1.00
+ 34    4.211E-02  (CLAPS2(2 )/CLAPS2A(2 )) / CLAPS2F(2 )-1; F.S.=  1.00
+ 35    5.620E-01  (GENBK2(2 )/GENBK2A(2 )) / GENBK2F(2 )-1; F.S.=  1.00
+ 36    1.697E+00  (SKNBK2(2 ,1 )/SKNBK2A(2 ,1 )) / SKNBK2F(2 ,1 )-1; F.S.=  1.
+ 37    2.715E+00  (SKNBK2(2 ,2 )/SKNBK2A(2 ,2 )) / SKNBK2F(2 ,2 )-1; F.S.=  1.
+ 38    9.015E-01  (STFBK2(2 ,1 )/STFBK2A(2 ,1 )) / STFBK2F(2 ,1 )-1; F.S.=  1.
+ 39    8.501E-01  (STFBK2(2 ,2 )/STFBK2A(2 ,2 )) / STFBK2F(2 ,2 )-1; F.S.=  1.
+ 40    1.878E-01  (SKNST2A(2 ,1 )/SKNST2(2 ,1 )) / SKNST2F(2 ,1 )-1; F.S.=  1.
+ 41    5.404E-02  (SKNST2A(2 ,2 )/SKNST2(2 ,2 )) / SKNST2F(2 ,2 )-1; F.S.=  1.
+ 42    3.060E-01  (STFST2A(2 ,1 )/STFST2(2 ,1 )) / STFST2F(2 ,1 )-1; F.S.=  1.
+ 43   -3.990E-02  (STFST2A(2 ,2 )/STFST2(2 ,2 )) / STFST2F(2 ,2 )-1; F.S.=  1.
+ 44    4.160E-01  (WAPEX2A(2 )/WAPEX2(2 )) / WAPEX2F(2 )-1; F.S.=  1.00
+
+In the list of margins above, several "behaviors" (margins) have names that
+correspond to two-dimensional arrays, such as the following margins:
+
+  3    1.851E+00  (SKNBK1(1 ,1 )/SKNBK1A(1 ,1 )) / SKNBK1F(1 ,1 )-1; F.S.=  1.
+  4    2.270E+00  (SKNBK1(1 ,2 )/SKNBK1A(1 ,2 )) / SKNBK1F(1 ,2 )-1; F.S.=  1.
+  5    2.299E+00  (STFBK1(1 ,1 )/STFBK1A(1 ,1 )) / STFBK1F(1 ,1 )-1; F.S.=  1.
+  6    1.494E+00  (STFBK1(1 ,2 )/STFBK1A(1 ,2 )) / STFBK1F(1 ,2 )-1; F.S.=  1.
+  7    1.299E-01  (SKNST1A(1 ,1 )/SKNST1(1 ,1 )) / SKNST1F(1 ,1 )-1; F.S.=  1.
+  8    1.266E-01  (SKNST1A(1 ,2 )/SKNST1(1 ,2 )) / SKNST1F(1 ,2 )-1; F.S.=  1.
+  9   -5.287E-03  (STFST1A(1 ,1 )/STFST1(1 ,1 )) / STFST1F(1 ,1 )-1; F.S.=  1.
+ 10   -1.048E-02  (STFST1A(1 ,2 )/STFST1(1 ,2 )) / STFST1F(1 ,2 )-1; F.S.=  1.
+
+The "i" in the arrays, *(i,j) is the Load Set number, and the "j" is the
+index for the sample number for buckling and stress. During the development of
+"equivellipse" it was found that it was a good strategy to compute the minimum
+buckling load factors and maximum stress in two regions of the ellipsoidal
+head. These two regions are delimited by the user-provided input quantity,
+xlimit, which is defined in the equivellipse.PRO file as follows:
+--------------------------------------------------------------------------
+  40.1 max. x-coordinate for x-coordinate callouts: xlimit
+  40.2
+       for x < xlimit callouts are x-coordinates.
+       for x > xlimit callouts are y-coordinates.
+       Set xlimit equal to about a/2, where a = length of the
+       semi-major axis of the ellipse.
+--------------------------------------------------------------------------
+
+Another user-provided input quantity is the array, xinput, defined in
+equivellipse.PRO as follows:
+
+  20.1 x-coordinates for ends of segments: xinput
+  20.2
+       Please make sure to include x = 0 and x = a (equator) when
+       you provide values for xinput.
+
+In SUBROUTINE STRUCT (struct.equivellipse) there exist the following statements:
+
+      do 363 iseg = 1,NSEG
+         ipoint = iseg + 1
+         if (xinput(ipoint).lt.xlimit) then
+            bskin1 = min(bskin1,BUCMIN(iseg))
+            bstif1 = min(bstif1,BUCMNS(iseg))
+            sknmx1 = max(sknmx1,SKNMAX(iseg))
+            stfmx1 = max(stfmx1,STFMXS(iseg))
+         else
+            bskin2 = min(bskin2,BUCMIN(iseg))
+            bstif2 = min(bstif2,BUCMNS(iseg))
+            sknmx2 = max(sknmx2,SKNMAX(iseg))
+            stfmx2 = max(stfmx2,STFMXS(iseg))
+         endif
+  363 continue
+
+in which
+
+	bskin = buckling of the shell skin
+	bstif = buckling of an isogrid stiffener
+        sknmx = maximum stress in the shell skin
+        stfmx = maximum stress in an isogrid stiffener
+
+The quantities, bskin1, bstif1, sknmx1, stfmx1, are the minimum buckling
+load factors and maximum stresses in the region of the ellipsoidal head
+in its flatter region (xinput less than half the semimajor axis a), and
+the quantities, bskin2, bstif2, sknmx2, stfmx2, are the minimum buckling
+load factors and maximum stresses in the region of the ellipsoidal head
+in its "steeper" region (xinput greater than or equal to half the semimajor
+axis, a). The quantities, bskin1, bstif1, sknmx1, and stfmx1, are
+associated with the array index "j" = 1 in margins such as
+
+                          i  j
+  3    1.851E+00  (SKNBK1(1 ,1 )/SKNBK1A(1 ,1 )) / SKNBK1F(1 ,1 )-1; F.S.=  1.
+  4    2.270E+00  (SKNBK1(1 ,2 )/SKNBK1A(1 ,2 )) / SKNBK1F(1 ,2 )-1; F.S.=  1.
+
+and the quantities, bskin2, bstif2, sknmx2, and stfmx2, are associated with
+"j" = 2.
+
+This introduction of two stress and buckling margins corresponding
+to the maximum (stress) or minimum (buckling) values found in two different
+regions of the shell causes the
+optimization cycles to be "smoother" than they otherwise would be. Without
+this "gimmick" the meridional location of the maximum stress in the shell
+skin, for example, would abruptly shift from one point to another non-
+neighboring point from design iteration to iteration, causing a kind of
+"back and forth" phenomenon that might prevent convergence to a global
+optimum design.
+
+In the margins 3 through 10 listed above, the "1" in the names such as SKNBK1,
+STFBK1, SKNST1, and STFST1 is associated with the "mode 1" imperfection shape.
+In contrast, the margins with the names, SKNBK2, STFBK2, SKNST2, STFST2, as
+follows:
+
+ 14    2.134E+00  (SKNBK2(1 ,1 )/SKNBK2A(1 ,1 )) / SKNBK2F(1 ,1 )-1; F.S.=  1.
+ 15    2.126E+00  (SKNBK2(1 ,2 )/SKNBK2A(1 ,2 )) / SKNBK2F(1 ,2 )-1; F.S.=  1.
+ 16    4.046E+00  (STFBK2(1 ,1 )/STFBK2A(1 ,1 )) / STFBK2F(1 ,1 )-1; F.S.=  1.
+ 17    2.363E+00  (STFBK2(1 ,2 )/STFBK2A(1 ,2 )) / STFBK2F(1 ,2 )-1; F.S.=  1.
+ 18    3.304E-01  (SKNST2A(1 ,1 )/SKNST2(1 ,1 )) / SKNST2F(1 ,1 )-1; F.S.=  1.
+ 19    1.883E-01  (SKNST2A(1 ,2 )/SKNST2(1 ,2 )) / SKNST2F(1 ,2 )-1; F.S.=  1.
+ 20    2.625E-01  (STFST2A(1 ,1 )/STFST2(1 ,1 )) / STFST2F(1 ,1 )-1; F.S.=  1.
+ 21   -3.901E-02  (STFST2A(1 ,2 )/STFST2(1 ,2 )) / STFST2F(1 ,2 )-1; F.S.=  1.
+
+are associated with the "mode 2" imperfection shape.
+
+
+Definitions of the variables used in "equivellipse" are listed in Table 2 of
+the equivellipse.DEF file:
+
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "equivellipse"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (equivellipse.PRO)
+C==============================================================
+C    n   (   0,   0)    2      10   npoint   = number of x-coordinates
+C    n   (   0,   0)    2      15   Ixinpu   = vector element number for xinput in xinput(Ixinpu)
+C    y   (  21,   0)    2      20   xinput   = x-coordinates for ends of segments
+C    n   (   0,   0)    2      25   ainput   = length of semi-major axis
+C    n   (   0,   0)    2      30   binput   = length of semi-minor axis of ellipse
+C    n   (   0,   0)    2      35   nodes    = number of nodal points per segment
+C    n   (   0,   0)    2      40   xlimit   = max. x-coordinate for x-coordinate callouts
+C    y   (  21,   0)    1      45   THKSKN   = skin thickness at xinput
+C    y   (  21,   0)    1      50   HIGHST   = height of isogrid members at xinput
+C    n   (   0,   0)    1      55   SPACNG   = spacing of the isogrid members
+C    n   (   0,   0)    1      60   THSTIF   = thickness of an isogrid stiffening member
+C    n   (   0,   0)    2      65   THKCYL   = thickness of the cylindrical shell
+C    n   (   0,   0)    2      70   RADCYL   = radius of the cylindrical shell
+C    n   (   0,   0)    2      75   LENCYL   = length of the cylindrical segment
+C    n   (   0,   0)    2      80   WIMP     = amplitude of the axisymmetric imperfection
+C    n   (   0,   0)    2      85   EMATL    = elastic modulus
+C    n   (   0,   0)    2      90   NUMATL   = Poisson ratio of material
+C    n   (   0,   0)    2      95   DNMATL   = mass density of material
+C    n   (   0,   0)    2     100   IMODE    = strategy control for imperfection shapes
+C    n   (   0,   0)    2     105   NCASES   = Number of load cases (number of environments)  in PRESS(NCASES)
+C    y   (  20,   0)    3     110   PRESS    = uniform external pressure
+C    y   (  20,   0)    4     115   CLAPS1   = collapse pressure with imperfection mode 1
+C    y   (  20,   0)    5     120   CLAPS1A  = allowable pressure for axisymmetric collapse
+C    y   (  20,   0)    6     125   CLAPS1F  = factor of safety for axisymmetric collapse
+C    y   (  20,   0)    4     130   GENBK1   = general buckling load factor, mode 1
+C    y   (  20,   0)    5     135   GENBK1A  = allowable general buckling load factor (use 1.0)
+C    y   (  20,   0)    6     140   GENBK1F  = factor of safety for general buckling
+C    n   (   0,   0)    2     145   JSKNBK1  = number of locations for mode 1 SKNBK1 in SKNBK1(NCASES,JSKNBK1)
+C    y   (  20,  10)    4     150   SKNBK1   = local skin buckling load factor, mode 1 
+C    y   (  20,  10)    5     155   SKNBK1A  = allowable buckling load factor
+C    y   (  20,  10)    6     160   SKNBK1F  = factor of safety for skin buckling
+C    y   (  20,  10)    4     165   STFBK1   = buckling load factor, isogrid member, mode 1
+C    y   (  20,  10)    5     170   STFBK1A  = allowable for isogrid stiffener buckling (Use 1.)
+C    y   (  20,  10)    6     175   STFBK1F  = factor of safety for isogrid stiffener buckling
+C    y   (  20,  10)    4     180   SKNST1   = maximum stress in the shell skin, mode 1
+C    y   (  20,  10)    5     185   SKNST1A  = allowable stress for the shell skin
+C    y   (  20,  10)    6     190   SKNST1F  = factor of safety for skin stress
+C    y   (  20,  10)    4     195   STFST1   = maximum stress in isogrid stiffener, mode 1
+C    y   (  20,  10)    5     200   STFST1A  = allowable stress in isogrid stiffeners
+C    y   (  20,  10)    6     205   STFST1F  = factor of safety for stress in isogrid member
+C    y   (  20,   0)    4     210   WAPEX1   = normal (axial) displacement at apex, mode 1
+C    y   (  20,   0)    5     215   WAPEX1A  = allowable normal (axial) displacement at apex
+C    y   (  20,   0)    6     220   WAPEX1F  = factor of safety for WAPEX
+
+C    y   (  20,   0)    4     225   CLAPS2   = collapse pressure with imperfection mode 2
+C    y   (  20,   0)    5     230   CLAPS2A  = allowable pressure for axisymmetric collapse
+C    y   (  20,   0)    6     235   CLAPS2F  = factor of safety for axisymmetric collapse
+C    y   (  20,   0)    4     240   GENBK2   = general buckling load factor, mode 2
+C    y   (  20,   0)    5     245   GENBK2A  = allowable general buckling load factor (use 1.0)
+C    y   (  20,   0)    6     250   GENBK2F  = factor of safety for general buckling
+C    n   (   0,   0)    2     255   JSKNBK2  = number of locations for mode 2 SKNBK2 in SKNBK2(NCASES,JSKNBK2)
+C    y   (  20,  10)    4     260   SKNBK2   = local skin buckling load factor, mode 2
+C    y   (  20,  10)    5     265   SKNBK2A  = allowable skin buckling load factor (use 1.0)
+C    y   (  20,  10)    6     270   SKNBK2F  = factor of safety for local skin buckling
+C    y   (  20,  10)    4     275   STFBK2   = buckling load factor for isogrid member, mode 2
+C    y   (  20,  10)    5     280   STFBK2A  = allowable for isogrid stiffener buckling (Use 1.)
+C    y   (  20,  10)    6     285   STFBK2F  = factor of safety for isogrid stiffener buckling
+C    y   (  20,  10)    4     290   SKNST2   = maximum stress in the shell skin, mode 2
+C    y   (  20,  10)    5     295   SKNST2A  = allowable stress for the shell skin
+C    y   (  20,  10)    6     300   SKNST2F  = factor of safety for skin stress
+C    y   (  20,  10)    4     305   STFST2   = maximum stress in isogrid stiffener, mode 2
+C    y   (  20,  10)    5     310   STFST2A  = allowable stress in isogrid stiffeners
+C    y   (  20,  10)    6     315   STFST2F  = factor of safety for stress in isogrid member
+C    y   (  20,   0)    4     320   WAPEX2   = normal (axial) displacement at apex, mode 2
+C    y   (  20,   0)    5     325   WAPEX2A  = allowable normal (axial) displacement at apex
+C    y   (  20,   0)    6     330   WAPEX2F  = factor of safety for WAPEX
+C    n   (   0,   0)    7     335   WEIGHT   = weight of the equivalent ellipsoidal head
+---------------------------------------------------------------------------------------------------------
+
+This is a large nonlinear optimization problem and requires a lot of
+computer time. For example, to perform 5 design iterations requires
+about 73 minutes of computer time on my linux machine. A successful
+execution of SUPEROPT (something like 470 design iterations) requires
+about four days on my LINUX computer.
+
+
+LATER NEWS:
+
+A complete SUPEROPT run was made after the computer "sleeping" problem noted above
+was fixed by deactivating the screen saver. The plot of the objective versus design
+iterations is contained in the file:
+
+eqellipse.stiffened.5.3.ps (originally eqellipse.5.ps: (obj. v iterations for complete SUPEROPT run)
+
+The complete SUPEROPT run required about four days of computer time on my LINUX machine.
+
+Notice from the plot, eqellipse.stiffened.5.3.ps, that at three locations, just above 150 iterations,
+just above 300 iterations, and just above 450 iterations, there follow relatively short
+regions of iterations where the objective changes much less with each iteration than is
+the case in the rest of the plot. This is because the move limits are severely but
+temporarily restricted in these three regions. This strategy is described in Part 9,
+Item 626 on pp. 9 and 10 of the paper,
+
+Bushnell, D, "Optimization of an axially compressed ring and stringer stiffened
+cylindrical shell with a general buckling modal imperfection, AIAA 48th SDM Meeting,
+April 2007.
+
+Corresponding to panda2.news Item No. 626, the following text is taken from the file,
+/home/progs/panda2/doc/panda2.news:
+
+"During a SUPEROPT run, for iteration number greater than 150, the move limit,
+SMOVE, is tightened from 0.10 to 0.02, for all the remaining executions of
+PANDAOPT before the next execution of AUTOCHANGE. Immediately following the next
+execution of AUTOCHANGE, the move limit is re-expanded to 0.10. It remains at 0.10
+until the number of design iterations exceeds 300. Then the move limit is again
+tightened as before for all the remaining executions of PANDAOPT before the next
+execution of AUTOCHANGE. As before, immediately following the next execution of
+AUTOCHANGE, the move limit is re-expanded to 0.10. It remains at 0.10 until the
+number of design iterations exceeds 450. Then the move limit is again tightened
+for awhile, then re-expanded as before, for the all the remaining design itertations
+during the SUPEROPT execution."
+
+This strategy is useful for obtaining an optimum design because SUPEROPT concentrates
+iterations in the immediate neighborhoods of the best design found since the beginning
+of iterations at about Iteration No. 150, the best design found since the beginning
+of iterations at about Iteration No. 300, and the best design found since the beginning
+of iterations at about Iteration No. 450. The strategy is especially useful when the
+objective versus iterations is rather jumpy, as is the situation here.
+
+The optimum design found after the naturally completed SUPEROPT run is stored in the
+file,
+
+-rw-r--r--  1 bush bush 119793 Mar  8 08:46 eqellipse.stiffened.opm3
+
+This optimum design is saved in the file,
+
+ eqellipse.stiffened.chg3
+
+The final optimum design and associated design margins are listed in the
+eqellipse.OPP file under the heading, "MILDLY UNFEASIBLE DESIGN". Here,
+"MILDLY UNFEASIBLE" is accepted because the index IDESGN in the *.OPT file
+is set equal to 3.
+
+The optimum design and margins are (from the abridged eqellipse.OPP file):
+
+  VALUES OF DESIGN VARIABLES CORRESPONDING TO MILDLY UNFEASIB DESI
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    2.126E-01  skin thickness at xinput: THKSKN(1 )
+  2    2.084E-01  skin thickness at xinput: THKSKN(2 )
+  3    1.384E-01  skin thickness at xinput: THKSKN(3 )
+  4    1.000E-01  skin thickness at xinput: THKSKN(4 )
+  5    1.086E-01  skin thickness at xinput: THKSKN(5 )
+  6    1.007E-01  skin thickness at xinput: THKSKN(6 )
+  7    1.034E-01  skin thickness at xinput: THKSKN(7 )
+  8    1.481E-01  skin thickness at xinput: THKSKN(8 )
+  9    1.426E-01  skin thickness at xinput: THKSKN(9 )
+ 10    1.728E-01  skin thickness at xinput: THKSKN(10)
+ 11    1.185E-01  skin thickness at xinput: THKSKN(11)
+ 12    1.883E-01  skin thickness at xinput: THKSKN(12)
+ 13    1.576E-01  skin thickness at xinput: THKSKN(13)
+ 14    5.000E-01  height of isogrid members at xinput: HIGHST(1 )
+ 15    5.001E-01  height of isogrid members at xinput: HIGHST(2 )
+ 16    8.441E-01  height of isogrid members at xinput: HIGHST(3 )
+ 17    9.185E-01  height of isogrid members at xinput: HIGHST(4 )
+ 18    1.183E+00  height of isogrid members at xinput: HIGHST(5 )
+ 19    8.601E-01  height of isogrid members at xinput: HIGHST(6 )
+ 20    7.894E-01  height of isogrid members at xinput: HIGHST(7 )
+ 21    7.849E-01  height of isogrid members at xinput: HIGHST(8 )
+ 22    5.312E-01  height of isogrid members at xinput: HIGHST(9 )
+ 23    4.749E-01  height of isogrid members at xinput: HIGHST(10)
+ 24    3.638E-01  height of isogrid members at xinput: HIGHST(11)
+ 25    2.000E-01  height of isogrid members at xinput: HIGHST(12)
+ 26    2.667E-01  height of isogrid members at xinput: HIGHST(13)
+ 27    2.427E+00  spacing of the isogrid members: SPACNG
+ 28    8.017E-02  thickness of an isogrid stiffening member: THSTIF
+
+ MARGINS CORRESPONDING TO THE DESIGN (F.S.= FACTOR OF SAFETY)     
+ MAR.   CURRENT
+ NO.     VALUE            DEFINITION
+Load Set 1 +(mode 1) and +(mode 2):
+  1    3.465E-01  (CLAPS1(1 )/CLAPS1A(1 )) / CLAPS1F(1 )-1; F.S.=  1.00
+  2    7.009E-01  (GENBK1(1 )/GENBK1A(1 )) / GENBK1F(1 )-1; F.S.=  1.00
+  3    2.420E+00  (SKNBK1(1 ,1 )/SKNBK1A(1 ,1 )) / SKNBK1F(1 ,1 )-1; F.S.=  1.
+  4    3.193E+00  (SKNBK1(1 ,2 )/SKNBK1A(1 ,2 )) / SKNBK1F(1 ,2 )-1; F.S.=  1.
+  5    1.083E+00  (STFBK1(1 ,1 )/STFBK1A(1 ,1 )) / STFBK1F(1 ,1 )-1; F.S.=  1.
+  6    3.517E-01  (STFBK1(1 ,2 )/STFBK1A(1 ,2 )) / STFBK1F(1 ,2 )-1; F.S.=  1.
+  7    9.617E-02  (SKNST1A(1 ,1 )/SKNST1(1 ,1 )) / SKNST1F(1 ,1 )-1; F.S.=  1.
+  8    1.099E-01  (SKNST1A(1 ,2 )/SKNST1(1 ,2 )) / SKNST1F(1 ,2 )-1; F.S.=  1.
+  9   -3.762E-03  (STFST1A(1 ,1 )/STFST1(1 ,1 )) / STFST1F(1 ,1 )-1; F.S.=  1.
+ 10    6.348E-02  (STFST1A(1 ,2 )/STFST1(1 ,2 )) / STFST1F(1 ,2 )-1; F.S.=  1.
+ 11    1.384E+00  (WAPEX1A(1 )/WAPEX1(1 )) / WAPEX1F(1 )-1; F.S.=  1.00
+ 12    5.239E-01  (CLAPS2(1 )/CLAPS2A(1 )) / CLAPS2F(1 )-1; F.S.=  1.00
+ 13    1.121E+00  (GENBK2(1 )/GENBK2A(1 )) / GENBK2F(1 )-1; F.S.=  1.00
+ 14    2.991E+00  (SKNBK2(1 ,1 )/SKNBK2A(1 ,1 )) / SKNBK2F(1 ,1 )-1; F.S.=  1.
+ 15    2.990E+00  (SKNBK2(1 ,2 )/SKNBK2A(1 ,2 )) / SKNBK2F(1 ,2 )-1; F.S.=  1.
+ 16    2.501E+00  (STFBK2(1 ,1 )/STFBK2A(1 ,1 )) / STFBK2F(1 ,1 )-1; F.S.=  1.
+ 17    1.198E+00  (STFBK2(1 ,2 )/STFBK2A(1 ,2 )) / STFBK2F(1 ,2 )-1; F.S.=  1.
+ 18    3.345E-01  (SKNST2A(1 ,1 )/SKNST2(1 ,1 )) / SKNST2F(1 ,1 )-1; F.S.=  1.
+ 19    1.924E-01  (SKNST2A(1 ,2 )/SKNST2(1 ,2 )) / SKNST2F(1 ,2 )-1; F.S.=  1.
+ 20    2.820E-01  (STFST2A(1 ,1 )/STFST2(1 ,1 )) / STFST2F(1 ,1 )-1; F.S.=  1.
+ 21   -4.993E-02  (STFST2A(1 ,2 )/STFST2(1 ,2 )) / STFST2F(1 ,2 )-1; F.S.=  1.
+ 22    1.823E+00  (WAPEX2A(1 )/WAPEX2(1 )) / WAPEX2F(1 )-1; F.S.=  1.00
+
+Load Set 2 -(mode 1) and -(mode 2):
+ 23    4.473E-03  (CLAPS1(2 )/CLAPS1A(2 )) / CLAPS1F(2 )-1; F.S.=  1.00
+ 24    4.219E-01  (GENBK1(2 )/GENBK1A(2 )) / GENBK1F(2 )-1; F.S.=  1.00
+ 25    3.327E+00  (SKNBK1(2 ,1 )/SKNBK1A(2 ,1 )) / SKNBK1F(2 ,1 )-1; F.S.=  1.
+ 26    3.356E+00  (SKNBK1(2 ,2 )/SKNBK1A(2 ,2 )) / SKNBK1F(2 ,2 )-1; F.S.=  1.
+ 27   -2.108E-02  (STFBK1(2 ,1 )/STFBK1A(2 ,1 )) / STFBK1F(2 ,1 )-1; F.S.=  1.
+ 28    2.521E+00  (STFBK1(2 ,2 )/STFBK1A(2 ,2 )) / STFBK1F(2 ,2 )-1; F.S.=  1.
+ 29    1.398E-01  (SKNST1A(2 ,1 )/SKNST1(2 ,1 )) / SKNST1F(2 ,1 )-1; F.S.=  1.
+ 30    1.986E-01  (SKNST1A(2 ,2 )/SKNST1(2 ,2 )) / SKNST1F(2 ,2 )-1; F.S.=  1.
+ 31   -3.139E-02  (STFST1A(2 ,1 )/STFST1(2 ,1 )) / STFST1F(2 ,1 )-1; F.S.=  1.
+ 32    5.301E-03  (STFST1A(2 ,2 )/STFST1(2 ,2 )) / STFST1F(2 ,2 )-1; F.S.=  1.
+ 33    4.830E-01  (WAPEX1A(2 )/WAPEX1(2 )) / WAPEX1F(2 )-1; F.S.=  1.00
+ 34    2.738E-01  (CLAPS2(2 )/CLAPS2A(2 )) / CLAPS2F(2 )-1; F.S.=  1.00
+ 35    6.883E-01  (GENBK2(2 )/GENBK2A(2 )) / GENBK2F(2 )-1; F.S.=  1.00
+ 36    2.444E+00  (SKNBK2(2 ,1 )/SKNBK2A(2 ,1 )) / SKNBK2F(2 ,1 )-1; F.S.=  1.
+ 37    3.597E+00  (SKNBK2(2 ,2 )/SKNBK2A(2 ,2 )) / SKNBK2F(2 ,2 )-1; F.S.=  1.
+ 38    2.225E-01  (STFBK2(2 ,1 )/STFBK2A(2 ,1 )) / STFBK2F(2 ,1 )-1; F.S.=  1.
+ 39    1.887E-01  (STFBK2(2 ,2 )/STFBK2A(2 ,2 )) / STFBK2F(2 ,2 )-1; F.S.=  1.
+ 40    2.327E-01  (SKNST2A(2 ,1 )/SKNST2(2 ,1 )) / SKNST2F(2 ,1 )-1; F.S.=  1.
+ 41    2.132E-02  (SKNST2A(2 ,2 )/SKNST2(2 ,2 )) / SKNST2F(2 ,2 )-1; F.S.=  1.
+ 42    3.246E-01  (STFST2A(2 ,1 )/STFST2(2 ,1 )) / STFST2F(2 ,1 )-1; F.S.=  1.
+ 43   -7.991E-02  (STFST2A(2 ,2 )/STFST2(2 ,2 )) / STFST2F(2 ,2 )-1; F.S.=  1.
+ 44    6.431E-01  (WAPEX2A(2 )/WAPEX2(2 )) / WAPEX2F(2 )-1; F.S.=  1.00
+
+ ******************** DESIGN OBJECTIVE *******************
+ *************                             ***********
+  CORRESPONDING VALUE OF THE OBJECTIVE FUNCTION:                  
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    8.513E+01  weight of the equivalent ellipsoidal head: WEIGHT
+
+ *************                          ************
+ ******************** DESIGN OBJECTIVE *******************
+
+The optimum weight, 85.13 lbs, is slightly lower than the optimum weight, 86.07 lbs,
+determined from the partial SUPEROPT run plus the "optimize" executions with the
+tightened mode limits, IMOVE=4 runs, results from which are stored in the files,
+eqellipse.stiffened.opm2 and eqellipse.stiffened.chg2.
+
+STAGS input data for this configuration reside in the files:
+
+eqellipse.stiffened.stags.bin1
+eqellipse.stiffened.stags.bin2
+eqellipse.stiffened.stags.opm3.inp1
+eqellipse.stiffened.stags.opm3.inp2
+
+NOTE: From April 8 to April 11, 2008 another SUPEROPT run
+was made, this time with IDESGN = 2 (ALMOST FEASIBLE is ok).
+The optimum design obtained after this run is stored in the file,
+eqellipse.stiffened.chg4 and listed in the file eqellipse.stiffened.opm4.
+The following STAGS results are based on that optimum design.
+
+The STAGS linear buckling analysis yields the following in
+the eqellipse.out2 file:
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   2.835021E+00   2.835021E+00   0.000000E+00       3 <--to be the imperf.
+     2   3.004836E+00   3.004836E+00   0.000000E+00    3795    shape with amplitude
+     3   3.004836E+00   3.004836E+00   0.000000E+00    3393    Wimp = -0.2 inch.
+     4   3.483754E+00   3.483754E+00   0.000000E+00    8277
+     5   3.483755E+00   3.483755E+00   0.000000E+00    8211
+     6   3.505017E+00   3.505017E+00   0.000000E+00       3
+     7   3.551819E+00   3.551819E+00   0.000000E+00    5241
+     8   3.551820E+00   3.551820E+00   0.000000E+00    5109
+
+The eqellipse.inp file for the first nonlinear (INDIC=3) STAGS
+run has the following lines in it:
+---------------------------------------------------------------
+  0  1  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS
+  2  0  0  0  0  0  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP
+ -0.200   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=1 is the 1st GENOPT mode 1 imperf.)
+-----------------------------------------------------------------
+
+The eqellipse.bin file for the first nonlinear (INDIC=3) run is as
+follows:
+--------------------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 5.000E-02, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.000E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   0, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 500,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  4, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+-----------------------------------------------------------------------
+
+The STAGS nonlinear equilibrium analysis with the negative of
+the first eigenvector used as an imperfection shape (axisymmetric)
+does not bomb but stops prematurely, listing the following in the eqellipse.out2 file:
+-----------------------------------------------------------
+       ITERATION        VECTOR       EIGENVALUE     RELATIVE ERROR
+             9             1    0.68835185E+00    0.60317197E-07        0.68835189E+00
+             9             2   -0.99708489E+00    0.24888208E-04       -0.99706008E+00
+             9             3    0.11734362E+01    0.43267596E-05        0.11734413E+01
+             9             4    0.11734477E+01    0.46066647E-04        0.11735017E+01
+             9             5    0.23279028E+01    0.40741786E-01        0.24227458E+01
+             9             6    0.27574938E+01    0.32580914E-02        0.27664779E+01
+             9             7    0.33559188E+01    0.19351480E+00        0.40053388E+01
+             9             8    0.55831473E+01    0.75174486E-02        0.56251183E+01
+             9             9   -0.20638330E+04    0.10430533E+01        0.88854854E+02
+
+ CP SEC =   173.600.  I/O REQSTS =   97896   WORDS USED =   7148722   WORDS TRANSFD =    5.51805E+08
+       GSEI STOP, EIGENVALUES ARE COMPLEX
+
+ REDUCED PROBLEM HAS COMPLEX EIGENVALUES
+------------------------------------------------------------------------
+
+The reason for this strange termination is not known as of this writing.
+It probably is related to the presence of a pole in the STAGS model.
+
+
+We restart at Load Step 8, to which the following new eqellipse.bin file
+corresponds
+------------------------------------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 0.797259, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.400E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   8, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 500,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  4, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+--------------------------------------------------------------------------
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    8  0.797259E+00  0.000000E+00
+    9  0.808366E+00  0.000000E+00
+   10  0.824883E+00  0.000000E+00
+   11  0.849345E+00  0.000000E+00
+   12  0.897071E+00  0.000000E+00
+   13  0.965338E+00  0.000000E+00
+   14  0.105857E+01  0.000000E+00
+   15  0.116791E+01  0.000000E+00
+   16  0.121636E+01  0.000000E+00
+   17  0.115474E+01  0.000000E+00
+   18  0.105969E+01  0.000000E+00
+   19  0.966582E+00  0.000000E+00
+   20  0.880307E+00  0.000000E+00
+   21  0.810721E+00  0.000000E+00
+   22  0.769613E+00  0.000000E+00
+   23  0.768168E+00  0.000000E+00
+   24  0.800717E+00  0.000000E+00
+   25  0.829843E+00  0.000000E+00
+   26  0.789093E+00  0.000000E+00
+   27  0.617677E+00  0.000000E+00
+   28  0.401672E+00  0.000000E+00
+   29  0.319510E+00  0.000000E+00
+   30  0.406022E+00  0.000000E+00
+
+Results for this optimum design from BIGBOSOR4 and from STAGS are plotted
+in the file,
+
+eqellipse.stiffened.bosor4andstags.ps
+
+The corresponding input data to Bill Bushnell's plotting routine,
+/home/progs/bin/plotps.linux,
+are contained in the file,
+
+eqellipse.stiffened.bosor4andstags.input
+
+We wish to find out what happens when we introduce non-axisymmetric modal
+imperfections, as follows in the eqellipse.inp file:
+--------------------------------------------------------------------------
+  0  4  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS
+  2  0  0  0  0  0  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP
+ -0.200   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=1 is the 1st GENOPT mode 1 imperf.)
+  0.05    0  2  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=2 is an n=1 linear buckl. mode)
+  0.05    0  4  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=4 is an n=2 linear buckl. mode)
+  0.05    0  7  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=7 is a 2nd n=1 linear buckl. mode)
+
+Results from the nonlinear STAGS analysis from the eqellipse.out2 file are:
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    9  0.100000E+01  0.000000E+00
+   10  0.100908E+01  0.000000E+00
+   11  0.101975E+01  0.000000E+00
+   12  0.103227E+01  0.000000E+00
+   13  0.105044E+01  0.000000E+00
+   14  0.107616E+01  0.000000E+00
+   15  0.111084E+01  0.000000E+00
+   16  0.114757E+01  0.000000E+00
+   17  0.117671E+01  0.000000E+00
+   18  0.118931E+01  0.000000E+00
+   19  0.117988E+01  0.000000E+00
+   20  0.115070E+01  0.000000E+00
+   21  0.110766E+01  0.000000E+00
+   22  0.105195E+01  0.000000E+00
+   23  0.991956E+00  0.000000E+00
+   24  0.940639E+00  0.000000E+00
+   25  0.889817E+00  0.000000E+00
+   26  0.849529E+00  0.000000E+00
+   27  0.813269E+00  0.000000E+00
+   28  0.784393E+00  0.000000E+00
+   29  0.765778E+00  0.000000E+00
+
+The nonlinear load-deflection curve is plotted in the file,
+
+eqellipse.stiffened.bosor4andstags.ps
+------------------------------------------------------------------------
+
+*************** END OF eqellipse.stiffened.xxxx ************************
+
+
+
+
+*************** BEGIN eqellipse.unstiffened.xxxx ************************
+
+An UNSTIFFENED equivalent ellipsoid was optimized. Results are
+stored in the files:
+
+-rw-r--r--  1 bush bush   31556 Mar 28 05:28 eqellipse.unstiffened.5.1.ps
+-rw-r--r--  1 bush bush   31444 Mar 28 05:28 eqellipse.unstiffened.5.2.ps
+-rw-r--r--  1 bush bush   31641 Mar 28 05:32 eqellipse.unstiffened.5.3.ps
+-rw-r--r--  1 bush bush   31600 Mar 30 04:26 eqellipse.unstiffened.5.4.ps
+-rw-r--r--  1 bush bush   31044 Apr  2 04:57 eqellipse.unstiffened.5.5.ps
+-rw-r--r--  1 bush bush   25339 Mar 28 06:42 eqellipse.unstiffened.ALL1.mode1.n=0.IDESGN=2.ps
+-rw-r--r--  1 bush bush   25287 Mar 27 08:39 eqellipse.unstiffened.ALL1.mode1.n=0.IDESGN=3.ps
+-rw-r--r--  1 bush bush   25288 Mar 27 08:39 eqellipse.unstiffened.ALL1.mode2.n=0.idesgn=3.ps
+-rw-r--r--  1 bush bush   25317 Apr  2 07:50 eqellipse.unstiffened.ALL6N.prebuck.n=0.IDESGN=2.ps
+-rw-r--r--  1 bush bush   25318 Apr  2 06:35 eqellipse.unstiffened.ALL6N.prebuck.n=0.IDESGN=3.ps
+-rw-r--r--  1 bush bush   25294 Apr  2 07:56 eqellipse.unstiffened.ALL8N.mode.n=6.IDESGN=3.ps
+-rw-r--r--  1 bush bush   10328 Mar 17 12:25 eqellipse.unstiffened.BEG
+-rw-r--r--  1 bush bush    3088 Mar 17 12:24 eqellipse.unstiffened.DEC
+-rw-r--r--  1 bush bush  313598 Mar 29 08:35 eqellipse.unstiffened.IDESGN=2.opm4.stags.step12.eig1.n=6.pdf
+-rw-r--r--  1 bush bush     911 Mar 17 12:25 eqellipse.unstiffened.OPT
+-rw-r--r--  1 bush bush   14228 Mar 17 11:44 eqellipse.unstiffened.STAGS
+-rw-r--r--  1 bush bush    4119 Mar 30 13:52 eqellipse.unstiffened.bosor4andstags.IDESGN=2.input
+-rw-r--r--  1 bush bush   19152 Mar 30 13:53 eqellipse.unstiffened.bosor4andstags.IDESGN=2.ps
+-rw-r--r--  1 bush bush    6827 Apr  2 05:54 eqellipse.unstiffened.bosor4andstags.IDESGN=3.input
+-rw-r--r--  1 bush bush   23493 Apr  2 05:54 eqellipse.unstiffened.bosor4andstags.IDESGN=3.ps
+-rw-r--r--  1 bush bush    2670 Mar 17 11:30 eqellipse.unstiffened.chg1
+-rw-r--r--  1 bush bush    2670 Mar 21 06:24 eqellipse.unstiffened.chg2
+-rw-r--r--  1 bush bush    2670 Mar 28 05:49 eqellipse.unstiffened.chg3
+-rw-r--r--  1 bush bush    2670 Mar 29 07:01 eqellipse.unstiffened.chg4
+-rw-r--r--  1 bush bush  313557 Mar 27 07:10 eqellipse.unstiffened.n=0.eig1.opm2.pdf
+-rw-r--r--  1 bush bush 2941486 Mar 28 08:41 eqellipse.unstiffened.n=0.eig1.opm3.fringe.pdf
+-rw-r--r--  1 bush bush  313515 Mar 28 08:38 eqellipse.unstiffened.n=0.eig1.opm3.pdf
+-rw-r--r--  1 bush bush 2816957 Mar 29 07:26 eqellipse.unstiffened.n=0.eig1.opm4.fringe.pdf
+-rw-r--r--  1 bush bush  313587 Mar 29 07:23 eqellipse.unstiffened.n=0.eig1.opm4.pdf
+-rw-r--r--  1 bush bush  313653 Mar 20 13:15 eqellipse.unstiffened.n=0.eig1.pdf
+-rw-r--r--  1 bush bush  313783 Mar 27 07:18 eqellipse.unstiffened.n=0.eig4.opm2.pdf
+-rw-r--r--  1 bush bush  313490 Mar 27 08:44 eqellipse.unstiffened.n=6.eig3.opm2.step22.run5.pdf
+-rw-r--r--  1 bush bush  121911 Mar 22 05:28 eqellipse.unstiffened.opm1
+-rw-r--r--  1 bush bush  168419 Mar 21 06:25 eqellipse.unstiffened.opm2
+-rw-r--r--  1 bush bush   14228 Mar 21 06:26 eqellipse.unstiffened.opm2.STAGS
+-rw-r--r--  1 bush bush  122236 Mar 28 05:40 eqellipse.unstiffened.opm3
+-rw-r--r--  1 bush bush   14228 Mar 28 05:42 eqellipse.unstiffened.opm3.STAGS
+-rw-r--r--  1 bush bush  122500 Apr  4 07:13 eqellipse.unstiffened.opm4
+-rw-r--r--  1 bush bush   14228 Apr  4 07:21 eqellipse.unstiffened.opm4.STAGS
+-rw-r--r--  1 bush bush    1273 Mar 29 07:11 eqellipse.unstiffened.stags.bin1
+-rw-r--r--  1 bush bush    1349 Mar 28 05:51 eqellipse.unstiffened.stags.bin2
+-rw-r--r--  1 bush bush    9204 Mar 28 05:52 eqellipse.unstiffened.stags.inp1
+-rw-r--r--  1 bush bush    9305 Mar 28 06:25 eqellipse.unstiffened.stags.inp2
+
+----------------------------------------------------------------------------------
+Results from STAGS corresponding to the eqellipse.unstiffened.opm1 optimum design
+
+Results from STAGS for linear buckling eigenvalues (abridged eqellipse.out2 file):
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   1.475538E+00   1.475538E+00   0.000000E+00       3
+     2   1.543270E+00   1.543270E+00   0.000000E+00   11157
+     3   1.543270E+00   1.543270E+00   0.000000E+00   11019
+     4   1.597097E+00   1.597097E+00   0.000000E+00   15939
+     5   1.597097E+00   1.597097E+00   0.000000E+00   16005
+     6   1.607674E+00   1.607674E+00   0.000000E+00       3
+     7   1.644089E+00   1.644089E+00   0.000000E+00       3
+     8   1.654086E+00   1.654086E+00   0.000000E+00   17745
+
+Results from STAGS nonlinear collapse analysis abridged eqellipse.out2 file):
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    0  0.500000E-01  0.000000E+00
+    1  0.500000E-01  0.000000E+00
+    2  0.100000E+00  0.000000E+00
+    3  0.136731E+00  0.000000E+00
+    4  0.190616E+00  0.000000E+00
+    5  0.268811E+00  0.000000E+00
+    6  0.380434E+00  0.000000E+00
+    7  0.535491E+00  0.000000E+00
+    8  0.738570E+00  0.000000E+00
+    9  0.940075E+00  0.000000E+00
+   10  0.109019E+01  0.000000E+00
+   11  0.110982E+01  0.000000E+00
+   12  0.932945E+00  0.000000E+00
+   13  0.708333E+00  0.000000E+00
+   14  0.521466E+00  0.000000E+00
+   15  0.359370E+00  0.000000E+00
+   16  0.237571E+00  0.000000E+00
+   17  0.160388E+00  0.000000E+00
+
+
+Results from a 2nd STAGS nonlinear collapse analysis abridged eqellipse.out2 file):
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    9  0.940075E+00  0.000000E+00
+   10  0.948065E+00  0.000000E+00
+   11  0.959661E+00  0.000000E+00
+   12  0.976247E+00  0.000000E+00
+   13  0.999343E+00  0.000000E+00
+   14  0.103012E+01  0.000000E+00
+   15  0.106816E+01  0.000000E+00
+   16  0.110911E+01  0.000000E+00
+   17  0.113598E+01  0.000000E+00
+   18  0.109340E+01  0.000000E+00
+   19  0.100417E+01  0.000000E+00
+   20  0.900243E+00  0.000000E+00
+   21  0.774260E+00  0.000000E+00
+   22  0.623606E+00  0.000000E+00
+   23  0.463219E+00  0.000000E+00
+   24  0.316013E+00  0.000000E+00
+   25  0.209521E+00  0.000000E+00
+   26  0.146596E+00  0.000000E+00
+   27  0.132869E+00  0.000000E+00
+   28  0.168008E+00  0.000000E+00
+
+
+Agreement with BIGBOSOR4 is excellent
+
+A STAGS analysis was attempted for elastic-plastic material,
+but "failure to converge" occurred in the nonlinear STAGS run
+at a very low load factor, PA = approximatel 0.23.
+------------------------------------------------------------
+
+Results from STAGS corresponding to the eqellipse.unstiffened.opm2 optimum design
+
+A second SUPEROPT run was made and a lighter design was
+found. It is stored in eqellipse.unstiffened.opm2 and
+eqellipse.unstiffened.chg2.
+
+A STAGS linear elastic buckling analysis yielded the following:
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   1.415459E+00   1.415459E+00   0.000000E+00       3  <--mode 1
+     2   1.446137E+00   1.446137E+00   0.000000E+00   15729
+     3   1.446137E+00   1.446137E+00   0.000000E+00   15321
+     4   1.487451E+00   1.487451E+00   0.000000E+00       3  <--mode 2
+     5   1.495254E+00   1.495254E+00   0.000000E+00   15435
+     6   1.495254E+00   1.495254E+00   0.000000E+00   15231
+     7   1.570237E+00   1.570237E+00   0.000000E+00   15393
+     8   1.570237E+00   1.570237E+00   0.000000E+00   15531
+
+This time the STAGS and BIGBOSOR4 disagree significantly. The
+plots that show the comparison appear in the file:
+
+ eqellipse.unstiffened.bosor4andstags.ps
+
+with the input data for /home/progs/bin/plotps.linux in the file,
+
+ eqellipse.unstiffened.bosor4andstags.input
+
+The STAGS plot with the non-axisymmetric imperfection "trigger"
+has a maximum slightly above 400 psi, whereas the design load
+is 460 psi. Hence, in this case GENOPT comes up with an optimum
+design which it thinks is feasible but STAGS demonstrates is not
+feasible. A BIGBOSOR4 run with the input a modified form of
+the file, eqellipse.ALL8N, (INDIC changed from 1 to -2 with
+other small changes just after the segment input and before the
+constraint conditions) yields a nonlinear bifurcation buckling
+pressure, 478 psi. (The approximate nonlinear bifurcation buckling
+problem solved in SUBROUTINE STRUCT predicts a "nonlinear"
+bifurcation buckling pressure, 501 psi. It's the 478 psi number
+that should be compared to the STAGS prediction of nonlinear
+collapse at about 407 psi. The difference between the BIGBOSOR4
+predictions of 478 psi and 501 psi is caused by the different
+strategies used for the INDIC=-2 and INDIC=1 analysis types in
+BIGBOSOR4. INDIC=-2 iteratively closes in on the true nonlinear
+buckling load through a sequence of eigenvalue problems, whereas
+INDIC = 1 does not iterate but proceeds in a manner analogous to
+a linear buckling analysis.)
+
+Also, STAGS predicts a lower axisymmetric collapse load compared to
+that predicted by BIGBOSOR4 in this case.
+
+The difference, in the writer's opinion, arises from the difference
+in the mode1 imperfection shapes predicted by BIGBOSOR4 and STAGS
+from the linear buckling analyses. The axisymmetric mode predicted
+by STAGS has higher amplitude modal deflection away from the apex
+than does that from the BIGBOSOR4 model.
+
+
+----------------------------------------------------------------------------------
+Results from STAGS corresponding to the eqellipse.unstiffened.opm3 optimum design
+
+A new optimum design for the unstiffened equivalent ellipsoidal
+shell was obtained, now with IDESGN = 2, whereas in the previous
+optima IDESGN = 3. With IDESGN = 2 "ALMOST FEASIBLE" designs are
+acceptable but "MILDLY UNFEASIBLE" designs are not. ("ALMOST
+FEASIBLE" means that GENOPT accepts a design the most negative
+margin for which is greater that -0.05. "MILDLY UNFEASIBLE" means
+that GENOPT accepts a design the most negative margin for which
+is greater than -0.10.
+
+After one SUPEROPT the optimum design with IDESGN=2 is stored 
+in the files:
+
+eqellipse.unstiffened.opm3
+eqellipse.unstiffened.chg3
+eqellipse.unstiffened.5.3.ps
+eqellipse.unstiffened.opm3.STAGS
+
+A STAGS model of this design was run, with the following results:
+
+For the linear buckling analysis. STAGS obtains:
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   1.617362E+00   1.617362E+00   0.000000E+00       3 <--n=0, mode 1
+     2   1.677193E+00   1.677193E+00   0.000000E+00   11121
+     3   1.677193E+00   1.677193E+00   0.000000E+00   11253
+     4   1.735486E+00   1.735486E+00   0.000000E+00   11127
+     5   1.735486E+00   1.735486E+00   0.000000E+00   11331
+     6   1.755930E+00   1.755930E+00   0.000000E+00       3 <--n=0, mode 2
+     7   1.774719E+00   1.774719E+00   0.000000E+00   17985
+     8   1.774719E+00   1.774719E+00   0.000000E+00   18117
+
+----------------------------------------------------------------------------------
+Results from STAGS corresponding to the eqellipse.unstiffened.opm4 optimum design
+
+A lighter-weight optimum, unstiffened equivalent ellipsoidal shell:
+
+STAGS gets for linear buckling:
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   1.447922E+00   1.447922E+00   0.000000E+00       3 <-- mode 1 (axisymmetirc)
+     2   1.491006E+00   1.491006E+00   0.000000E+00   15699
+     3   1.491006E+00   1.491006E+00   0.000000E+00   15297
+     4   1.539485E+00   1.539485E+00   0.000000E+00       3 <-- mode 2 (axisymmetric)
+     5   1.542706E+00   1.542706E+00   0.000000E+00   15705
+     6   1.542706E+00   1.542706E+00   0.000000E+00   15231
+     7   1.618233E+00   1.618233E+00   0.000000E+00   17385
+     8   1.619050E+00   1.619050E+00   0.000000E+00   15411
+
+
+Nonlinear equilibrium STAGS run with nonlinear bifurcation buckling
+
+The eqellipse.inp file has the following lines in it:
+
+  0  1  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS
+  2  0  0  0  0  0  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP
+ -0.200   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=3 is the 1st GENOPT mode 1 imperf.)
+
+As seen from the three lines just listed, we use the first
+mode from the linear buckling run, that is "mode 1" as an
+imperfection shape with amplitude, WIMPFA = -0.200 inches.
+
+The eqellipse.bin file for the nonlinear run is:
+----------------------------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 0.05, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.000E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   0, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 300,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  8, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+-------------------------------------------------------------
+
+The first nonlinear run yields the following (in the eqellipse.out2 file):
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    0  0.500000E-01  0.000000E+00
+    1  0.500000E-01  0.000000E+00
+    2  0.100000E+00  0.000000E+00
+    3  0.136780E+00  0.000000E+00
+    4  0.190836E+00  0.000000E+00
+    5  0.269543E+00  0.000000E+00
+    6  0.382589E+00  0.000000E+00
+    7  0.541179E+00  0.000000E+00
+    8  0.750978E+00  0.000000E+00
+    9  0.955777E+00  0.000000E+00 <--zero roots skipped
+   10  0.100000E+01  0.000000E+00 <-- 6 roots skipped
+
+In order to obtain good nonlinear eigenvalues, we do
+another nonlinear run starting at Load Step 9: PA=0.955777
+and stopping at PA = 0.98. Then we may obtain a good
+non-axisymmetric nonlinear buckling mode to act as a "trigger"
+in a subsequent nonlinear collapse STAGS run.
+
+The eqellipse.bin file is as follows:
+-----------------------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 0.955777, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 0.980E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   9, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 300,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  8, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+-------------------------------------------------------------
+
+
+STAGS output (abridged eqellipse.out2 file) yields the following:
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    9  0.955777E+00  0.000000E+00
+   10  0.963571E+00  0.000000E+00
+   11  0.974799E+00  0.000000E+00
+   12  0.980000E+00  0.000000E+00 <-- no roots skipped
+
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   3.051237E-02   1.009902E+00   0.000000E+00   11427 <--use this as additional
+     2   3.051237E-02   1.009902E+00   0.000000E+00   11403    imperfection with very
+     3   5.869018E-02   1.037516E+00   0.000000E+00   11103    small amplitude, 0.001.
+     4   5.869018E-02   1.037516E+00   0.000000E+00   11295    This acts as a "trigger"
+     5   6.771668E-02   1.046362E+00   0.000000E+00   11319    to initiate collapse in
+     6   6.771668E-02   1.046362E+00   0.000000E+00   11223    a non-axisymmetric way.
+     7   1.557565E-01   1.132641E+00   0.000000E+00   11127
+     8   1.557565E-01   1.132641E+00   0.000000E+00   10959
+
+No roots were skipped, and the lowest eigenvalue is small.
+Therefore, it might be a good "trigger" for non-axisymmetric
+collapse. We first need to look at the mode shape to ensure
+that it is axisymmetric. Hence we execute STAPL, as follows:
+
+cp temp.pin eqellipse.pin
+(edit eqellipse.pin to supply the correct load step number.
+ It should be Step No. 12. The proper eqellipse.pin file
+ follows:)
+-----------------------------------------------
+nonlinear buckling of imperfect shell
+  1  0  1  0  $PL-2  NPLOT,IPREP,IPRS,KDEV
+     1     0     4    12     1  $PL-3  KPLOT,NUNIT,ITEM,STEP,MODE
+    0.0   3  $PL-5  DSCALE,NROTS
+  1   -35.84   $PL-6  IROT,ROT
+  2   -13.14   $PL-6  IROT,ROT
+  3    35.63   $PL-6  IROT,ROT
+------------------------------------------------
+
+We type the commands:
+
+ustapl eqellipse
+acroread eqellipse.pdf
+
+in order to view the nonlinear buckling mode to see if
+it is a suitable "trigger". The mode is stored in the
+file:
+
+eqellipse.unstiffened.IDESGN=2.opm4.stags.step12.eig1.n=6.pdf
+
+It is a suitable "trigger".
+
+The new eqellipse.inp file has the following lines in it:
+
+  0  2  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS
+  2  0  0  0  0  0  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP
+ -0.200   0  1  1   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (IMMODE=1 is the 1st GENOPT mode 1 imperf.)
+  0.001  12  1  5   $B-5 WIMPFA, IMSTEP, IMMODE, IMRUN (non-axisymmetric "trigger":mode 1 step12)
+
+and the eqellipse.bin file is as follows:
+--------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 0.05, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.000E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   0, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 300,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  8, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+---------------------------------------------------------------------
+
+Note that we start over from zero load, since we have added a new
+imperfection. We now have two imperfection shapes:
+1. The original axisymmetric imperfection shape with amplitude -0.2 inch, and
+2. The non-axisymmetric nonlinear buckling imperfection shape with a
+   very small amplitude, 0.001 inch.
+
+The nonlinear STAGS run produces the following output:
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    0  0.500000E-01  0.000000E+00
+    1  0.500000E-01  0.000000E+00
+    2  0.100000E+00  0.000000E+00
+    3  0.136780E+00  0.000000E+00
+    4  0.190836E+00  0.000000E+00
+    5  0.269543E+00  0.000000E+00
+    6  0.382588E+00  0.000000E+00
+    7  0.541178E+00  0.000000E+00
+    8  0.750973E+00  0.000000E+00
+    9  0.955521E+00  0.000000E+00 <-- no roots skipped
+   10  0.100000E+01  0.000000E+00 <-- 6 roots skipped
+
+The "trigger" didn't change things much, but the
+story should be different if we restart at Load Step 9
+and take very small steps.
+
+The eqellipse.inp file stays the same, but the new
+eqellipse.bin file is as follows:
+---------------------------------------------------
+optimized imperfect shell, nonlinear theory (INDIC=3)
+ 3, $ INDIC=1 is bifur.buckling; INDIC=3 is nonlinear BEGIN B-1
+ 1, $ IPOST=1 means save displacements every IPOSTth step
+ 0, $ ILIST =0 means normal batch-oriented output
+ 0, $ ICOR  =0 means projection in; 1 means not in.
+ 1, $ IMPTHE=index for imperfection theory.
+ 0, $ IOPTIM=0 means bandwith optimization will be performed
+ 0, $ IFLU  =0 means no fluid interaction.
+ -1 $ ISOLVR= 0 means original solver; -1 new solver.END B-1 rec
+ 0.955521, $ STLD(1) = starting load factor, System A. BEGIN C-1 rec.
+ 5.000E-02, $ STEP(1) = load factor increment, System A
+ 1.000E+00, $ FACM(1) = maximum load factor, System A
+ 0.000E+00, $ STLD(2) = starting load factor, System B
+ 0.000E+00, $ STEP(2) = load factor increment, System B
+ 0.000E+00, $ FACM(2) = maximum load factor, System B
+ 0  $ ITEMP =0 means no thermal loads. END C-1 rec.
+   9, $ ISTART=restart from ISTARTth load step.   BEGIN D-1 rec.
+ 300,$ NSEC= number of CPU seconds before run termination
+ 15,$ NCUT = number of times step size may be cut
+  -20, $ NEWT = number of refactorings allowed
+-1,$ NSTRAT=-1 means path length used as independent parameter
+ 0.00005,$ DELX=convergence tolerance
+ 0. $ WUND = 0 means initial relaxation factor =1.END D-1 rec.
+ 0,  8, 0  $ NPATH=0: Riks method, NEIGS=no.of eigs, NSOL=0: contin.  ET-1
+-----------------------------------------------------
+
+STAGS yields the following output (in the eqellipse.out2 file):
+
+ LIST OF LOAD STEPS AND LOAD FACTORS
+ STEP      PA            PB            PX
+    9  0.955521E+00  0.000000E+00
+   10  0.963064E+00  0.000000E+00
+   11  0.970270E+00  0.000000E+00
+   12  0.969069E+00  0.000000E+00
+   13  0.966516E+00  0.000000E+00
+   14  0.961816E+00  0.000000E+00
+   15  0.953739E+00  0.000000E+00
+   16  0.940434E+00  0.000000E+00
+   17  0.918928E+00  0.000000E+00
+   18  0.889211E+00  0.000000E+00
+   19  0.842462E+00  0.000000E+00
+   20  0.781057E+00  0.000000E+00
+   21  0.709229E+00  0.000000E+00
+   22  0.649652E+00  0.000000E+00
+   23  0.628936E+00  0.000000E+00
+
+Execution of "uxytrans" with the following input data,
+
+P              $ (P)lotps or (S)pread_Sheet output
+eqellipse      $ STAGS solution 'Case Name'
+F              $ (F)ull or (C)ondensed Model
+Y              $ (Y)es-(N)o: setup data for another plot
+ 5             $ x-axis variable = choice (1 to 15)
+      1        $ node no. (0 = ask for Unit,Row,Col)
+3              $ comp no., dis,vel,acc (1-6) = u,v,w,ru,rv,rw
+S              $ (G)lobal or (S)hell ref surface
+Y              $ (Y)es-(N)o: specify x-variable scale factor
+-0.100000E+01  $ x-variable scale factor
+ 2             $ y-axis variable = choice (1 to 15)
+Y              $ (Y)es-(N)o: specify x-variable scale factor
+ 0.460000E+03  $ y-variable scale factor
+N              $ (Y)es-(N)o: specify subrange of loadsteps
+Y              $ (Y)es-(N)o: plotted points start at origin
+N              $ (Y)es-(N)o: setup data for another plot
+
+
+yields the following load-deflection curve:
+
+"Disp(1,w,L) vs. load_PA
+   0.000000E+00    0.000000E+00
+   2.617664E-02    2.300000E+01
+   5.329162E-02    4.600000E+01
+   7.382686E-02    6.291889E+01
+   1.048862E-01    8.778471E+01
+   1.518824E-01    1.239899E+02
+   2.227793E-01    1.759906E+02
+   3.288397E-01    2.489419E+02
+   4.856503E-01    3.454474E+02
+   6.836410E-01    4.395397E+02
+   6.929871E-01    4.430093E+02
+   7.025424E-01    4.463241E+02
+   7.014614E-01    4.457718E+02
+   6.986335E-01    4.445974E+02
+   6.933058E-01    4.424355E+02
+   6.841440E-01    4.387201E+02
+   6.692542E-01    4.325997E+02
+   6.457985E-01    4.227068E+02
+   6.144609E-01    4.090370E+02
+   5.669292E-01    3.875325E+02
+   5.059525E-01    3.592864E+02
+   4.326103E-01    3.262453E+02
+   3.600187E-01    2.988400E+02
+   3.088633E-01    2.893103E+02
+
+This curve is inserted into the file,
+
+eqellipse.unstiffened.bosor4andstags.IDESGN=2.input
+
+The plot is contained in the file,
+
+eqellipse.unstiffened.bosor4andstags.IDESGN=2.ps
+
+********************* END OF eqellipse.unstiffened.xxxx *****************

@@ -1,0 +1,1590 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: cylwavy
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called ADS, and was
+C written by G. Vanderplaats [3]. It is based on the method
+C of feasible directions [4].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although all of the example cases (See the cases
+C        in the directories under genopt/case)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "cylwavy".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "cylwavy" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [7 - 16]. That
+C        is, the command set is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.)
+ 
+C           SUPEROPT  (Program tries to find the GLOBAL optimum
+C                      design as described in Ref.[11] listed
+C                      below (Many OPTIMIZEs in one run.)
+ 
+C           CHANGE    (User changes certain parameters)
+ 
+C           CHOOSEPLOT (User selects which quantities to plot
+C                       vs. design iterations.)
+ 
+C           DIPLOT    (User generates plots)
+ 
+C           CLEANSPEC (User cleans out unwanted files.)
+ 
+C     A typical runstream is:
+C       GENOPTLOG   (activate command set)
+C       BEGIN       (provide starting design, loads, etc.)
+C       DECIDE      (choose decision variables and bounds)
+C       MAINSETUP   (choose print option and analysis type)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHANGE      (change some variables for new starting pt)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHOOSEPLOT  (choose which variables to plot)
+C       DIPLOT      (plot variables v. iterations)
+C       CHOOSEPLOT  (choose additional variables to plot)
+C       DIPLOT      (plot more variables v design iterations)
+C       CLEANSPEC   (delete extraneous files for specific case)
+ 
+C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"
+C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN
+C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO
+C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,
+C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,
+C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and
+C              Structures, Vol. 25, No. 4, pp 469-605 (1987).
+ 
+C Due to introduction of a "global" optimizer, SUPEROPT,
+C described in Ref.[11], you can now use the runstream
+ 
+C      BEGIN       (provide starting design, loads, etc.)
+C      DECIDE      (choose decision variables and bounds)
+C      MAINSETUP   (choose print option and analysis type)
+C      SUPEROPT    (launch batch run for "global" optimization)
+C      CHOOSEPLOT  (choose which variables to plot)
+C      DIPLOT      (plot variables v. iterations)
+ 
+C "Global" is in quotes because SUPEROPT does its best to find
+C a true global optimum design. The user is strongly urged to
+C execute SUPEROPT/CHOOSEPLOT several times in succession in
+C order to determine an optimum that is essentially just as
+C good as the theoretical true global optimum. Each execution
+C of the series,
+C      SUPEROPT
+C      CHOOSEPLOT
+ 
+C does the following:
+ 
+C 1. SUPEROPT executes many sets of the two processors,
+C    OPTIMIZE and AUTOCHANGE (AUTOCHANGE gets a new random
+C    "starting" design), in which each set does the following:
+ 
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      AUTOCHANGE        (get new starting design randomly)
+ 
+C    SUPEROPT keeps repeating the above sequence until the
+C    total number of design iterations reaches about 270.
+C    The number of OPTIMIZEs per AUTOCHANGE is user-provided.
+ 
+C 2. CHOOSEPLOT allows the user to plot stuff and resets the
+C    total number of design iterations from SUPEROPT to zero.
+C    After each execution of SUPEROPT the user MUST execute
+C    CHOOSEPLOT: before the next execution of SUPEROPT the
+C    total number of design iterations MUST be reset to zero.
+ 
+C                     REFERENCES
+ 
+C [1] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", International
+C Journal of Solids and Structures, Vol. 26, No. 9/10,
+C pp. 1173-1210, 1990. The same paper is contained in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology.
+ 
+C [2] Bushnell, D., "Automated optimum design of shells of
+C revolution with application to ring-stiffened cylindrical
+C shells with wavy walls", AIAA paper 2000-1663, 41st
+C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see
+C Lockheed Martin report, same title, LMMS P525674, November
+C 1999
+ 
+C [2b] Bushnell, D., "Minimum weight design of imperfect
+C isogrid-stiffened ellipsoidal shells under uniform external
+C pressure", AIAA paper 2009-2702, 50th AIAA Structures
+C Meeting, Palm Springs, CA, May 4-7, 2009
+ 
+C [2c] Bushnell, D., "Use of GENOPT and a BIGBOSOR4 "huge"
+C torus" model to optimize a typical weld land and weld land
+C edge stringers in a previously optimized internally
+C stiffened cylindrical shell without weld lands",
+C unpublished report to NASA Langley Research, May 15, 2009
+ 
+C [2d] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C optimum designs of a cylindrical shell with a composite
+C truss-core sandwich wall", unpublished report to NASA
+C Langley Research Center, Hampton, VA, June 20, 2009
+ 
+C [2e] Bushnell, D., "Use of GENOPT and BIGBOSOR4 to obtain
+C an optimum design of a deep submergence tank", unpublished
+C report to the DOER company, Alameda, CA, June 30, 2009
+ 
+C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+ 
+C [4] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+ 
+C [5] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [6] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [7] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [8] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C [9] Bushnell, D., "SPHERE - Program for minimum weight
+C design of isogrid-stiffened spherical shells under uniform
+C external pressure", Lockheed Report F372046, January, 1990
+ 
+C [10] Bushnell, D.,"Optimum design of imperf.isogrid-stiffened
+C ellipsoidal shells...", written and placed in the file
+C ..genopt/case/torisph/sdm50.report.pdf
+ 
+C [11] Bushnell, D., "Recent enhancements to PANDA2", AIAA
+C paper 96-1337-CP, Proc. 37th AIAA SDM Meeting, April 1996
+C pp. 126-182, in particular, pp. 127-130
+ 
+C [12] Bushnell, D., the file ..genopt/doc/getting.started
+ 
+C [13] Bushnell, D., the case ..genopt/case/torisph, Ref.[2b]
+ 
+C [14] Bushnell, D., the case ..genopt/case/cylinder
+ 
+C [15] Bushnell, D., the case ..genopt/case/wavycyl, Ref.[2]
+ 
+C [16] Bushnell, D., the case ..genopt/case/plate
+ 
+C [17] Bushnell, D., the case ..genopt/case/weldland, Ref.[2c]
+ 
+C [18] Bushnell, D., the case ..genopt/case/trusscomp,Ref.[2d]
+ 
+C [19] Bushnell, D., the case ..genopt/case/submarine,Ref.[2e]
+ 
+C [20] Bushnell, D., the case ..genopt/case/sphere
+ 
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+ 
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     SUPEROPT     (Program tries to find the GLOBAL optimum
+C                   design as described in Ref.[11] listed
+C                   above (Many OPTIMIZEs in one run.)
+ 
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPT.STORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (in the directory, genopt/case)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = cylwavy)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "cylwavy"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (cylwavy.PRO)
+C==============================================================
+C    n   (   0,   0)    2      10   RADIUS   = overall radius of the cylindrical
+C    n   (   0,   0)    2      15   LENGTH   = axial length of the corrugated cy
+C    n   (   0,   0)    2      25   FACLEN   = fraction of LENGTH for local buck
+C    n   (   0,   0)    2      30   INMESH   = corrugation type number in NMESH(
+C    y   (   2,   0)    2      35   NMESH    = number of nodal points per corrug
+C    n   (   0,   0)    2      45   EMOD     = elastic modulus of the material
+C    n   (   0,   0)    2      50   NU       = Poisson ratio of the material
+C    n   (   0,   0)    2      55   DENSTY   = weight densty of the material
+C    n   (   0,   0)    2      65   MLOWG    = low end of M-range for GENERAL bu
+C    n   (   0,   0)    2      70   MHIGHG   = high end of the M-range for GENER
+C    n   (   0,   0)    2      75   MLOWL    = low end of the M-range for LOCAL
+C    n   (   0,   0)    2      80   MHIGHL   = high end of the M-range for LOCAL
+C    n   (   0,   0)    2      90   IELMNT   = finite element used in STAGS mode
+C    n   (   0,   0)    2     100   UPDOWN   = 1=convex outward; 2=convex inward
+C    n   (   0,   0)    2     110   ITHICK   = corrugation type number in THICK(
+C    y   (   2,   0)    1     115   THICK    = shell wall thickness (constant)
+C    y   (   2,   0)    1     120   RADLOC   = corrugation radius
+C    y   (   2,   0)    1     125   ANGLE    = angle subtended by RADLOC
+C    n   (   0,   0)    2     135   NCASES   = Number of load cases (number of e
+C    y   (  20,   0)    3     140   TOTLOD   = total axial load (e.g.lb)
+C    y   (  20,   0)    4     150   LOCBUK   = local buckling load factor
+C    y   (  20,   0)    5     160   LOCBUKA  = allowable for local buckling
+C    y   (  20,   0)    6     165   LOCBUKF  = factor of safety for local buckli
+C    y   (  20,   0)    4     170   GENBUK   = general buckling
+C    y   (  20,   0)    5     175   GENBUKA  = allowable for general buckling
+C    y   (  20,   0)    6     180   GENBUKF  = factor of safety for general buck
+C    n   (   0,   0)    2     190   JCYLBUK  = shell segment type in CYLBUK(NCAS
+C    y   (  20,   2)    4     195   CYLBUK   = classical buckling load factor
+C    y   (  20,   2)    5     200   CYLBUKA  = allowable for classical buckling
+C    y   (  20,   2)    6     205   CYLBUKF  = factor of safety for classical bu
+C    y   (  20,   0)    4     210   STRESS   = maximum effective stress
+C    y   (  20,   0)    5     215   STRESSA  = allowable effective stress
+C    y   (  20,   0)    6     220   STRESSF  = factor of safety for stress
+C    n   (   0,   0)    7     225   WEIGHT   = weight/area of the corrugated cyl
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN local buckling load factor
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     LOCBUK(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = local buckling load factor
+C
+C   OUTPUT:
+C
+C     LOCBUK(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/INSTAB/INDIC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/BUCKN/N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/EIGALL/EIG0,EIG1,EIG2,EIG3,EIG4
+      COMMON/WAVALL/NWAV0,NWAV1,NWAV2,NWAV3,NWAV4
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(99),CONST(99),DEC(50),ESC(50)
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA,CASA2,CASA3
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      COMMON/RZALL/R1(50),R2(50),Z1(50),Z2(50),RC(50),ZC(50),SROT(50)
+      COMMON/LODWGT/FNX(2)
+      COMMON/NSEGS/NSEG
+      DIMENSION MUNIT(50),NUNIT(50),MBOUND(50),NBOUND(50),UPDNAL(50)
+      INTEGER UPDNAL
+      DIMENSION XGC1(50),XGC2(50),XGC3(50)
+      DIMENSION YGC1(50),YGC2(50),YGC3(50)
+      DIMENSION ZGC1(50),ZGC2(50),ZGC3(50)
+      DIMENSION RADSTG(50),NCOLS(50)
+      DIMENSION PROP1(50),PROP2(50),PROP3(50),PROP4(50),PROP5(50)
+      DIMENSION ARCSML(2),ALPHA(2),ARCBIG(2),CALPHA(2),CPHI(2)
+C
+      PI = 3.1415927
+C     RAVE = 100.*LENGTH*FACLEN/PI
+      RAVE = RADIUS
+      RBIG0 = RAVE
+      RBIGL = RAVE - RADIUS 
+      RDEL = RADIUS/5.
+      RBEG = RBIGL + RDEL
+C
+      ARCCYL = PI*RADIUS
+C
+      DO 10 I = 1,2
+        ANGRAD = ANGLE(I)*PI/180.
+        ARCSML(I) = RADLOC(I)*ANGRAD
+        SPHI2 = SIN(ANGRAD/2.)
+        RATIO = RADLOC(I)*SPHI2/RADIUS
+        ALPHA(I) = 2.*ASIN(RATIO)
+        ARCBIG(I) = RADIUS*ALPHA(I)
+   10 CONTINUE
+C
+      ARCSUM = ARCBIG(1) + ARCBIG(2)
+      NPAIR = ARCCYL/ARCSUM
+      NSEG = 2*NPAIR
+      ARCTOT = FLOAT(NPAIR)*ARCSUM
+      ARCRAT = ARCTOT/ARCCYL
+      AREA = ARCSML(1)*THICK(1) + ARCSML(2)*THICK(2)
+      WEIGHT = (2.*FLOAT(NPAIR)*AREA*DENSTY/ARCRAT)/(2.*PI*RADIUS)
+C
+      WRITE(IFILE,'(A,I4,/,1P,6E12.4)')
+     1' NPAIR,ARCSML(1),ALPHA(1),ARCBIG(1),RADLOC(1),THICK(1),ARCRAT=',
+     1  NPAIR,ARCSML(1),ALPHA(1),ARCBIG(1),RADLOC(1),THICK(1),ARCRAT
+      WRITE(IFILE,'(A,I4,/,1P,6E12.4)')
+     1' NSEG,ARCSML(2),ALPHA(2),ARCBIG(2),RADLOC(2),THICK(2),ARCTOT=',
+     1  NSEG,ARCSML(2),ALPHA(2),ARCBIG(2),RADLOC(2),THICK(2),ARCTOT
+      WRITE(IFILE,'(A,/,1P,4E12.4)')
+     1' RADIUS,DENSTY,AREA,WEIGHT=',RADIUS,DENSTY,AREA,WEIGHT
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C   Find the stress resultants, FNX(1) and FNX(2) from the fomulas:
+C   0.5*TOTLOD = [FNX(1)*ARCSML(1) +FNX(2)*ARCSML(2)]*NPAIR/ARCRAT (1)
+C       FNX(2) = FNX(1)*THICK(2)/THICK(1)                          (2)
+C
+        THKRAT = THICK(2)/THICK(1)
+        FNX(1) = 0.5*TOTLOD(ILOADX)*ARCRAT/
+     1   (FLOAT(NPAIR)*(ARCSML(1)+ARCSML(2)*THKRAT))
+        FNX(2) = FNX(1)*THKRAT
+C
+C   Find the end points and center of curvature of all the segments
+C   in the BIGBOSOR4 model of the "wavy" cross section of the
+C   cylindrical shell. The segments are processed in pairs (1 =
+C   outer "bulge", 2 = inner "bulge"):
+
+      ANGTOT = 0. 
+      ISEG = 0 
+      CALPHA(1) = COS(ALPHA(1)/2.)
+      CALPHA(2) = COS(ALPHA(2)/2.)
+      CPHI(1)   = COS(ANGLE(1)*PI/360.)
+      CPHI(2)   = COS(ANGLE(2)*PI/360.)
+C
+      DO 100 IPAIR = 1,NPAIR
+      DO 50 I = 1,2
+         ISEG = ISEG + 1
+         UPDNAL(ISEG) = 1
+         IF (MOD(ISEG,2).EQ.0) UPDNAL(ISEG) = 2 
+         RADSTG(ISEG) = RADLOC(I)
+         IF (ISEG.GT.1) THEN
+            ISEG1 = ISEG - 1
+            R1(ISEG) = R2(ISEG1)
+            Z1(ISEG) = Z2(ISEG1)
+         ELSE
+            R1(ISEG) = RBEG
+            Z1(ISEG) = 0.
+         ENDIF
+         ANGEND = ANGTOT + ALPHA(I)
+         ANGMID = ANGTOT + 0.5*ALPHA(I)
+C        WRITE(IFILE,'(A,I4,1P,3E12.4)')
+C    1 ' ISEG, ANGTOT*180/PI,ANGEND*180/PI,ANGMID*180/PI=',
+C    1   ISEG, ANGTOT*180/PI,ANGEND*180/PI,ANGMID*180/PI
+         R2(ISEG) = RAVE - RADIUS*COS(ANGEND) + RBEG
+         Z2(ISEG) = RADIUS*SIN(ANGEND)
+         IF (I.EQ.1) THEN
+            DLONG = RADIUS*CALPHA(1) -RADLOC(1)*CPHI(1)
+            SROT(ISEG) =  1.0
+         ELSE
+            DLONG = RADIUS*CALPHA(2) +RADLOC(2)*CPHI(2)
+            SROT(ISEG) = -1.0
+         ENDIF
+         RC(ISEG) = RAVE - DLONG*COS(ANGMID) + RBEG
+         ZC(ISEG) = DLONG*SIN(ANGMID)
+C
+         ANGTOT = ANGTOT + ALPHA(I)
+   50 CONTINUE
+  100 CONTINUE
+C
+      NSEG = ISEG
+C
+      WRITE(IFILE,'(A,A)')
+     1' ISEG       R1         Z1        R2         Z2         RC      ',
+     1'     ZC'
+      DO 120 I = 1,NSEG
+         WRITE(IFILE,'(I4,1P6E12.4)')
+     1 I,R1(I),Z1(I),R2(I),Z2(I),RC(I),ZC(I)
+  120 CONTINUE
+C
+      INDIC = 4
+      N0B = MLOWL
+      NMAXB = MHIGHL
+C
+      CALL BOSDEC(1,24,IMODX,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX1 file for input for BIGBOSOR4...
+C      CASE.BEHX1 is an input file for BIGBOSOR4 for behavior no. 1:
+C      local buckling load
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX1'
+         ELSE
+            CASA=CASE//'.BEHX1'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(1,61,IMODX,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' local buckling load',
+     1   CASA
+      ENDIF
+C
+C  Compute stuff for STAGS model...
+C
+      IF (IMODX.EQ.0) THEN
+         IF (ITYPEX.EQ.2) THEN
+          MSEG = NSEG
+          DO 230 I = 1,MSEG
+           RATIO2 = (Z2(I) - Z1(I))/(R2(I) - R1(I))
+           ALPH = ATAN(RATIO2)
+           IF (ALPH.GE.0.) THEN
+              IF (UPDNAL(I).EQ.1) THEN
+                 RATIO3 = (Z1(I) - ZC(I))/RADSTG(I)
+              ELSE
+                 RATIO3 = (ZC(I) - Z2(I))/RADSTG(I)
+              ENDIF
+              BETA = ASIN(RATIO3)
+              THETA = BETA + ALPH
+           ELSE
+              IF (UPDNAL(I).EQ.1) THEN
+                 RATIO3 = (Z2(I) - ZC(I))/RADSTG(I)
+              ELSE
+                 RATIO3 = (ZC(I) - Z1(I))/RADSTG(I)
+              ENDIF
+              BETA = ASIN(RATIO3)
+              THETA = BETA - ALPH
+           ENDIF
+C          WRITE(IFILE,'(A,/,2I3,1P,5E12.4)')
+C    1   ' I,UPDNAL(I),ALPH,RATIO3,BETA,THETA,RADSTG(I)=',
+C    1     I,UPDNAL(I),ALPH*180/PI,RATIO3,BETA*180/PI,THETA*180/PI,
+C    1     RADSTG(I)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           THETA1 = THETA*180./PI
+           THETA2 = 180. - THETA1
+           IF (UPDNAL(I).EQ.1) THEN
+              XGC1(I) = R1(I)
+              YGC1(I) = Z1(I)
+              ZGC1(I) = 0.
+              XGC2(I) = R2(I)
+              YGC2(I) = Z2(I)
+              ZGC2(I) = 0.
+              XGC3(I) = R2(I)
+              YGC3(I) = Z2(I)
+              ZGC3(I) = LENGTH
+           ELSE
+              XGC1(I) = R2(I)
+              YGC1(I) = Z2(I)
+              ZGC1(I) = 0.
+              XGC2(I) = R1(I)
+              YGC2(I) = Z1(I)
+              ZGC2(I) = 0.
+              XGC3(I) = R1(I)
+              YGC3(I) = Z1(I)
+              ZGC3(I) = LENGTH
+           ENDIF
+           PROP1(I) = 0.
+           PROP2(I) = LENGTH
+           PROP3(I) = THETA1
+           PROP4(I) = THETA2
+           PROP5(I) = RADSTG(I)
+           THETDF = THETA2 - THETA1
+           NCOLS(I) = THETDF/5.
+           IF (MOD(NCOLS(I),2).EQ.0) NCOLS(I) = NCOLS(I) + 1
+           IF (NCOLS(I).LT.3) NCOLS(I) = 3
+  230     CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+          WRITE(IFILE,'(/,A)')
+     1  ' STAGS INPUT DATA GENERATED FOR THE CYLINDRICAL SHELL UNITS'
+          WRITE(IFILE,'(/,A,I3,A)')
+     1  ' STAGS Unit Junctions for ',MSEG,' Shell Units'
+          IF (MSEG.LT.2) GO TO 245
+          DO 240 I = 2,MSEG
+           I1 = I - 1
+           MUNIT(I1) = I1
+           NUNIT(I1) = I
+           IF (UPDNAL(I1).EQ.2.AND.UPDNAL(I).EQ.1) THEN
+            WRITE(IFILE,'(A,I3,A,I3)')
+     1    ' Edge 4 of shell unit',I,
+     1    ' is joined to Edge 4 of shell unit',I1
+            MBOUND(I1) = 4
+            NBOUND(I1) = 4
+           ENDIF
+           IF (UPDNAL(I1).EQ.1.AND.UPDNAL(I).EQ.2) THEN
+            WRITE(IFILE,'(A,I3,A,I3)')
+     1    ' Edge 2 of shell unit',I,
+     1    ' is joined to Edge 2 of shell unit',I1
+            MBOUND(I1) = 2
+            NBOUND(I1) = 2
+           ENDIF
+           IF (UPDNAL(I1).EQ.1.AND.UPDNAL(I).EQ.1) THEN
+            WRITE(IFILE,'(A,I3,A,I3)')
+     1    ' Edge 4 of shell unit',I,
+     1    ' is joined to Edge 2 of shell unit',I1
+            MBOUND(I1) = 2
+            NBOUND(I1) = 4
+           ENDIF
+           IF (UPDNAL(I1).EQ.2.AND.UPDNAL(I).EQ.2) THEN
+            WRITE(IFILE,'(A,I3,A,I3)')
+     1    ' Edge 2 of shell unit',I,
+     1    ' is joined to Edge 4 of shell unit',I1
+            MBOUND(I1) = 4
+            NBOUND(I1) = 2
+           ENDIF
+  240     CONTINUE
+  245     CONTINUE
+C
+C  Generate input data for STAGS...
+C         Generate CASE.inp file for input for STAGS...
+C         CASE.inp is an input file for STAGS:
+          I=INDEX(CASE,' ')
+          IF(I.NE.0) THEN
+            CASA2=CASE(:I-1)//'.inp'
+          ELSE
+            CASA2=CASE//'.inp'
+          ENDIF
+          OPEN(UNIT=62,FILE=CASA2,STATUS='UNKNOWN')
+          IFIL62 = 62
+C
+          WRITE(IFIL62,'(A,I3,A)')
+     1  ' STAGS model with ',MSEG,' cylindrical shell units'
+          WRITE(IFIL62,'(A)')
+     1  ' 0  0  0  0  0  0  0  $B-1 IGRAV,ICHECK,ILIST,INCBC,NRUNIT,etc'
+          WRITE(IFIL62,'(I4,A,I4,A)') MSEG,'  0  0 ',MSEG-1,
+     1  '  0,  $B-2 NUNITS,NUNITE,NSTIFS,NINTS,NPATS,'
+          WRITE(IFIL62,'(A)')
+     1 '  0  0  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS'
+          WRITE(IFIL62,'(A)')
+     1 '  1  0  0  0  0  1  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP'
+          DO 250 I = 1,MSEG
+             NROWS = 101
+             IF (I.LT.MSEG) WRITE(IFIL62,'(2I4,A,I2,A,I2,A)')
+     1       NROWS,NCOLS(I),',   $F-1 NROWS(',I,'),NCOLS(',I,')'
+             IF (I.EQ.MSEG) WRITE(IFIL62,'(2I4,A,I2,A,I2,A)')
+     1       NROWS,NCOLS(I),'    $F-1 NROWS(',I,'),NCOLS(',I,')'
+  250     CONTINUE
+          IF (MSEG.LT.2) GO TO 265
+          DO 260 I = 2,MSEG
+             J = I - 1
+             WRITE(IFIL62,'(4I4,A,I2,A,I2,A,I2,A,I2,A)')
+     1       MUNIT(J),MBOUND(J),NUNIT(J),NBOUND(J),
+     1    '  $G-1 MUNIT(',J,'),MBOUND(',J,'),NUNIT(',J,'),NBOUND(',J,')'
+  260     CONTINUE
+  265     CONTINUE
+          WRITE(IFIL62,'(A)')
+     1  ' 1  0  0  0  0  0  $I-1 ITAM,NESP,IPLST,ITANST,ICREEP,IPLANE'
+          GMOD = EMOD/(2.*(1+NU))
+          WRITE(IFIL62,'(1P,4E11.4,A,1P,E9.2,A)')
+     1    EMOD,NU,GMOD,DENSTY/386.1,' 0. ',EMOD,' 0. $I-2 E1,etc'
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          WRITE(IFIL62,'(A,/,A)')
+     1   'C GCP Material in shell unit walls',
+     1   'ORTHOELAST_MATERIAL  1 1 1 0 0 $ I-5a MATID,ngroups,nstates..'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E1=modulus along fibers.        BEGIN I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E2=modulus normal to fibers.          I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    EMOD,', $I-7a E3=modulus normal to fibers.          I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G12=x-y in-plane shear modulus.       I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G13=x-z out-of-plane shear modulus.   I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    GMOD,', $I-7a G23=y-z out-of-plane shear modulus.   I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU12=large in-plane Poisson ratio.      I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU13=x-z out-of-plane Poisson ratio.    I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    NU,', $I-7a NU23=y-z out-of-plane Poisson ratio.    I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)')
+     1    DENSTY/386.1,', $I-7a material mass density.        I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A1=thermal coef. along fibers.          I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A2=thermal coef. normal to fibers.      I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a A3=thermal coef. normal to fibers.      I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B1=hydroscopic coef. along fibers.      I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B2=hydroscopic coef. normal to fibers.  I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B3=hydroscopic coef. normal to fibers.  I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a T=material cure temperature.            I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0.  $I-7a M=reference moisture content.      END  I-7a rec.'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+          THK = THICK(1)
+          WRITE(IFIL62,'(A,/,A,A,/,A,/,A,/,1PE14.6,A,/,A)')
+     1   'C GCP Shell unit wall props, fabrication no. 1',
+     1   'SHELL_FABRICATION  1 1 1 0 0',
+     1  ' $I-5a fabid,nlayer,ipts,ishr,isym',
+     1  ' 1  $I-21a MATID(j),j=1,nlayer',
+     1  ' 2  $I-21b INTSHL(j),j=1,nlayer',
+     1    THK,'  $I-21c THKSHL(j),j=1,nlayer',
+     1  ' 0.       $I-21d ANGSHL(j),j=1,nlayer'
+C
+          THK = THICK(2)
+          WRITE(IFIL62,'(A,/,A,A,/,A,/,A,/,1PE14.6,A,/,A)')
+     1   'C GCP Shell unit wall props, fabrication no. 2',
+     1   'SHELL_FABRICATION  2 1 1 0 0',
+     1  ' $I-5a fabid,nlayer,ipts,ishr,isym',
+     1  ' 1  $I-21a MATID(j),j=1,nlayer',
+     1  ' 2  $I-21b INTSHL(j),j=1,nlayer',
+     1    THK,'  $I-21c THKSHL(j),j=1,nlayer',
+     1  ' 0.       $I-21d ANGSHL(j),j=1,nlayer'
+C
+          WRITE(IFIL62,'(A)')
+     1   'END    $I-5a cease (end of GCP input data)'
+C
+C  special STAGS input for the 940 finite element:
+          IF (IELMNT.EQ.940) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $ User Element Definitions -----------'
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $'
+           WRITE(IFIL62,'(A,/)')
+     1'*userElement  name="Uniform Plate Element"  type=940  nodes=4'
+           WRITE(IFIL62,'(A,/)') '*dofOrdering'
+           WRITE(IFIL62,'(A)') ' $  Node DOF...'
+           WRITE(IFIL62,'(A)') ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     1     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     2     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     3     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '     4     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '*nodeSequence'
+           WRITE(IFIL62,'(A)') ' $  Nodes...'
+           WRITE(IFIL62,'(A)') ' $  --------'
+           WRITE(IFIL62,'(A)') '    1 2 3 4'
+           WRITE(IFIL62,'(A,/)') '*floatVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ---------------------'
+           WRITE(IFIL62,'(A)')   '     UniformPressure  2'
+           WRITE(IFIL62,'(A,/)') '     Drilling         1'
+           WRITE(IFIL62,'(A,/)') '*integerVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     IntegOrder          1'
+           WRITE(IFIL62,'(A,/)') '     LoadType            1'
+           WRITE(IFIL62,'(A,/)') '*end userElement'
+           WRITE(IFIL62,'(A,A,/)')
+     1'*userProperty  name="Standard Data -- Uniform Plate Element"',
+     1'  id=940'
+           WRITE(IFIL62,'(A,/)') '*integerProps'
+           WRITE(IFIL62,'(A)')   ' $  Required Standard Data'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     ActiveNodes    4'
+           WRITE(IFIL62,'(A)')   '     SamplingCount  1'
+           WRITE(IFIL62,'(A)')   '     StrainCount    8'
+           WRITE(IFIL62,'(A,/)') '     StressCount    8'
+           WRITE(IFIL62,'(A)')   ' $  Data for GCP Interface'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     Class           2'
+           WRITE(IFIL62,'(A,/)') '     Kintype         1'
+           WRITE(IFIL62,'(A)')   '*end userProperty'
+          ENDIF
+C       End of IELMNT.EQ.940 condition.
+C
+C  Input for STAGS shell units next...
+C
+          DO 270 I = 1,MSEG
+           IWALL = -1
+           IF (MOD(I,2).EQ.0) IWALL = -2 
+           WRITE(IFIL62,'(A,I3,A,/,A)')
+     1    'C STAGS SHELL UNIT NUMBER ',I,':',
+     1   ' 5  3  0  0  0  1  $M-1 ISHELL,IGLOBE,NROWS,...,NFABS'
+           WRITE(IFIL62,'(A,1P,4E14.6,A)')
+     1   ' 0. ',PROP2(I),PROP3(I),PROP4(I),PROP5(I),'  $M-2 (cyl.)'
+           WRITE(IFIL62,'(1P,3E14.6,A,/,1P,3E14.6,A,/,1P,3E14.6,A)')
+     1      XGC1(I),YGC1(I),ZGC1(I),'  $M-4A XGC1,YGC1,ZGC1',
+     1      XGC2(I),YGC2(I),ZGC2(I),'  $M-4B XGC2,YGC2,ZGC2',
+     1      XGC3(I),YGC3(I),ZGC3(I),'  $M-4C XGC3,YGC3,ZGC3'
+           WRITE(IFIL62,'(I4,A)') IWALL,
+     1 '  0  0. 0. 0  0  0 $M-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,..'
+           WRITE(IFIL62,'(I6,A)') IELMNT,'   $N-1  KELT'
+           IF (IELMNT.EQ.940) THEN
+             PRESS = 0.
+             PRESS0 = 0.
+             WRITE(IFIL62,'(1P2E14.6,A)')
+     1                               PRESS,PRESS0,' 0. $n-1A PA,PB,drl'
+             WRITE(IFIL62,'(A)')
+     1                      ' 0  2          $n-1B integ.scheme,PA & PB'
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (I.EQ.1.OR.I.EQ.MSEG) THEN
+             IF (UPDNAL(I).EQ.1) THEN
+               IF (MSEG.GT.1) THEN
+                  IF (I.EQ.1) WRITE(IFIL62,'(A)')
+     1          ' 1  6  1  0  0  $P-1 IBLN(i),i=1,4, IBOND'
+                  IF (I.EQ.MSEG) WRITE(IFIL62,'(A)')
+     1          ' 1  0  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+               ELSE
+                  WRITE(IFIL62,'(A)')
+     1          ' 1  0  1  0  0  $P-1 IBLN(i),i=1,4, IBOND'
+               ENDIF
+             ELSE
+               IF (MSEG.GT.1) THEN
+                  IF (I.EQ.1) WRITE(IFIL62,'(A)')
+     1          ' 1  0  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+                  IF (I.EQ.MSEG) WRITE(IFIL62,'(A)')
+     1          ' 1  6  1  0  0  $P-1 IBLN(i),i=1,4, IBOND'
+               ELSE
+                  WRITE(IFIL62,'(A)')
+     1          ' 1  0  1  0  0  $P-1 IBLN(i),i=1,4, IBOND'
+               ENDIF
+             ENDIF
+             IF (I.EQ.1)
+     1          WRITE(IFIL62,'(A)') ' 000  111  $P-2 ITRA, IROT'
+             IF (I.EQ.MSEG)
+     1          WRITE(IFIL62,'(A)') ' 000  111  $P-2 ITRA, IROT'
+           ELSE
+             WRITE(IFIL62,'(A)')
+     1     ' 1  6  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+           ENDIF
+           WRITE(IFIL62,'(A)')
+     1   ' 0  0  0  1   $Q-1 NSYS,NICS,NAMS,NUSS' 
+           PNXA = FNX(1) 
+           IF (MOD(I,2).EQ.0) PNXA = FNX(2) 
+           WRITE(IFIL62,'(1P,E14.6,A)')
+     1     PNXA,'  0. 0. 0. 0. 0. $Q-5 PNXA,PNYA,PNXYA,PNXB,PNYB,PNXYB'
+           WRITE(IFIL62,'(A)')
+     1   ' 0  0  0  0  0  $R-1 IPRD,IPRR,IPRE,IPRS,IPRP'
+  270     CONTINUE
+C
+          CLOSE(UNIT=62)
+          WRITE(IFILE,'(/,/,A,/,A)')
+     1  ' STAGS input file: ',
+     1    CASA2
+         ENDIF
+C  End of STAGS input file creation if (ITYPEX.EQ.0)
+C
+      ENDIF
+C  End of (IMODX.EQ.0) condition
+C
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+         INCRBX = 1
+      ELSE
+         NOBX = NWAV1
+         NMINBX = NWAV1
+         NMAXBX = NWAV1
+         INCRBX = 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG1 = EIGCRT
+         NWAV1= NWVCRT
+      ENDIF
+C
+      IF (IMODX.EQ.0) THEN
+        WRITE(IFILE,'(/,A)')
+     1 ' LOCAL BUCKLING LOAD FACTORS AND MODES (BEHX1)'
+        DO 400 I = 1,IWAVEB
+         WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1  '      ',EIGCOM(I),'(',NWVCOM(I),')'
+  400   CONTINUE
+        WRITE(IFILE,'(A,1P,E12.4)')
+     1' Critical buckling load factor, LOCBUK=',EIGCRT
+        WRITE(IFILE,'(A,I5)')
+     1' Critical number of axial half-waves, NWVCRT=',NWVCRT
+        IF (NWVCRT.EQ.NMAXB)
+     1  WRITE(IFILE,'(/,A,/,A,I5,/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     1' ************** WARNING ************** WARNING ****************',
+     1' The critical wave number, NWVCRT, is equal to MHIGHL =',
+     1  NMAXB,
+     1' which is at the high end of the axial half-wave-number range.',
+     1' Increase (perhaps double or triple) the value of MHIGHL',
+     1' in the *.BEG file and re-optimize. You probably did not',
+     1' capture the critical LOCAL buckling load factor and therefore',
+     1' your optimum design is probably unconservative.',
+     1' **************************************************************'
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      LOCBUK(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN general buckling
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     GENBUK(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = general buckling
+C
+C   OUTPUT:
+C
+C     GENBUK(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/INSTAB/INDIC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/BUCKN/N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/EIGALL/EIG0,EIG1,EIG2,EIG3,EIG4
+      COMMON/WAVALL/NWAV0,NWAV1,NWAV2,NWAV3,NWAV4
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(99),CONST(99),DEC(50),ESC(50)
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA,CASA2,CASA3
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      PI = 3.1415927
+C     RAVE = 100.*LENGTH/PI
+      RAVE = RADIUS
+      RBIGG = RAVE - RADIUS 
+C
+      INDIC = 4
+      N0B = MLOWG
+      NMAXB = MHIGHG
+C
+      CALL BOSDEC(2,24,IMODX,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX2 file for input for BIGBOSOR4...
+C      CASE.BEHX2 is an input file for BIGBOSOR4 for behavior no. 2:
+C      general buckling load
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX2'
+         ELSE
+            CASA=CASE//'.BEHX2'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(2,61,IMODX,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' general buckling load',
+     1   CASA
+      ENDIF
+C
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+         INCRBX = 1
+      ELSE
+         NOBX = NWAV2
+         NMINBX = NWAV2
+         NMAXBX = NWAV2
+         INCRBX = 1
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG2 = EIGCRT
+         NWAV2= NWVCRT
+      ENDIF
+C
+      IF (IMODX.EQ.0) THEN
+        WRITE(IFILE,'(/,A)')
+     1 ' GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX2)'
+        DO 10 I = 1,IWAVEB
+         WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1  '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   10   CONTINUE
+        WRITE(IFILE,'(A,1P,E12.4)')
+     1' Critical buckling load factor, GENBUK=',EIGCRT
+        WRITE(IFILE,'(A,I5)')
+     1' Critical number of axial half-waves, NWVCRT=',NWVCRT
+        IF (NWVCRT.EQ.NMAXB)
+     1  WRITE(IFILE,'(/,A,/,A,I5,/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     1' ************** WARNING ************** WARNING ****************',
+     1' The critical wave number, NWVCRT, is equal to MHIGHG =',
+     1  NMAXB,
+     1' which is at the high end of the axial half-wave-number range.',
+     1' Increase (perhaps double or triple) the value of MHIGHG',
+     1' in the *.BEG file and re-optimize. You probably did not',
+     1' capture the critical GENERAL buckling load factor.',
+     1' Therefore your optimum design is probably unconservative.',
+     1' **************************************************************'
+      ENDIF
+C
+      GENBUK(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,JCOL,PHRASE)
+C
+C   PURPOSE: OBTAIN classical buckling load factor
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     CYLBUK(ILOADX,JCOL)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C   THE jth COLUMN  (JCOL)
+C   INDEX IS DEFINED AS FOLLOWS:
+C     shell segment type
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     JCOL   = jth column of CYLBUK
+C     JCOL   = shell segment type
+C     PHRASE = classical buckling load factor
+C
+C   OUTPUT:
+C
+C     CYLBUK(ILOADX,JCOL)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/LODWGT/FNX(2)
+      DIMENSION FKNOCK(20),RADTHK(20)
+C
+C  In the following table,
+C     FKNOCK(i) = buckling load knockdown factor
+C     RADTHK(i) = radius-to-thickness ratio
+C  The following table approximately tracks the curve
+C  shown in Fig. 18 on p. 20 of the book:
+C  "Computerized buckling analysis of shells", David Bushnell,
+C  Martinus Nijhoff (1985). THis curve is reproduced from
+C  the book, "Buckling of bars, plates and shells", by
+C  Don Brush and Bo Almroth, McGraw-Hill (1975)
+C
+      FKNOCK(1) = 0.5
+      FKNOCK(2) = 0.5
+      FKNOCK(3) = 0.4
+      FKNOCK(4) = 0.3
+      FKNOCK(5) = 0.2
+      FKNOCK(6) = 0.2
+      RADTHK(1) = 1.0
+      RADTHK(2) = 50.0
+      RADTHK(3) = 100.0
+      RADTHK(4) = 200.0
+      RADTHK(5) = 700.0
+      RADTHK(6) = 10.E+17
+      FACTR = SQRT(3.*(1.-NU**2))
+C
+C  The classical buckling formula for an axially
+C  compressed cylindrical shell is taken from Formula
+C  No. 15 in Table 15.2 of "Roark's Formulas for
+C  Stress and Strain, 7th Edition, by Warren C. Young
+C  and Richard g. Budynas, McGraw-Hill, 2002
+C
+C     CLASSC = EMOD*THICK/(RADIUS*FACTR)
+C
+C  Next, derive the knockdown factor, FKNSHL.
+C  This knockdown factor is obtained from the curve
+C  in Fig. 18 on page 20 of the book, COMPUTERIZED
+C  BUCKLING ANALYSIS OF SHELLS, Martinus Nijhoff, publisher, 1985
+C
+      RAD = RADLOC(JCOL)
+      ROTPNT = RAD/THICK(JCOL)
+      IF (ROTPNT.LE.RADTHK(2)) THEN
+         FKNSHL = FKNOCK(2)
+      ELSE
+         DO 100 J = 3,6
+            JP = J
+            J1 = J - 1
+            IF (RADTHK(J).GE.ROTPNT) GO TO 105
+  100    CONTINUE
+         FKNSHL = 0.2
+  105    CONTINUE
+         DKNSHL = FKNOCK(JP) - FKNOCK(J1)
+         DROT1  = RADTHK(JP) - RADTHK(J1)
+         DROT2  = ROTPNT - RADTHK(J1)
+         FKNSHL = FKNOCK(J1) + DROT2*DKNSHL/DROT1
+      ENDIF
+      IF (FKNSHL.GT.0.5) FKNSHL = 0.5
+      CLASSC = EMOD*THICK(JCOL)/(RAD*FACTR)
+      IF (IMODX.EQ.0)
+     1   WRITE(IFILE,'(A,I3,A,1P,E12.4,A,1P,E12.4,/,A,1P,E12.4,A)')
+     1 ' In BEHX3: Major segment =',JCOL,'; KNOCKDOWN FACTOR =',
+     1   FKNSHL,'; RADIUS/THICK=',ROTPNT,
+     1 ' Classical buckling stress, CLASSC=',CLASSC,' before knockdown'
+C
+      SIG1 = FNX(JCOL)/THICK(JCOL)
+      CYLBUK(ILOADX,JCOL) =FKNSHL*CLASSC/ABS(SIG1)
+      IF (IMODX.EQ.0) WRITE(IFILE,'(A,I3,A,1P,E12.4,A,1P,E12.4)')
+     1' JCOL=',JCOL,'; CYLBUK=',CYLBUK(ILOADX,JCOL),'; SIG1=',ABS(SIG1)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX4
+      SUBROUTINE BEHX4
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN maximum effective stress
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRESS(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = maximum effective stress
+C
+C   OUTPUT:
+C
+C     STRESS(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      COMMON/LODWGT/FNX(2)
+C
+      STRESS(ILOADX) = ABS(FNX(1)/THICK(1))
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C
+C
+C
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:weight/area of the corrugated cylinder
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = weight/area of the corrugated cylinder
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/IV01/NMESH(2 ),INMESH
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+      OBJGEN =WEIGHT 
+C
+C
+      RETURN
+      END
+C
+C
+C

@@ -1,0 +1,759 @@
+
+INSTALLATION OF THE BUSHNELL COMPUTER PROGRAMS
+
+by Dr. Frank Weiler (modified by Dr. David Bushnell, July 2012)
+
+The installation of the Bushnell programs has been simplified and unified
+throughout.  All of the programs access the main 'Makefile.in' in the 
+root directory to obtain all of the needed compile/link directives and the
+global variables which point to where things are.  Each individual make
+file 'makefile' first defines the "PROG" being compiled before accessing
+the global Makefile.in, which includes $(PROG) in its definitions.  The
+main "HOME" directory is extracted from the previously defined "BUSHNELL"
+root directory definition performed by the initialization script...
+
+     ${parentdir}/bin/initialize
+
+The main purpose of 'Makefile.in' is to determine the proper compilers used
+for the FORTRAN and C-LANGUAGE programs, which are machine and operating
+system dependent.  Three Makefile.in files are included in the root directory
+for the following machine/os environments, namely...
+
+    Makefile.in_x86_32  =  32-bit Linux OS running on Intel x86-32 processors
+                           using the Fortran-77 GNU Compiler ( g77 )
+
+    Makefile.in_x86_64  =  64-bit Linux OS running on Intel x86-64 processors
+                           using the Fortran-95 GNU Compiler ( gfortran )
+
+    Makefile.in_mac_32  =  32-bit Macintosh X-OS  using the Fortran-77 GNU 
+                           Compiler ( g77 )
+
+Finally, two system-wide programs need to be present in order to compile
+any/all of the Bushnell Programs, namely,
+
+    fpp    -  Fortran Pre Processor program which converts any Fortran
+              source code into a compilable Fortran module by invoking any
+              machine dependencies defined by ( #ifdef ****, #else,  #endif )
+              directives embedded within the Fortran sources.
+
+    fsplit -  Fortran Splitting program which takes a source module and
+              splits it into the individual fortran modules for compiling.
+
+If your machine already has these programs, simply verify that they are
+accessible ( within /bin or /usr/bin, etc. ).  If not, or you are not sure
+yours performs the same way, go to the following directories and compile,
+and install ( in /usr/bin, etc. ) the following;
+
+    ${parentdir}/Apps/fpp      ( go to /src to compile and note that two
+                                 versions of the man-page exist, namely,
+                                 fpp.1.bz2, fpp.1.gz, one of which should be
+                                 installed in /usr/share/man/man1/ for linux )
+
+    ${parentdir}/Apps/fsplit   ( compile and note that again two versions of 
+                                 the man-page exist, namely, fsplit.1.bz2
+                                 and fsplit.1.gz, one of which should be
+                                 installed in /usr/share/man/man1/ for linux )
+
+without these programs, one will not be able to compile the Bushnell programs.
+Once these two programs are installed, execute the following STEPS in order to
+install the series of programs, i.e., use the following sequence.
+
+***************************************************************************
+
+STEP 1  -  Edit and Invoke the initialization script
+====================================================
+
+From the root directory, go to /bin and edit "initialize" for the following;
+
+     BUSHNELL  --->  the root global directory of the programs ( /home/progs )
+
+     MACHINE   --->  the machine/os id (e.g., Intel 64-bit linux = 'x86_64')
+
+After editing, set the global variables via...
+
+     source  initialize
+
+This should be done every time one runs any of the programs, since this script
+initializes global variables and also aliases used by the programs.  Do this by
+
+     source ${parentdir}/bin/initialize
+
+**************************************************************************
+
+STEP 2  -  Copy/Create/Edit the machine dependencies file 'Makefile.in'
+======================================================================
+
+If your machine & OS is one of those mentioned above, simply copy that version
+onto the file 'Makefile.in'.  If not, either edit or copy a close image and edit
+the file 'Makefile.in'.  The main global variables needing editing are;
+
+    MACHINE   --->  same as that defined in $(****)/bin/initialize
+
+    FC        --->  Fortran compiler being used (g77, gfortran, ifort, ...)
+    FFLAGS    --->  fortran compiler flags (note -Dlinux used)
+    FFLAGS0   --->  same as FFLAGS but for ZERO optimization (hence -O0)
+    OPTFFLAGS --->  same as FFLAGS but for full optimization
+
+    CC        --->  C-language compiler compatible to $(FC) (gcc, icc, ...)
+    CFLAGS    --->  C compiler flags (note -Dlinux used)
+
+    HOME        =   $(BUSHNELL) since BUSHNELL is defined by /bin/initialize
+
+If one has difficulty deciding how these are defined, simply look at the
+sample files provided for guidence.
+
+*************************************************************************
+
+STEP 3  -  Creating Library-File and Object-File program directories
+====================================================================
+
+The program directories ( bigbosor4, bosor4, bosor5, genopt, panda2 )
+all contain directories ( bin, case, doc, execute, sources ).  However, each
+also needs two additional directories for the machine/os dependencies that
+will be compiled, namely, 
+
+     libraries.${MACHINE}   and   objects.${MACHINE}
+
+these may be created easily by running the executable script ( mak_lib_obj_dirs )
+from the root/parent directory, i.e.,
+
+     source  mak_lib_obj_dirs
+
+Once this has completed, one is ready to compile any one of the programs
+listed above.
+
+************************************************************************
+
+STEP 4  -  Compiling one or more of the Bushnell programs
+==========================================================
+
+To compile any one of ( bigbosor4, bosor4, bosor5, genopt, panda2 ),
+simply change to the directory ( cd $(BUSHNELL)/<desired_program>/execute
+and issue the following commands:
+
+    cd /bigbosor4/execute	( for example )
+    make			( will invoke the local 'makefile' file )
+
+This should be done for each program that one will be using.  At this point,
+and everything going well, one is ready to use any/all of the programs.
+
+***** PANDA2 NOTE: In order to compile PANDA2 you must do the following: *****
+
+    cd /bosor4/execute
+    make
+    cd /panda2/execute
+    make
+
+because PANDA2 uses much of the BOSOR4 software. Compile bosor4 first!
+
+***** END PANDA2 NOTE ********************************************************
+
+***  GENOPT NOTE: In order to compile GENOPT you must do the following: *****
+
+1.  cd /genopt/execute  
+    make     (Compile the GENOPT software that applies in all GENOPT cases)
+
+2.  Read the file, <home directory>/genopt/doc/getting.started.
+
+3.  Establish a directory, <home directory>/genoptcase and cd genoptcase
+    If you have an existing generic case you want to re-run, first
+    copy the file, <generic case>.INP, from the directory,
+    <home directory>/genopt/case/<generic case>/<generic case>.INP .
+    For the generic example called "balloon":
+    cd <home directory>/genoptcase
+    cp <home directory>/genopt/case/balloon/balloon.INP .
+
+4.  Activate the GENOPT set of commands by typing the command, "genoptlog":
+    genoptlog
+
+5.  Execute the GENOPT processor, GENTEXT, from <home directory>/genoptcase.
+    Inspect the file called <generic case>.DEF (example: balloon.DEF),
+    especially the GLOSSARY of variables.
+
+6.  Create and/or copy the proper "generic" software into the directory,
+    <home directory>/genoptcase, as described in the "getting.started" file.
+    For the "balloon" example:
+    cp <home directory>/genopt/case/balloon/behavior.balloon .
+    cp <home directory>/genopt/case/balloon/struct.balloon .
+
+7.  Establish a directory, <home directory>/bosdec
+8.  Establish a directory, <home directory>/bosdec/sources
+9.  Establish a directory, <home directory>/bosdec/objects.(MACHINE),
+    in which "(MACHINE)" = "x86_64" for 64-bit LINUX, for example.
+
+10. Create and/or copy the proper software into the directory,
+    <home directory>/bosdec/sources, as described in the "getting.started"
+    file, and go to <home directory>/bosdec/sources. Do the
+    following for any GENOPT case:
+    cp <home directory>/genopt/case/sources/addbosor4.src .
+    cp <home directory>/genopt/case/sources/b4plot.src .
+    cp <home directory>/genopt/case/sources/b4util.src .
+    cp <home directory>/genopt/case/sources/opngen.src .
+    cp <home directory>/genopt/case/sources/prompter.src .
+    cp <home directory>/genopt/case/sources/resetup.src .
+
+    Do the following for the generic case called "balloon":
+    cp <home directory>/genopt/case/balloon/bosdec.balloon bosdec.src
+
+11. Create and/or copy the proper "specific" input files into the
+    directory, <home directory>/genoptcase, as described in the
+    "getting.started" file. You may first have to copy a compressed
+    "tar" file to a working directory and "unpack" it. For the
+    specific case called "try7" of the generic "balloon" example:
+    cd <working directory>
+    cp <home directory>/genopt/case/balloon/ballooninput.tar.gz .
+    gunzip ballooninput.tar.gz
+    tar xvf ballooninput.tar
+    There are lots of files. The ones we are going to use in this
+    particular generic "balloon" example are the following:
+    try7.30mod.sphere.radial.beg
+    try7.30mod.sphere.radial.dec
+    try7.30mod.sphere.radial.feb18.chg
+    try7.opt1
+    in which "try7" is the name of the specific member of the generic
+    class called "balloon".
+    We do the following:
+    cp try7.30mod.sphere.radial.beg <home directory>/genoptcase/try7.BEG
+    cp try7.30mod.sphere.radial.dec <home directory>/genoptcase/try7.DEC
+    cp try7.30mod.sphere.radial.feb18.chg <home directory>/genoptcase/try7.CHG
+    cp try7.opt1 <home directory>/genoptcase/try7.OPT
+    cd <home directory>/genoptcase
+
+12. cp <home directory>/genopt/execute/usermake
+       <home directory>/genopt/execute/usermake.(MACHINE)
+    NOTE: usermake.(MACHINE) may already exist. In that case you
+    don't have to do the above "copy".
+
+13. NOTE: You are now in the <home directory>/genoptcase directory.
+    Do the following (corresponding to this "balloon" example):
+    cp behavior.balloon behavior.new
+    cp struct.balloon struct.new
+
+14. Type the command, "genprograms" while in the .../genoptcase
+    directory. This compiles the software for the generic case.
+    If the compilation is successful you will see on your screen:
+    ------------------------------------------------------------
+    Here is a list of all your newly created executables:
+    -rwxrwxr-x 1 bush bush 68812 Jul 11 07:19 autochange.x86_64
+    -rwxrwxr-x 1 bush bush 163053 Jul 11 07:19 begin.x86_64
+    -rwxrwxr-x 1 bush bush 117306 Jul 11 07:19 change.x86_64
+    -rwxrwxr-x 1 bush bush 136723 Jul 11 07:19 chooseplot.x86_64
+    -rwxrwxr-x 1 bush bush 152563 Jul 11 07:19 decide.x86_64
+    -rwxrwxr-x 1 bush bush 94471 Jul 11 07:19 mainsetup.x86_64
+    -rwxrwxr-x 1 bush bush 461259 Jul 11 07:19 optimize.x86_64
+    -rwxrwxr-x 1 bush bush 108405 Jul 11 07:19 store.x86_64
+
+    Next, type the command BEGIN to input data for a new case."
+    -------------------------------------------------------------
+
+
+15. Run "BEGIN", "CHANGE", "DECIDE", "MAINSETUP", "OPTIMIZE", "SUPEROPT",
+    "CHOOSEPLOT", "DIPLOT", etc. for the specific case. In this
+    "balloon" example the generic case name is "balloon" and
+    the specific case name is "try7". In this particular case
+    we run BEGIN, CHANGE, DECIDE, MAINSETUP, OPTIMIZE in that order.
+    We do not do any optimization at first, just run a fixed (previously
+    optimized) design. The design margins as of July 11, 2012 are
+    as follows:
+-----------------------------------------------------------------
+ MARGIN CURRENT
+ NO.     VALUE            DEFINITION
+  1   7.551E-03 (BUCKB4(1)/BUCKB4A(1))/BUCKB4F(1)-1; F.S.= 3.00
+  2   2.574E-03 (TENLOS(1)/TENLOSA(1))/TENLOSF(1)-1; F.S.= 3.00
+  3  -3.781E-02 (STRM1A(1,1)/STRM1(1,1))/STRM1F(1,1)-1; F.S.=1.00
+  4   1.922E-01 (STRM1A(1,3)/STRM1(1,3))/STRM1F(1,3)-1; F.S.=1.00
+  5  -1.144E-02 (STRM2A(1,1)/STRM2(1,1))/STRM2F(1,1)-1; F.S.=1.00
+  6   1.430E-01 (STRM2A(1,3)/STRM2(1,3))/STRM2F(1,3)-1; F.S.=1.00
+  7  -1.579E-03 (STRM3A(1,1)/STRM3(1,1))/STRM3F(1,1)-1; F.S.=1.00
+  8   1.237E+00 (STRM3A(1,3)/STRM3(1,3))/STRM3F(1,3)-1; F.S.=1.00
+----------------------------------------------------------------
+    and the objective is:
+--------------------------------------------------
+    CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  1    4.570E+02  weight/length of the balloon: WEIGHT
+--------------------------------------------------
+
+We next edit the try7.OPT file to perform some optimization and
+obtain the following in the try7.OPP file after a single
+execution of the processor, "optimize":
+---------------------------------------------------------
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         4.5699E+02     ALMOST FEASIBLE         5
+     2         4.5286E+02     MILDLY UNFEASIB         5
+     3         4.8274E+02     MORE UNFEASIBLE         4
+     4         4.6140E+02     ALMOST FEASIBLE         5
+     5         4.5733E+02     ALMOST FEASIBLE         5
+     6         4.5303E+02     ALMOST FEASIBLE         5
+ --------------------------------------------------------------
+The objective doesn't change much because the starting design had
+already been previously optimized via the processor, SUPEROPT.
+
+**** END GENOPT NOTE ***************************************************
+
+We are still in STEP 4 (compilation of Bushnell's programs).
+In this compilation step (STEP 4) we decide to compile all the
+computer programs. Therefore, we do the following, starting 
+from the home directory, <home directory>:
+
+cd bigbosor4/execute
+make
+
+cd ../../bosor4/execute
+make
+
+cd ../../bosor5/execute
+make
+
+cd ../../panda2/execute
+make
+
+cd ../../genopt/execute
+make
+(followed by the many steps described above in the "GENOPT NOTE"
+ that apply to the generic case, "balloon", and the specific case,
+ "try7".)
+
+**********************************************************************
+
+STEP 5  -  Compiling the PLOTTING programs
+==========================================
+
+Two programs are supplied which allow one to make screen and/or postscript
+plots of the program's results.  they are;
+
+    ${parentdir}/plotps  -  a program similar to xgraph, but which simply outputs
+                            a postscript file which can then be seen by using
+                            standard postscript viewers, such as GhostView, etc.
+                            the input is similar to xgraph, so either program may
+                            be used to make plots.  plotps is specifically 
+                            assigned for the Bushnell programs, whereas, xgraph
+                            is more generic.  Each has its own features.
+                            plotps was written by Bill Bushnell.
+
+    ${parentdir}/xgraph  -  X11 based c-program originally developed by
+                            David Harrison, University of California, Berkeley,
+                            1989, with animation, differentiation by Paul Walker,
+                            NCSA and University of Illinois at Urbana Champaign,
+                            Dept. of Physics, and finally margins, ANSI C
+                            prototype files, 64-bit architecture and new header
+                            files added by Dr. Frank C. Weiler, retired from
+                            Lockheed Martin Missiles & Space Co., and can be
+                            contacted at   fcweiler@sbcglobal.net
+
+In order to make these C-language programs, examine the make files ( Makefile ).  The
+only difficult part in the Makefile for ( xgraph ) is:
+
+    CC         =  gcc             ( or other appropriate c-compiler ) 
+
+    ARCH_FLAGS = <left blank>     ( if compiliong for 64-bit architecture )
+    ARCH_FLAGS = -m32             ( if compiliong for 32-bit, even if on 64-bit architecture )
+
+    X_LIBS     = -L/usr/X11R6/lib ( location of the X11 linraries, etc. )
+
+************************************************************************
+
+STEP 6 - Activating the proper command set
+===========================================
+
+If you want to run any of David Bushnell's computer programs,
+you first create a working directory, then go to that
+working directory where you want to run the program,
+then type a command such as:
+
+bigbosor4log (if you intend to run bigbosor4)
+panda2log (if you intend to run panda2)
+bosor5log (if you intend to run bosor5)
+bosor4log (if you intend to run bosor4)
+  (NOTE: Always use bigbosor4 instead of bosor4;
+         bosor4 is needed only because panda2
+         uses much of the bosor4 software.)
+genoptlog (if you intend to run genopt)
+(Note: you must always run GENOPT from a directory called
+<home directory>/genoptcase)
+
+The purpose of each of these commands is to activate
+the set of commands that is relevant to the particular
+computer program you intend to run. Each of these "xxxlog"
+commands generates a screen that lists the set of
+activated commands with definitions of what each activated
+command does.
+====================================================================
+
+*********************************************************************
+
+STEP 7 - Run BIGBOSOR4
+========================
+
+cd <home directory>/temp
+cp ../bigbosor4/case/1.ALL .
+source <home directory>/bin/initialize
+bigbosor4log            (activate the BIGBOSOR4 commands)
+----------------------------------------------------------
+The BIGBOSOR4 commands, in the general order in which
+you would probably use them, are:
+
+help4           (get information on BOSOR4.)
+input           (you provide segment-by-seg. input)
+assemble        (concatenates segment data files)
+bigbosorall     (batch run of pre, main, post proc.)
+bosorplot       (batch run for generating plot files)
+resetup         (input for restart run, same model)
+bigrestart              (batch run of main & postprocessors)
+cleanup         (delete all except for .DOC file)
+getsegs         (generate segment files from .DOC)
+modify          (modify a segment file)
+----------------------------------------------------------
+
+bigbosorall             (execute BIGBOSOR4. The input file = 1.ALL)
+
+The list output is stored in the file, 1.OUT. Part of the 1.OUT
+file is as follows:
+---------------------------------------------
+ ***** EIGENVALUES AND MODE SHAPES *****
+  EIGENVALUE(CIRC. WAVES)
+ =======================================
+    4.1832E+02(     2); IFAILD= 0
+    1.9615E+03(     4); IFAILD= 0
+    2.1497E+03(     6); IFAILD= 0
+    1.7981E+03(     8); IFAILD= 0
+    1.6828E+03(    10); IFAILD= 0
+    1.7129E+03(    12); IFAILD= 0
+    1.8346E+03(    14); IFAILD= 0
+    2.0142E+03(    16); IFAILD= 0
+    2.2280E+03(    18); IFAILD= 0
+    2.4563E+03(    20); IFAILD= 0
+ =======================================
+--------------------------------------------
+
+bosorplot             (choose what to plot)
+cleanup               (clean up files for the case called "1")
+
+(Finally, remove all the files from the directory, <home directory>/temp.
+
+********************************************************************
+
+
+STEP 8 - Run BOSOR5
+========================
+
+cd <home directory>/temp
+cp ../bosor5/case/1.ALL .
+cp ../bosor5/case/1.IMP .
+cp ../bosor5/case/1.IPP .
+source <home directory>/bin/initialize
+bosor5log            (activate the BOSOR5 commands)
+----------------------------------------------------------
+BOSOR5 commands have been activated.
+Below are the BOSOR5 commands, listed in the order in which you
+would probably use them.
+
+input - interactive input of data for each segment
+assemble - concatenates the segment data files
+bosorread - runs BOSOR5 pre-processor
+mainsetup - interactive input of data for main processor
+bosormain - runs BOSOR5 main processor
+postsetup - interactive input of data for post processor
+bosorpost - runs BOSOR5 post processor
+bosorplot - generates plot files from most previous run
+cleanup - delete all case files except for .DOC file
+getsegs - generate segment files from .DOC file
+modify - interactively modify a segment or global data file
+---------------------------------------------------------
+
+dave-> bosorread
+Enter case name: 1
+B (background) or F (foreground): f
+
+Running BOSOR5: bosorread, case: 1
+
+Executing bosorread
+Normal termination: bosorread
+Case 1 preprocessor run completed.
+Next, give the command "mainsetup"
+
+dave-> mainsetup
+Please enter case name: 1
+ Are you correcting, adding to, or checking an existing file?=y
+ Y
+ INDIC = analysis type indicator (0 or -2 or -3). INDIC=        -2
+ Type HELP or H for more information on INDIC, N for "no more"= n
+ IDEFORM=indicator (0 or 1) for type of plasticity theory=         0
+ ICPRE = control (0 or 1) for type of eigenvalue problem=         1
+ Do you want to reverse the rate of loading?= n
+ KSTEP = starting time step number=         0
+ KMAX = maximum (less than 49) time step number=         2
+ MAXTRL =  maximum number of trials at each load level=         5
+ ITMAX = maximum number of Newton iterations for each trial=         6
+ ITIME = control (0 or 1) for time increments=         0
+ Do you wish to force the material to remain elastic?= n
+ N0B   = starting number of circ. waves (buckling analysis)=         6
+ NMINB = minimum number of circ. waves  (buckling analysis)=         5
+ NMAXB = maximum number of circ. waves  (buckling analysis)=        20
+ INCRB = increment in number of circ. waves (buckling)=         1
+ TIME = starting time (need not be zero in initial run)=         0
+ Do you want stations where plastic flow occurs listed?= y
+
+ Next, give the command BOSORMAIN
+
+dave-> bosormain
+Enter case name: 1
+B (background) or F (foreground): f
+
+Running BOSOR5: bosormain, case: 1
+
+Executing bosormain
+Normal termination: bosormain
+Case 1 mainprocessor run completed.
+Next, give the command "mainsetup" or "postsetup"
+
+The output file from BOSORMAIN is 1.MAI. Part
+of the 1.MAI file follows:
+---------------------------------------------------
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  2.45532E+03,       5 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  2.14989E+03,       6 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.93683E+03,       7 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.79816E+03,       8 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.71778E+03,       9 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.68290E+03,      10 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.68376E+03,      11 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.71294E+03,      12 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.76473E+03,      13 CIRCUMFERENTIAL WAVES
+
+
+ ITERATIONS HAVE CONVERGED FOR EIGENVALUE NO.  1
+      EIGENVALUE =  1.83459E+03,      14 CIRCUMFERENTIAL WAVES
+-----------------------------------------------------------------
+
+
+dave-> postsetup
+Please enter case name: 1
+ Are you correcting, adding to, or checking an existing file?=y
+ Y
+                                                                                
+ Interactive input for BOSOR5 postprocessor...                                  
+                                                                                
+ IPRINT = control (1 or 2 or 3) for list output=         2
+ IPLOT  = control (0 or 1 or 2 or 3) for plot output=         2
+ NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)=         0
+ Do you want to plot the discretized model?= y
+                                                                                
+ Your structure may contain segments that are very short                        
+ compared to the whole model being analyzed here. This detail                   
+ will not show up well in plots of the entire undeformed and                    
+ deformed structure. Therefore you may wish to get expanded                     
+ plots of these regions. Please identify these regions by                       
+ segment number and give a magnification factor for each region.                
+ Note that the magnification factor must be an integer.                         
+ The center of the expanded plot will be at the first point of                  
+ the segment so identified. The extent of structure plotted                     
+ will of course depend on the magnification factor you choose.                  
+                                                                                
+ Are there any regions for which you want expanded plots?= n
+                                                                                
+ Selection of buckling modes follows...                                         
+                                                                                
+ NMODES=quantity of buckling modes to be listed, plotted=         1
+ NTHMOD(i)=ith mode calculated in last main run. i=( 1)=         6
+ NWAVE(i)=no. of circ. waves in the ith mode. i=( 1)=        10
+ Do you want buckling modal output for all the segments?= y
+
+ Next, give the command BOSORPOST
+
+dave-> bosorpost
+Enter case name: 1
+B (background) or F (foreground): f
+
+Running BOSOR5: bosorpost, case: 1
+
+Executing bosorpost
+Normal termination: bosorpost
+Case 1 postprocessor run completed.
+Next, choose from the commands:
+ BOSORPLOT, MAINSETUP, POSTSETUP, INPUT, CLEANUP, GETSEGS, OR MODIFY
+
+bosorplot             (choose what to plot)
+cleanup               (clean up files for the case called "1")
+
+(Finally, remove all the files from the directory, <home directory>/temp.
+
+********************************************************************
+
+
+STEP 9 - Run PANDA2 
+========================
+ 
+cd <working directory>
+cp <home directory>/panda2/case/sandwich/vinson.tar.gz .
+gunzip vinson.tar.gz
+tar xvf vinson.tar
+There are several files. The ones we are going to use in this
+particular PANDA2 example are the following:
+vinson.BEG
+vinson.CHG
+vinson.DEC
+vinson.OPT
+
+We do the following:
+
+cd <home directory>/temp
+cp <working directory>/vinson.BEG .
+cp <working directory>/vinson.DEC .
+cp <working directory>/vinson.CHG .
+cp <working directory>/vinson.OPT .
+source <home directory>/bin/initialize
+panda2log            (activate the PANDA2 commands)
+----------------------------------------------------------
+PANDA2 commands have been activated.
+PANDA2 commands are:
+begin      - you provide a starting design, material properties, boundary conditions
+choosetemp - choose temparature dependence
+setup      - PANDA2 generates BOSOR4-type matrix skylines for use by PANDA2
+decide     - you choose decision variables, lower and upper bounds, linking relationships
+mainsetup  - you provide loading, imperfection amplitudes, fact.of safety, analysis type,
+             strategy
+pandaopt   - launch run of mainprocessor for a single set of design iterations
+superopt   - launch run for multiple sets of design iterations (obtain a global optimum design)
+superduperopt - launch run for automatic multiple sequential executions of SUPEROPT
+change     - assign new values to parameters (or save an optimum design)
+autochange - assign new vector of decision variables randomly (used in the superopt process)
+chooseplot - choose which variables/margins to plot
+diplot     - generate & print PostScript file containing plots
+panel      - generate BOSOR4 input for a skin-stringer multi-module model
+panel2     - generate BOSOR4 input for a skin-ring multi-module model
+panel3     - generate BOSOR4 input for a skin-stringer + weld land multi-module model
+stagsmodel - generate STAGS input for panel (element unit, no rings)
+stagsunit  - generate STAGS input for panel (shell units, both rings and stringers permitted)
+cleanpan   - delete temporary case-specific files
+
+ A typical PANDA2 runstream is:
+   begin
+   setup
+   decide
+   mainsetup
+   superopt  (or pandaopt)
+   (several more pandaopts if the previous command is not superopt)
+   chooseplot
+   diplot
+   change
+   superopt or pandaopt or superduperopt
+   etc.
+   cleanpan
+-------------------------------------------------------
+
+begin                  (execute BEGIN. Input file = vinson.BEG)
+change                 (execute CHANGE. Input file = vinson.CHG)
+setup                  (execute SETUP. There is no input file)
+decide                 (execute DECIDE. Input file = vinson.DEC)
+mainsetup              (execute MAINSETUP. Input file = vinson.OPT)
+pandaopt               (execute PANDAOPT. Input file = vinson.OPT,
+                                         Output file = vinson.OPM)
+Part of the output file, vinson.OPM, follows:
+-----------------------------------------------------------------------------
+ ANALYSIS: ITYPE=2;  IQUICK=0;  LOAD SET 1;  SUBCASE 1:
+ LOADING: Nx, Ny, Nxy, Mx, My =  -5.00E+03  0.00E+00  2.50E+01  0.00E+00  0.00E+00
+          Nxo, Nyo, pressure  =   0.00E+00  0.00E+00 -0.00E+00
+ BUCKLING LOAD FACTORS FOR LOCAL BUCKLING FROM KOITER v. BOSOR4 THEORY:
+  Local buckling load factor from KOITER theory =  2.1247E+00 (flat skin)
+  Local buckling load factor from BOSOR4 theory =  1.8241E+00 (flat skin)
+0
+ MARGINS FOR CURRENT DESIGN: LOAD CASE NO. 1, SUBCASE NO. 1
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  6.58E-01 Local buckling from discrete model-1.,M=5   axial halfwaves;FS=1.1
+ 2  9.32E-01 Local buckling from Koiter theory,M=6   axial halfwaves;FS=1.1
+ 3  8.21E-03 eff.stress:matl=1,SKN,Dseg=2,node=11,layer=3,z=0.2558; MID.;FS=1.
+ 4  2.13E-02 eff.stress:matl=1,SKN,Iseg=1,allnode,layer=3,z=0.2558;-MID.;FS=1.
+ 5  6.62E-01 buck.(DONL);simp-support general buck;M=5;N=1;slope=0.;FS=1.1
+ 6  1.36E+00 localbuck (VINSON);strng Iseg1 ;MID; local buck.; M=5;FS=1.1
+ 7  1.12E+00 wrinkling ;strng Iseg1 ; MID;face 1; M=592;N=2;slope=0.3941;FS=1.
+ 8 -1.62E-04 Face1 wavelength/celldiam;STR;Iseg=1 ;Matl=2 ;MIDLENGTH;FS=1.
+ 9  1.22E+00 wrinkling (VINSON);strng Iseg1 ; MID;face 1; M=800;FS=1.
+10  6.26E+00 corecrimp (VINSON);strng Iseg1 ;MID; core crimping;FS=1.
+11  1.14E+01 dimpling  ;strng Iseg1 ; MID;face 1; M=1;N=1;slope=0.1191;FS=1.
+12  2.24E+00 wrinkling ;strng Iseg1 ; MID;face 2; M=302;N=1;slope=0.1057;FS=1.
+13  1.80E+00 Face2 wavelength/celldiam;STR;Iseg=1 ;Matl=2 ;MIDLENGTH;FS=1.
+14  1.84E+00 wrinkling ( HOFF );strng Iseg1 ; MID;face 2; M=285;FS=1.
+15  3.18E+01 dimpling  ;strng Iseg1 ; MID;face 2; M=1;N=1;slope=0.04;FS=1.
+16  1.56E-02 Core crushing margin;STR;Iseg=1 ;Matl 2 ;MIDLENGTH;FS=1.
+17 -3.21E-02 L-dir. sandwich core shear;STR;Iseg=1 ;Matl 2 ;MIDLENGTH;FS=1.
+18  2.15E-01 W-dir. sandwich core shear;STR;Iseg=1 ;Matl 2 ;MIDLENGTH;FS=1.
+19  2.21E+00 face sheet pull-off margin;STR;Iseg=1 ;Matl 2 ;MIDLENGTH;FS=1.
+20  1.84E+02 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.
+21  6.62E-01 buck.(SAND);simp-support general buck;M=5;N=1;slope=0.;FS=1.1
+
+ (many lines skipped to save space)
+
+   CURRENT VALUE OF THE OBJECTIVE FUNCTION:
+ VAR. STR/ SEG. LAYER   CURRENT
+ NO.  RNG  NO.   NO.     VALUE            DEFINITION
+            0     0   2.332E+01   WEIGHT OF THE ENTIRE PANEL                                     
+
+  TOTAL WEIGHT OF SKIN                            =   2.3316E+01
+  TOTAL WEIGHT OF SUBSTIFFENERS                   =   0.0000E+00
+  TOTAL WEIGHT OF STRINGERS                       =   0.0000E+00
+  TOTAL WEIGHT OF RINGS                           =   0.0000E+00
+  SPECIFIC WEIGHT (WEIGHT/AREA) OF STIFFENED PANEL=   1.1658E-02
+ IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO
+ RUN  PANDAOPT  MANY TIMES DURING AN OPTIMIZATION. INSPECT THE
+ vinson.OPP  FILE AFTER EACH OPTIMIZATION RUN. OR BETTER YET,
+ RUN SUPEROPT.
+----------------------------------------------------------------- 
+
+cleanpan           (clean up files pertaining to "vinson")
+
+The files remaining after execution of CLEANPAN are as follows:
+--------------------------------------------------------------
+-rw-r--r--  1 bush bush  9379 Jul 11 13:32 vinson.BEG
+-rw-r--r--  1 bush bush  1152 Jul 11 13:34 vinson.CHG
+-rw-r--r--  1 bush bush  1461 Jul 11 13:34 vinson.DEC
+-rw-r--r--  1 bush bush  4006 Jul 11 13:56 vinson.OPT
+--------------------------------------------------------------
+
+********************************************************************
+
+
+STEP 10 - Run GENOPT 
+========================
+An example of a GENOPT run is given in STEP 4. Another GENOPT
+example will not be given here in order to save space.
+
+********************************************************************
+
+STEP 11 - Run BOSOR4
+=====================
+The only reason that BOSOR4 is included as one of Bushnell's
+programs is that much of the BOSOR4 software is used by PANDA2.
+BOSOR4 as a stand-alone program has been completely superseded
+by BIGBOSOR4. A BIGBOSOR4 example is given in STEP 7.
+
+*******************************************************************

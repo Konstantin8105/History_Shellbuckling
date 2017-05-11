@@ -1,0 +1,574 @@
+C=DECK      RESETUPLIB
+C
+C  THIS IS THE RESETUP LIBRARY (SOURCE FILE)
+C
+C
+C
+C=DECK      RESETUP
+      PROGRAM RESET
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+#if hp700
+$hp9000_800 intrinsics
+#endif
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4   
+      COMMON/WAVNUM/ITHETA(50),THETA(50),THETAS,THETAM
+      COMMON/ALLRNG/NTOT,IPRE
+      COMMON/INTRVL/ INTVAL(95),IIOUT,NDIST,NCIRC,NTHETA    
+      COMMON/BUCKN/ N0B,NMINB,NMAXB,INCRB 
+      COMMON/INSTAB/INDIC
+      COMMON/HED/TITLE(12)
+      COMMON/EIGNO/NVEC,EGV(50),AXB
+      COMMON/SFLAG/ISTRES
+      COMMON/IOCHOZ/IOYES(50),IOSEG(95)
+      COMMON/RESTRT/IREST
+      COMMON/SEGS/NSEG,M2,I5(95),I2,I2G
+      COMMON/WAVES/N0,N,NMIN,NMAX,INCR
+      COMMON/NLINS/NSTART,NFIN
+      COMMON/NOHARM/NHARM
+      COMMON/ALOFIT/INDSIG,II,ITOT,K,L,IBOUND,IPT,IRIGID,ISEG,I5I,KRING,
+     1NWALL,NLTYPE,NRINGS,DSTOT,SEND,IPOS,IEND,IENDS,IMAX,ITOTL,LINTYP  
+      COMMON/IDHIGH/IDMAX
+      COMMON/STEPS/STEP,STEP1(98),STEP2(98),STEP3(98) 
+      COMMON/FORCES/ V(98), HF(98), FM(98)
+      COMMON/LRANGE/FSTART,FMAX,DF  
+      COMMON/MAXSTP/STEPM,STEPMI,RHOM
+      COMMON/EIGENV/P,OMG2,RHO
+      COMMON/TEMTUR/TEMP,DTEMP
+      COMMON/ROTATN/OMEGA,DOMEGA
+      COMMON/FORFIX/IOMGAB,VFIX(98),SHFIX(98),HFIX(98),FMFIX(98)
+      COMMON/AMPFAC/OMEGDR,YLATRL,YAXIAL,BDAMP,AMPLTD,GAMP(200)
+      COMMON/IFRHX/IFB,RHFIX(98),KXK,MNUMB,ISWTCH(5)
+      COMMON/RESPON/GRAVTY,FNGEES(20),FREQN(20),BFACT(20),FREQB(20)
+      COMMON/RESPO2/ANALY,WSPEC(20),FREQW(20)
+      COMMON/ENDOF/NLAST,NFIRST,NEDPLT
+      COMMON/PLTSIG/IPLOT,JPLOT,KPLOT(20),LPLOT(20),MPLOT,RN(20),ZN(20) 
+      COMMON/INDAT/INFILE
+      COMMON/KCHNG/NNWALL(95),CCH(95)
+      COMMON/STRSEG/ISTRSS(95)
+      COMMON/OUTP/NPRT
+      COMMON/NVVIB/NVIB
+      COMMON/NLAMIN/LAMINA(95)
+      COMMON/COMNOD/NODES(100),NODALL(100),NODTOT
+      CHARACTER*33 VNAM2,VNAM3,VNAM4, FNAM2
+      CHARACTER*4 ANSOUT,CHARAC
+      CHARACTER*1 ANS, upcase
+      LOGICAL ANSL1     
+      character*28 case
+      character*33 fname
+      logical exists
+      integer stofile
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C     
+#if hp700
+      call getarg(2, case)
+#else
+      call getarg(1, case)
+#endif
+      IFILE = 2   
+      IFILE2= 4   
+      IFILE3 = 7  
+      IFILE4 = 8  
+      INFILE = 5
+C
+      I=INDEX(CASE,' ')
+      IF (I.NE.0) THEN
+         VNAM2=CASE(:I-1)//'.RES'
+      ELSE
+         VNAM2=CASE//'.RES'
+      ENDIF 
+C     
+      I=INDEX(CASE,' ')
+      IF (I.NE.0) THEN
+         VNAM3=CASE(:I-1)//'.BLK'
+      ELSE
+         VNAM3=CASE//'.BLK'
+      ENDIF 
+C     
+      I=INDEX(CASE,' ')
+      IF (I.NE.0) THEN
+         VNAM4=CASE(:I-1)//'.OUT'
+      ELSE
+         VNAM4=CASE//'.OUT'
+      ENDIF 
+C
+C
+C FOLLOWING USED FOR VAX/VMS..
+C     OPEN(UNIT=IFILE,FILE='BOSOR4:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=IFILE2,FILE='BOSOR4:PROMPT2.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=IFILE3,FILE='BOSOR4:PROMPT3.DAT',STATUS='OLD',READONLY)
+C END VAX/VMS OPEN STATEMENTS
+C
+C FOLLOWING USED FOR UNIX...
+      OPEN(UNIT=IFILE,FILE='PROMPT.DAT',STATUS='OLD')
+      OPEN(UNIT=IFILE2,FILE='PROMPT2.DAT',STATUS='OLD')
+      OPEN(UNIT=IFILE3,FILE='PROMPT3.DAT',STATUS='OLD')
+#if rs6k
+      rewind(IFILE)
+      rewind(IFILE2)
+      rewind(IFILE3)
+#endif
+C BEG AUG 1989
+      OPEN(UNIT=10,STATUS='SCRATCH')
+C END AUG 1989
+C END UNIX OPEN STATEMENTS
+C
+      WRITE(6,'(1X,A)')' '
+      WRITE(6,'(1X,A,A,A)')
+     1' All ',VNAM4,' files will be deleted next.  If you have any'
+      WRITE(6,'(1X,A,A)') VNAM4,' files that you want to see,'
+      WRITE(6,'(1X,A)')' answer the next question Y, print them out,'
+      WRITE(6,'(1X,A)')' and then give the command RESETUP.'
+C
+      WRITE(6,'(1X,A,A,A,$)')' Do you want to print ',VNAM4,'? '
+      READ(5,'(A)') ANS
+      IF (upcase(ANS).EQ.'Y') CALL EXIT
+C
+      CALL REREAD(IOUT,IFILE3,INFILE,VNAM2)
+      stofile = 9
+c open/close statments added 6/91
+      fname = case(1:index(case, ' ')-1)//'.BLK'
+      inquire(FILE=fname, EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=stofile, FILE=fname, FORM='UNFORMATTED',
+     1       STATUS='OLD')
+#if rs6k
+        rewind(stofile)
+#endif
+      else
+        OPEN(UNIT=stofile, FILE=fname, FORM='UNFORMATTED',
+     1       STATUS='NEW')
+      endif
+      CALL GETCM1(stofile)
+      CALL GETCM2(stofile)
+      CLOSE(stofile)
+c end 6/91 changes
+C
+      FNAME = CASE
+      NLET = INDEX(FNAME,' ')
+      IF (NLET.LE.0) NLET = LEN(FNAME) + 1
+C
+      IROLD = IREST
+      IREST = 1
+      IVIBR = 0
+      INDOLD = INDIC
+      IF (INDOLD.LE.0) THEN
+       WRITE(6,'(1X,A,A,I2)')' You cannot use RESTART for analysis',
+     1' types (INDIC)= 0, -1, or -2. INDIC = ',INDIC
+       CALL EXIT
+      ENDIF
+      WRITE(6,10) (TITLE(I),I=1,12)
+   10 FORMAT(1X,18A4)
+      REWIND IFILE3
+      CALL DATUM(IFILE3,750,1,2,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) THEN
+         IREST = 2
+         IVIBR = 1
+         IF (INDOLD.NE.2.AND.IROLD.NE.2) THEN
+            WRITE(6,*)' YOU MUST HAVE PREVIOUSLY DONE A MODAL'
+            WRITE(6,*)' VIBRATION (INDIC=2) RUN WITH n = 0 and/or 1'
+            WRITE(6,*)' CIRCUMFERENTIAL WAVES BEFORE YOU CAN USE'
+            WRITE(6,*)' THIS OPTION.'
+            CALL EXIT
+         ENDIF
+      ENDIF
+   12 CONTINUE
+      IF (IREST.NE.2) WRITE(6,15) 
+   15 FORMAT(' This program can be used for the following purpose:'//
+     1'       To obtain more results for a given analysis type'/
+     1'       (given INDIC) without starting the case from the'/
+     1'       beginning.  In this use, you give the command'/
+     1'                     RESTART'/
+     1'       after you finish this interactive session.'//)
+C
+      REWIND IFILE
+      IF (IREST.EQ.2)
+     1  CALL DATUM(IFILE,5,1,2,ISTRES,REALL,CHARAC,IOUT,0,1)
+      IF (IREST.EQ.2) GO TO 57
+      CALL DATUM(IFILE,3,1,1,NPRT,REALL,CHARAC,IOUT,0,1)    
+      CALL DATUM(IFILE,5,1,2,ISTRES,REALL,CHARAC,IOUT,0,1)
+      IF (INDIC.NE.0.AND.INDIC.NE.3) ISTRES = 0
+C
+      IF (ISTRES.EQ.1) THEN
+         CALL MOVER(0,0,NODES,1,100)
+         DO 110 I = 1,100
+  110    NODALL(I) = 1
+         NODTOT = 0
+         DO 120 ISEG = 1,NSEG
+         I5I = I5(ISEG)
+C BEG APR 1992
+         IF (NNWALL(ISEG).NE.4.AND.NNWALL(ISEG).NE.9) GO TO 120
+C END APR 1992
+         CALL NODOUT(NNWALL(ISEG),ISEG,I5I,NODES,NODALL,NODTOT)
+  120    CONTINUE
+      ENDIF
+C
+   57 CONTINUE
+      DO 52 I = 1,NSEG
+   52 ISTRSS(I) = ISTRES
+      IF (ISTRES.EQ.0.OR.ISTRES.EQ.2) GO TO 56
+      DO 55 I = 1,NSEG
+C BEG APR 1992
+      IF (NNWALL(I).NE.2.AND.NNWALL(I).NE.5.AND.NNWALL(I).NE.4
+     1                  .AND.NNWALL(I).NE.9) ISTRSS(I) = 0
+C END APR 1992
+      IF (LAMINA(I).GT.1) ISTRSS(I) = 0
+   55 CONTINUE
+   56 CONTINUE
+C
+      INDSIG = 0  
+      IF (INDIC.EQ.4.AND.IPRE.EQ.1) INDSIG = 1  
+C     
+      REWIND IFILE
+      CALL DATUM(IFILE,4,1,1,NLAST,REALL,CHARAC,IOUT,0,1)
+      DO 60 I=1,20
+      LPLOT(I) = 0
+60    KPLOT(I) = 0
+      IF (NLAST.GT.-1) CALL BLOWUPR(IFILE3,IOUT,JPLOT,KPLOT,LPLOT)
+      IF (NLAST.GT.-1) CALL KKPLOT(JPLOT,NSEG,I5,KPLOT)
+      IF (IVIBR.EQ.0) GO TO 40
+C
+C   BASE EXCITATION BRANCH...
+C
+      REWIND IFILE3
+      CALL DATUM(IFILE3,770,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,780,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('N',ANSOUT,5)) GO TO 16
+      CALL DATUM(IFILE3,790,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,800,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('N',ANSOUT,5)) GO TO 16
+      CALL DATUM(IFILE3,810,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,812,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) CALL DATUM(IFILE3,813,0,0,INT,REALL,
+     1                                    CHARAC,IOUT,0,1)
+   16 CONTINUE
+      CALL DATUM(IFILE3,815,1,2,IANALY,REALL,CHARAC,IOUT,0,1)
+      ANALY = IANALY
+      CALL DATUM(IFILE3,820,1,1,INT,GRAVTY,CHARAC,IOUT,0,1)
+C
+      IF (IANALY.EQ.2) GO TO 181
+      CALL DATUM(IFILE3,830,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      ICONST = 1
+      CALL DATUM(IFILE3,840,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) ICONST = 0
+      IKOUNT = 1
+   17 CONTINUE
+      REWIND IFILE3
+      IKOUNT = IKOUNT + 1
+      IF (IKOUNT.GT.20) THEN
+         WRITE(6,*)' TOO MANY  (N,f) PAIRS.  USE FEWER CALLOUTS.'
+         CALL EXIT
+      ENDIF
+      IKM = IKOUNT - 1
+      CALL DATUM(IFILE3,850,1,1,INT,FNGEES(IKOUNT),CHARAC,IOUT,IKM,1)
+      IF (ICONST.EQ.1) GO TO 18
+      CALL DATUM(IFILE3,860,1,1,INT,FREQN(IKOUNT),CHARAC,IOUT,IKM,1)
+      CALL DATUM(IFILE3,870,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) GO TO 17
+   18 CONTINUE
+      CALL MODTAB(IANALY,ICONST,IKOUNT,FNGEES,FREQN)
+C
+  181 CONTINUE
+      IF (IANALY.EQ.3) GO TO 25
+      CALL DATUM(IFILE3,880,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      ICONST = 1
+      CALL DATUM(IFILE3,890,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) ICONST = 0
+      IKOUNT = 1
+   19 CONTINUE
+      REWIND IFILE3
+      IKOUNT = IKOUNT + 1
+      IF (IKOUNT.GT.20) THEN
+         WRITE(6,*)' TOO MANY  (B,f) PAIRS.  USE FEWER CALLOUTS.'
+         CALL EXIT
+      ENDIF
+      IKM = IKOUNT - 1
+  191 CONTINUE
+      CALL DATUM(IFILE3,900,1,1,INT,BFACT(IKOUNT),CHARAC,IOUT,IKM,1)
+      IF (BFACT(IKOUNT).LE.0.) THEN
+         WRITE(6,*)' DAMPING FACTOR MUST BE NON-ZERO AND POSITIVE.'
+         BACKSPACE(IOUT)
+         REWIND IFILE3
+         GO TO 191
+      ENDIF
+      IF (ICONST.EQ.1) GO TO 20
+  192 CONTINUE
+      CALL DATUM(IFILE3,910,1,1,INT,FREQB(IKOUNT),CHARAC,IOUT,IKM,1)
+      IF (FREQB(IKOUNT).LE.0.) THEN
+         WRITE(6,*)' FREQUENCY MUST BE NON-ZERO AND POSITIVE.'
+         BACKSPACE(IOUT)
+         REWIND IFILE3
+         GO TO 192
+      ENDIF
+      CALL DATUM(IFILE3,920,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) GO TO 19
+   20 CONTINUE
+      CALL MODTAB(IANALY,ICONST,IKOUNT,BFACT,FREQB)
+C
+      IF (IANALY.EQ.1.OR.IANALY.EQ.3) GO TO 25
+      CALL DATUM(IFILE3,930,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      ICONST = 1
+      CALL DATUM(IFILE3,940,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) ICONST = 0
+      IKOUNT = 1
+   21 CONTINUE
+      REWIND IFILE3
+      IKOUNT = IKOUNT + 1
+      IF (IKOUNT.GT.20) THEN
+         WRITE(6,*)' TOO MANY  (W,f) PAIRS.  USE FEWER CALLOUTS.'
+         CALL EXIT
+      ENDIF
+      IKM = IKOUNT - 1
+  211 CONTINUE
+      CALL DATUM(IFILE3,950,1,1,INT,WSPEC(IKOUNT),CHARAC,IOUT,IKM,1)
+      IF (WSPEC(IKOUNT).LE.0.) THEN
+         WRITE(6,*)' SPECTRAL DENSITY MUST BE NON-ZERO AND POSITIVE.'
+         BACKSPACE(IOUT)
+         REWIND IFILE3
+         GO TO 211
+      ENDIF
+      IF (ICONST.EQ.1) GO TO 22
+  212 CONTINUE
+      CALL DATUM(IFILE3,960,1,1,INT,FREQW(IKOUNT),CHARAC,IOUT,IKM,1)
+      IF (FREQW(IKOUNT).LE.0.) THEN
+         WRITE(6,*)' FREQUENCY MUST BE NON-ZERO AND POSITIVE.'
+         BACKSPACE(IOUT)
+         REWIND IFILE3
+         GO TO 212
+      ENDIF
+      CALL DATUM(IFILE3,970,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) GO TO 21
+   22 CONTINUE
+      CALL MODTAB(IANALY,ICONST,IKOUNT,WSPEC,FREQW)
+C
+   25 CONTINUE
+C
+C   BASE EXCITATION BRANCH...
+C
+      IF (INDOLD.EQ.2) THEN
+      NVIB = NVEC
+      IPRE = 1
+      NSTART = -ABS(N0B)
+      NFIN = NSTART
+      NHARM = 1
+      INCR = 0
+      INCRB = 1
+      N0 = NSTART
+      NMIN = NSTART
+      NMAX = NSTART
+      N = NSTART
+      ENDIF
+      MNUMB = NVIB
+      THETAM = 3.14159
+      THETAS = 0.
+      IREST = 2
+      INDIC = 3
+      INDSIG = 0
+      REWIND IFILE3
+      CALL DATUM(IFILE3,980,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,5)) THEN
+      INDIC = 4
+      INDSIG = 1
+C     CALL DATUM(IFILE3,982,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      ENDIF
+   40 CONTINUE
+      REWIND IFILE
+      REWIND IFILE3
+C
+      IF (INDIC.EQ.0.OR.INDIC.EQ.3) GO TO 62
+      CALL DATUM(IFILE,19,1,1,N0B   ,REALL,CHARAC,IOUT,0,1) 
+      CALL DATUM(IFILE,20,1,1,NMINB ,REALL,CHARAC,IOUT,0,1) 
+      CALL DATUM(IFILE,21,1,1,NMAXB ,REALL,CHARAC,IOUT,0,1) 
+      CALL DATUM(IFILE,22,1,1,INCRB ,REALL,CHARAC,IOUT,0,1) 
+      CALL DATUM(IFILE,23,1,1,NVEC  ,REALL,CHARAC,IOUT,0,1) 
+      REWIND IFILE3
+      CALL DATUM(IFILE3,741,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IOYES(5) = 0
+      IF (ANSL1('Y',ANSOUT,5)) IOYES(5) = 1
+      CALL DATUM(IFILE3,742,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IOYES(4) = 0
+      IF (ANSL1('Y',ANSOUT,5)) IOYES(4) = 1
+      REWIND IFILE
+      REWIND IFILE3
+   62 CONTINUE
+      IF (INDIC.LT.3.OR.IPRE.EQ.0) GO TO 69
+      CALL DATUM(IFILE,24,1,2,NDIST ,REALL,CHARAC,IOUT,0,1) 
+      THETA(1) = 0.
+      IF (NDIST.EQ.0) GO TO 61
+      DO 63 I = 1,NDIST 
+      IPROMP = 1  
+      IF (I.GT.1) IPROMP = 0  
+      CALL DATUM(IFILE,25,1,1,INT   ,THETA(I),CHARAC,IOUT,I,IPROMP)     
+      THETA(I) = THETA(I)*3.141593/180.
+   63 CONTINUE    
+   61 CONTINUE
+      CALL DATUM(IFILE,26,1,2,NCIRC ,REALL,CHARAC,IOUT,0,1) 
+      NTHETA = 2
+      ITHETA(1) = 1001
+      IF (NCIRC.EQ.0) GO TO 65
+      DO 64 I = 1,NCIRC 
+      IPROMP = 1  
+      IF (I.GT.1) IPROMP = 0  
+      CALL DATUM(IFILE,27,1,2,ITHETA(I),REALL,CHARAC,IOUT,I,IPROMP)     
+   64 CONTINUE    
+      CALL ISHIFT(NCIRC,ITHETA,I5)
+      CALL DATUM(IFILE,28,1,2,NTHETA,REALL,CHARAC,IOUT,0,1) 
+   65 CONTINUE
+      IF (IREST.NE.2) THEN
+      CALL DATUM(IFILE,30,1,2,INT,THETAS,CHARAC,IOUT,0,1)
+      THETAS = THETAS*3.14159/180.  
+      ENDIF
+   69 CONTINUE
+C     
+C     ALL INPUT DATA HAS BEEN READ IN.    
+C     
+  180 CONTINUE    
+C
+      WRITE(6,196)
+  196 FORMAT(/' Next, give the command  RESTART'/)
+C
+      stofile = 9
+c open/close statments added 6/91
+      fname = case(1:index(case, ' ')-1)//'.BLK'
+      inquire(FILE=fname, EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=stofile, FILE=fname, FORM='UNFORMATTED',
+     1       STATUS='OLD')
+#if rs6k
+        rewind(stofile)
+#endif
+      else
+	OPEN(UNIT=stofile, FILE=fname, FORM='UNFORMATTED',
+     1       STATUS='NEW')
+      endif
+      CALL STOCM1(stofile)
+      CALL STOCM2(stofile)
+      CLOSE(stofile)
+c end 6/91 changes
+C BEG JULY 1989
+      CLOSE(IFILE)
+      CLOSE(IFILE2)
+      CLOSE(IFILE3)
+C END JULY 1989
+      END   
+C=DECK      MODTAB
+      SUBROUTINE MODTAB(IANALY,ICONST,IKOUNT,Y,X)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C     CALLED FROM RESTART..
+C     PURPOSE IS TO MODIFY INPUT TABLE Y = Y(X) TO ENSURE THAT IT
+C     SPANS THE DATASET FROM A PREVIOUS RUN.
+C
+      DIMENSION Y(*),X(*)
+C
+      IF (ICONST.EQ.0) GO TO 10
+C
+C     BRANCH FOR CONSTANT Y(X)...
+C
+      Y(1) = Y(2)
+      X(1) = -10.E10
+      IF (IANALY.EQ.2) X(1) = 0.00001
+      X(2) = 10.E10
+      RETURN
+C
+   10 CONTINUE
+      Y(1) = Y(2)
+      X(1) = -10.E10
+      IF (IANALY.EQ.2) X(1) = 0.00001
+      Y(IKOUNT+1) = Y(IKOUNT)
+      X(IKOUNT+1) = X(IKOUNT)*1000.
+C
+      RETURN
+      END
+C=DECK      BLOWUPR
+      SUBROUTINE BLOWUPR(IFILE3,IOUT,JPLOT,KPLOT,LPLOT)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C     PURPOSE IS TO ALLOW USER TO PROVIDE LOCATIONS AND FACTORS FOR
+C     EXPANDED PLOTS OF UNDEFORMED AND DEFORMED STRUCTURE.
+C
+      COMMON/INDAT/INFILE
+      DIMENSION LPLOT(*),KPLOT(*)
+      LOGICAL ANSL1
+      CHARACTER*4 ANSWER,CHARAC
+C
+      JPLOT = 0
+      DO 10 I = 1,20
+      LPLOT(I) = 0
+      KPLOT(I) = 0
+   10 CONTINUE
+C
+      REWIND IFILE3
+      CALL DATUM(IFILE3,500,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE3,510,1,1,INT,REALL,ANSWER,IOUT,0,1)
+      IF (ANSL1('N',ANSWER,INFILE)) GO TO 100
+   20 CONTINUE
+      JPLOT = JPLOT + 1
+      REWIND IFILE3
+      IF (JPLOT.GT.1)
+     1      CALL DATUM(IFILE3,520,1,1,INT,REALL,ANSWER,IOUT,0,1)
+      IF (ANSL1('N',ANSWER,INFILE)) GO TO 100
+      CALL DATUM(IFILE3,530,1,2,ISEG,REALL,CHARAC,IOUT,0,1)
+      KPLOT(JPLOT) = ISEG*1000 + 1
+   22 CONTINUE
+      CALL DATUM(IFILE3,540,1,2,LPLOT(JPLOT),REALL,CHARAC,IOUT,0,1)
+      IF (LPLOT(JPLOT).LT.1) THEN
+         WRITE(6,*)' IMPROPER MAGNIFICATION FACTOR. USE INTEGER > 1 '
+         BACKSPACE(IOUT)
+         REWIND IFILE3
+         GO TO 22
+      ENDIF
+      GO TO 20
+  100 CONTINUE
+      IF (JPLOT.GT.0) JPLOT = JPLOT - 1
+      RETURN
+      END
+C=DECK      KKPLOT
+      SUBROUTINE KKPLOT(JPLOT,NSEG,I5,KPLOT)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C   PURPOSE IS TO CONVERT KPLOT FROM SEGMENT/NODE ADDRESS TO TOTAL
+C   NODE ADDRESS...
+C
+      DIMENSION KPLOT(*), I5(*)
+C
+C
+      IF (JPLOT.EQ.0) GO TO 130
+      II = 0
+      K = 1
+      DO 120 J=1,NSEG
+      I5J = I5(J)
+      DO 110 I=1,I5J
+      II = II + 1
+      ISTA = J*1000 + I
+  105 CONTINUE
+      IF (K.GT.JPLOT) GO TO 130
+      IF (KPLOT(K).NE.ISTA) GO TO 110
+      KPLOT(K) = II
+      K = K + 1
+      GO TO 105
+110   CONTINUE
+120   CONTINUE
+130   CONTINUE
+C
+      RETURN
+      END

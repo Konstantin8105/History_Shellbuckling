@@ -1,0 +1,1384 @@
+C=DECK      GEOMLIB
+C
+C  THIS IS THE GEOM LIBRARY  (SOURCE FILE)
+C
+C
+C
+C=DECK      ANGLE
+C     OVERLAY(3,0)
+      SUBROUTINE ANGLE(Y1,Y2,X1,X2,TH12)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+      DOUBLE PRECISION Y1,Y2,X1,X2,TH12
+      PI = 3.141592654
+      TH12 = DATAN2(Y2-Y1,X2-X1)
+      IF (TH12.LT.0.0) TH12 = TH12 + 2*PI
+      RETURN
+      END
+C=DECK      ARCDRW
+      SUBROUTINE ARCDRW(X1,X2,X3,Y1,Y2,Y3)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     CALLED FROM GEOM2. TRACE IS GEOM,GEOMTY,READIT,MAIN. .
+C     SPHERICAL AND TOROIDAL SHELL GEOMETRY
+C
+C     (X3,Y3)  IS THE CENTER OF THE CIRCLE
+C     (X1,Y1) AND (X2,Y2) ARE THE TWO POINTS ON THE ARC
+C
+      COMMON/PRMOUT/IFILE3,IFILE4
+      X4=(X2+X1)/2.0
+      Y4=(Y2+Y1)/2.0
+      IF (X2-X1) 10,40,10
+10    IF (Y2-Y1) 20,30,20
+20    CONTINUE
+C     FOR POINTS OF THE FORM  (X1,Y1) AND (X2,Y2)
+      SLOPE=(Y2-Y1)/(X2-X1)
+C
+C     (X5,Y5)  US THE NEW CENTER COORDINATE
+      X5=(X4/SLOPE+Y4-Y3+SLOPE*X3)/(SLOPE+1/SLOPE)
+      Y5=SLOPE*(X5-X3)+Y3
+      GO TO 50
+C     FOR POINTS OF THE FORM   (X1,Y) AND (X2,Y)
+30    X5=(X2+X1)/2.0
+      Y5=Y3
+      GO TO 50
+C     FOR POINTS OF THE FORM  (X,Y1)  AND (X,Y2)
+40    X5=X3
+      Y5=(Y2+Y1)/2.0
+C
+C     D1 IS THE DISTANCE BETWEEN (X4,Y4) AND (X5,Y5)
+C     D2 IS THE DISTANCE BETWEEN THE NEW CENTER AND THE OLD CENTER
+50    D1=SQRT((X4-X5)**2+(Y4-Y5)**2)
+      D2=SQRT((X3-X5)**2+(Y3-Y5)**2)
+      IF (D2) 80,80,60
+60    CONTINUE
+      IF (D1.EQ.0.0) GO TO 80
+      RATIO=D2/D1
+      IF(RATIO .LT. .01)   RETURN
+      WRITE (6,70)X3,Y3,X5,Y5,D2
+70    FORMAT(59H ERROR - CENTER COORDINATES REPLACED WITH NEW COORDINATE
+     1S -/,10X,18HOLD COORDINATE - ( E10.4,1H,E10.4,1H) /,10X,18HNEW COO
+     2RDINATE - (E10.4,1H,E10.4,1H) /,10X,31HDISTANCE BETWEEN COORDINATE
+     3S - E10.4)                                                         
+      X3=X5
+      Y3=Y5
+80    RETURN
+      END
+C=DECK      CURV
+C./      ADD   NAME=CURV
+      SUBROUTINE CURV(X1S,X2S,X3S,Y1S,Y2S,Y3S,RHOS,TH23S,TH12S)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C
+C     THIS SUBROUTINE CALCULATES CURVATURE OF CIRCLE PASSING THRU THE
+C     THREE POINTS (X1,Y1),(X2,Y2),(X3,Y3)
+C
+C     FIRST FIND ANGLES FROM POSITIVE X-AXIS TO LINE SEGMENTS
+C     (X1,Y1) TO (X2,Y2)  AND (X2,Y2) TO (X3,Y3) AND (X1,Y1) TO (X3,Y3)
+C
+      DOUBLE PRECISION PI,X1,X2,X3,Y1,Y2,Y3,RHO,TH23,TH12,TH13,FACT1
+      DOUBLE PRECISION C11,C12,C21,C22,A1,A2,DEN,Q1,Q2
+C
+      X1 = X1S
+      X2 = X2S
+      X3 = X3S
+      Y1 = Y1S
+      Y2 = Y2S
+      Y3 = Y3S
+C
+      CALL ANGLE(Y1,Y2,X1,X2,TH12)
+      CALL ANGLE(Y2,Y3,X2,X3,TH23)
+      CALL ANGLE(Y1,Y3,X1,X3,TH13)
+      PI = 3.141592654
+      IF (DABS(TH13-TH12).LT.PI) GO TO 10
+      IF (DABS(TH13)/(2.*PI).GT.0.7) TH13 = TH13 - 2.*PI
+      IF (DABS(TH12)/(2.*PI).GT.0.7) TH12 = TH12 - 2.*PI
+10    CONTINUE
+C
+C     GET PROPER SIGN ON MERIDIONAL CURVATURE
+C
+      FACT1 = -1.0
+      IF (TH13.GT.TH12) FACT1 = 1.0
+C     CALCULATE CURVATURE
+C
+      C11 = 2.*(X2- X1)
+      C12 = 2.*(Y2 - Y1)
+      C21 = 2.*(X3 - X1)
+      C22 = 2.*(Y3 - Y1)
+      A1 = X1*X1 + Y1*Y1 - X2*X2 - Y2*Y2
+      A2 = X1*X1 + Y1*Y1 - X3*X3 - Y3*Y3
+      DEN = C11*C22 - C12*C21
+      Q1 =  C12*A2 - C22*A1
+      Q2 =  C21*A1 - C11*A2
+      RHO = FACT1*DABS(DEN)/DSQRT((DEN*X1 - Q1)**2 + (DEN*Y1 - Q2)**2)
+C
+      RHOS = RHO
+      TH12S = TH12
+      TH23S = TH23
+C
+      RETURN
+      END
+C=DECK      GEOM  
+      SUBROUTINE GEOM(ISEG,NCST,I5,R,RD,C1,C2,C1D,S,IMP,NFLAG,SEND,     
+     1DS,DSTOT,ZAX)     
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C     CALLED FROM GEOMTY, WHICH IS CALLED FROM READIT, WHICH IS CALLED  
+C     FROM MAIN.  
+C     GEOMETRY PARAMETERS FOR SEGMENT NUMBER ISEG ARE CALCULATED. 
+C     THESE PARAMETERS ARE R - - PARALLEL CIRCLE RADIUS     
+C                          RD -DERIVATIVE OF PARALLEL CIRCLE RADIUS WITH
+C                              RESPECT TO ARC LENGTH S.     
+C                          C1 -MERIDIONAL CURVATURE   
+C                          C2 -CIRCUMFERENTIAL NORMAL CURVATURE   
+C                          C1D-DERIVATIVE OF MERIDIONAL CURVATURE 
+C     MESH STATION SPACING HC(ISEG) AND ARC LENGTH S ALSO OBTAINED.     
+C     GEOM1,GEOM2, ETC. CORRESPOND TO VARIOUS TYPES OF SHELLS     
+C     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      CHARACTER*4 CHARAC
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),ZAX(*),DS(500)  
+C BEG MARCH 1990
+      COMMON/ZZZGLB/ZGLOBL
+      ZGLOBL = 0.
+C END MARCH 1990
+      GO TO (10,20,30,40,50),NCST   
+10    CALL GEOM1(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,ZAX)     
+      GO TO 60    
+20    CALL GEOM2(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,ZAX)     
+      GO TO 60    
+30    CALL GEOM3(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,ZAX)     
+      GO TO 60    
+40    CALL GEOM4(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,ZAX)     
+      GO TO 60    
+50    CALL GEOM5(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,ZAX)     
+60    CONTINUE    
+C
+      WRITE(IOUT,5)
+    5 FORMAT(6X,'H',9X,'$ IMPERFECTION SHAPE FOLLOWS...')
+C BEG MARCH 1990  (The following statement is commented out...)
+C     CALL DATUM(IFILE2,132,0,0,INT,REALL,CHARAC,IOUT,0,1)
+C END MARCH 1990
+      CALL DATUM(IFILE2,133,1,1,IMP,REALL,CHARAC,IOUT,0,1)
+      IF (IMP.NE.0.AND.IMP.NE.1) THEN
+        WRITE(6,*)' IMP MUST BE EITHER 0 OR 1'
+        CALL ERREX
+      ENDIF
+      IF (IMP.EQ.0) GO TO 70  
+C     VARIOUS IMPERFECTION SHAPES READ IN IN IMPERF   
+      CALL IMPERF(NFLAG,I5,R,RD,C1,C2,C1D,S,SEND,ISEG)
+70    CONTINUE    
+      DO 80 I=1,I5
+80    S(I) = S(I) + SEND
+      RETURN
+      END   
+C=DECK      GEOM1 
+C     OVERLAY(1,2)
+      SUBROUTINE GEOM1(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,Z) 
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C     THIS SUBROUTINE FOR CYLINDRICAL,CONICAL SHELLS OR FLAT PLATES     
+C     INPUT DATA . . .  
+C     
+C        R1,Z1 = COORDINATES IN R-Z SPACE OF BEGINNING OF SEGMENT 
+C        R2,Z2 = COORDINATES IN R-Z SPACE OF END OF SEGMENT 
+C     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      CHARACTER*4 CHARAC
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),Z(*)     
+      DIMENSION DS(500) 
+      CALL DATUM(IFILE2,112,1,2,INT,R1,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,113,1,1,INT,Z1,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,114,1,1,INT,R2,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,115,1,1,INT,Z2,CHARAC,IOUT,0,1)
+C     MUST LEAVE SMALL HOLE AT APEX OF CONE     
+C     
+      IF ((R1-R2).EQ.0.0) GO TO 5   
+      ZRAT = ABS((Z1-Z2)/(R1-R2))   
+      IF (ZRAT.LT.0.01) GO TO 5     
+      IF(R1.LT.0.001*R2) R1 = 0.001*R2    
+      IF (R2.LT.0.001*R1) R2 = 0.001*R1   
+5     CONTINUE    
+10    FORMAT(6E12.8)                                                  
+      WRITE(IFILE4,20)ISEG,R1,Z1,R2,Z2  
+20    FORMAT(/12H SEGMENT NO. I3,23H IS A CYLINDER OR CONE. /5X,23HEND P
+     1OINT COORDINATES ( E10.4,1H, E10.4,7H) AND ( E10.4,1H, E10.4,1H))
+      SL=SQRT((R2-R1)**2+(Z2-Z1)**2)
+      SALPH=SQRT((R2-R1)**2)/SL     
+      CALPH=SQRT((Z2-Z1)**2)/SL     
+      FACT = SL/DSTOT   
+      R(1) = R1   
+      Z(1) = Z1   
+      S(1) = 0.0  
+      RD(1) = SALPH     
+      IF (R2.LT.R1) RD(1) = -SALPH  
+      C1(1) = 0.0 
+      C1D(1) = 0.0
+      C2(1) = 0.0 
+      IF (R1.EQ.0.) GO TO 30  
+      C2(1) = CALPH/R1  
+      IF (Z2.LT.Z1) C2(1) = - CALPH/R1    
+30    CONTINUE    
+      DS(1) = DS(1)*FACT
+      DO 40 I=2,I5
+      DS(I) = DS(I)*FACT
+      I1 = I-1    
+      S(I) = S(I1) + (DS(I) + DS(I1))/2.  
+      R(I) = R1 + (R2 - R1)*S(I)/SL 
+      Z(I) = Z1 + (Z2-Z1)*S(I)/SL   
+      RD(I)=SALPH 
+      IF(R2 .LT. R1)   RD(I)=-SALPH 
+      C1(I)=0.0   
+      RI = DS(1)/100.   
+      IF(R(I) .GT. 0.0)   RI=R(I)   
+      C2(I)=CALPH/RI    
+      IF (Z2.LT.Z1) C2(I) = - CALPH/RI    
+      C1D(I)=0.0  
+40    CONTINUE    
+50    FORMAT(10H R(I),Z(I)  2(3X,E12.6))                                      
+      RETURN
+      END   
+C=DECK      GEOM2 
+      SUBROUTINE GEOM2 (ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,Z)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C     THIS SUBROUTINE FOR SPHERICAL, TOROIDAL, OR OGIVAL SEGMENTS 
+C     
+C     INPUT DATA . . .  
+C     
+C        R1,Z1 - COORDINATES IN R-Z SPACE OF BEGINNING OF SEGMENT 
+C        R2,Z2 - COORDINATES IN R-Z SPACE OF END OF SEGMENT 
+C        RC,ZC - COORDINATES IN R-Z SPACE OF CENTER OF MERIDIONAL CURV. 
+C        SROT - SIGN OF MERIDIONAL CURVATURE - -
+C     
+C            SROT POSITIVE FOR INCREASING ARC LENGTH CLOCKWISE DIRECTION
+C            SROT NEGATIVE FOR INCREASING S ANTICLOCKWISE   
+C     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT,CHARAC
+      LOGICAL ANSL1
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),Z(*)
+      DIMENSION DS(500) 
+C     
+      CALL DATUM(IFILE2,116,1,2,INT,R1,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,117,1,1,INT,Z1,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,118,1,1,INT,R2,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,119,1,1,INT,Z2,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,120,1,2,INT,RC,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,121,1,1,INT,ZC,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,122,1,2,INT,SROT,CHARAC,IOUT,0,1)
+10    FORMAT(6E12.8)                                                          
+      WRITE(IFILE4,20)ISEG,R1,Z1,R2,Z2,RC,ZC  
+20    FORMAT(/12H SEGMENT NO. I3,26H IS SPHERICAL OR TOROIDAL. /5X,23HEN
+     1D POINT COORDINATES ( E10.4,1H, E10.4,7H) AND ( E10.4,1H, E10.4,
+     214H) AND CENTER ( E10.4,1H, E10.4,1H))                      
+C     
+C     CHECK TO INSURE THAT CENTER COORDINATE IS CORRECT     
+C     
+      CALL ARCDRW(R1,R2,RC,Z1,Z2,ZC)
+C     
+      FN=FLOAT(I5)-1.0  
+      PI=3.1415927
+      ROT=SQRT((R1-RC)**2+(Z1-ZC)**2)     
+      SROT = - SROT     
+      DR1 = R1 - RC     
+      DR2 = R2 - RC     
+      DZ1 = ZC - Z1     
+      DZ2 = ZC - Z2     
+      ANG1 = ATAN2(DR1,DZ1)   
+      ANG2 = ATAN2(DR2,DZ2)   
+      IF (ANG1.LT.0.0) ANG1 = ANG1 + 2.*PI
+      IF (ANG2.LT.0.0) ANG2 = ANG2 + 2.*PI
+      AN1DEG=ANG1*180./PI     
+      AN2DEG=ANG2*180./PI     
+      NSROT = SROT
+      IF (NSROT.EQ.-1) WRITE(IFILE4,30) ROT, AN1DEG,AN2DEG 
+      IF (NSROT.EQ. 1) WRITE(IFILE4,40) ROT, AN1DEG,AN2DEG 
+30    FORMAT( 10H RADIUS =  1PE11.4, 10H  ALPHA1 =  1PE11.4,                  
+     110H  ALPHA2 = 1PE11.4, 37H  INCREASING ARC LENGTH CLOCKWISE    /)    
+40    FORMAT( 10H RADIUS =  1PE11.4, 10H  ALPHA1 =  1PE11.4,           
+     110H  ALPHA2 = 1PE11.4, 37H  INCREASING ARC LENGTH ANTICLOCKWISE/)
+      DPHI = ANG2 - ANG1
+      IF (SROT.LT.0.0.AND.DPHI.GT.0.0) DPHI = DPHI - 2.*PI  
+      IF (SROT.GT.0.0.AND.DPHI.LT.0.0) DPHI = DPHI + 2.*PI  
+      SL = ABS(ROT*DPHI)
+      FACT = SL/DSTOT   
+      S(1) = 0.0  
+      R(1) = R1   
+      Z(1) = Z1   
+      SPHI = SIN(ANG1)  
+      CPHI = COS(ANG1)  
+      RD(1) = SROT*CPHI 
+      IF (ABS(RD(1)).LT.0.0005) RD(1) = 0.
+      C1(1) = SROT/ROT  
+      C1D(1) = 0.0
+      C2(1) = C1(1)     
+      IF (R1.GT.0.) C2(1) = SROT*SPHI/R1  
+      DS(1) = DS(1)*FACT
+      DO 50 I=2,I5
+      I1 = I - 1  
+      DS(I) = DS(I)*FACT
+      S(I) = S(I1) + (DS(I) + DS(I1))/2.  
+      PHI = ANG1 + DPHI*S(I)/SL     
+      PI2 = 2.*PI 
+      IF (PHI.GT.PI2) PHI = PHI - PI2     
+      SPHI = SIN(PHI)   
+      CPHI = COS(PHI)   
+      R(I) = RC + ROT*SPHI    
+      Z(I)=ZC-ROT*CPHI  
+      RD(I) = CPHI*SROT 
+      IF (ABS(RD(I)).LT.0.0005) RD(I) = 0.
+      C1(I) = SROT/ROT  
+      C2(I) = C1(I)     
+      IF (R(I).GT.0.0) C2(I) = SROT*SPHI/R(I)   
+      C1D(I) = 0.0
+50    CONTINUE    
+60    FORMAT(10H R(I),Z(I)  2(3X,E12.6))                                      
+      RETURN
+      END   
+C=DECK      GEOM3
+      SUBROUTINE GEOM3(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,Z)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     READ GEOMETRY PARAMETERS AT A FEW POINTS AND INTERPOLATE LINEARLY
+C     (FINDZ) FOR INTERMEDIATE VALUES.
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),DS(*),Z(*)
+      DIMENSION RIN(50),RDIN(50),C1IN(50),C2IN(50),C1DIN(50),IGVAL(50)
+10    FORMAT(10I6)                                                       
+20    FORMAT(6E12.8)                                                     
+      READ (5,20)ARCLTH
+      FACT = ARCLTH/DSTOT
+      DS(1) = DS(1)*FACT
+      S(1) = 0.
+      DO 30 I=2,I5
+      I1 = I - 1
+      DS(I) = DS(I)*FACT
+30    S(I) = S(I1) + (DS(I) + DS(I1))/2.
+C     NGVAL = NO. OF CALLOUTS
+C     IGVAL = MESH PT. TAGS OF CALLOUTS.
+      READ (5,10)NGVAL
+      READ (5,10)(IGVAL(I),I=1,NGVAL)
+      JSTART = 1
+      IF (IGVAL(1).EQ.1) JSTART = 2
+      IF (NGVAL.LT.JSTART) GO TO 50
+      DO 40 J=JSTART,NGVAL
+40    IGVAL(J) = IGVAL(J) + 1
+      IF (IGVAL(NGVAL).EQ.(I5-1)) IGVAL(NGVAL) = IGVAL(NGVAL) + 1
+50    CONTINUE
+C     INPUT PARAMETERS (SEE GEOM FOR DEFINITIONS)
+      READ (5,20)(RIN(I),I=1,NGVAL)
+      READ (5,20)(RDIN(I),I=1,NGVAL)
+      READ (5,20)(C1IN(I),I=1,NGVAL)
+      READ (5,20)(C2IN(I),I=1,NGVAL)
+      READ (5,20)(C1DIN(I),I=1,NGVAL)
+C      INTERPOLATE FOR OUTPUT VALUES R,RD,C1,C2,C1D
+      CALL FINDZ(NGVAL,IGVAL,  RIN,I5,  R,S)
+      CALL FINDZ(NGVAL,IGVAL, RDIN,I5, RD,S)
+      CALL FINDZ(NGVAL,IGVAL, C1IN,I5, C1,S)
+      CALL FINDZ(NGVAL,IGVAL, C2IN,I5, C2,S)
+      CALL FINDZ(NGVAL,IGVAL,C1DIN,I5,C1D,S)
+      Z(1) = 0.0
+      DO 60 I=2,I5
+      I1 = I -1
+C     Z IS THE AXIAL COORDINATE
+60    Z(I) = Z(I1) + SQRT((S(I)-S(I1))**2 + (R(I)-R(I1))**2)
+      RETURN
+      END
+C=DECK      GEOM4
+      SUBROUTINE GEOM4(ISEG,I5,RAD,RADD,CUR1,CUR2,CUR1D,S,DS,DSTOT,Z)
+C     GEOMETRICAL INPUT (RAD,RADD,CUR1,CUR2) FOR ARBITRARY SHELL
+C
+      COMMON/PRMOUT/IFILE3,IFILE4
+C BEG JULY 1996
+      COMMON/INNERX/INNER
+C END JULY 1996
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT
+      CHARACTER*4 CHARAC
+      LOGICAL ANSL1
+      COMMON/APEX/INDX
+      COMMON/TORUS/ALPHAT,ZMAX,XMAX,NST
+      DIMENSION RI(100),ZI(100),DS(*),ZT(20),TH(20)
+      DIMENSION RAD(*),RADD(*),CUR1(*),CUR2(*),CUR1D(*),S(*),Z(*)
+C BEG NOV 1995
+      DIMENSION RADOLD(100),SN(200),DSN(200),ZN(200)
+      DIMENSION RADM(100),RADDM(100),CUR1M(100),CUR2M(100),CUR1DM(100)
+      DIMENSION RADN(200),RADDN(200),CUR1N(200),CUR2N(200),CUR1DN(200)
+C END NOV 1995
+10    FORMAT(23X,2E15.8)
+20    FORMAT (1H0,42X,35HCOORDINATES OF SHELL SEGMENT FOLLOW/1H0,42X,
+     116HAXIAL COORDINATE,9X,6HRADIUS/50X,1HZ,20X,1HR/
+     2(43X,E15.8,5X,E15.8))
+30    FORMAT (1H0/1H0,25X,10HARC LENGTH,7X,6HRADIUS,9X,5HDR/DS,12X,2HK1,
+     113X,2HK2/29X,3H(S),12X,5H(RAD),9X,6H(RADD),9X,6H(CUR1),9X,
+     26H(CUR2))
+40    FORMAT (23X,5E15.8)
+C
+C     CARTESIAN COORDINATES OF SHELL REFERENCE SURFACE CALCULATED IN
+C     SHELL
+      ALPHAT = 0.0
+60    CALL SHELL(NRZIN,ZI,RI,ZT,TH,NSUR,ISEG,INDX)
+      REWIND IFILE3
+      CALL DATUM(IFILE3,602,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,INFILE))
+     1WRITE(IFILE4,20)(ZI(I),RI(I),I=1,NRZIN)
+      CALL GMFIND(RAD,RADD,CUR1,CUR2,CUR1D,S,DS,DSTOT,RI,ZI,NRZIN,I5,Z)
+      DO 210 I = 1,I5
+      IF (NST.NE.4) GO TO 200
+      E2 = 1. - (ZMAX/XMAX)**2
+C BEG MAY 1994
+      E1 = ABS(XMAX/(ZMAX**2))
+C END MAY 1994
+      E3 = SQRT(1. - E2*RADD(I)**2)
+      CUR1(I) = E1*E3**3
+      E4 = (ZMAX/XMAX)**2
+      E5 = SQRT(ZMAX**2 - RAD(I)**2*E4*E2)
+      CUR2(I) = E4/E5
+      CUR1D(I) = 3.*E1*E2*CUR1(I)*E3*RADD(I)*RAD(I )*CUR2(I)
+200   CONTINUE
+      IF(ALPHAT.NE.0.)CUR2(I)=CUR2(I)*RAD(I)/(RAD(I) + ALPHAT)
+C BEG NOV 1995
+      RADOLD(I) = RAD(I)
+C END NOV 1995
+210   RAD(I) = RAD(I) + ALPHAT
+C BEG NOV 1995
+      IF (NST.EQ.4.AND.(ALPHAT-XMAX).GT.0.0) THEN
+C BEG JULY 1996
+C        REWIND IFILE3
+C        CALL DATUM(IFILE3,582,1,2,INT,REALL,ANSOUT,IOUT,0,1)
+C        IF (ANSL1('N',ANSOUT,INFILE)) GO TO 1000
+         IF (INNER.EQ.0) GO TO 1000
+C END JULY 1996
+         DO 220 I = 1,I5
+          RADM(I) = ALPHAT - RADOLD(I)
+          RADDM(I) = RADD(I)
+          CUR1M(I) = CUR1(I)
+          CUR1DM(I) = - CUR1D(I)
+          CUR2M(I) = -SQRT(1. - RADD(I)**2)/RADM(I)
+  220    CONTINUE
+         IPROSS = 0
+         IF (Z(I5).GE.1.99*ZMAX) THEN
+C  THIS IS A "TOP" (AS OPPOSED TO "BOTTOM") DOME...
+            IF (Z(I5).LT.1.9999*ZMAX) THEN
+               WRITE(IFILE4,225) Z(I5), 2.0*ZMAX
+  225          FORMAT(/' END POINT ZB IS NOT NEAR ENOUGH TO TOP OF'/
+     1       ' DOME TO PERMIT "REFLECTING" THE ELLIPSOIDAL SEGMENT'/
+     1       ' ZB = ',1PE12.4,'. ZB MUST BE EQUAL TO',1PE12.4,'.'/
+     1       ' RUN WILL NOW ABORT IN GEOM4. PLEASE RESET ZB.'/)
+               CALL ERREX
+            ENDIF
+            IPROSS = 1
+C           DO 230 I = 1,I5
+C            RADN(I) = RAD(I)
+C            RADDN(I) = RADD(I)
+C            CUR1N(I) = CUR1(I)
+C            CUR1DN(I)= CUR1D(I)
+C            CUR2N(I) = CUR2(I)
+C            SN(I) = S(I)
+C            DSN(I)= DS(I)
+C            ZN(I) = Z(I)
+C 230       CONTINUE
+C           I51 = I5 + 1
+C           I52 = 2*I5 - 1
+C           DO 240 I = I51,I52
+C            J = I52 - I + 1
+            DO 240 I = 1,I5
+             J = I5 - I + 1
+             RADN(I) = RADM(J)
+             RADDN(I) = RADDM(J)
+             CUR1N(I) = CUR1M(J)
+             CUR1DN(I)= CUR1DM(J)
+             CUR2N(I) = CUR2M(J)
+C            SN(I) =  2.*S(I5) - S(J)
+             SN(I) =     S(I5) - S(J)
+             DSN(I)= DS(J)
+             ZN(I) = Z(J)
+  240       CONTINUE
+         ENDIF
+         IF (Z(1).GE.0.0.AND.Z(1).LE.0.001*ZMAX) THEN
+C  THIS IS A "BOTTOM" (AS OPPOSED TO "TOP") DOME...
+            IF (Z(1).GT.0.00001*ZMAX) THEN
+               WRITE(IFILE4,245) Z(1)
+  245          FORMAT(/' STARTING POINT ZA IS NOT NEAR ENOUGH TO'/
+     1       ' BOTTOM OF DOME TO PERMIT "REFLECTING" THE'/
+     1       ' TORI-ELLIPSOIDAL SEGMENT. ZA = ',1PE12.4,'. ZA MUST'/
+     1       ' BE EQUAL TO ZERO.'/
+     1       ' RUN WILL NOW ABORT IN GEOM4. PLEASE RESET ZA.'/)
+               CALL ERREX
+            ENDIF
+            IPROSS = 1
+C           DO 250 I = 1,I5
+C            J = I5 - 1 + I
+C            RADN(J) = RAD(I)
+C            RADDN(J) = RADD(I)
+C            CUR1N(J) = CUR1(I)
+C            CUR1DN(J)= CUR1D(I)
+C            CUR2N(J) = CUR2(I)
+C            SN(J) = S(I5) + S(I)
+C            DSN(J)= DS(I)
+C            ZN(J) = Z(I)
+C 250       CONTINUE
+C           I51 = I5 - 1
+C           DO 260 I = 1,I51
+            DO 260 I = 1,I5
+             J = I5 - I + 1
+             RADN(I) = RADM(J)
+             RADDN(I) = RADDM(J)
+             CUR1N(I) = CUR1M(J)
+             CUR1DN(I)= CUR1DM(J)
+             CUR2N(I) = CUR2M(J)
+             SN(I) =  S(I5) - S(J)
+             DSN(I)= DS(J)
+             ZN(I) = Z(J)
+  260       CONTINUE
+         ENDIF
+         IF (IPROSS.EQ.0) THEN
+            WRITE(IFILE4,265)
+  265       FORMAT(/' SOMETHING IS WRONG WITH YOUR INPUT IN GEOM4.'/
+     1              ' PLEASE TRY AGAIN. TORI-ELLIPSOIDAL REFLECTING'/
+     1              ' NOT PERMITTED FOR THE INPUT DATA YOU SUPPLIED.'/
+     1              ' CHANGE YOUR ZA AND/OR ZB INPUT')
+            CALL ERREX
+         ENDIF
+C        I52 = 2*I5 - 1
+C        IF (I52.GT.97) THEN
+C     THERE ARE TOO MANY NODES IN THE "DOUBLED" SEGMENT, CUT THEM
+C     BY TAKING EVERY OTHER NODE:
+C           J = 0
+C           DO 270 I = 1,I52,2
+C            J = J + 1
+C            RAD(J) = RADN(I)
+C            RADD(J) = RADDN(I)
+C            CUR1(J) = CUR1N(I)
+C            CUR1D(J)= CUR1DN(I)
+C            CUR2(J) = CUR2N(I)
+C            S(J) = SN(I)
+C            DS(J)= DSN(I)
+C            Z(J) = ZN(I)
+C 270       CONTINUE
+C           I5 = J
+C        ELSE
+C    "DOUBLED" NUMBER OF NODES IN THE "DOUBLED" SEGMENT IS OK.
+C           DO 280 I = 1,I52
+            DO 280 I = 1,I5
+             J = I
+             RAD(J) = RADN(I)
+             RADD(J) = RADDN(I)
+             CUR1(J) = CUR1N(I)
+             CUR1D(J)= CUR1DN(I)
+             CUR2(J) = CUR2N(I)
+             S(J) = SN(I)
+             DS(J)= DSN(I)
+             Z(J) = ZN(I)
+  280       CONTINUE
+C           I5 = J
+C        ENDIF
+ 1000    CONTINUE
+      ENDIF
+C END NOV 1995
+      RETURN
+      END
+C=DECK      GEOM5
+      SUBROUTINE GEOM5(ISEG,I5,R,RD,C1,C2,C1D,S,DS,DSTOT,Z)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),DS(*),S(*),Z(*)
+      DIMENSION NSHAPE(10),IPOINT(10)
+      DIMENSION ARCLTH(10)
+C
+C     THIS SUBROUTINE IS FOR CONSECUTIVE SUBSEGMENTS OF STRAIGHT AND
+C     CIRCULAR FORM,  IN WHICH ALL SUBSEGMENTS ARE TOGETHER TREATED AS
+C     A  SINGLE SEGMENT.  EXAMPLES ARE CYLINDER WITH HEMISPHERICAL
+C     HEAD, CYLINDER CONNECTED TO CONE, Z-SECTION DISCRETE RING TREATED
+C     AS THIN SHELL.
+C
+C     INPUT DATA . . .
+C        NSUB . . NUMBER OF SUBSEGMENTS (MAXIMUM OF 10)
+C        (NSHAPE(I), I = 1,NSUB) . . . SHAPE OF SUBSEGMENTS . .
+C                                            1= CYL.,CONE,PLATE
+C                                            2 = SPHERE,TOROID,OGIVE
+C
+C     (IPOINT(I), I = 1,(NSUB-1)) . . MESH PT. LOCATIONS OF JUNCTURES
+C                                     BETWEEN SUBSEGMENTS.
+C     ADDITIONAL INPUT DATA READ FROM GEOM1 AND GEOM2 FOR EACH SUB-
+C     SEGMENT IS DESCRIBED IN THOSE SUBROUTINES.
+C
+10    FORMAT(//13H  SEGMENT NO.  I3,12H CONSISTS OF I3,33H SUBSEGMENTS. 
+     1PROPERTIES FOLLOW    /)                                            
+20    FORMAT(10I6)                                                       
+      READ (5,20)NSUB
+      WRITE (6,10)ISEG,NSUB
+      READ (5,20)(NSHAPE(I),I=1,NSUB)
+      NSUB1 = NSUB - 1
+      READ (5,20)(IPOINT(I),I=1,NSUB1)
+      DO 30 I=1,NSUB1
+30    IPOINT(I) = IPOINT(I) + 1
+      IPOINT(NSUB) = I5
+      READ (5,40)(ARCLTH(I),I=1,NSUB)
+40    FORMAT(6E12.8)                                                     
+      ISAVE = 1
+      S(ISAVE) = 0.
+      DO 100 I=1,NSUB
+      ISAVE1 = ISAVE+ 1
+      IMESH = IPOINT(I) - ISAVE + 1
+      NS = NSHAPE(I)
+      IEND = IPOINT(I)
+      IEND1 = IPOINT(I) - 1
+      DSALL = ARCLTH(I)
+      GO TO (50,60),NS
+50    CALL GEOM1(I,IMESH,R(ISAVE1),RD(ISAVE1),C1(ISAVE1),C2(ISAVE1)
+     1, C1D(ISAVE1),S(ISAVE1),DS(ISAVE),DSALL,Z)
+      GO TO 70
+60    CALL GEOM2(I,IMESH,R(ISAVE1),RD(ISAVE1),C1(ISAVE1),C2(ISAVE1)
+     1, C1D(ISAVE1),S(ISAVE1),DS(ISAVE),DSALL,Z)
+70    IF (I.NE.1) GO TO 80
+      R(1) = R(2)
+      RD(1) = RD(2)
+      C1(1) = C1(2)
+      C2(1) = C2(2)
+      C1D(1) = C1D(2)
+80    CONTINUE
+      R(ISAVE) = (R(ISAVE) + R(ISAVE1))/2.
+      RD(ISAVE)=(RD(ISAVE) +RD(ISAVE1))/2.
+      C1(ISAVE)=(C1(ISAVE) +C1(ISAVE1))/2.
+      C2(ISAVE)=(C2(ISAVE) +C2(ISAVE1))/2.
+      DO 90 J=ISAVE1,IEND
+      J1 = J + 1
+      R(J) = R(J1)
+      RD(J) = RD(J1)
+      C1(J) = C1(J1)
+      C2(J) = C2(J1)
+      C1D(J) = C1D(J1)
+90    S(J) = S(ISAVE) + S(J1)
+      IF (I.GT.1) C1D(ISAVE) = (C1(ISAVE1) - C1(ISAVE-1))/
+     1((DS(ISAVE1) + DS(ISAVE-1))/2. + DS(ISAVE))
+      ISAVE = IPOINT(I)
+100   CONTINUE
+      RETURN
+      END
+C=DECK      GEOMTR
+      SUBROUTINE GEOMTR(BBB,Z,S,DS,ZAX,RGLOB,ANGLE)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     SHELL REFERENCE SURFACE GEOMETRY INPUT FOR ITH SEGMENT
+      COMMON/SHEL/ISHL(95),IWAL(95),ITHK(95),IARC(95),ILOAD(95)
+      COMMON/GLOBAL/IDZ,IZRING(98),ISAVE(20),INOTE
+      COMMON/ALOFIT/INDSIG,II,ITOT,J,I,IBOUND,IPT,IRIGID,ISEG,I5I,KRING,
+     1NWALL,NLTYPE,NRINGS,DSTOT,SEND,IPOS,IEND,IENDS,IMAX,ITOTL,LINTYP
+      COMMON/NONEA/KRINGS,NPSTAT,NTSTAT,ARC(98),TT(100,6)
+      COMMON/SEGS/NSEG,M2,I5(95),I2,I2G
+      DIMENSION BBB(10000),Z(1000),S(1000),DS(1000)
+      DIMENSION ZAX(1000),RGLOB(1000),ANGLE(1000)
+      I5I = I5(I)
+10    IPOS = 43*ITOTL + 1
+      IENDS = IEND
+      IEND = IPOS + 43*I5I - 1
+      IF (IEND.LT.IMAX) GO TO 20
+      CALL GASP(BBB,IENDS,1,ISHL(INOTE))
+      ITOTL = 0
+      ISAVE(INOTE) = IENDS
+      INOTE = INOTE + 1
+      IEND = 0
+      GO TO 10
+20    CONTINUE
+      CALL GEOMTY(I,Z(ITOT),I5I,BBB(22*I5I+IPOS),BBB(23*I5I+IPOS),
+     1BBB(25*I5I+IPOS),S(ITOT),SEND,DS(ITOT),DSTOT,BBB(24*I5I+IPOS),
+     2BBB(26*I5I+IPOS),ZAX(ITOT),RGLOB(ITOT),ANGLE(ITOT))
+      RETURN
+      END
+C=DECK      GEOMTY
+      SUBROUTINE GEOMTY(I,Z,NMSH,R,RD,C2,S,  SEND,DS,DSTOT,C1,C1D,
+     1ZAX,RGLOB,ANGLE)  
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C     CALLED FROM READIT, WHICH IS CALLED FROM MAIN.  
+C     SHELL GEOMETRY PARAMETERS CALCULATED IN GEOM, DISTANCE OF REFER   
+C     ENCE SURFACE FROM INNER SURFACE ESTABLISHED IN GETZ.  
+C     
+      COMMON/OUTP/NPRT  
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT,CHARAC
+      LOGICAL ANSL1
+      DIMENSION Z(1000),R(100),RD(100),C2(100),S(1000),DS(1000),C1(100)
+      DIMENSION C1D(100),ZAX(1000),RGLOB(1000),ANGLE(1000)   
+10    FORMAT(10I6)                                                            
+      WRITE(IOUT,2)
+    2 FORMAT(6X,'H',9X,'$ REFERENCE SURFACE GEOMETRY FOLLOWS...')
+      CALL DATUM(IFILE2,110,0,0,INT,REALL,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,111,1,2,NSHAPE,REALL,CHARAC,IOUT,0,1)
+      IF (NSHAPE.NE.1.AND.NSHAPE.NE.2.AND.NSHAPE.NE.4) THEN
+        WRITE(6,*)' NSHAPE MUST BE EITHER   1  or  2  or  4'
+        CALL ERREX
+      ENDIF
+      IF (I.EQ.1) NFLAG = 0   
+      CALL GEOM(I,NSHAPE,NMSH,R,RD,C1,C2,C1D,S,IMP,NFLAG,SEND,DS,DSTOT  
+     1, ZAX)
+      WRITE(IOUT,5)
+    5 FORMAT(6X,'H',9X,'$ REFERENCE SURFACE LOCATION RELATIVE TO WALL')
+      CALL DATUM(IFILE2,141,1,2,NTYPEZ,REALL,CHARAC,IOUT,0,1)
+      IF (NTYPEZ.NE.1.AND.NTYPEZ.NE.3) THEN
+        WRITE(6,*)' NTYPEZ MUST BE EITHER  1  or  3'
+        CALL ERREX
+      ENDIF
+      IPRM(1) = 142
+      IPRM(2) = 143
+      CALL GETZ(NTYPEZ,NMSH,S,Z,R,RD,ZAX) 
+      REWIND IFILE3
+      CALL DATUM(IFILE3,601,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+      IF (ANSL1('Y',ANSOUT,INFILE)) WRITE(IFILE4,20) I
+20    FORMAT(45X,  44HREFERENCE SURFACE GEOMETRY FOR SEGMENT NO.   I3 /)
+      IF (ANSL1('Y',ANSOUT,INFILE)) WRITE(IFILE4,30)
+30    FORMAT(
+     160H STATION   ARC LENGTH          RAD              RADD        ,
+     260H      CUR1             CUR2            CUR1D           Z    /)
+      RMAX = 0.0  
+      DO 40 J=1,NMSH    
+40    RMAX = AMAX1(R(J),RMAX) 
+      IF (ABS(R(NMSH)/RMAX).LT.0.001.AND.ABS(RD(NMSH)).GT.0.95)   
+     1R(NMSH) = 0.0     
+      PI = 3.141592654    
+      DO 90 J=1,NMSH    
+      RGLOB(J) = R(J)
+c
+C     FIND GLOBAL ANGLES FOR LATER PLOTTING OF DEFORMATIONS 
+c     write(0,'(1x, ''rd['', j, ''] = '', 1pe32.25)') j, rd(j)
+      if (rd(j) .gt. 1.0) then
+        rd(j) = 1.0
+      else if (rd(j) .lt. -1.0) then
+        rd(j) = -1.0
+      endif
+      IF (RD(J).GE.0.) then
+        IF (C2(J).GE.0.) then
+          ANGLE(J) = ACOS(RD(J))
+        else
+          ANGLE(J) = 2*PI - ACOS(RD(J))
+        endif
+      else
+        IF (C2(J).GE.0.) then
+          ANGLE(J) = PI - ACOS(ABS(RD(J)))    
+        else
+          ANGLE(J) = PI + ACOS(ABS(RD(J)))    
+        endif
+      endif
+c
+      IF (ANSL1('Y',ANSOUT,INFILE))
+     1WRITE (IFILE4,100)J,S(J),R(J),RD(J),C1(J),C2(J),C1D(J),Z(J)
+100   FORMAT(I5,7E17.8)                                                       
+   90 CONTINUE
+110   CONTINUE    
+      RETURN
+      END   
+C=DECK      GMFIND
+      SUBROUTINE GMFIND(R,RD,CUR1,CUR2,CUR1D,S,DS,DSTOT,X,Y,NRZIN,I5,Z)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+      DIMENSION R(*),RD(*),CUR1(*),CUR2(*),CUR1D(*),S(*),DS(*),X(*),Y(*)
+      DIMENSION RHO(100),TH(100),RHOAVE(100),SIN2(100),SIN1(100),Z(*)
+      DIMENSION RAVE(100),YAVE(100)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT
+      LOGICAL ANSL1
+      DOUBLE PRECISION FL23S,ARG,THETA,THETA2,THSAVE,A,DARC,YP,YM
+      DOUBLE PRECISION XP,XM,RHOAV,X1,Y1,X2,Y2,THE,S1,S2,PI,CAS,FACT1
+      DOUBLE PRECISION CA,D,ALPHA,BETA,GAMMA,ALOCAL
+C
+      IF (NRZIN.LT.100) GO TO 10
+      WRITE(6,5) NRZIN
+5     FORMAT(//80H NRZIN (OR ZNUMB) TOO LARGE. SHOULD BE LESS THAN OR EQ
+     1UAL TO 99. IT EQUALS                                        I4//)
+      CALL ERREX
+10    CONTINUE
+      NRZINP = NRZIN + 1
+      NRZINM = NRZIN - 1
+      DO 100 I = 2,NRZINM
+      IM = I - 1
+      IP = I + 1
+      CALL CURV(  X(IM),X(I),X(IP),Y(IM),Y(I),Y(IP),RHO(I),TH(I),THF)
+      IF (I.EQ.2) TH(1) = THF
+100   CONTINUE
+      RHO(1) = RHO(2)
+      RHO(NRZIN) = RHO(NRZINM)
+      S(1) = 0.0
+      SIN1(1) = 0.0
+      SIN2(1) = 0.0
+C
+      DO 200 I = 1,NRZINM
+      IP = I + 1
+      RHOAVE(IP) = (RHO(I) + RHO(IP))/2.
+      RHOAV = RHOAVE(IP)
+      YP = Y(IP)
+      YM = Y(I)
+      XP = X(IP)
+      XM = X(I)
+C
+      FL23S = (YP-YM)**2  +  (XP-XM)**2
+      ARG = 1.0 - 0.5*RHOAV**2*FL23S
+      THETA = DACOS(ARG)
+      THETA2 = THETA/2.
+      IF (I.EQ.1) THSAVE = THETA2
+      A = TH(I)
+      RAVE(IP) = 0.5*(X(IP) + X(I))
+      IF (ABS(RAVE(IP)*RHOAVE(IP)).GT.0.01)
+     1RAVE(IP) = RAVE(IP) + (1.-DCOS(THETA2))*DSIN(A)/RHOAV
+      YAVE(IP) = 0.5*(Y(IP) + Y(I))
+      IF (ABS(RAVE(IP)*RHOAVE(IP)).GT.0.01)
+     1YAVE(IP) = YAVE(IP) - (1.-DCOS(THETA2))*DCOS(A)/RHOAV
+      DARC = DSQRT(FL23S)
+      IF (ABS(RAVE(IP)*RHOAVE(IP)).GT.0.01)
+     1DARC = THETA/DABS(RHOAV)
+      SIN1(IP) = SIN1(I) + DARC
+      SIN2(IP) = SIN1(IP) - DARC/2.
+200   CONTINUE
+      RAVE(1) = X(1)
+      YAVE(1) = Y(1)
+      RHOAVE(1) = RHOAVE(2)
+      RAVE(NRZINP) = X(NRZIN)
+      YAVE(NRZINP) = Y(NRZIN)
+      SIN2(NRZINP) = SIN1(NRZIN)
+      RHOAVE(NRZINP) = RHOAVE(NRZIN)
+      DO 300 I = 1,I5
+300   DS(I) = DS(I) *SIN1(NRZIN)/DSTOT
+      DO 310 I = 2,I5
+      I1 = I - 1
+310   S(I) = S(I1) + (DS(I) +DS(I1))/2.
+C
+C     NOW LINEARLY INTERPOLATE.
+C
+      CUR1(1) = RHOAVE(1)
+      DO 400 I = 2,I5
+      I1 = I - 1
+      DO 350 JJ = 2,NRZINP
+      J = JJ
+      J1 = J -1
+      IF (SIN2(J).GE.S(I)) GO TO 355
+350   CONTINUE
+      J = NRZINP
+355   CONTINUE
+      FRACT = (S(I) - SIN2(J1))/(SIN2(J) - SIN2(J1))
+      CUR1(I) = RHOAVE(J1) + FRACT*(RHOAVE(J) - RHOAVE(J1))
+      CUR1D(I) = (CUR1(I)-CUR1(I1))/DS(I)
+400   CONTINUE
+      CUR1D(1) = CUR1D(2)
+      R(1) = X(1)
+      PI = 3.141592654
+      DO 800 I = 1,I5
+      DO 750 JJ = 2,NRZIN
+      J = JJ
+      J1 = J - 1
+      IF (SIN1(J).GE.S(I).AND.SIN2(J).LE.S(I)) GO TO 755
+      IF (SIN2(J).GE.S(I).AND.SIN1(J1).LE.S(I)) GO TO 756
+750   CONTINUE
+      J = NRZIN
+755   CONTINUE
+      X1 = RAVE(J)
+      Y1 = YAVE(J)
+      S1 = SIN2(J)
+      X2 = X(J)
+      Y2 = Y(J)
+      S2 = SIN1(J)
+      GO TO 758
+756   CONTINUE
+      X1 = X(J1)
+      Y1 = Y(J1)
+      S1 = SIN1(J1)
+      X2 = RAVE(J)
+      Y2 = YAVE(J)
+      S2 = SIN2(J)
+758   CONTINUE
+      SA =(S1 + S2 )/2.
+      DO 760 KK = 2,I5
+      K = KK
+      K1 = K - 1
+      IF (S(K).GT.SA) GO TO 765
+760   CONTINUE
+      K = I5
+765   CONTINUE
+      FRACT = (SA - S(K1))/(S(K) - S(K1))
+      CA = CUR1(K1) + FRACT*(CUR1(K) - CUR1(K1))
+      CAS = DABS(CA)
+      FACT1 = 1.0
+      IF (CAS.GT.0.0) FACT1 = CA/CAS
+      THETA = CAS*(S2-S1)
+      BETA = (PI-THETA)/2.
+      ALPHA = CAS*(S(I) - S1)
+      GAMMA = PI - ALPHA - BETA
+      CALL ANGLE(Y1,Y2,X1,X2,THE)
+      ALOCAL = THE + (-THETA/2. + ALPHA)*FACT1
+      RD(I) = DCOS(ALOCAL)
+      IF (ABS(RD(I)).LT.0.0005) RD(I) = 0.0
+      D = 0.0
+      A =(S(I) - S1 )/DSIN(GAMMA)
+      IF (I.GT.1) R(I) = R(I-1) + RD(I-1)*(S(I) - S(I-1))
+      IF(R(I)*CAS.GT.0.01) D = (1. - DSIN(BETA)/DSIN(GAMMA))/CA
+      IF (ALPHA.GT.PI/180.) A = DSIN(ALPHA)/(CAS*DSIN(GAMMA))
+      R(I) = X1 + A*DCOS(THE) + D*DSIN(ALOCAL)
+      Z(I) = Y1 + A*DSIN(THE) - D*DCOS(ALOCAL)
+      IF (I.NE.1) CUR2(I) = CUR2(I-1)
+      IF (R(I).GT.DS(I)/10.) CUR2(I) = DSIN(ALOCAL)/R(I)
+800   CONTINUE
+      IF (ABS(R(1)).LT.DS(1)/10.) CUR2(1) = CUR2(2)
+C
+C     NOW WRITE OUT SOME STUFF TO CHECK THE SUBROUTINE
+C
+C     REWIND IFILE3
+C     CALL DATUM(IFILE3,603,1,1,INT,REALL,ANSOUT,IOUT,0,1)
+C     IF (ANSL1('N',ANSOUT,INFILE)) GO TO 560
+C     WRITE(IFILE4,500)
+C 500 FORMAT(//' WRITE OUT SHIFTED R,Z COORDINATES AND OTHER VALUES FROM
+C    1WHICH THE FINAL VALUES ARE INTERPOLATED')                          
+C     WRITE(IFILE4,510)
+C 510 FORMAT(//' POINT   ARC          R            Z           RHOAVE    
+C   1    TH    ')C    C    C    C    C    C    C    C    C        
+C     DO 550 I = 1,NRZINP
+C     WRITE(IFILE4,540)I,SIN2(I),RAVE(I),YAVE(I),RHOAVE(I),TH(I)
+C 540 FORMAT(I5,1P5E13.4)                                                
+C 550 CONTINUE
+  560 CONTINUE
+      RETURN
+      END
+C=DECK      IMPERF
+      SUBROUTINE IMPERF(NFLAG,I5,R,RD,C1,C2,C1D,S,SEND,ISEG)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     CALLED FROM GEOM, WHOSE TRACE IS GEOMTY, READIT, MAIN.
+C     CALCULATES GEOMETRICAL PARAMETERS R, RD, C1, C2, C1D ( SEE GEOM   
+C     FOR DEFINITIONS) FOR IMPERFECT SHELL
+      DOUBLE PRECISION W,PHI,FL     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INDAT/INFILE
+      CHARACTER*4 ANSOUT,CHARAC
+      LOGICAL ANSL1
+      DIMENSION R(*),RD(*),C1(*),C2(*),C1D(*),S(*),WTOT(100)
+      DIMENSION W(20),PHI(20),FL(20)
+C BEG DEC 1992
+      DIMENSION WTRIG(20),FLTRIG(20)
+C END DEC 1992
+C     ITYPE = TYPE OF IMPERFECTION  
+      CALL DATUM(IFILE2,134,1,2,ITYPE,REALL,CHARAC,IOUT,0,1)
+C BEG DEC 1992
+      IF (ITYPE.NE.1.AND.ITYPE.NE.2.AND.ITYPE.NE.3) THEN
+        WRITE(6,*)' ITYPE MUST BE EITHER 1 OR 2 OR 3'
+C END DEC 1992
+        CALL ERREX
+      ENDIF
+10    FORMAT(10I6)                                                            
+20    FORMAT(6E12.8)                                                          
+      PI = 3.1415927    
+      GO TO (30,130,170),ITYPE
+30    CONTINUE    
+C     
+C     RANDOM SERIES OF SINUSOIDAL IMPERFECTIONS 
+C     
+      IF (NFLAG.EQ.1) GO TO 60
+      CALL DATUM(IFILE2,135,1,1,INT,FM   ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,136,1,1,INT,C    ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,137,1,1,INT,FLMIN,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,138,1,1,INT,FLMAX,CHARAC,IOUT,0,1)
+      M = FM
+      CALL URVEC(M,W) 
+      CALL URVEC(M,PHI)     
+      CALL URVEC(M,FL)
+      WSUM = 0.0  
+      DO 40 I=1,M 
+      WSUM = WSUM + W(I)
+      PHI(I) = PHI(I)*2.*PI   
+      FL(I) = FL(I)*(FLMAX-FLMIN) + FLMIN 
+40    CONTINUE    
+      DO 50 I=1,M 
+50    W(I) = W(I)*C/WSUM
+60    CONTINUE    
+      WRITE (IFILE4,70)ISEG  
+70    FORMAT(/ 47H COMPONENTS OF RANDOM IMPERFECTION FOR SEGMENT  I3/)     
+      WRITE (IFILE4,80)
+80    FORMAT(//67H    COMPONENT     AMPLITUDE      HALF-WAVELENGTH    PH
+     1ASE(RADIANS)               )                                         
+      DO 90 I=1,M 
+90    WRITE (IFILE4,100)I,W(I),FL(I),PHI(I)    
+100   FORMAT(I9,1P3E18.8)                                                     
+      DO 120 I=1,I5     
+      WTOT(I) = 0.0     
+      ARC = SEND + S(I) 
+      WD = 0.0    
+      WDD = 0.0   
+      WDDD = 0.0  
+      DO 110 J=1,M
+      ARG = PI/FL(J)    
+      SI = SIN(ARG*ARC + PHI(J))    
+      CO = COS(ARG*ARC + PHI(J))    
+      WTOT(I) = WTOT(I) + W(J)*SI   
+      WD = WD + W(J)*ARG*CO   
+      WDD = WDD - W(J)*ARG**2*SI    
+      WDDD = WDDD - W(J)*ARG**3*CO  
+110   CONTINUE    
+      FACT = 1./SQRT(1.+ WD**2)     
+      SPHI = R(I)*C2(I) 
+      CPHI = RD(I)
+      FK1 = C1(I) 
+      R(I) = R(I) + WTOT(I)*SPHI    
+      RD(I) = FACT*(CPHI + WD*SPHI) 
+      C1(I) = FK1-WDD   
+      C1D(I) = C1D(I)-WDDD    
+      IF (R(I).GT.0.) C2(I) = FACT*(SPHI - CPHI*WD)/R(I)  
+120   CONTINUE    
+      NFLAG = 0   
+      GO TO 180   
+C     
+C     IMPERFECTION IS SIMPLE SINE WAVE    
+C     
+130   CONTINUE    
+      IF (NFLAG.EQ.1) GO TO 140     
+      CALL DATUM(IFILE2,139,1,1,INT,W0    ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,140,1,2,INT,WLNGTH,CHARAC,IOUT,0,1)
+140   ARG = PI/WLNGTH   
+      WRITE (IFILE4,150)ISEG,W0,WLNGTH   
+150   FORMAT(//' SINUSOIDAL IMPERFECTION, SEGMENT',I3,' AMPLITUDE =',
+     1 1PE12.4,' HALF-WAVELENGTH =',1PE12.4/)
+      DO 160 I=1,I5     
+      ARC = SEND + S(I) 
+      SI = SIN(ARG*ARC) 
+      CO = COS(ARG*ARC) 
+      WTOT(I) = W0*SI   
+      WD = W0*ARG*CO    
+      WDD = - W0*ARG**2*SI    
+      WDDD = -W0*ARG**3*CO    
+      FACT = 1./SQRT(1.+ WD**2)     
+      SPHI = R(I)*C2(I) 
+      CPHI = RD(I)
+      FK1 = C1(I) 
+      R(I) = R(I) + WTOT(I)*SPHI    
+      RD(I) = FACT*(CPHI + WD*SPHI) 
+      C1(I) = FK1-WDD   
+      C1D(I) = C1D(I)-WDDD    
+      IF (R(I).GT.0.) C2(I) = FACT*(SPHI - CPHI*WD)/R(I)  
+160   CONTINUE    
+      NFLAG = 0   
+      GO TO 180   
+170   CONTINUE    
+C     DUMMY POSITION ,  TO BE FILLED IN BY USER.
+C BEG DEC 1992
+C     DETERMINISTIC SUM OF SINUSOIDAL TERMS (1 DEC 1992)
+      IF (NFLAG.EQ.1) GO TO 173
+      CALL DATUM(IFILE2,135,1,1,INT,FM   ,CHARAC,IOUT,0,1)
+      M = FM
+      I = 0
+171   CONTINUE
+      I = I + 1
+      IF (I.GT.M) GO TO 173
+      REWIND IFILE2
+      CALL DATUM(IFILE2,139,1,1,INT,WTRIG(I) ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,140,1,2,INT,FLTRIG(I),CHARAC,IOUT,0,1)
+      WRITE (IFILE4,172) ISEG,WTRIG(I),FLTRIG(I)   
+172   FORMAT(//' SINUSOIDAL IMPERFECTION, SEGMENT',I3,' AMPLITUDE =',
+     1 1PE12.4,' HALF-WAVELENGTH =',1PE12.4/)
+      GO TO 171
+173   CONTINUE
+      DO 177 I=1,I5     
+      WTOT(I) = 0.0     
+      ARC = SEND + S(I) 
+      WD = 0.0    
+      WDD = 0.0   
+      WDDD = 0.0  
+      DO 175 J=1,M
+      W(J) = WTRIG(J)
+      FL(J) = FLTRIG(J)
+      ARG = PI/FL(J)    
+      SI = SIN(ARG*ARC)    
+      CO = COS(ARG*ARC)
+      WTOT(I) = WTOT(I) + W(J)*SI   
+      WD = WD + W(J)*ARG*CO   
+      WDD = WDD - W(J)*ARG**2*SI    
+      WDDD = WDDD - W(J)*ARG**3*CO  
+175   CONTINUE    
+      FACT = 1./SQRT(1.+ WD**2)     
+      SPHI = R(I)*C2(I) 
+      CPHI = RD(I)
+      FK1 = C1(I) 
+      R(I) = R(I) + WTOT(I)*SPHI    
+      RD(I) = FACT*(CPHI + WD*SPHI) 
+      C1(I) = FK1-WDD   
+      C1D(I) = C1D(I)-WDDD    
+      IF (R(I).GT.0.) C2(I) = FACT*(SPHI - CPHI*WD)/R(I)  
+177   CONTINUE    
+      NFLAG = 0   
+C END DEC 1992
+180   CONTINUE    
+      WRITE (IFILE4,190)ISEG 
+190   FORMAT(//52H NORMAL (POSITIVE OUTWARD) IMPERFECTION FOR SEGMENT         
+     1I3/)                                                                  
+      WRITE (IFILE4,200)(WTOT(I),I=1,I5) 
+200   FORMAT(1P10E12.4)                                                       
+      RETURN
+      END   
+C=DECK      SHELL 
+C./      ADD   NAME=SHELL     
+      SUBROUTINE SHELL(NRZIN,Z,R,ZT,T,NSUR,ISEG,INDX) 
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     
+C     CALLED FROM GEOM4, WHICH IS CALLED FROM GEOM,WHICH IS CALLED FROM 
+C     GEOMTY, WHICH IS CALLED FROM READIT.
+C     PROVIDES CARTESIAN COORDINATES (Z,R PAIRS) WHICH ARE USED BY GEOM4
+C     TO CALCULATE RAD,RADD,CUR1,CUR2 FOR ARBITRARY SHELL MERIDIAN.     
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/TORUS/ALPHAT,ZMAX,XMAX,NST   
+C BEG MARCH 1990
+      COMMON/ZZZGLB/ZGLOBL
+C END MARCH 1990
+      CHARACTER*4 CHARAC
+      DIMENSION Z(100),R(100) 
+      DIMENSION DZ(100) 
+      DIMENSION ZT(20),T(20)  
+      REAL LPHI   
+C BEG JULY 1996
+      COMMON/INDAT/INFILE
+      COMMON/PRMOUT/IFILE3,IFILE4
+      COMMON/INNERX/INNER
+      CHARACTER*4 ANSOUT
+      LOGICAL ANSL1
+C END JULY 1996
+      NSUR = 0    
+10    FORMAT (10I6)                                                           
+20    FORMAT (6E12.8)                                                         
+      DO 30 I=1,100     
+      Z(I) = 0.0  
+30    R(I) = 0.0  
+      CALL DATUM(IFILE2,123,1,1,NST,REALL,CHARAC,IOUT,0,1)
+      IF (NST.NE.1.AND.NST.NE.4) THEN
+        WRITE(6,*)' NST MUST BE EITHER  1  or  4'
+        CALL ERREX
+      ENDIF
+C     
+C     NST DENOTES TYPE OF SHELL.. . .     
+C        NST = 1 . . GENERAL SHELL . READ IN CARTESIAN COORDINATES OF   
+C                                    REFERENCE SURFACE.     
+C        NST = 2 . . SHELL WITH CURVATURE AND SLOPE DISCONTINUITY 
+C                    ACCORDING TO FORMULA GIVEN BELOW (SKOGH).    
+C        NST = 3 . . SPHERICAL CAP WITH SINKAGE NEAR APEX, DZ(I). 
+C        NST = 4 . . SEGMENT OF TORUS WITH ELLIPTICAL CROSS-SECTION     
+C     
+      GO TO (40,50,70,90,50,110),NST
+40    CONTINUE    
+C     GENERAL SHELL     
+C     NRZIN = NO. OF INPUT POINTS IN CARTESIAN FRAME  
+      CALL DATUM(IFILE2,124,1,1,NRZIN,REALL,CHARAC,IOUT,0,1)
+      IF (NRZIN.LT.5.OR.NRZIN.GT.50) THEN
+        WRITE(6,*)' NRZIN NOT IN PERMISSIBLE RANGE  5  TO  50'
+        CALL ERREX
+      ENDIF
+C     CARTESIAN COORDINATES OF INPUT POINTS     
+      DO 42 I = 1,NRZIN
+      IPROMP = 1
+      REWIND IFILE2
+      CALL DATUM(IFILE2,125,1,1,INT,Z(I),CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE2,126,1,1,INT,R(I),CHARAC,IOUT,I,IPROMP)
+   42 CONTINUE
+      ALPHAT = 0.0
+      GO TO 150   
+50    CONTINUE    
+C     SHELL WITH CURVATURE AND SLOPE DISCONTINUITY,(SKOGH)  
+      READ (5,10)NRZIN  
+      READ (5,20)RSTART,A,B,PHIS,PHIE     
+      READ (5,20)CM,CN  
+      ALPHAT = 0.0
+      PI = 3.1415927    
+      PHIS = PHIS*PI/180.     
+      PHIE = PHIE*PI/180.     
+      LPHI = PHIE - PHIS
+      DPHI = LPHI/(FLOAT(NRZIN) - 1.)     
+      ETA = - DPHI/LPHI 
+      DO 60 I=1,NRZIN   
+      J = I 
+      IF(NST.EQ.5) J = NRZIN + 1 - I
+      ETA = ETA + DPHI/LPHI   
+      RP = RSTART + A*ETA**CM + B*ETA**CN 
+      PHI = PHIS + ETA*LPHI   
+      IF (NST.EQ.5) PHI = PI/2. - PHI     
+      R(J) = RP*SIN(PHI)
+      Z0 = RSTART*COS(PHIS)   
+      IF (NST.EQ.5) Z0 = (RSTART+A+B)*SIN(PHIE) 
+      Z(J) = Z0 - RP*COS(PHI) 
+60    CONTINUE    
+      GO TO 150   
+70    CONTINUE    
+C     SPHERICAL CAP WITH OUT-OF-ROUND DZ(R), POS. INWARD    
+      READ (5,10)NRZIN  
+C     ALPHA = POLAR ANGLE OF EDGE OF FLAT SPOT  
+C     ROT  =  NOMINAL RADIUS OF SPHERE    
+      READ (5,20)ALPHA,ROT    
+      ALPHA = ALPHA*3.14159/180.    
+C     CARTESIAN COORDINATES OF SINKAGE (FLAT SPOT)    
+      READ (5,20)(DZ(I),R(I),I=1,NRZIN)   
+      ALPHAT = 0.0
+      CA = COS(ALPHA)   
+      DO 80 I=1,NRZIN   
+      CPHI = SQRT(1.0 - (R(I)/ROT)**2 )   
+      ZNOM = ROT*(CA - CPHI)  
+      Z(I) = ZNOM + DZ(I) - DZ(1)   
+80    CONTINUE    
+      GO TO 150   
+90    CONTINUE    
+C     SEGMENT OF TORUS WITH ELLIPTICAL CROSS SECTION  
+C     ZMAX = 1/2 LENGTH OF AXIAL AXIS     
+C     XMAX = 1/2 LENGTH OF RADIAL AXIS    
+C     ZA, ZB = AXIAL COORDINATES OF A AND B ENDS OF SEGMENT 
+C     ZNUMB = NO. OF POINTS FOR SPLINE FIT.     
+C     ALPHAT = RADIUS FROM AXIS OF REVOLUTION TO INTERSECTION OF  
+C              SEMIMAJOR AND SEMIMINOR AXES     
+C     
+      CALL DATUM(IFILE2,127,1,1,INT,ZMAX,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,128,1,1,INT,XMAX,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,129,1,1,INT,ZA  ,CHARAC,IOUT,0,1)
+      CALL DATUM(IFILE2,130,1,1,INT,ZB  ,CHARAC,IOUT,0,1)
+      ZNUMB = 50.
+      CALL DATUM(IFILE2,131,1,2,INT,ALPHAT,CHARAC,IOUT,0,1)
+C BEG JULY 1996
+      INNER = 0
+      IF ((ALPHAT-XMAX).GT.0.0) THEN
+         REWIND IFILE3
+         CALL DATUM(IFILE3,584,1,2,INT,REALL,ANSOUT,IOUT,0,1)
+         IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+            INNER = 1
+            IF (ZA.GT.ZB) THEN
+                TEMPZ = ZA
+                ZA = ZB
+                ZB = TEMPZ
+            ENDIF
+         ENDIF
+         REWIND IFILE3
+      ENDIF
+C END JULY 1996
+C BEG MARCH 1990
+      CALL DATUM(IFILE2,132,1,2,INT,ZGLOBL,CHARAC,IOUT,0,1)
+      ZGLOBL = ZGLOBL - ZA
+C END MARCH 1990
+      NRZIN = ZNUMB     
+      DELZ = (ZB - ZA)/(ZNUMB-1.)   
+      Z(1) = ZA  
+      DO 100 I=2,NRZIN  
+      K = I - 1   
+      Z(I) = Z(K) + DELZ
+      Z0 = ZMAX - Z(I)   
+      DISCRM = ABS(1. - Z0**2/ZMAX**2)
+100   R(I) = XMAX*SQRT(DISCRM)
+      Z0 = ZMAX - Z(1)    
+      R(1) = XMAX*SQRT(1. - Z0**2/ZMAX**2)
+      GO TO 150   
+110   CONTINUE    
+C     
+C     HYPERBOLOIDAL SHELL IN WHICH - - -  
+C     
+C         R(I)**2/RW**2  -  Z(I)**2/C**2  =  1.0
+C     
+C     WHERE - - - 
+C                 R(I) = RADIUS AT ITH AXIAL STATION  
+C                 Z(I) = AXIAL DISTANCE MEASURED FROM WAIST,POSITIVE    
+C                        TOWARD B END OF SEGMENT.     
+C                 C = INPUT PARAMETER IN ABOVE EQUATION.    
+C                 RW = RADIUS AT WAIST    
+C                 ZA = AXIAL DISTANCE FROM WAIST TO A END OF SEGMENT.   
+C                 ZB = AXIAL DISTANCE FROM WAIST TO B END OF SEGMENT.   
+C                 ZNUMB = NUMBER OF POINTS FOR SPLINE FIT.  
+C     
+C     NOTE THAT ZA AND ZB SHOULD BE READ IN AS POSITIVE QUANTITIES.     
+C     
+      READ (5,20)C,RW,ZA,ZB,ZNUMB   
+      NRZIN = ZNUMB     
+      DELZ = (ZB+ZA)/(ZNUMB-1.)     
+      Z(1) = - ZA 
+      DO 120 I=2,NRZIN  
+      K = I - 1   
+120   Z(I) = Z(K) + DELZ
+      DO 130 I=1,NRZIN  
+130   R(I) = RW*SQRT(1.  +  Z(I)**2/C**2) 
+150   CONTINUE    
+      RETURN
+      END   
+C=DECK      SPLICO
+      SUBROUTINE SPLICO(X,Y,M,C)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     CALLED FROM GEOM4, WHOSE TRACE IS GEOM,GEOMTY,READIT,MAIN.
+C     SUBROUTINE TO DETERMINE C(1,K),C(2,K),C(3,K) AND C(4,K).
+      DIMENSION X(100),Y(100),A(100,3),B(100),Z(100)
+      DIMENSION D(99),P(99),E(99),C(4,99)
+      MM = M-1
+      DO 10 K=1,MM
+      D(K) = X(K+1) - X(K)
+      P(K) = D(K)/6.0
+10    E(K) = (Y(K+1)-Y(K))/D(K)
+      DO 20 K=2,MM
+20    B(K) = E(K) - E(K-1)
+      A(1,2) = -1.0-D(1)/D(2)
+      A(1,3) = D(1)/D(2)
+      A(2,3) = P(2)-P(1)*A(1,3)
+      A(2,2) = 2.0*(P(1)+P(2)) - P(1)*A(1,2)
+      A(2,3) = A(2,3)/A(2,2)
+      B(2) = B(2)/A(2,2)
+      DO 30 K=3,MM
+      A(K,2) = 2.0*(P(K-1)+P(K))-P(K-1)*A(K-1,3)
+      B(K) = B(K)-P(K-1)*B(K-1)
+      A(K,3) = P(K)/A(K,2)
+30    B(K) = B(K)/A(K,2)
+      Q = D(M-2)/D(M-1)
+      A(M,1) = 1.0+Q+A(M-2,3)
+      A(M,2) = -Q-A(M,1)*A(M-1,3)
+      B(M) = B(M-2)-A(M,1)*B(M-1)
+      Z(M) = B(M)/A(M,2)
+      MN = M-2
+      DO 40 I=1,MN
+      K = M-I
+40    Z(K) = B(K)-A(K,3)*Z(K+1)
+      Z(1) = -A(1,2)*Z(2)-A(1,3)*Z(3)
+      DO 50 K=1,MM
+      Q = 1.0/(6.0*D(K))
+      C(1,K) = Z(K)*Q
+      C(2,K) = Z(K+1)*Q
+      C(3,K) = Y(K)/D(K)-Z(K)*P(K)
+50    C(4,K) = Y(K+1)/D(K)-Z(K+1)*P(K)
+      RETURN
+      END
+C=DECK      SPLINE
+      SUBROUTINE SPLINE (X,Y,M,C,XINT,YINT,DYDX,D2YDX2)
+C+---------------------------------------------------------------------+
+C+---------------------------------------------------------------------+
+C     CALLED FROM GEOM4, WHOSE TRACE IS GEOM,GEOMTY,READIT,MAIN.
+C     SUBROUTINE FOR SPLINE FIT INTERPOLATION IN THE TABLE OF VALUES
+C     (X1,Y1) TO (XM,YM), WHERE M MAY BE AS LARGE AS 100, WHERE THE
+C     CONSTANTS C(1,K),C(2,K),C(3,K) AND C(4,K) ARE ALREADY COMPUTED
+C     AND STORED.
+C     SUBROUTINE ALSO COMPUTES DY/DX AND D2Y/DX2 AT XINT.
+      DIMENSION X(100),Y(100),C(4,99)
+      IF (XINT-X(1)) 80,10,20
+10    YINT = Y(1)
+      K=1
+      GO TO 70
+20    K = 1
+30    IF (XINT-X(K+1)) 60,40,50
+40    YINT = Y(K+1)
+      GO TO 70
+50    K = K + 1
+      IF (M-K) 80,80,30
+60    YINT = (X(K+1) - XINT)*(C(1,K)*(X(K+1)-XINT)**2+C(3,K))
+      YINT = YINT + (XINT-X(K))*(C(2,K)*(XINT-X(K))**2+C(4,K))
+70    DYDX=-3.0*(C(1,K)*(X(K+1)-XINT)**2-C(2,K)*(XINT-X(K))**2)
+     1-C(3,K)+C(4,K)
+      D2YDX2=6.0*(C(1,K)*(X(K+1)-XINT)+C(2,K)*(XINT-X(K)))
+      RETURN
+80    WRITE (6,90)
+90    FORMAT (31H OUT OF RANGE FOR INTERPOLATION)                        
+      RETURN
+      END

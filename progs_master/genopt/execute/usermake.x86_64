@@ -1,0 +1,225 @@
+# User-Makefile for bosdec
+# Makefile for GENOPTCASE on an Intel 386/486/586 running linux
+# This makefile generates the executables called...
+#
+#   autochange
+#   begin
+#   change
+#   chooseplot
+#   decide
+#   mainsetup
+#   optimize
+#   store
+#
+# The GENOPT user makes using this file when running genprograms.
+
+HOME       = ${BUSHNELL}
+PROG       = $(HOME)/genopt
+MODULE     = _genopt_
+
+# macro definitions
+# =================
+
+include    $(HOME)/Makefile.in
+
+#----------------------------------------------------------------------------
+
+BSRC      = $(BOSDEC)/sources
+BOBJ      = $(BOSDEC)/objects.$(MACHINE)
+
+GOBJ      = $(GENOPT)/objects.$(MACHINE)
+
+LIB       = libraries.$(MACHINE)
+OBJ       = objects.$(MACHINE)
+
+#----------------------------------------------------------------------------
+
+.PRECIOUS:  begin.$(MACHINE)\
+            change.$(MACHINE)\
+            chooseplot.$(MACHINE)\
+            decide.$(MACHINE)\
+            mainsetup.$(MACHINE)\
+            optimize.$(MACHINE)\
+            store.$(MACHINE)\
+            autochange.$(MACHINE)
+
+genoptcase: begin.$(MACHINE)\
+            change.$(MACHINE)\
+            chooseplot.$(MACHINE)\
+            decide.$(MACHINE)\
+            mainsetup.$(MACHINE)\
+            optimize.$(MACHINE)\
+            store.$(MACHINE)\
+            autochange.$(MACHINE)
+
+begin.$(MACHINE): $(LIB)/begin.a
+	ar xv $(LIB)/begin.a begin.o
+	$(FC) $(FFLAGS) -o $@ begin.o $(LIB)/begin.a $(UTIL)/sig_$(MACHINE).o
+	/bin/rm -f begin.o
+
+change.$(MACHINE): $(LIB)/change.a
+	ar xv $(LIB)/change.a change.o
+	$(FC) $(FFLAGS) -o $@ change.o $(LIB)/change.a $(UTIL)/sig_$(MACHINE).o
+	/bin/rm -f change.o
+
+chooseplot.$(MACHINE): $(LIB)/chooseplot.a
+	ar xv $(LIB)/chooseplot.a chplot.o
+	$(FC) $(FFLAGS) -o $@ chplot.o $(LIB)/chooseplot.a $(UTIL)/sig_$(MACHINE).o
+	/bin/rm -f chplot.o
+
+decide.$(MACHINE): $(LIB)/decide.a
+	ar xv $(LIB)/decide.a decide.o
+	$(FC) $(FFLAGS) -o $@ decide.o $(LIB)/decide.a $(UTIL)/sig_$(MACHINE).o
+	/bin/rm -f decide.o
+
+mainsetup.$(MACHINE): $(LIB)/mainsetup.a
+	ar xv $(LIB)/mainsetup.a mains.o
+	$(FC) $(FFLAGS) -o $@ mains.o $(LIB)/mainsetup.a $(UTIL)/sig_$(MACHINE).o
+	/bin/rm -f mains.o
+
+optimize.$(MACHINE): $(LIB)/optimize.a $(UTIL)/ieeexx_$(MACHINE).o
+	ar xv $(LIB)/optimize.a main.o
+	$(FC) $(FFLAGS) -o $@ main.o $(LIB)/optimize.a $(UTIL)/ieeexx_$(MACHINE).o
+	/bin/rm -f main.o
+
+store.$(MACHINE): $(LIB)/store.a
+	ar xv $(LIB)/store.a store.o
+	$(FC) $(FFLAGS) -o $@ store.o $(LIB)/store.a
+	/bin/rm -f store.o
+
+autochange.$(MACHINE): $(LIB)/autochange.a
+	ar xv $(LIB)/autochange.a chauto.o
+	$(FC) $(FFLAGS) -o $@ chauto.o $(LIB)/autochange.a
+	/bin/rm -f chauto.o
+
+# Update libraries ...
+
+$(LIB)/begin.a: $(OBJ)/begin.a $(OBJ)/stoget.a $(GOBJ)/util.a\
+                $(GOBJ)/prompter.a
+	csh $(BIN)/updatelib $@ $?
+
+$(LIB)/change.a: $(OBJ)/begin.a     $(OBJ)/change.a $(GOBJ)/decide.a\
+                 $(GOBJ)/prompter.a $(OBJ)/stoget.a $(GOBJ)/util.a\
+                 $(GOBJ)/conman.a
+	csh $(BIN)/updatelib $@ $?
+	-ar dsl $@ begin.o
+	-ar dsl $@ decide.o
+
+$(LIB)/chooseplot.a: $(OBJ)/begin.a     $(GOBJ)/chplot.a\
+                     $(GOBJ)/prompter.a $(OBJ)/stoget.a $(GOBJ)/util.a
+	csh $(BIN)/updatelib $@ $?
+	-ar dsl $@ begin.o
+
+$(LIB)/decide.a: $(OBJ)/begin.a  $(GOBJ)/decide.a $(GOBJ)/prompter.a\
+                 $(OBJ)/stoget.a $(GOBJ)/util.a   $(GOBJ)/conman.a
+	csh $(BIN)/updatelib $@ $?
+	-ar dsl $@ begin.o
+
+$(LIB)/mainsetup.a: $(GOBJ)/mainsetup.a $(GOBJ)/prompter.a\
+                    $(OBJ)/stoget.a     $(GOBJ)/util.a
+	csh $(BIN)/updatelib $@ $?
+
+$(LIB)/optimize.a: $(GOBJ)/prompter.a $(GOBJ)/ads.a    $(OBJ)/begin.a\
+                   $(GOBJ)/conman.a    $(GOBJ)/decide.a $(GOBJ)/main.a\
+                   $(OBJ)/stoget.a     $(OBJ)/struct.a  $(OBJ)/behavior.a\
+                   $(BOBJ)/bosdec.a    $(BOBJ)/opngen.a $(BOBJ)/addbosor4.a\
+                   $(BOBJ)/b4plot.a    $(BOBJ)/b4util.a $(BOBJ)/resetup.a\
+                   $(BOBJ)/prompter.a  $(BOBJ)/gasp.a\
+                   $(GOBJ)/util.a      $(UTIL)/dattim_$(MACHINE).o
+	csh $(BIN)/updatelib $@ $?
+	-ar dsl $@ begin.o
+	-ar dsl $@ decide.o
+
+$(LIB)/store.a: $(GOBJ)/prompter.a $(OBJ)/stoget.a $(GOBJ)/store.a\
+                $(GOBJ)/util.a     $(OBJ)/begin.a  $(GOBJ)/conman.a\
+                $(OBJ)/behavior.a
+	csh $(BIN)/updatelib $@ $?
+
+$(LIB)/autochange.a: $(GOBJ)/chauto.a   $(OBJ)/begin.a   $(GOBJ)/decide.a\
+                     $(GOBJ)/prompter.a $(OBJ)/stoget.a  $(GOBJ)/util.a\
+                     $(GOBJ)/conman.a   $(OBJ)/behavior.a
+	csh $(BIN)/updatelib $@ $?
+	-ar dsl $@ begin.o
+	-ar dsl $@ decide.o
+
+# Update objects ...
+
+$(OBJ)/begin.a: begin.new
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" begin.new $@
+
+$(OBJ)/behavior.a: behavior.new
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" behavior.new $@
+
+$(OBJ)/change.a: change.new
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" change.new $@
+
+$(OBJ)/stoget.a: stoget.new
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" stoget.new $@
+
+$(OBJ)/struct.a: struct.new
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" struct.new $@
+
+#$(OBJ)/gasp.a: $(UTIL)/gasp.F $(UTIL)/bio.c
+#	cd $(UTIL) &&\
+#        /bin/rm -f gasp_$(MACHINE).f &&\
+#        fpp -P -D${MACHINE} gasp.F gasp_$(MACHINE).f &&\
+#        $(FC) $(FFLAGS) -c  gasp_$(MACHINE).f &&\
+#        /bin/rm -f gasp_$(MACHINE).f &&\
+#        cp -f bio.c bio_$(MACHINE).c &&\
+#        $(CC) $(CFLAGS) -c bio_$(MACHINE).c &&\
+#        ar rv $@ gasp_$(MACHINE).o bio_$(MACHINE).o &&\
+#        /bin/rm -f gasp_$(MACHINE).o bio_$(MACHINE).o &&\
+#        ranlib $@
+
+$(BOBJ)/gasp.a: $(UTIL)/gasp.F $(UTIL)/bio.c
+	cd $(BSRC) &&\
+        cp -f $(UTIL)/gasp.F $(BSRC) &&\
+        cp -f $(UTIL)/bio.c  $(BSRC) &&\
+        cp -f $(UTIL)/mach.h $(BSRC) &&\
+        /bin/rm -f gasp_$(MACHINE).f &&\
+        fpp -P -D${MACHINE} gasp.F gasp_$(MACHINE).f &&\
+        $(FC) $(FFLAGS) -c  gasp_$(MACHINE).f &&\
+        /bin/rm -f gasp_$(MACHINE).f &&\
+        cp -f bio.c bio_$(MACHINE).c &&\
+        $(CC) $(CFLAGS) -c bio_$(MACHINE).c &&\
+        ar rv $@ gasp_$(MACHINE).o bio_$(MACHINE).o &&\
+        /bin/rm -f gasp_$(MACHINE).o bio_$(MACHINE).o &&\
+        ranlib $@
+
+$(BOBJ)/prompter.a: $(BSRC)/prompter.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/bosdec.a: $(BSRC)/bosdec.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/opngen.a: $(BSRC)/opngen.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/resetup.a: $(BSRC)/resetup.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/addbosor4.a: $(BSRC)/addbosor4.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/b4plot.a: $(BSRC)/b4plot.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(BOBJ)/b4util.a: $(BSRC)/b4util.src
+	csh $(BIN)/updateobj $(FC) "$(FFLAGS)" $? $@
+
+$(UTIL)/dattim_$(MACHINE).o: $(UTIL)/dattim.c
+	cd $(UTIL) && \
+	$(CC) $(CFLAGS) -c dattim.c && \
+	mv dattim.o dattim_$(MACHINE).o
+
+$(UTIL)/ieeexx_$(MACHINE).o: $(UTIL)/ieeexx.c
+	cd $(UTIL) && \
+        cc $(CFLAGS) -D$(MACHINE) -c ieeexx.c && \
+        mv ieeexx.o ieeexx_$(MACHINE).o
+
+$(UTIL)/sig_$(MACHINE).o: $(UTIL)/sig.F
+	cd $(UTIL) &&\
+        /bin/rm -f sig_$(MACHINE).f &&\
+        fpp -P -D${MACHINE} sig.F sig_$(MACHINE).f &&\
+        $(FC) $(FFLAGS) -c sig_$(MACHINE).f &&\
+        /bin/rm -f sig_$(MACHINE).f

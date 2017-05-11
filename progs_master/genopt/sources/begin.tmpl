@@ -1,0 +1,547 @@
+C=DECK      BEGIN
+C
+C  PURPOSE IS TO SET UP DATA FOR A STARTING DESIGN.
+C
+C *********** NOTE  NOTE  NOTE  NOTE  NOTE  NOTE **********************
+C
+C  The BEGIN.NEW source library is completely provided by GENOPT. You
+C  do not have to modify BEGIN.NEW at all.
+C
+C ************************ END NOTE ***********************************
+C
+      PROGRAM BEGIN
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/BEHNEG/ICONSW(99)
+      COMMON/NUMPR3/NCAR0
+      COMMON/NUMPR2/ILAR,ICAR,IOAR,IFACT,NCASES,NPRINT
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS
+      COMMON/WORDS7/WORDB0(99)
+      CHARACTER*80 WORDB0
+      character*4 QUAL
+      CHARACTER*28 CASE,CASE0
+      CHARACTER*32 CASE1,CASE2,CASE3,CASE4
+#if cnvx
+      external signal_handler
+      integer dummying, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+C
+C  ESTABLISH NAME FOR THE PROMPT FILE...
+C
+    4 CONTINUE
+      WRITE(6,1001)
+ 1001 FORMAT(/' THE NAME OF THE PROMPT FILE ASKED FOR NEXT'/
+     1' IS THE NAME OF THE CLASS OF PROBLEMS THAT THE GENOPT-USER'/
+     1' HAS CHOSEN, NOT THE NAME OF THE PARTICULAR CASE BEING'/
+     1' STUDIED HERE. IT IS THE "NAME" PART OF "NAME".PRO.'/)
+C
+      CALL CASGEN(5,CASE0)
+      I=INDEX(CASE0,' ')
+      IF(I.NE.0) THEN
+         CASE1=CASE0(:I-1)//'.PRO'
+      ELSE
+         CASE1=CASE0//'.PRO'
+      ENDIF
+      MLET = I - 1
+      IF (I.EQ.0) MLET = 28 
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      WRITE(6,1004)
+ 1004 FORMAT(/' FROM HERE ON, WHENEVER THE CASE NAME IS REQUESTED,'/
+     1' YOU PROVIDE THE NAME OF THE PARTICULAR INSTANCE IN THE CLASS'/
+     1' OF PROBLEMS THAT YOU ARE NOW STUDYING.  THIS NAME MUST BE'/
+     1' DIFFERENT FROM THE NAME YOU HAVE JUST PROVIDED ABOVE.'/)
+C
+      CALL CASSPC(5,CASE)
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPB'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE4=CASE(:I-1)//'.NAM'
+      ELSE
+         CASE2=CASE//'.OPB'
+         CASE3=CASE//'.CBL'
+         CASE4=CASE//'.NAM'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 28 
+      IF (CASE(1:NLET).EQ.CASE0(1:MLET)) THEN
+         WRITE(6,*)
+     1 ' SPECIFIC CASE MUST HAVE A DIFFERENT NAME FROM GENERIC CASE.'
+         WRITE(6,*) ' PLEASE TRY AGAIN.'
+         GO TO 4
+      ENDIF
+C
+      IFILE = 2   
+      IFILE4= 4
+      IFILE7= 7
+      IFILE8 = 8
+      IFILE9 = 9
+      IFIL11= 11
+C
+      IOUTFL = 3
+C
+C BEG VMS
+c     OPEN(UNIT=2,FILE=CASE1,STATUS='OLD',READONLY)
+C     OPEN(UNIT=4,FILE='GENOPT:TUTORBEG.DAT',STATUS='OLD',READONLY)
+c     OPEN(UNIT=11,FILE='GENOPT:URPROMPT.DAT',STATUS='OLD',READONLY)
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE=CASE1,STATUS='OLD')
+C     OPEN(UNIT=4,FILE='GENOPT/TUTORBEG.DAT',STATUS='OLD')
+      OPEN(UNIT=11,FILE='GENOPT/URPROMPT.DAT',STATUS='OLD')
+C END UNIX
+      OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+      OPEN(UNIT=9,FILE=CASE4,STATUS='UNKNOWN')
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1           CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,'(A,A,A)')
+     1' ***************** THIS IS THE  ',CASE(1:NLET),
+     1'.OPB FILE ******************'
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+    5 FORMAT(//' ****************   BEGIN   ******************'//
+     1' Purpose of BEGIN is to permit you to provide a starting design'/
+     1' in an interactive mode. You give starting dimensions, material'/
+     1' properties, allowables. The interactive session is stored on'/
+     1' a file called ',A,'.BEG, in which ',A,' is a name that you'/
+     1' have chosen for the specific case. (The name, ',A,' must'/
+     1' remain the same as you use BEGIN, DECIDE, MAINSETUP, OPTIMIZE,'/
+     1' and CHANGE.)  In future runs of the same or a'/
+     1' slightly modified case, you will find it convenient to use the'/
+     1' file ',A,'.BEG as input.  Rather than answer all the questions'/
+     1' interactively, you can use ',A,'.BEG or an edited version of'/
+     1' ',A,'.BEG as input to BEGIN.  BEGIN also generates an output'/
+     1' file called ',A,'.OPB. OPB lists a summary of the case, and if'/
+     1' you choose the tutorial option, the questions, helps, and your'/
+     1' answers for each input datum.'//
+     1' *************************************************'/)
+C
+C  STORE THE NAME OF THE CASE...
+C
+      WRITE(IFILE9,7) CASE
+    7 FORMAT(1X,A)
+C
+      QUAL = '.BEG'
+      CALL NFILE(IFIL11,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C
+      CALL INPUT(IPROMP)
+      CALL MOVERX(0,0,ICONSW,1,99)
+C
+      NCAR0 = ICAR
+      DO 100 I = 1,99
+         WORDB0(I) = WORDB(I)
+  100 CONTINUE
+      CALL STORCM(IFILE7)
+C
+      WRITE(6,20) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      IF (IPROMP.GT.1)
+     1 WRITE(IFILE8,20) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                  CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+   20 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.BEG = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of BEGIN.'//
+     1 1X,A,'.CBL = Contains the ',A,' data base.'//
+     1 1X,A,'.OPB = Output from BEGIN. Please list this file and'/
+     1'          inspect it and the ',A,'.BEG file carefully before'/
+     1'          proceeding.'//
+     1' For further information about files generated during operation'/
+     1' of GENOPT give the command HELPG FILES.'//
+     1' Next, give the command   DECIDE or CHANGE   .')
+C
+      WRITE(IFILE8,'(A,A,A)')
+     1' ****************** END OF THE  ',CASE(1:NLET),
+     1'.OPB FILE ******************'
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+      CLOSE(UNIT=9)
+C
+      END
+C
+C
+C
+C=DECK      GETVAR
+      SUBROUTINE GETVAR(IARRAY,JARRAY,DATUM,IVAR,VAR,WORD)
+C
+C  INPUT DATA...
+C
+C  IARRAY = 0 IF PARAMETER IS NOT AN ARRAY ELEMENT; NONZERO OTHERWISE
+C  JARRAY = 0 IF PARAMETER IS A SIMPLE VARIABLE OR ONE-D ARRAY;
+C           NONZERO OTHERWIZE
+C  DATUM  = THIS IS THE PARAMETER TO BE STORED IN VAR(IVAR). ITS
+C           DEFINITION IS TO BE STORED IN WORD(IVAR)
+C 
+C  OUTPUT DATA...
+C
+C   IVAR  = PARAMETER INDEX
+C    VAR  = DATUM IS STORED IN VAR(IVAR)
+C   WORD  = PHRASE THAT IDENTIFIES VAR(IVAR)
+C
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      CHARACTER*80 PHRASE, WORD(*)
+      CHARACTER*2  CN,CN2
+      DIMENSION VAR(*)
+C
+      IF(IARRAY.GE.10) THEN
+         WRITE(CN,'(I2)') IARRAY
+      ELSE
+         WRITE(CN,'(I1)') IARRAY
+      ENDIF
+C
+      IF(JARRAY.GE.10) THEN
+         WRITE(CN2,'(I2)') JARRAY
+      ELSE
+         WRITE(CN2,'(I1)') JARRAY
+      ENDIF
+C
+      IVAR = IVAR + 1
+      IF (IVAR.GT.99) THEN
+         WRITE(6,*)' TOO MANY PARAMETERS. REDUCE NUMBER OF VARIABLES'
+         WRITE(6,'(1X,A)') PHRASE(1:IBLANK)
+C BEG AUG 1999
+C      IF (IPROMP.GT.1) THEN
+C        WRITE(6,*)' TOO MANY PARAMETERS. REDUCE NUMBER OF VARIABLES'
+C        WRITE(6,'(1X,A)') PHRASE(1:IBLANK)
+C      ENDIF
+C END AUG 1999
+         CALL ERREX
+      ENDIF
+C
+      IF (IARRAY.EQ.0) WORD(IVAR) = PHRASE(1:IBLANK)
+      IF (IARRAY.NE.0.AND.JARRAY.EQ.0)
+     1                 WORD(IVAR) = PHRASE(1:IBLANK)//'('//CN//')'
+      IF (IARRAY.NE.0.AND.JARRAY.NE.0)
+     1       WORD(IVAR) = PHRASE(1:IBLANK)//'('//CN//','//CN2//')'
+      VAR(IVAR) = DATUM
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      OUTVAR
+      SUBROUTINE OUTVAR(NVAR,VAR,WORD,IADD,TITLE,IFILE4,LENGTH,IPR,ISUB,
+     1                  ISTART)
+C
+C  PURPOSE IS TO LIST PARAMETERS AND DEFINITIONS
+C
+C  INPUT DATA...
+C
+C  NVAR  = NUMBER OF PARAMETERS
+C   VAR  = VALUE OF PARAMETERS
+C  WORD  = DEFINITIONS OF PARAMETERS
+C  IADD  = ADDRESSES OF PARAMETERS: IADD(IVAR) = ILOOP + 10*ISEG +
+C                                                100*ILAYER
+C TITLE  = TITLE OF LIST
+C
+C  OUTPUT DATA...
+C
+C  NONE
+C
+      DIMENSION VAR(*),IADD(*),WORD(*),ISUB(*)
+      CHARACTER*80 WORD
+      CHARACTER*65 TITLE
+      CHARACTER*80 PHRASE
+      CHARACTER*12 NOTAPP
+C
+      NOTAPP = '   NOT APPLY'
+      ILET  = INDEX(TITLE,'DESCRIBE BEHAVIOR')
+      ILET2 = INDEX(TITLE,'MARGINS')
+C     IF (IFILE4.NE.6) WRITE(IFILE4,5)
+    5 FORMAT(1H0)
+      WRITE(IFILE4,'(1X,A)') TITLE
+      IF (ILET.EQ.0.AND.ILET2.EQ.0) WRITE(IFILE4,10)
+      IF (ILET.NE.0)  WRITE(IFILE4,11)
+      IF (ILET2.NE.0) WRITE(IFILE4,12)
+   10 FORMAT(' VAR.   CURRENT'/
+     1       ' NO.     VALUE            DEFINITION')
+   11 FORMAT(' BEH.   CURRENT'/
+     1       ' NO.     VALUE            DEFINITION')
+   12 FORMAT(' MAR.   CURRENT'/
+     1       ' NO.     VALUE            DEFINITION')
+C
+      DO 100 I = ISTART,NVAR
+C
+      IF (ISUB(I).EQ.1) GO TO 100
+C
+      DO 15 J = 1,80
+   15 PHRASE(J:J) = WORD(I)(J:J)
+      CALL BLANKX(PHRASE,ILONG)
+      IF (ILONG.GT.60) ILONG = 60
+      IF (IPR.EQ.1) THEN
+         IF ((ILET.NE.0.OR.ILET2.NE.0).AND.VAR(I).EQ.0.) THEN
+            WRITE(IFILE4,20) I,NOTAPP,PHRASE(1:ILONG)
+   20       FORMAT(I3,1X,A12,2X,A)
+         ELSE
+            WRITE(IFILE4,22) I,VAR(I),PHRASE(1:ILONG)
+C BEG MAY 2014
+C  22       FORMAT(I3,1X,1PE12.3,2X,A)
+   22       FORMAT(I3,1X,1PE13.4,1X,A)
+C END MAY 2014
+         ENDIF
+      ELSE
+         IF ((ILET.NE.0.OR.ILET2.NE.0).AND.VAR(I).EQ.0.) THEN
+            WRITE(IFILE4,20) I,NOTAPP,PHRASE(1:ILONG)
+         ELSE
+            WRITE(IFILE4,22) I,VAR(I),PHRASE(1:ILONG)
+         ENDIF
+      ENDIF
+C
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      INPUT
+      SUBROUTINE INPUT(IPROMP)
+C
+C  YOU PROVIDE INTERACTIVELY GEOMETRY AND MATERIAL PROPERTIES FOR THE
+C  PANEL
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/NUMPAR/IPAR,IVAR,IALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDC(99),WORDD(98)
+      COMMON/NUMPR2/ILAR,ICAR,IOAR,IFACT,NCASES,NPRINT
+      COMMON/LWRUPR/VLB(98),VUB(98),CLINK(98,45),VLINK(98),VBV(99)
+      COMMON/WORDS2/WORDL(98),WORDE(98),WORDIQ(45)
+      COMMON/OPTVAR/IDV(98),ILV(98),IDLINK(98,45),IEV(98),JTERMS(45)
+      COMMON/PARAM2/FLAR(98),CAR(99),OAR(98),FSAFE(99),CPWR(98,45)
+      COMMON/PARAM3/CINEQ(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQ,JINEQ(45),IEQTYP(45)
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+      COMMON/GRADMZ/GRADMX(30)
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/ITRSNX/ITRSEN,ITRALL,IRESET
+C BEG JULY 2013
+      COMMON/ITERX/ITERS,ITIGHTS,ITERCHG,ITERNEW,ITRCHG2,ITRCHG3
+C END JULY 2013
+C
+C  INSERT ADDITIONAL COMMON BLOCKS HERE:
+C
+      CHARACTER*80 PHRASE
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS,WORDIQ
+      character*4 CHARAC
+c     CHARACTER*4 ANSOUT,ANSWER
+c     CHARACTER*3 CJ
+      DIMENSION ISUB(100)
+c     LOGICAL ANSL1     
+C
+      IRESET = 0
+      ITRALL = 0
+      ITRSEN = 0
+      LTMAX = 0
+      IVAR = 0
+      IPAR = 0
+      IALLOW= 0
+      ILAR = 0
+      ICAR = 0
+      IOAR = 0
+      ICONST= 0
+      ITRTOT = 0
+      ITER    = 0
+      IFACT = 0
+C BEG FEB 2012
+      IVMAX = 98 
+C END FEB 2012
+      IPMAX = 99
+      IAMAX = 99
+      IFMAX = 99
+      ICMAX = 99
+      ILMAX = 50
+      CALL MOVERX(0,0,ISUB,1,100)
+      CALL MOVERX(0.,0,OBPLOT,1,30)
+      CALL MOVERX(0.,0.,GRADMX,1,30)
+      IAUTOC = 0
+      ITIGHT = 0
+      IITIGH(1) = 0
+      IITIGH(2) = 0
+      IITIGH(3) = 0
+      ITRMIN(1) = 100000
+      ITRMIN(2) = 100000
+      ITRMIN(3) = 100000
+C BEG JULY 2013
+      ITERCHG = 0
+C END JULY 2013
+      CALL MOVERX(0.,0,CPLOT,1,2970)
+      CALL MOVERX(0.,0,DPLOT,1,1500)
+C
+      CALL DATUM(IFIL11,93,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C
+C  INSERT THE PROGRAM FILE HERE:
+C
+      CALL OUTVAR(IVAR,VAR,WORDV,IADDV,'PARAMETERS FROM WHICH DECISION V
+     1ARIABLES CAN BE CHOSEN IN DECIDE ',IFILE8,80,1,ISUB,1)
+C
+      CALL OUTVAR(IPAR,PAR,WORDP,IADDP,'PARAMETERS WHICH ARE ALWAYS FIXE
+     1D.  NONE CAN BE DECISION VARIAB. ',IFILE8,80,1,ISUB,1)
+C
+      CALL OUTVAR(  ILAR, FLAR,WORDF,IADDA,'PARAMETERS WHICH ARE ENVIRON
+     1MENTAL FACTORS (e.g. loads, temps.)  ',IFILE8,80,1,ISUB,1)
+C
+C     CALL OUTVAR(  ICAR,  CAR,WORDB,IADDA,'PARAMETERS WHICH DESCRIBE BE
+C    1HAVIOR (e.g. stress, buckling load)  ',IFILE8,80,1,ISUB,1)
+C
+      CALL OUTVAR(IALLOW,ALLOW,WORDA,IADDA,'PARAMETERS WHICH ARE CLASSIF
+     1IED AS ALLOWABLES (e.g. max. stress) ',IFILE8,80,1,ISUB,1)
+C
+      CALL OUTVAR( IFACT,FSAFE,WORDS,IADDA,'PARAMETERS WHICH ARE FACTORS
+     1 OF SAFETY                           ',IFILE8,80,1,ISUB,1)
+C
+      CALL OUTVAR(  IOAR, OAR,WORDOB,IADDA,'PARAMETER WHICH IS THE OBJEC
+     1TIVE FUNCTION (e.g. minimum weight)  ',IFILE8,80,1,ISUB,1)
+C
+C
+      IVMORE = IVMAX - IVAR
+      WRITE(6,*)' '
+      WRITE(6,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+      WRITE(6,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+      WRITE(6,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+      WRITE(6,*)' '
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(I4,A)') IVAR,
+     1     ' decision variable candidates have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IVMAX,
+     1     ' decision variable candidates are permitted.'
+      WRITE(IFILE8,'(I4,A)') IVMORE,
+     1     ' additional decision variable candidates are allowed.'
+      WRITE(IFILE8,*)' '
+C
+      IPMORE = IPMAX - IPAR
+      WRITE(6,'(I4,A)') IPAR,
+     1     ' fixed parameters have now been identified.'
+      WRITE(6,'(I4,A)') IPMAX, ' fixed parameters are permitted.'
+      WRITE(6,'(I4,A)') IPMORE,
+     1     ' additional fixed parameters are allowed.'
+      WRITE(6,*)' '
+      WRITE(IFILE8,'(I4,A)') IPAR,
+     1     ' fixed parameters have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IPMAX, ' fixed parameters are permitted.'
+      WRITE(IFILE8,'(I4,A)') IPMORE,
+     1     ' additional fixed parameters are allowed.'
+      WRITE(IFILE8,*)' '
+C
+      ILMORE = ILMAX - ILAR
+      WRITE(6,'(I4,A)') ILAR,
+     1     ' environmental parameters have now been identified.'
+      WRITE(6,'(I4,A)') ILMAX,
+     1     ' environmental parameters are permitted.'
+      WRITE(6,'(I4,A)') ILMORE,
+     1     ' additional environmental parameters are allowed.'
+      WRITE(6,*)' '
+      WRITE(IFILE8,'(I4,A)') ILAR,
+     1     ' environmental parameters have now been identified.'
+      WRITE(IFILE8,'(I4,A)') ILMAX,
+     1     ' environmental parameters are permitted.'
+      WRITE(IFILE8,'(I4,A)') ILMORE,
+     1     ' additional environmental parameters are allowed.'
+      WRITE(IFILE8,*)' '
+C
+      IAMORE = IAMAX - IALLOW
+      WRITE(6,'(I4,A)') IALLOW,' allowables have now been identified.'
+      WRITE(6,'(I4,A)') IAMAX, ' allowables are permitted.'
+      WRITE(6,'(I4,A)') IAMORE,' additional allowables are permitted.'
+      WRITE(6,*)' '
+      WRITE(IFILE8,'(I4,A)') IALLOW,
+     1    ' allowables have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IAMAX, ' allowables are permitted.'
+      WRITE(IFILE8,'(I4,A)') IAMORE,
+     1    ' additional allowables are permitted.'
+      WRITE(IFILE8,*)' '
+C
+      IFMORE = IFMAX - IFACT
+      WRITE(6,'(I4,A)') IFACT,
+     1     ' factors of safety have now been identified.'
+      WRITE(6,'(I4,A)') IFMAX,
+     1     ' factors of safety are permitted.'
+      WRITE(6,'(I4,A)') IFMORE,
+     1     ' additional factors of safety are allowed.'
+      WRITE(6,*)' '
+      WRITE(IFILE8,'(I4,A)') IFACT,
+     1     ' factors of safety have now been identified.'
+      WRITE(IFILE8,'(I4,A)') IFMAX,
+     1     ' factors of safety are permitted.'
+      WRITE(IFILE8,'(I4,A)') IFMORE,
+     1     ' additional factors of safety are allowed.'
+      WRITE(IFILE8,*)' '
+C
+      IERRX = 0
+      IF (IVMORE.LT.0) THEN
+         WRITE(6,*)
+     1 ' TOO MANY DECISION VARIABLE CANDIDATES. REDEFINE THE PROBLEM.'
+         IERRX = 1
+      ENDIF
+      IF (IPMORE.LT.0) THEN
+         WRITE(6,*)
+     1 ' YOU HAVE TOO MANY FIXED PARAMETERS. REDEFINE THE PROBLEM.'
+         IERRX = 1
+      ENDIF
+      IF (ILMORE.LT.0) THEN
+         WRITE(6,*)
+     1 ' TOO MANY ENVIRONMENTAL PARAMETERS. REDEFINE THE PROBLEM.'
+         IERRX = 1
+      ENDIF
+      IF (IAMORE.LT.0) THEN
+        WRITE(6,*)' YOU HAVE TOO MANY ALLOWABLES. REDEFINE THE PROBLEM.'
+         IERRX = 1
+      ENDIF
+      IF (IFMORE.LT.0) THEN
+         WRITE(6,*)' TOO MANY FACTORS OF SAFETY. REDEFINE THE PROBLEM.'
+         IERRX = 1
+      ENDIF
+      IF (IERRX.EQ.1) CALL ERREX
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SETUPC
+      SUBROUTINE SETUPC(NVAR,VAR)
+C
+C  PURPOSE IS TO RECONSTRUCT COMMON BLOCKS CONTAINING DESIGN VARIABLES
+C  THAT ARE CANDIDATES FOR DECISION VARIABLES FROM NVAR AND VAR.
+C
+      DIMENSION VAR(*)
+C  INSERT ADDITIONAL COMMON BLOCKS HERE:
+C
+      IVAR = 1
+C  PROGRAM FILE:
+C
+      RETURN
+      END

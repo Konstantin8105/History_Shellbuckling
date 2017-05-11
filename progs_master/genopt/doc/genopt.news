@@ -1,0 +1,3416 @@
+
+                         GENOPT.NEWS
+
+Basic information about the GENOPT program has now been published.
+The reference is:
+
+[1] Bushnell, D., "GENOPT - A Program that Writes User-Friendly
+Optimization Code, Vol. 26, No 9/10, INTERNATIONAL JOURNAL OF
+SOLIDS AND STRUCTURES, pp 1173-1210, 1990
+
+For questions about GENOPT please contact:
+
+Dr. David Bushnell
+Dept. L9-24/Bldg. 250
+Lockheed Martin Advanced Technology Center
+3251 Hanover St.
+Palo Alto, CA 94304
+USA
+email: bush@trinity.atc.lmco.com
+
+If you obtained GENOPT from a source other than Dr. Bushnell, please
+write or call to inform him of the name and address of the person at
+your facility who is responsible for upkeep of the program. Dr. Bushnell
+maintains a file of names, addresses and telephone numbers so that
+notices of modification can be sent to your facility.
+0
+MODIFICATIONS MADE IN 1990:
+
+1. A strategy was added whereby the move limits allowed within
+any optimization iteration depend on the gradients of the constraint
+conditions if the constraints are violated or nearly critical and
+if the absolute values of the constraints are greater than 5.0.
+
+2. Until December, 1990, GENOPT did not work properly for problems
+with negative objectives or for problems with negative allowables
+or for problems with responses that change sign over the domain
+of the decision variables. Also, problems associated with decision
+variables getting "trapped" near zero have been greatly reduced.
+Most of the modifications are in the MAIN.NEW library, in particular
+SUBROUTINE CONX, which calculates a behavioral constraint condition
+given the allowable, the response (behavior), and the factor of safety.
+The CONMAN.NEW library, in particular SUBROUTINE VLBVUB, was also
+modified.
+
+3. New input parameters are asked for in MAINSETUP. For example, in
+the case called PLATE1, which is described in some detail in the
+GENOPT paper (Ref. [1]). The PLATE1.OPT file now reads:
+
+
+   TABLE 3.1  List of the PLATE1.OPT file (input for MAINSETUP)
+=====================================================================
+ N      $ Do you want a tutorial session and tutorial output?
+    0   $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+    1   $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+   10   $ How many design iterations in this run (3 to 25)?
+    1   $ Choose (1="conservative"), (2="liberal") move limits, IMOVE
+ Y      $ Do you want default (RATIO=10) for initial move limit jump?
+ Y      $ Do you want the default perturbation (dx/x = 0.05)?
+ N      $ Do you want to reset total iterations to zero (Type H)?
+=====================================================================
+
+The last four entries in the PLATE1.OPT file are new.  Additions to
+the URPROMPT.DAT file (where prompts and "helps" for input for MAINSETUP 
+are stored) describe the new input data:
+
+
+TABLE 3.2  New entries in the URPROMPT.DAT file that pertain to the
+           last three entries in Table 3.1
+=====================================================================
+ 730.0 
+       Next, choose a control for "conservative" or "liberal"
+       move limits to be used during optimization cycles. By
+       "move limits" we are referring to the size of the boxes
+       that appear in Fig. 2 of the paper, "GENOPT - a program
+       that writes user-friendly optimization code", Int. J. of
+       Solids and Structures, Vol. 26, pp 1173- 1210, 1990.
+       "Conservative" move limits keep the boxes small and generally
+       lead to the requirement for many "OPTIMIZE" commands to
+       obtain an optimum design; the "conservative" approach may
+       be boring, but it is the most reliable.  "Liberal" move
+       limits allow bigger boxes, generally leading to the need for
+       fewer "OPTIMIZEs".  However, the decision variables may
+       jump around a lot and have difficulty converging to those
+       corresponding to an optimum design.
+
+       For early optimization cycles you can choose "liberal" move
+       limits, changing to "conservative" move limits after several
+       "OPTIMIZEs".
+
+       In practical problems (such as realistic design problems
+       as opposed to mathematical "toy" problems) it is best to
+       choose "conservative" move limits.
+
+ 740.1 Choose (1="conservative"), (2="liberal") move limits, IMOVE
+ 740.2 
+       IMOVE = 1 means that decision variables will generally
+                 change by less than 10 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+
+       IMOVE = 2 means that decision variables will generally
+                 change by less than 50 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+
+ 742.1 Do you want default (RATIO=10) for initial move limit jump?
+ 742.2 
+       In the first optimization cycle following each "OPTIMIZE"
+       command the upper and lower bounds for each decision variable
+       (x) for that cycle may be expanded ("jumped").  Whether or not
+       this "move limit jump" occurs depends on the RATIO of the
+       absolute values of the upper (xmax) and lower (xmin) bounds
+       that were established by the user in "DECIDE" to the current
+       value of the decision variable:
+
+       If abs(xmax/x)/2**k > RATIO the current upper bound is expanded.
+       If abs(xmin/x)/2**k > RATIO the current lower bound is expanded.
+
+       in which k represents the number of times a "jump" has occurred
+       in previous executions of "OPTIMIZE" since the last time "DECIDE"
+       or "CHANGE" were used.  The default value of RATIO is 10.
+
+       The purposes of the "move limit jump" are: (1) to enable decision
+       variables that are near zero to escape this neighborhood,  and
+       (2) to permit exploration of an expanded segment of the domain
+       of the decision variable in the search for an optimum.
+
+       If you want to prevent the "jump" set RATIO very large.
+      
+ 743.1 Provide a value for the "move limit jump" ratio, RATIO
+ 743.2 
+       If zero is included in the domain of any decision variable
+       it may be best to use the default value, RATIO = 10.
+
+       If any of your decision values has lower and upper bounds
+       that span many orders of magnitude, it may be best to set
+       RATIO to a large number. 
+
+       If in doubt, use the default value.
+
+ 745.1 Do you want the default perturbation (dx/x = 0.05)?
+ 745.2 
+       See Fig. 1 and associated discussion on p. 1179 of the paper
+       "GENOPT - a program that writes user-friendly optimization code",
+       Int. J. of Solids and Structures, Vol. 26, pp 1173- 1210, 1990.
+       In order to get gradients of the behavioral constraints the
+       decision variables for the current design are perturbed one
+       at a time and the behavior is calculated for each perturbation.
+       The default perturbation is five per cent of the value of
+       each decision variable, x(i), i = 1, 2, 3... NDV.
+
+       Usually you will answer Y.  However, if there is difficulty
+       obtaining convergence to an optimum, or if the constraint
+       conditions jump around a lot from design iteration to design
+       iteration, then you might want to try a smaller perturbation,
+       such as 0.01 or 0.005.  Do not use a perturbation larger than
+       the default value of 0.05.
+
+ 747.1 Amount by which decision variables are perturbed, dx/x
+ 747.2 
+       Try 0.01 or 0.005.
+
+ 748.1 Do you want to reset total iterations to zero (Type H)?
+ 748.2 
+       GENOPT accumulates results from all iterations from the
+       start of the case. These results can be plotted via the
+       processors CHOOSEPLOT and DIPLOT.  It is possible that
+       you may no longer want to plot results from previous runs;
+       you may want to make a "fresh" start, but with use of the
+       current design state rather than the original design
+       state from the NAME.BEG file.  You can do this by answering
+       Y to this question.  Then ITRTOT will be set to zero.
+       Likely occasions to reset ITRTOT to zero are:
+       1. If you started from a very bad design state;
+       2. If you used CHANGE and you don't want previous results
+          to show on the plots;
+       3. If the total number of iterations is approaching the
+          maximum allowable value of 200;
+       4. If you already have lots of iterations and the plots
+          look too messy.
+
+       NOTE: DON'T FORGET TO CHANGE THE ANSWER BACK TO "N" AFTER
+             THE NEXT "OPTIMIZE" RUN. OTHERWISE ITERATIONS FROM
+             MULTIPLE "OPTIMIZEs" WILL NOT ACCUMULATE.
+=========================================================================
+
+
+4. A new analysis capability has been added to the GENOPT system. The
+user can now perform sensitivity analyses for optimized designs. This
+is done by choosing ITYPE = 3. (See the third entry in Table 3.1). As
+an example, take the optimized plate from the PLATE1 case in the GENOPT
+paper. (See p. 1196, the table headed "SUMMARY OF INFORMATION FROM
+OPTIMIZATION ANALYSIS").  Sample input to MAINSETUP with use of the
+ITYPE=3 (sensitivity) analysis is listed in Table 4.1:
+
+TABLE 4.1 The file called PLATE1.OPT (input for MAINSETUP for ITYPE=3)
+========================================================================
+ N       $ Do you want a tutorial session and tutorial output?
+    0    $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+    3    $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+    1    $ Choose a design variable (1, 2, 3, ...), IBVAR
+  0.07   $ Starting value of the design parameter, VARBEG
+  0.13   $ Ending value of the design parameter, VAREND
+ Y       $ Do you want to use the default for the number of steps?
+========================================================================
+
+After the "OPTIMIZE" run, "CHOOSEPLOT/DIPLOT" can be used to obtain
+plots of the objective function v. the user-selected design variable
+(thickness of the plate in this example) and user-selected margins v.
+the design variable.  Table 4.2 lists the PLATE1.PL3 file (margins)
+for this case:
+
+TABLE 4.2 The file called PLATE1.PL3 (output from CHOOSEPLOT following
+          execution of "OPTIMIZE" in the ITYPE=3 mode.)  This table
+          lists user-selected design margins v. the user-selected
+          design variable for a plate which had previously been
+          optimized as shown in Ref. [1].
+======================================================================
+ DESIGN MARGINS V. THICK                         
+   6
+ THICK                                                (col. 1 below)
+ (BUCKLE(1 )/MINBUC(1 )) / FBUCKL(1 )-1; F.S.=  1.20  (col. 2 below)
+ 1-(STRESS(2 )/MAXSTR(2 )) X FSTRES(2 ); F.S.=  1.10  (col. 3 below)
+ (BUCKLE(2 )/MINBUC(2 )) / FBUCKL(2 )-1; F.S.=  1.20  (col. 4 below)
+ (FREQ(3 )/MINCPS(3 )) / FSFREQ(3 )-1; F.S.=  1.00    (col. 5 below)
+ 1-(W(3 )/AW(3 )) X FW(3 ); F.S.=  1.00               (col. 6 below)
+ -----------------------------------------------------------------------
+ 0.70000E-01-0.58664E+00-0.36090E+00-0.54517E+00-0.33441E+00-0.14362E+01
+ 0.72069E-01-0.54889E+00-0.32183E+00-0.50364E+00-0.30468E+00-0.12324E+01
+ 0.74138E-01-0.50892E+00-0.28494E+00-0.45965E+00-0.27453E+00-0.10507E+01
+ 0.76207E-01-0.46664E+00-0.25005E+00-0.41314E+00-0.24395E+00-0.88812E+00
+ 0.78276E-01-0.42201E+00-0.21701E+00-0.36403E+00-0.21295E+00-0.74233E+00
+ 0.80345E-01-0.37496E+00-0.18567E+00-0.31226E+00-0.18154E+00-0.61116E+00
+ 0.82414E-01-0.32542E+00-0.15591E+00-0.25775E+00-0.14972E+00-0.49284E+00
+ 0.84483E-01-0.27333E+00-0.12760E+00-0.20043E+00-0.11750E+00-0.38583E+00
+ 0.86552E-01-0.21862E+00-0.10065E+00-0.14024E+00-0.84887E-01-0.28880E+00
+ 0.88621E-01-0.16124E+00-0.74950E-01-0.77096E-01-0.51879E-01-0.20063E+00
+ 0.90690E-01-0.10111E+00-0.50426E-01-0.10936E-01-0.18483E-01-0.12031E+00
+ 0.92759E-01-0.38171E-01-0.26997E-01 0.58313E-01 0.15296E-01-0.47009E-01
+ 0.94828E-01 0.27635E-01-0.45896E-02 0.13072E+00 0.49453E-01 0.20038E-01
+ 0.96897E-01 0.96377E-01 0.16861E-01 0.20636E+00 0.83986E-01 0.81481E-01
+ 0.98966E-01 0.16812E+00 0.37414E-01 0.28530E+00 0.11889E+00 0.13789E+00
+ 0.10103E+00 0.24292E+00 0.57126E-01 0.36760E+00 0.15416E+00 0.18978E+00
+ 0.10310E+00 0.32085E+00 0.76046E-01 0.45335E+00 0.18979E+00 0.23758E+00
+ 0.10517E+00 0.40198E+00 0.94223E-01 0.54261E+00 0.22578E+00 0.28170E+00
+ 0.10724E+00 0.48635E+00 0.11170E+00 0.63545E+00 0.26213E+00 0.32247E+00
+ 0.10931E+00 0.57405E+00 0.12851E+00 0.73195E+00 0.29883E+00 0.36022E+00
+ 0.11138E+00 0.66513E+00 0.14470E+00 0.83217E+00 0.33588E+00 0.39522E+00
+ 0.11345E+00 0.75966E+00 0.16030E+00 0.93618E+00 0.37328E+00 0.42771E+00
+ 0.11552E+00 0.85770E+00 0.17534E+00 0.10441E+01 0.41101E+00 0.45791E+00
+ 0.11759E+00 0.95931E+00 0.18985E+00 0.11559E+01 0.44909E+00 0.48602E+00
+ 0.11966E+00 0.10646E+01 0.20386E+00 0.12717E+01 0.48750E+00 0.51223E+00
+ 0.12172E+00 0.11735E+01 0.21739E+00 0.13916E+01 0.52625E+00 0.53668E+00
+ 0.12379E+00 0.12863E+01 0.23047E+00 0.15156E+01 0.56533E+00 0.55952E+00
+ 0.12586E+00 0.14028E+01 0.24312E+00 0.16438E+01 0.60473E+00 0.58089E+00
+ 0.12793E+00 0.15233E+01 0.25536E+00 0.17764E+01 0.64447E+00 0.60090E+00
+ 0.13000E+00 0.16477E+01 0.26721E+00 0.19133E+01 0.68452E+00 0.61965E+00
+=========================================================================
+
+Notice that in this case the user-selected margins all cross zero at
+a thickness close to that corresponding to the optimized design. "DIPLOT"
+uses the PLATE1.PL3 file to obtain plots.
+
+
+5. NEW FORMULATION OF "TYPE 1" BEHAVIORAL CONSTRAINT CONDITIONS: 
+On p. 1189 (bottom) of the GENOPT paper (Ref. [1]) two types of
+behavioral constraint conditions, generated from response (behavior),
+allowable, and factor of safety, are defined. A "type 1" constraint
+represents an inequality expression in which the allowable must be
+greater than the behavior times the factor of safety.  A "type 2"
+constraint represents an inequality expression in which the behavior
+must be greater than the allowable times the factor of safety. Table
+5.1 lists some of the behavioral constraint conditions as originally
+formulated for the plate optimization problem described in Ref. [1]
+(see Fig. 5, p. 1200).  The "type 1" behavioral constraint conditions
+have now been redefined, as listed in Table 5.2.  This modification
+leads to much more reliable optimization in problems involving
+responses that are linear functions of the decision variables, such
+as those commonly used as examples in texts on "linear programming".
+Nonlinear problems, such as the plate problem used as an example
+in Ref. [1], seem to be solved as reliably as before.
+
+ TABLE 5.1  OLD FORMULATION OF BEHAVIORAL CONSTRAINT CONDITIONS
+ ==================================================================
+ 1.  BUCKLE(1 )/(MINBUC(1 ) X FBUCKL(1 )) -1; F.S.=  1.20  (type 2)
+ 2.  MAXSTR(2 )/(STRESS(2 ) X FSTRES(2 )) -1; F.S.=  1.10  (type 1)
+ 3.  BUCKLE(2 )/(MINBUC(2 ) X FBUCKL(2 )) -1; F.S.=  1.20  (type 2)
+ 4.  FREQ(3 )/(MINCPS(3 ) X FSFREQ(3 )) -1; F.S.=  1.00    (type 2)
+ 5.  AW(3 )/(W(3 ) X FW(3 )) -1; F.S.=  1.00               (type 1)
+ ==================================================================
+
+ TABLE 5.2  NEW FORMULATION OF BEHAVIORAL CONSTRAINT CONDITIONS
+ ==================================================================
+ 1.  (BUCKLE(1 )/MINBUC(1 )) / FBUCKL(1 )-1; F.S.=  1.20   (type 2)
+ 2.  1-(STRESS(2 )/MAXSTR(2 )) X FSTRES(2 ); F.S.=  1.10   (type 1)
+ 3.  (BUCKLE(2 )/MINBUC(2 )) / FBUCKL(2 )-1; F.S.=  1.20   (type 2)
+ 4.  (FREQ(3 )/MINCPS(3 )) / FSFREQ(3 )-1; F.S.=  1.00     (type 2)
+ 5.  1-(W(3 )/AW(3 )) X FW(3 ); F.S.=  1.00                (type 1)
+ ==================================================================
+
+
+6. MODIFICATIONS INTRODUCED BY JEFF JACOBY AT STANFORD FOR USER-DEFINED
+LINKING RELATIONSHIPS (USRLNK) INSERTED INTO LOCKHEED GENOPT:
+GENPROMPT.NEW, DECIDE.NEW, CONMAN.NEW, URPROMPT.DAT were modified at
+Lockheed on 13 June, 1991.  This improvement in GENOPT capability
+allows the GENOPT user to provide generalized linking relationships
+that cannot be expressed as polynomials. A skeletal subroutine USRLNK
+has been added to the BEHAVIOR.NEW file.  The GENOPT user can supply
+general linking expressions in USRLNK.
+
+7. December, 1997:
+GENOPT was updated to include some new stuff that PANDA2 does. In particular,
+the plotting generated via CHOOSEPLOT/DIPLOT has been "modernized" to use
+Bill Bushnell's PLOTPS package instead of the program DIPLOT. CHOOSEPLOT
+now sets up files *.PL3, *.PL4, *.PL5 that are suitable for direct input into
+Bill Buwhnell's PLOTPS. Hence, the *.PL3 file no longer looks like the
+list presented in Table 4.2 above.  Also, STORE was modified so that in
+optimization runs (ITYPE = 1) a new line:
+
+ -----------------------------------------------------------OPTIMIZE
+
+now appears just before results for the first iteration corresponding to
+each "OPTIMIZE" command in the table at the end of the *.OPP file.
+
+Also, GENPROMPT no longer compiled on the SGI workstation, so that the
+FFLAGS options were augmented to include the additional options:
+         -Wb,-force_branch_fixup
+which are added directly after the -g option.
+
+
+8. Januaary, 1998
+
+An AUTOCHANGE/SUPEROPT capability was added to GENOPT. Two new commands are
+
+AUTOCHANGE   (automatically changes decision variables by random amounts)
+SUPEROPT     (attempts to find a GLOBAL optimum design by means of a long
+              "batch" run consisting of the following command string:
+
+                 autochange
+                 optimize
+                 optimize
+                 optimize
+                    .
+                    .
+                 autochange
+                 optimize
+                 optimize
+                 optimize
+                    .
+                    . 
+                 autochange
+                 optimize
+                 optimize
+                 optimize
+                    .
+                    .
+                 and so on)
+
+The cycle in SUPEROPT continues until the total number of design iterations
+exceeds 270. You MUST use CHOOSEPLOT/DIPLOT after each SUPEROPT. Please see
+the paper, "Recent enhancements to PANDA2", AIAA Paper 96-1337-CP, Proceedings
+38th AIAA/ASME Structures, Structural Dyanmics, and Materials meeting, April
+1997, pp 126 - 182, in particular, pp 127 - 130. Each new execution of 
+"autochange" results in a new starting design from which a new optimum design
+is obtained via the series of "n" "optimize" commands that follow that
+"autochange" command. The user specifies "n" after he/she gives the "superopt"
+command. 
+
+
+9. November 1999
+GENOPT was used with a version of BOSOR4 (bigBOSOR4) that handles larger
+problems than could be handled with the older version of BOSOR4. The
+results of this effort are described in the paper and report:
+
+Bushnell, D., "Automated optimum design of shells of
+revolution with application to ring-stiffened cylindrical
+shells with wavy walls", AIAA paper 2000-1663, 41st
+AIAA Structures Meeting, Atlanta, GA, April 2000. Also see
+Lockheed Martin report, same title, LMMS P525674, November
+1999
+
+
+10. October 2005
+GENOPT was used with bigBOSOR4 for optimization of an isogrid-stiffened
+2/1 torispherical head in which nonlinear geometric behavior plays a
+significant role. The results are described in the following:
+
+Bushnell, D., "Optimum design of isogrid-stiffened
+torispherical head", the file: genopt/case/torisph/readme.torisph
+
+
+
+11. October 2005
+The reference list provided in the information file, *.DEF ("*" = name of
+the generic case) was updated as follows:
+---------------------------------------------------------------------------
+C                     REFERENCES
+
+C [1] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", International
+C Journal of Solids and Structures, Vol. 26, No. 9/10,
+C pp. 1173-1210, 1990. The same paper is contained in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology. 
+
+C [2] Bushnell, D., "Automated optimum design of shells of
+C revolution with application to ring-stiffened cylindrical
+C shells with wavy walls", AIAA paper 2000-1663, 41st
+C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see
+C Lockheed Martin report, same title, LMMS P525674, November
+C 1999
+
+C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+
+C [4] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+
+C [5] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986) 
+
+C [6] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986) 
+
+C [7] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+
+C [8] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+
+C [9] Bushnell, D., "SPHERE - Program for minimum weight
+C design of isogrid-stiffened spherical shells under uniform
+C external pressure", Lockheed Report F372046, January, 1990
+
+C [10] Bushnell, D., "Optimum design of isogrid-stiffened
+C torispherical head", written and placed in the file
+C ..genopt/case/torisph/readme.torisph, October 2005
+
+C [11] Bushnell, D., "Recent enhancements to PANDA2", AIAA
+C paper 96-1337-CP, Proc. 37th AIAA SDM Meeting, April 1996
+C pp. 126-182, in particular, pp. 127-130
+
+C [12] Bushnell, D., the file ..genopt/readme/getting.started
+
+C [13] Bushnell, D., the case ..genopt/case/torisph
+
+C [14] Bushnell, D., the case ..genopt/case/cylinder
+
+C [15] Bushnell, D., the case ..genopt/case/wavycyl
+
+C [16] Bushnell, D., the case ..genopt/case/plate
+-------------------------------------------------------------
+
+
+
+
+12. October 2005
+New information was provided in the *.DEF file, as follows:
+---------------------------------------------------------------
+C Due to introduction of a "global" optimizer, SUPEROPT,
+C described in Ref.[11], you can now use the runstream
+
+C      BEGIN       (provide starting design, loads, etc.)
+C      DECIDE      (choose decision variables and bounds)
+C      MAINSETUP   (choose print option and analysis type)
+C      SUPEROPT    (launch batch run for "global" optimization)
+C      CHOOSEPLOT  (choose which variables to plot)
+C      DIPLOT      (plot variables v. iterations)
+
+C "Global" is in quotes because SUPEROPT does its best to find
+C a true global optimum design. The user is strongly urged to
+C execute SUPEROPT/CHOOSEPLOT several times in succession in
+C order to determine an optimum that is essentially just as
+C good as the theoretical true global optimum. Each execution
+C of the series,
+C      SUPEROPT
+C      CHOOSEPLOT
+
+C does the following:
+
+C 1. SUPEROPT executes many sets of the two processors,
+C    OPTIMIZE and AUTOCHANGE (AUTOCHANGE gets a new random
+C    "starting" design), in which each set does the following:
+
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      AUTOCHANGE        (get new starting design randomly)
+
+C    SUPEROPT keeps repeating the above sequence until the
+C    total number of design iterations reaches about 270.
+C    The number of OPTIMIZEs per AUTOCHANGE is user-provided.
+
+C 2. CHOOSEPLOT allows the user to plot stuff and resets the
+C    total number of design iterations from SUPEROPT to zero.
+C    After each execution of SUPEROPT the user MUST execute
+C    CHOOSEPLOT: before the next execution of SUPEROPT the
+C    total number of design iterations MUST be reset to zero.
+--------------------------------------------------------------
+
+
+
+
+13. October 2005
+More new information was provided in the *.DEF file, as follows;
+---------------------------------------------------------------
+ Please see the cases under genopt/case for examples and more
+ information.
+
+ USING GENOPT IN GENERAL AND WITH BIGBOSOR4
+
+ Please read the file, ..genopt/readme/getting.started.
+ The main things you must do are the following:
+
+ 1. create a file called ..bosdec/sources/bosdec.src, the
+ purpose of which is to create a BOSOR4 input file, *.ALL .
+ in which "*" represents the users name for the specific case.
+ The file, ..genopt/case/torisph/bosdec.torisph is a good
+ example. Make sure to save bosdec.src by copying it into
+ another file. Example: cp bosdec.src bosdec.torisph
+
+ 2. Flesh out either or both the libraries, struct.new and/or
+ behavior.new. In the case, ..genopt/case/torisph, only the
+ library struct.new is fleshed out. The library behavior.new is
+ not changed from that created automatically by GENOPT. In the
+ case, genopt/case/cylinder, both struct.new and behavior.new
+ are changed, struct.new in minor ways and behavior.new in
+ major ways. Make sure to save struct.new and behavior.new. For
+ example: cp struct.new   struct.cylinder
+          cp behavior.new behavior.cylinder
+ (You save copies of bosdec.src, struct.new, behavior.new
+  because it usually takes quite a bit of effort to modify
+  the versions automatically created by GENOPT in order to
+  solve your generic class of problems.)
+ See the following files for examples of modified libraries:
+ ..genopt/case/torisph/struct.torisph
+ ..genopt/case/cylinder/struct.cylinder
+ ..genopt/case/cylinder/behavior.cylinder
+
+ 3. Execute the GENOPT script called GENPROGRAMS. This script
+ "makes" the processors for the user-named generic case. The
+ "makefile" called ..genopt/execute/usermake.linux is used. If
+ GENPROGRAMS compiles everything successfully, which is not
+ likely on your first try because you probably did a lot of
+ FORTRAN coding to create bosdec.src, struct.new, behavior.new,
+ GENPROGRAMS will end with a list like the following:
+
+ Here is a list of all your newly created executables:
+ -rwxr-xr-x  1 bush bush 71562 Oct  8 15:56 autochange.linux
+ -rwxr-xr-x  1 bush bush 139553 Oct  8 15:56 begin.linux
+ -rwxr-xr-x  1 bush bush 124383 Oct  8 15:56 change.linux
+ -rwxr-xr-x  1 bush bush 156054 Oct  8 15:56 chooseplot.linux
+ -rwxr-xr-x  1 bush bush 161231 Oct  8 15:56 decide.linux
+ -rwxr-xr-x  1 bush bush 104222 Oct  8 15:56 mainsetup.linux
+ -rwxr-xr-x  1 bush bush 1691559 Oct  8 15:56 optimize.linux
+ -rwxr-xr-x  1 bush bush 95653 Oct  8 15:56 store.linux
+
+ Next, type the command BEGIN to input data for a new specific case.
+
+ If GENPROGRAMS bombs due to fatal compilation errors, or
+ even if GENPROGRAMS seems to finish successfully, it is best
+ to inspect the file ..genoptcase/usermakelinux.log. If there
+ are compilation errors, revise the appropriate source codes,
+ bosdec.src and/or struct.new and/or behavior.new, and execute
+ GENPROGRAMS again. Keep doing this until everything is okay.
+
+ 4. Next, think up a good name for your specific case and run
+ BEGIN, DECIDE, MAINSETUP, and OPTIMISE (several times) or
+ SUPEROPT. (See the file ..genopt/readme/getting.started and
+ the directories, genopt/case/cylinder and genopt/case/torisph
+ for examples.) Even though you had a successful "make" via
+ GENPROGRAMS in the previous step, something will doubtless not
+ be satisfactory and you will have to or want to make further
+ changes to one or more of the source files, bosdec.src,
+ struct.new, behavior.new.
+
+ THE NEXT STEPS PERTAIN TO THE USE OF GENOPT WITH BIGBOSOR4
+
+ 5. You must have the BIGBOSOR4 software in the directory,
+ ..bosdec/sources. You need to have the following files there:
+ addbosor4.src, b4util.src, opngen.src, prompter.src, gasp.F,
+ gasp_linux.o, bio_linux.c, bio_linux.o, b4plot.src, as well as
+ the bosdec.src file discussed above.
+
+ 6. The "make" file, ..genopt/execute/usermake.linux, must
+ include references to the BIGBOSOR4 sofware listed in Step 5.
+ Please see the file ..genopt/execute/usermake.linux, which
+ already exists. (You do not have to do anything about it!)
+
+ 7. Suppose everything compiles correctly during the
+ GENPROGRAMS execution, but when you try to run a specific case
+ the run bombs. Suppose all of your contributed FORTRAN coding
+ is in ..bosdec/sources/bosdec.src and in
+       ..genoptcase/struct.new (..genoptcase/behavior.new did
+ not need to be modified for your case, as is true for the
+ generic case called "torisph" in ..genopt/case/torisph).
+ It is very helpful to insert a "CALL EXIT" statement after one
+ of the analyses performed in struct.new, then to execute
+ GENPROGRAMS again to recompile the temporarily changed
+ struct.new. The reason for doing this is explained in the file
+ ..genopt/case/torisph/struct.torisph and also in the file
+ ..genopt/readme/getting.started: you want to be able to make a
+ BIGBOSOR4 run to be certain that:
+ a. ..bosdec/sources/bosdec.src created a valid BOSOR4 input
+    file, and,
+ b. the BIGBOSOR4 run did not finish for some reason.
+---------------------------------------------------------------
+
+
+
+
+14. October 2005
+genprompt.src and main.src were modified to permit 3 rather than
+2 types of constraint conditions. The three types of constraint
+conditions are described in the introduction to SUBROUTINE CONX,
+which is in the main.src library:
+-----------------------------------------------------------------
+C=DECK      CONX
+C BEG DEC 1990
+      SUBROUTINE CONX(BEHAV,ALLOW,FSAFE,WORDB,WORDA,WORDS,
+     1 INDX,INUMTT,IMOD,CONMAX,ICONST,IPOINC,CONSTR,WORDC,
+     1 WORDM,PCWORD,CPLOT,ICAR)
+C END DEC 1990
+C
+C  SOME DEFINITIONS:
+C   INDX  =  Indicator for the form of the constraint condition (1 or 2 or 3):
+C
+C           1  means that for a feasible design the allowable value (ALLOW)
+C              must be greater than the product of the actual value (BEHAV)
+C              times the factor of safety, (FSAFE).
+C              EXAMPLE: Allowable stress must be greater than the actual
+C                       stress x the factor of safety for stress.
+C              For example, a design margin of this type is expressed as:
+C              1 - [BEHAVIOR)/(ALLOWABLE BEHAVIOR)] X (FACTOR OF SAFETY)
+C
+C           2 means that for a feasible design the actual value (BEHAV)
+C             must be greater than the product of the allowable value (ALLOW)
+C             times the factor of safety (FSAFE).
+C             EXAMPLES: (a) buckling load factor must be greater than the
+C                           allowable value (unity)  x the factor of safety
+C                           for buckling.
+C                       (b) lowest natural frequency must be greater than
+C                           the allowable value x the factor of safety for
+C                           natural frequency.
+C              For example, a design margin of this type is expressed as:
+C              [(BEHAVIOR)/(ALLOWABLE BEHAVIOR)] /(FACTOR OF SAFETY) - 1
+C
+C           3  means that for a feasible design the allowable value (ALLOW)
+C              must be greater than the product of the actual value (BEHAV)
+C              times the factor of safety, (FSAFE). (same as for INDX = 1).
+C              EXAMPLE: Allowable stress must be greater than the actual
+C                       stress x the factor of safety for stress.
+C              For example, a design margin of this type is expressed as:
+C              [(ALLOWABLE BEHAVIOR)/(BEHAVIOR)] /(FACTOR OF SAFETY) - 1
+-----------------------------------------------------------------------------
+
+Types 1 and 3 are similar and either may be used. However, Type 1 can yield
+constraints with values much, much larger than unity, which may cause erratic
+convergence to an optimum design. In most problems involving structures, for
+which Types 1 and 3 are appropriate for stress constraints for example, it
+is probably best to use Type 3 rather than Type 1, especially in problems
+that involve significant nonlinear behavior.
+
+The libraries, genprompt.src and main.src, were modified in several places.
+For example, the following modifications occur in SUBROUTINE CONX in the
+main.src library:
+-------------------------------------------------------------------------
+      IF (ALLOW.NE.0.) THEN
+         RATIO1 = BEHAV*FSAFE/ALLOW
+         RATIO2 = BEHAV/(ALLOW*FSAFE)
+      ELSE
+         RATIO1 = (BEHAV*FSAFE+1.)/(ALLOW+1.)
+         RATIO2 = (BEHAV+1.)/(ALLOW*FSAFE+1.)
+      ENDIF
+C BEG OCT 2005
+      IF (BEHAV.NE.0.) THEN
+         RATIO3 = ALLOW/(BEHAV*FSAFE)
+      ELSE
+         RATIO3 = (ALLOW+1.)/(BEHAV*FSAFE+1.)
+      ENDIF
+C END OCT 2005
+      IF (INDX.EQ.1) CON = RATIO1
+      IF (INDX.EQ.2) CON = RATIO2
+C BEG OCT 2005
+      IF (INDX.EQ.3) CON = RATIO3
+C END OCT 2005
+      IF (IMOD.EQ.0) THEN
+         IF (INDX.EQ.1) THEN
+            IF (ALLOW.GE.0.) THEN
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ELSE
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ENDIF
+         ENDIF 
+         IF (INDX.EQ.2) THEN
+            IF (ALLOW.GE.0.) THEN
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ELSE
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ENDIF
+         ENDIF
+C BEG OCT 2005
+         IF (INDX.EQ.3) THEN
+            IF (BEHAV.GE.0.) THEN
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ELSE
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ENDIF
+         ENDIF
+C END OCT 2005
+      ENDIF
+      IF (ALLOW.EQ.0.0) THEN
+C BEG OCT 2005
+         IF ((INDX.EQ.1.OR.INDX.EQ.3).AND.BEHAV.EQ.1.E-10)
+     1    GO TO 100
+C END OCT 2005
+         IF (INDX.EQ.2.AND.BEHAV.EQ.1.E+10) GO TO 100
+      ENDIF
+      IF (IMOD.EQ.0.AND.CTEST.GT.CONMAX) GO TO 100
+      IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+      ICONST = ICONST + 1
+      IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+C
+      IF (INDX.EQ.1) THEN
+         IF (ALLOW.GE.0.) THEN
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ELSE
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ENDIF
+      ENDIF 
+      IF (INDX.EQ.2) THEN
+         IF (ALLOW.GE.0.) THEN
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ELSE
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ENDIF
+      ENDIF
+C BEG OCT 2005
+      IF (INDX.EQ.3) THEN
+         IF (BEHAV.GE.0.) THEN
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ELSE
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ENDIF
+      ENDIF
+C END OCT 2005
+C END DEC 1990
+  100 CONTINUE
+      RETURN
+      END
+------------------------------------------------------------------------
+
+
+The genprompt.src was modified in several places. Some of them follow:
+-----------------------------------------------------------------------
+  266       FORMAT(/
+     1' ACTUAL RESPONSE    = BEHAV = ',A,' = ',A6/
+     1' ALLOWABLE RESPONSE = ALLOW = ',A,' = ',A6/
+     1' FACTOR OF SAFETY   = FSAFE = ',A,' = ',A6)
+C BEG OCT 2005
+            IF (INFILE.EQ.5) THEN
+               WRITE(6,267)
+               WRITE(6,2671)
+               WRITE(6,2672)
+            ENDIF
+  267       FORMAT(/' There are three types of behavioral constraint'/
+     1' conditions in an optimization problem:'//
+     1'  1  For a feasible design the allowable response, ALLOW'/
+     1'     must be greater than the product of the actual'/
+     1'     response, BEHAV, times its factor of safety, FSAFE.'/
+     1'     EXAMPLE: Allowable stress must be greater than the actual'/
+     1'              stress x the factor of safety for stress.'/
+     1'     For example, a design margin of this type is expressed as:'/
+     1'     1 - [BEHAVIOR)/(ALLOWABLE BEHAVIOR)] X (FACTOR OF SAFETY)'/)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+ 2671       FORMAT(
+     1'  2  For a feasible design the actual response, BEHAV,'/
+     1'     must be greater than the product of the allowable'/
+     1'     response, ALLOW, times its factor of safety, FSAFE.'/
+     1'     EXAMPLES: (a) buckling load factor must be greater than'/
+     1'                   the allowable value x the factor of safety'/
+     1'                   for buckling.'/
+     1'               (b) lowest natural frequency must be greater'/
+     1'                   than the allowable value x the factor of'/
+     1'                   safety for natural frequency.'/
+     1'     For example, a design margin of this type is expressed as:'/
+     1'     [(BEHAVIOR)/(ALLOWABLE BEHAVIOR)] /(FACTOR OF SAFETY) - 1'/)
+ 2672       FORMAT(
+     1'  3  For a feasible design the allowable response, ALLOW'/
+     1'     must be greater than the product of the actual'/
+     1'     response, BEHAV, times its factor of safety, FSAFE. (same'/
+     1'     as for INDX = 1). However, the margin has a different form'/
+     1'     EXAMPLE: Allowable stress must be greater than the actual'/
+     1'              stress x the factor of safety for stress.'/
+     1'     For example, a design margin of this type is expressed as:'/
+     1'     [(ALLOWABLE BEHAVIOR)/(BEHAVIOR)] /(FACTOR OF SAFETY) - 1'/)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END OCT 2005
+ 1205    CONTINUE
+         WRITE(6,'(1X,A,A,A,$)')
+     1' PLEASE CHOOSE  1  OR  2 OR 3  FOR THIS CONSTRAINT (',
+     1  VB(1:MLET4),'):'
+         ILOC = 1210
+C BEG OCT 2005
+ 1210    READ(INFILE,'(I8)',END=3000,ERR=1205) INDX
+         IF (INDX.NE.1.AND.INDX.NE.2.AND.INDX.NE.3) THEN
+            WRITE(6,*)' PLEASE CHOOSE  1 OR 2 OR 3 . TRY AGAIN.'
+            GO TO 1205
+         ENDIF
+         IF (INFILE.EQ.5) WRITE(IRAW,'(1X,I7,A)') INDX,
+     1'  $ Indicator (1 or 2 or 3) for type of constraint'
+         WRITE(IDAT,'(1X,I7,A)') INDX,
+     1'  $ Indicator (1 or 2 or 3) for type of constraint'
+         WRITE(6,'(40X,A,I7)')' TYPE OF CONSTRAINT=', INDX
+         CALL CONVR1(INDX,CIX)
+         ENDIF
+C END OCT 2005
+
+   (many lines skipped to save space)
+
+               WRITE(ICON,'(5X,A,A,A)')
+     1        '1 ''',P4(:IENDP4),''')'
+C
+C BEG OCT 2005
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     1          WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     1          VB(1:MLET4),'.EQ.0.)  ',VB(1:MLET4),' = 1.E-10'
+C END OCT 2005
+               IF (INDX.EQ.2) WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     1          VB(1:MLET4),'.EQ.0.)  ',VB(1:MLET4),' = 1.E+10'
+               WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     1         VBA(1:MLET5),'.EQ.0.)  ',VBA(1:MLET5),' = 1.0'
+               WRITE(ICON,'(6X,A,A,A,A,A)')'IF (',
+     1         VBF(1:MLET6),'.EQ.0.)  ',VBF(1:MLET6),' = 1.0'
+C
+C BEG OCT 2005
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     1          WRITE(ICON,'(6X,A,A,A,A,A,A,A)') 
+     1'WORDC= ''',VBA(1:MLET5),'/(',VB(1:MLET4),' X ',VBF(1:MLET6),')'''
+C END OCT 2005
+               IF (INDX.EQ.2) WRITE(ICON,'(6X,A,A,A,A,A,A,A)') 
+     1'WORDC= ''',VB(1:MLET4),'/(',VBA(1:MLET5),' X ',VBF(1:MLET6),')'''
+
+   (many lines skipped to save space)
+
+               WRITE(ICON,'(5X,A,A,A)')
+     1        '1 ''',P4(1:IENDP4),''')'
+C
+C BEG OCT 2005
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+     1          WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     1          VB(1:MLET4),'(',WIJ,').EQ.0.)  ',
+     1          VB(1:MLET4),'(',WIJ,') = 1.E-10'
+C END OCT 2005
+               IF (INDX.EQ.2)
+     1          WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     1          VB(1:MLET4),'(',WIJ,').EQ.0.)  ',
+     1          VB(1:MLET4),'(',WIJ,') = 1.E+10'
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     1         VBA(1:MLET5),'(',WIJ,').EQ.0.)  ',
+     1         VBA(1:MLET5),'(',WIJ,') = 1.0'
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A)')'IF (',
+     1         VBF(1:MLET6),'(',WIJ,').EQ.0.)  ',
+     1         VBF(1:MLET6),'(',WIJ,') = 1.0'
+C
+               WRITE(ICON,'(6X,A)') 'KCONX = KCONX + 1'
+               WRITE(ICON,'(6X,A,A,A,A,A)')
+     1        'CARX(KCONX) =',VB(1:MLET4),'(',WIJ,')'
+C
+               IF (NDIMEN.EQ.2) THEN
+C BEG OCT 2005
+                  IF (INDX.EQ.1.OR.INDX.EQ.2)
+     1            WRITE(ICON,'(6X,A,A,A,A,A)')
+     1          'WORDCX= ''(',VB(1:MLET4),'(''//CIX//'',''//CJX//'')/',
+     1            VBA(1:MLET5),'(''//CIX//'',''//CJX//'
+                  IF (INDX.EQ.3)
+     1            WRITE(ICON,'(6X,A,A,A,A,A)')
+     1          'WORDCX= ''(',VBA(1:MLET5),'(''//CIX//'',''//CJX//'')/',
+     1            VB(1:MLET4),'(''//CIX//'',''//CJX//'
+                  IF (INDX.EQ.1) WRITE(ICON,'(5X,A,A,A)')
+     1          '1  '')) X ',VBF(1:MLET6),'(''//CIX//'',''//CJX//'')'''
+                  IF (INDX.EQ.2.OR.INDX.EQ.3) WRITE(ICON,'(5X,A,A,A)')
+     1          '1  '')) / ',VBF(1:MLET6),'(''//CIX//'',''//CJX//'')'''
+               ENDIF
+               IF (NDIMEN.EQ.1) THEN
+                  IF (INDX.EQ.1.OR.INDX.EQ.2)
+     1            WRITE(ICON,'(6X,A,A,A,A,A)')
+     1           'WORDCX= ''(',VB(1:MLET4),'(''//CIX//'')/',
+     1            VBA(1:MLET5),'(''//CIX//'
+                  IF (INDX.EQ.3)
+     1            WRITE(ICON,'(6X,A,A,A,A,A)')
+     1           'WORDCX= ''(',VBA(1:MLET5),'(''//CIX//'')/',
+     1            VB(1:MLET4),'(''//CIX//'
+                  IF (INDX.EQ.1) WRITE(ICON,'(5X,A,A,A)')
+     1            '1  '')) X ',VBF(1:MLET6),'(''//CIX//'')'''
+                  IF (INDX.EQ.2.OR.INDX.EQ.3) WRITE(ICON,'(5X,A,A,A)')
+     1            '1  '')) / ',VBF(1:MLET6),'(''//CIX//'')'''
+               ENDIF
+C END OCT 2005
+C
+               WRITE(ICON,'(6X,A,A,A,A,A,A,A,A,A,A,A,A,A)')
+     1        'CALL CONX(',VB(1:MLET4),
+     1        '(',WIJ,'),',VBA(1:MLET5),'(',WIJ,'),',
+---------------------------------------------------------------------------
+
+
+
+
+
+15. October 2005
+GENPROMPT was modified to permit variables with a maximum of seven characters
+rather than just six characters. The following changes were made to genprompt.src:
+-----------------------------------------------------------------------------
+7,10c7
+< C BEG OCT 2005
+< C     CHARACTER*7 ANS, ANS2, VNAME, TAG
+<       CHARACTER*8 ANS, ANS2, VNAME, TAG
+< C END OCT 2005
+---
+>       CHARACTER*7 ANS, ANS2, VNAME, TAG
+16,20c13
+< C BEG OCT 2005
+< C     CHARACTER*6 NV,NC,VB,VBA,VBF,WICHA,WCHA,NVSAVE,NCSAVE,NAMSAV
+<       CHARACTER*6 WICHA,WCHA
+<       CHARACTER*7 NV,NC,VB,VBA,VBF,NVSAVE,NCSAVE,NAMSAV
+< C END OCT 2005
+---
+>       CHARACTER*6 NV,NC,VB,VBA,VBF,WICHA,WCHA,NVSAVE,NCSAVE,NAMSAV
+22,29c15,17
+< C BEG OCT 2005
+< C     CHARACTER*12 CASE
+< C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8
+< C     CHARACTER*16 CASE9,CASE10,CASE11,CASE12,CASE13
+<       CHARACTER*28 CASE
+<       CHARACTER*32 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8
+<       CHARACTER*32 CASE9,CASE10,CASE11,CASE12,CASE13
+< C END OCT 2005
+---
+>       CHARACTER*12 CASE
+>       CHARACTER*16 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8
+>       CHARACTER*16 CASE9,CASE10,CASE11,CASE12,CASE13
+32,33c20
+< C BEG OCT 2005 (CODE3, CODE4, CODE6 increased by one character)
+<       CHARACTER*45 CODE3
+---
+>       CHARACTER*44 CODE3
+35c22
+<       CHARACTER*32 CODE4
+---
+>       CHARACTER*31 CODE4
+37,38c24
+<       CHARACTER*51 CODE6
+< C END OCT 2005
+---
+>       CHARACTER*50 CODE6
+98,101c84
+< C BEG OCT 2005
+< C     IF (I.EQ.0) NLET = 12
+<       IF (I.EQ.0) NLET = 28 
+< C END OCT 2005
+---
+>       IF (I.EQ.0) NLET = 12
+599,602c582
+< C BEG OCT 2005
+< C     NAMSAV = '      '
+<       NAMSAV = '       '
+< C END OCT 2005
+---
+>       NAMSAV = '      '
+607,620c587,592
+< C BEG OCT 2005
+< C     NVSAVE = '------'
+< C     NCSAVE = '------'
+< C     ROWDSV = '------'
+< C     COLDSV = '------'
+< C     ILONG1 = 6
+< C     ILONG2 = 6
+<       NVSAVE = '-------'
+<       NCSAVE = '-------'
+<       ROWDSV = '-------'
+<       COLDSV = '-------'
+<       ILONG1 = 7
+<       ILONG2 = 7
+< C END OCT 2005
+---
+>       NVSAVE = '------'
+>       NCSAVE = '------'
+>       ROWDSV = '------'
+>       COLDSV = '------'
+>       ILONG1 = 6
+>       ILONG2 = 6
+767,769d738
+< C BEG OCT 2005
+< C        WRITE(6,'(1X,A,$)')
+< C    1 ' PROVIDE A NAME FOR THE VARIABLE (6 or less characters, CAPS):'
+771,772c740
+<      1 ' PROVIDE A NAME FOR THE VARIABLE (7 or less characters, CAPS):'
+< C END OCT 2005
+---
+>      1 ' PROVIDE A NAME FOR THE VARIABLE (6 or less characters, CAPS):'
+784,787c752
+< C BEG OCT 2005
+< C        IF (I.EQ.0) MLET = 6
+<          IF (I.EQ.0) MLET = 7
+< C END OCT 2005
+---
+>          IF (I.EQ.0) MLET = 6
+859d823
+< C BEG OCT 2005 (1:6) changed to (1:7)
+861c825
+<             VB = VNAME(1:7)
+---
+>             VB = VNAME(1:6)
+865c829
+<             VBA = VNAME(1:7)
+---
+>             VBA = VNAME(1:6)
+869c833
+<             VBF = VNAME(1:7)
+---
+>             VBF = VNAME(1:6)
+872d835
+< C END OCT 2005
+1108,1111c1071
+< C BEG OCT 2005
+< C              IF (MLET.LT.6) NC = 'J'//VNAME(1:MLET)
+<                IF (MLET.LT.7) NC = 'J'//VNAME(1:MLET)
+< C END OCT 2005
+---
+>                IF (MLET.LT.6) NC = 'J'//VNAME(1:MLET)
+1113,1116c1073
+< C BEG OCT 2005
+< C              IF (MLET.EQ.6) NC = 'J'//VNAME(1:MLET1)
+<                IF (MLET.EQ.7) NC = 'J'//VNAME(1:MLET1)
+< C END OCT 2005
+---
+>                IF (MLET.EQ.6) NC = 'J'//VNAME(1:MLET1)
+1300,1303c1257
+< C BEG OCT 2005
+< C           IF (I.EQ.0) IENDNV = 6
+<             IF (I.EQ.0) IENDNV = 7
+< C END OCT 2005
+---
+>             IF (I.EQ.0) IENDNV = 6
+1307,1310c1261
+< C BEG OCT 2005
+< C              IF (I.EQ.0) IENDNC = 6
+<                IF (I.EQ.0) IENDNC = 7
+< C END OCT 2005
+---
+>                IF (I.EQ.0) IENDNC = 6
+2134d2084
+< C BEG OCT 2005
+2137,2138c2087,2088
+<      1          'WORDCX= ''(',VB(1:MLET4),'(''//CIX//'',''//CJX//'')/',
+<      1            VBA(1:MLET5),'(''//CIX//'',''//CJX//'
+---
+>      1          'WORDCX= ''(',VB(1:MLET5),'(''//CIX//'',''//CJX//'')/',
+>      1            VBA(1:MLET4),'(''//CIX//'',''//CJX//'
+2141,2143c2091,2092
+<      1          'WORDCX= ''(',VBA(1:MLET5),'(''//CIX//'',''//CJX//'')/',
+<      1            VB(1:MLET4),'(''//CIX//'',''//CJX//'
+< C END OCT 2005
+---
+>      1          'WORDCX= ''(',VBA(1:MLET4),'(''//CIX//'',''//CJX//'')/',
+>      1            VB(1:MLET5),'(''//CIX//'',''//CJX//'
+2436c2385
+<             TAG   = CN3//'     '
+---
+>             TAG   = CN3//'    '
+2438c2387
+<             IF (ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n') TAG = '        '
+---
+>             IF (ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n') TAG = '       '
+2961,2968c2910,2913
+< C BEG OCT 2005
+< C     CHARACTER*7 ANS   
+< C     CHARACTER*7 ANSMOD
+< C     DO 10 I = 1,7
+<       CHARACTER*8 ANS
+<       CHARACTER*8 ANSMOD
+<       DO 10 I = 1,8
+< C END OCT 2005
+---
+>       CHARACTER*7 ANS   
+>       CHARACTER*7 ANSMOD
+> C     
+>       DO 10 I = 1,7
+2973,2978c2918,2919
+< C BEG OCT 2005
+< C     ANSMOD = ANS(ISTART:7)
+<       ANSMOD(1:7) = ANS(ISTART:8)
+<       ANS(1:7) = ANSMOD(1:7)
+<       ANS(8:8) = ' '
+< C END OCT 2005
+---
+>       ANSMOD = ANS(ISTART:7)
+>       ANS = ANSMOD
+3013,3016c2954
+< C BEG OCT 2005
+< C     CHARACTER*7 VNAME
+<       CHARACTER*8 VNAME
+< C END OCT 2005
+---
+>       CHARACTER*7 VNAME
+---------------------------------------------------------
+
+
+
+
+16. November 2005
+
+The URPROMPT.DAT file was modified to prompt for one of five values for IMOVE.
+Previously there were only two choices. The third and fourth choices lead to very tight
+move limits, useful when you already have an optimum design and want to explore
+design space in its immediate neighborhood.
+
+New wording in Prompt no. 740 in the file URPROMPT.DAT:
+------------------------------------------------------------------------------
+ 740.1 Choose 1 or 2 or 3 or 4 or 5 for move limits, IMOVE
+ 740.2
+       IMOVE = 1 means that decision variables will generally
+                 change by less than 10 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+                 **** Ordinarily you should use this choice. ****
+
+       IMOVE = 2 means that decision variables will generally
+                 change by less than 50 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+
+       IMOVE = 3 means that decision variables will generally
+                 change by less than 1.0 percent of their current
+                 values in each optimization cycle (except for
+                 occasional "jumps" that may occur on the initial
+                 cycle corresponding to each "OPTIMIZE" command).
+                 You may want to use this choice: 1. if you already
+                 have a "global" optimum design from a SUPEROPT run,
+                 and 2. you want to explore more in the immediate
+                 neighborhood of the "global" optimum that you have
+                 already determined from your previous SUPEROPT run.
+
+       IMOVE = 4 means that decision variables will generally
+                 change by less than 2.0 percent in each optimization
+                 cycle. See "IMOVE = 3" for more.
+
+       IMOVE = 5 means that decision variables will generally
+                 change by less than 5.0 percent in each optimization
+                 cycle. See "IMOVE = 3" for more. You may want to
+                 use this option if the margins are "jumpy" from
+                 optimization cycle to cycle.
+-------------------------------------------------------------------------
+
+The main program, main.src, was modified as follows:
+-------------------------------------------------------------------------
+        CALL DATUM2(IFILE,740,1,2,IMOVE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+        SMOVE = 0.1
+        IF (IMOVE.EQ.2) SMOVE = 0.5
+        IF (IMOVE.EQ.3) SMOVE = 0.01
+        IF (IMOVE.EQ.4) SMOVE = 0.02
+        IF (IMOVE.EQ.5) SMOVE = 0.05
+        IF (ITIGHT.EQ.1) SMOVE = 0.02
+C END NOV 2005
+        CALL DATUM2(IFILE,742,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        RATIO = 10.
+        IF (ANSL12('N',ANSOUT,INFILE))
+     1    CALL DATUM2(IFILE,743,1,2,INT,RATIO,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+        IF (IMOVE.EQ.3.OR.IMOVE.EQ.4) RATIO = 10000000.
+C END NOV 2005
+        CALL DATUM2(IFILE,745,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+-------------------------------------------------------------------------
+
+
+
+
+17. November 2005
+SUBROUTINE STORE was modified to print out the margins corresponding to
+the best ALMOST FEASIBLE and best FEASIBLE designs. Also, a strategy
+was introduced to set the current design to the best design and to
+tighten the move limits at intervals during a SUPEROPT run. Control indices
+IAUTOC, ITIGHT, and IITIGH were introduced to implement this new strategy.
+IAUTOC = 1 means and AUTOCHANGE execution was just performed; ITIGHT = 1
+means "tighten move limits"; IITIGH(i) = 1 means "new strategy has been entered
+at the ith interval" during the SUPEROPT run. The maximum number of design
+iterations during a SUPEROPT run was increased from 300 to 500. The intervals
+at which the move limits are tightened during a SUPROPT run are:
+
+   ith Interval       Interation Number
+    i = 1               ITRTOT > 150
+    i = 2               ITRTOT > 300
+    i = 3               ITRTOT > 430
+
+in which ITRTOT is the total number of iterations during the SUPEROPT run.
+As the SUPEROPT run progresses, at a sample point during the SUPEROPT run
+the new strategy works as follows:
+
+1. AUTOCHANGE is executed followed by n executions of OPTIMIZE with
+   use of the "regular" move limit (SMOVE = 0.1 or 0.05, for examples;
+   n = the user-provided number of OPTIMIZEs per AUTOCHANGE).
+
+2. Is ITRTOT > k (k = 150 or 300 or 430) after execution of the nth OPTIMIZE?
+   Suppose, for example, that ITRTOT = 165 after completion of Step 1.
+
+3  If ITRTOT > k, then SUBROUTINE STORE identifies the best "ALMOST
+   FEASIBLE" or "FEASIBLE" design within the ith interval. For example, if
+   i = 1 (first interval) then SUBROUTINE STORE checks for the best design over
+   the interval from Iteration No. 1 to Iteration No. 165. The best design
+   in that interval is stored in the proper common blocks via SUBROUTINES
+   SETUPX, SETUPV, and SETUPC.
+
+4. The main program, main.src, tightens the move limit to SMOVE = 0.02
+   because the control index, ITIGHT has been changed from 0 to 1 .
+
+5. OPTIMIZE is executed the remaining n-1 times with the tightened move
+   limit before AUTOCHANGE is executed again.
+
+6. At the next execution of AUTOCHANGE the index ITIGHT is reset to 0.
+   and design iterations proceed through the next SUPEROPT interval with
+   the re-widened move limit.
+
+7. Near the end of this SUPEROPT interval steps 1 - 6 are repeated,
+   except that for the 2nd and 3rd intervals (i = 2 or 3) the search for the
+   best "ALMOST FEASIBLE" or "FEASIBLE" design is over the interval N to ITRTOT,
+   in which N = ITRMIN(i) = ITRTOT(at previous interval) + 50. The "50"
+   is added to prevent the same best design that was identified in the
+   previous interval from being explored intensively a second time.
+ 
+IAUTOC, ITIGHT, IITIGHi(i) are all initialized to zero in BEGIN; IAUTOC is set
+to 1 and ITIGHT to 0 in AUTOCHANGE; IAUTOC is reset to zero and IITIGH(i) are
+set to 1 in STORE. The new section of SUBROUTINE STORE is as follows:
+---------------------------------------------------------------------------
+C BEG NOV 2005
+C  Purpose of this section is to reset the next starting design to the
+C  best design found so far and to set an index, ITIGHT, to unity. ITIGHT
+C  = 1 will tell the mainprocessor, main.src, to tighten the move limits
+C  in the neighborhood of the best design found after ITRMX2 iterations
+C  but before the end of a SUPEROPT run. IAUTOC is set equal to 1 in
+C  chauto.src (AUTOCHANGE) and ITIGHT is set equal to 0 in AUTOCHANGE.
+C  IAUTOC, ITIGHT and IITIGH(i) are all initialized to zero in BEGIN.
+C
+         ITRMX2 = 150 
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(1),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(1).EQ.0) THEN
+            ITRMIN(1) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(1) = 1
+            CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,680) OBJMIN
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)=',
+     1               IAUTOC, ITIGHT, IITIGH(1), ITRMIN(1)
+         ENDIF
+C
+         ITRMX2 = 300 
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(2),ITRMIN(1)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(2).EQ.0) THEN
+C
+            OBJMN2 = 10.E+25
+            ITRMN1 = ITRMIN(1)
+            DO 71 I = ITRMN1,ITRTOT
+               IF (DWORD(I).NE.' NOT FEASIBLE  ') THEN
+                  OBJMN2 = MIN(OBJMN2,OBJPLT(I))
+               ENDIF
+   71       CONTINUE
+            DO 72 I = ITRMN1,ITRTOT
+               DIF = ABS(OBJPLT(I) - OBJMN2)/OBJMN2
+               IF (DIF.LT.0.00001) THEN
+                  IBEST3 = I
+                  GO TO 73
+               ENDIF
+   72       CONTINUE
+   73       CONTINUE
+C
+            REWIND IFILE2
+            READ(IFILE2)  (ILINE(I), I=1,ITRTOT)
+            READ(IFILE2)  (ILINE2(I), I=1,ITRTOT)
+            DO 74 ICAR = 1,NCAR
+            READ(IFILE2)  (CCPLOT(I), I=1,ITRTOT)
+   74       CONTINUE
+            DO 75 IVAR = 1,NVAR
+               READ(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+               VARBS3(IVAR) = DDPLOT(IBEST3)
+   75       CONTINUE
+            CALL MOVER(0,0,ISUB,1,100)
+C
+            ITRMIN(2) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(2) = 1
+            CALL SETUPX(NVAR,IDV,VARBS3,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,680) OBJMN2
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)=',
+     1               IAUTOC, ITIGHT, IITIGH(2), ITRMIN(2)
+         ENDIF
+C
+         ITRMX2 = 430 
+         WRITE(IFILE8,'(A,/,7I8)')
+     1 ' ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)=',
+     1   ITYPE,ITRTOT,ITRMX2,IAUTOC,ITIGHT,IITIGH(3),ITRMIN(2)
+         IF (ITYPE.EQ.1.AND.ITRTOT.GE.ITRMX2.AND.IAUTOC.EQ.1
+     1                                      .AND.IITIGH(3).EQ.0) THEN
+C
+            OBJMN2 = 10.E+25
+            ITRMN2 = ITRMIN(2)
+            DO 76 I = ITRMN2,ITRTOT
+               IF (DWORD(I).NE.' NOT FEASIBLE  ') THEN
+                  OBJMN2 = MIN(OBJMN2,OBJPLT(I))
+               ENDIF
+   76       CONTINUE
+            DO 77 I = ITRMN2,ITRTOT
+               DIF = ABS(OBJPLT(I) - OBJMN2)/OBJMN2
+               IF (DIF.LT.0.00001) THEN
+                  IBEST3 = I
+                  GO TO 78
+               ENDIF
+   77       CONTINUE
+   78       CONTINUE
+C
+            REWIND IFILE2
+            READ(IFILE2)  (ILINE(I), I=1,ITRTOT)
+            READ(IFILE2)  (ILINE2(I), I=1,ITRTOT)
+            DO 79 ICAR = 1,NCAR
+            READ(IFILE2)  (CCPLOT(I), I=1,ITRTOT)
+   79       CONTINUE
+            DO 80 IVAR = 1,NVAR
+               READ(IFILE2) (DDPLOT(I),I=1,ITRTOT)
+               VARBS3(IVAR) = DDPLOT(IBEST3)
+   80       CONTINUE
+            CALL MOVER(0,0,ISUB,1,100)
+C
+            ITRMIN(3) = ITRTOT + 50
+            ITIGHT = 1
+            IITIGH(3) = 1
+            CALL SETUPX(NVAR,IDV,VARBS3,VARLOW,VARHI,X,VLB,VUB,NDEC,
+     1                  WORDV)
+            CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+     1                  CPWR,JTERMS)
+            IZERO = 0
+            CALL SETUPC(NVAR,VAR)
+            WRITE(IFILE8,680) OBJMN2
+C
+            ARGSTR = ' VALUES OF DESIGN VARIABLES TO BE '//
+     $               'USED AS NEXT STARTING DESIGN      '
+            CALL OUTVAR(NVAR,VAR,WORDV,IADDV,ARGSTR,IFILE8,80,1,ISUB,1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            WRITE(IFILE8,'(/,A,/,A,/,A,4I5,/)')
+     1    ' Tightening move limits for optimization in the',
+     1    ' neighborhood of the local optimum design just listed.',
+     1    ' Indices: IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)=',
+     1               IAUTOC, ITIGHT, IITIGH(3), ITRMIN(3)
+         ENDIF
+C
+         IAUTOC = 0
+C END NOV 2005
+      ENDIF
+C     End of (ITYPE.EQ.1.AND.KOUNT.GT.0) condition
+----------------------------------------------------------------------------
+
+
+
+
+
+18. November 2005
+Some miscellaneous changes to GENOPT:
+
+a. conman.src was modified as follows:
+--------------------------------------------------------------------------------------
+C
+C BEG NOV 2005
+C     IF (IWARNV.EQ.0.AND.G(I).LT.1.1.AND.ABS(A(IDV,J)).GT.5.0   <--5.0 changed to 10.0
+C    1               .AND.G(I).GT.0.5) THEN
+      IF (IWARNV.EQ.0.AND.G(I).LT.1.1.AND.ABS(A(IDV,J)).GT.10.0
+     1               .AND.G(I).GT.0.5) THEN
+C END NOV 2005
+         WRITE(IFILE,7) NUMVAR,XSAVE,WORDV
+    7    FORMAT(/' *** WARNING *** WARNING *** WARNING *** WARNING ***'/
+     1' BEHAVIOR IS VERY SENSITIVE TO SMALL CHANGES IN VARIABLE NO.',I2/
+     1' THE UNPERTURBED VALUE OF WHICH IS ',1PE12.4,' DEFINED AS:'/
+     1' ',A/
+     1' THE MOVE LIMITS OF THIS DECISION VARIABLE WILL BE SEVERELY'/
+     1' CONSTRAINED FOR THE REST OF THE ITERATIONS IN THIS RUN.'/
+     1' ****** END WARNING **** END WARNING **** END WARNING ******'/)
+        IWARNV = 1
+      ENDIF
+C END AUG 1990
+   10 CONTINUE
+      RETURN
+      END
+--------------------------------------------------------------------------------------
+
+
+b. There is a new input datum in ..genopt/execute/URPROMPT.DAT, as follows:
+-------------------------------------------------------------------------------------
+ 748.1 Do you want to have dx/x modified by GENOPT?
+ 748.2 
+       For ordinary structures problems you should probably
+       answer N .  If you answer Y GENOPT will modify the
+       size of the perturbation, dx/x, by a factor that depends
+       on the history of the evolution of the design during
+       optimization cycles: the perturbation will be increased
+       by the ratio XAVE(IDV)/X(IDV), in which XAVE(IDV) is the
+       average value of the IDVth decision variable over the
+       last several design cycles and X(IDV) is the current
+       value of that decision variable. If XAVE(IDV)/X(IDV) is
+       less than 1.0, then the perturbation dx/x is not modified.
+--------------------------------------------------------------------------------------
+
+What use to be URPROMPT no. 748 was changed to 749. mainsetup.src and main.src
+were modified. main.src was modified as follows:
+-------------------------------------------------------------------------------------
+        CALL DATUM2(IFILE,745,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        DX0 = 0.05
+        IF (ANSL12('N',ANSOUT,INFILE))
+     1      CALL DATUM2(IFILE,747,1,2,INT,DX0,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+        IMODFY = 0
+        CALL DATUM2(IFILE,748,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        IF (ANSL12('Y',ANSOUT,INFILE)) IMODFY = 1
+        IF (SMOVE.LT.0.031) IMODFY = 0
+        CALL DATUM2(IFILE,749,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+C END NOV 2005
+        IF (ANSL12('Y',ANSOUT,INFILE)) ITRTOT = 0
+      ENDIF
+----------------------------------------------------------------------------------
+
+
+
+c. There is another new input datum in ..genopt/execute/URPROMPT.DAT, as follows:
+----------------------------------------------------------------------------------
+ 725.1 Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+ 725.2 
+       IDESIGN controls the quality of the best acceptable design,
+       as follows:
+
+       IDESIGN  accept only the best "---" design   minimum allowable
+                                                     design margin
+        1     "FEASIBLE"                                -0.01
+        2     "FEASIBLE or ALMOST FEASIBLE"             -0.05
+        3     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE"                       -0.10
+        4     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE or MORE UNFEASIBLE"    -0.15
+        5     "FEASIBLE or ALMOST FEASIBLE or
+               MILDLY UNFEASIBLE or MORE UNFEASIBLE     -0.20
+               or MOSTLY UNFEASIBLE"
+
+       These choices are permitted because there are many cases
+       for which design iterations "wallow" in a region of design
+       space for which the design is in the range from "ALMOST
+       FEASIBLE" to "MOSTLY UNFEASIBLE". The best "MOSTLY
+       UNFEASIBLE" design may be a lot better (e.g. weigh much less)
+       than the best "ALMOST FEASIBLE" design, and the GENOPT user
+       may be willing to accept a few "MOSTLY UNFEASIBLE" margins,
+       depending upon what particular behavior(s) are "MOSTLY
+       UNFEASIBLE". For example, in the design of a shell structure
+       for which the maximum stress is generated mostly from bending,
+       the GENOPT user may feel that there is considerable residual
+       strength in the shell even if its extreme fibers are stressed
+       well beyond their elastic limit. Hence, if the behavioral
+       constraint is violated because the maximum allowable elastic
+       stress has been exceeded, this GENOPT user may feel that the
+       optimized design will still be safe.
+---------------------------------------------------------------------------------
+
+mainsetup.src and main.src were modified as follows:
+---------------------------------------------------------------------------------
+      IF (ITYPE.EQ.1) THEN
+        CALL DATUM2(IFILE,720,1,2,ITER,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        CALL DATUM2(IFILE,725,1,2,IDESGN,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END NOV 2005
+        CALL DATUM2(IFILE,730,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+---------------------------------------------------------------------------------
+
+The end part of the *.OPP file now appears typically as the following:
+-------------------------------------------------------------------------------
+ ==============================================================
+ ITERATION                                        NUMBER OF
+  NUMBER      OBJECTIVE     THE DESIGN IS...   CRITICAL MARGINS
+ --------------------------------------------------------------
+ ------------------------------------------------------OPTIMIZE
+     1         1.7580E+02      NOT FEASIBLE           4
+     2         1.8296E+02     MORE UNFEASIBLE         3
+     3         1.8078E+02         FEASIBLE            1
+     4         1.7288E+02     ALMOST FEASIBLE         1
+     5         1.6987E+02     MILDLY UNFEASIB         1
+     6         1.7074E+02         FEASIBLE            1
+ ------------------------------------------------------OPTIMIZE
+     7         1.7074E+02         FEASIBLE            1
+     8         1.6718E+02         FEASIBLE            0
+     9         1.6126E+02     MOSTLY UNFEASIB         7
+    10         1.6648E+02         FEASIBLE            0
+    11         1.6271E+02     ALMOST FEASIBLE         2
+    12         1.5794E+02     MOSTLY UNFEASIB         4
+ ------------------------------------------------------OPTIMIZE
+    13         1.5794E+02     MOSTLY UNFEASIB         4
+    14         1.5701E+02     MORE UNFEASIBLE         3
+    15         1.5876E+02     ALMOST FEASIBLE         3
+    16         1.5470E+02      NOT FEASIBLE           4
+    17         1.5546E+02     ALMOST FEASIBLE         3
+    18         1.5441E+02     MILDLY UNFEASIB         5
+ =============================================================================
+--------------------------------------------------------------------------------
+
+Previously there were only three descriptors under the heading, THE DESIGN IS...:
+NOT FEASIBLE, ALMOST FEASIBLE, and FEASIBLE. The new, more varied output reveals
+more about what is going on during design iterations. 
+
+
+
+
+
+19. November, 2005
+The processor CHPLOT was modified to permit a maximum of 19 traces per plot.
+Previously the maximum was 10 traces per plot.
+
+
+
+
+20. December, 2005
+A new input datum was introduced into MAINSETUP and MAIN. The new input
+is described in the file genopt/execute/URPROMPT.DAT as follows:
+----------------------------------------------------------------------------
+ 723.1 Take "shortcuts" for perturbed designs (Y or N)?
+ 723.2
+       If you answer "Y" IFAST will be set to 1. Otherwise, IFAST = 0
+
+       This prompt allows you to use IFAST in SUBROUTINE STRUCT or in one
+       or more of the "behavior" subroutines, BEHXi, i = 1, 2, 3,...
+       in order to speed up optimization cycles. It is usually best,
+       however, to answer "N", since that choice leads to more accurate
+       values for the gradients of the behavioral constraint conditions.
+
+       For example, if you are computing buckling modal imperfection
+       shapes: Do you want to recompute them for the PERTURBED designs
+       or do you want to use the same buckling modal imperfection shapes
+       computed for the UNPERTURBED (current) design for the PERTURBED
+       designs also? Recomputing often means higher constraint gradients
+       but usually leads to better "global" optimum designs.
+---------------------------------------------------------------------------
+
+It was necessary to modify genprompt.src and struct.tmpl in order to
+introduce the new control index, IFAST, into subroutine argument lists.
+
+
+
+21. February, 2008
+Six new files have been added to the ...genopt/doc directory:
+
+1. 1990genopt.pdf	(1990 GENOPT paper in Int. J. Solids & Structures)
+2. BIGBOSOR4-Vol-1.pdf	(first  third of Lockheed report LMMS P525674, Nov. 1999)
+3, BIGBOSOR4-Vol-2.pdf	(second third of Lockheed report LMMS P525674, Nov. 1999)
+4. BIGBOSOR4-Vol-3.pdf	(final  third of Lockheed report LMMS P525674, Nov. 1999)
+5. bushnell.bio.pdf     (short biography/photograph of David Bushnell)
+6. howtorunlinux.pdf    (directions on how to get started)
+
+
+
+
+22. For cases when GENOPT is used in connection with BIGBOSOR4, the latest
+BIGBOSOR4 source files were copied to the directory: /home/progs/genopt/case/sources
+The source file, addbosor4.src, was modified for use with GENOPT by commenting
+out the initializing call to GASP in SUBROUTINE B4MAIN.
+
+23. January, 2009
+
+A small bug was found in ...genopt/sources/genprompt.src. The following format
+statement was changed. The updated version is as follows (final "A" used to be "A6"):
+
+  266       FORMAT(/
+     1' ACTUAL RESPONSE    = BEHAV = ',A,' = ',A/
+     1' ALLOWABLE RESPONSE = ALLOW = ',A,' = ',A/
+     1' FACTOR OF SAFETY   = FSAFE = ',A,' = ',A)
+
+24. February, 2009
+...genopt/sources/genprompt.src was modified as follows:
+
+---------------------------------------------------------------
+C=DECK      GENPROMPT
+      PROGRAM GENTXT
+C
+C  PURPOSE IS TO PERMIT USER TO SET UP A PROMPT FILE.
+C
+ (lines skipped to save space)
+
+C BEG OCT 2005
+      WRITE(IDEF,1557)
+      WRITE(IDEF,1558)
+C END OCT 2005
+      WRITE(IDEF,156)
+C BEG FEB 2009
+      WRITE(IDEF,1561)
+C END FEB 2009
+      WRITE(IDEF,1562)
+
+ (lines skipped to save space)
+
+     1'C [2] Bushnell, D., "Automated optimum design of shells of'/
+     1'C revolution with application to ring-stiffened cylindrical'/
+     1'C shells with wavy walls", AIAA paper 2000-1663, 41st'/
+     1'C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see'/
+     1'C Lockheed Martin report, same title, LMMS P525674, November'/
+     1'C 1999'/)
+C BEG FEB 2009
+ 1561 FORMAT(
+     1'C [2b] Bushnell, D., "Minimum weight design of imperfect'/
+     1'C isogrid-stiffened ellipsoidal shells under uniform external'/
+     1'C pressure", AIAA paper 2009-2702, 50th AIAA Structures'/
+     1'C Meeting, Palm Springs, CA, May 4-7, 2009'/)
+C END FEB 2009
+ 1562 FORMAT(
+     1'C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for'/
+     1'C automated design synthesis, Version 2.01", Engineering'/
+     1'C Design Optimization, Inc, Santa Barbara, CA, January, 1987'//
+
+ (lines skipped to save space)
+
+      IF (INFILE.EQ.5) then
+        WRITE(6,5001) CASE(1:NLET),CASE(1:NLET),
+     1                CASE(1:NLET),CASE(1:NLET)
+C BEG FEB 2009
+        WRITE(6,5003) CASE(1:NLET),CASE(1:NLET)
+C END FEB 2009
+        write(6,5002)
+      endif
+ 5001 FORMAT(/
+
+ (lines skipped to save space)
+
+     1' Your tasks in GENOPT are:'/
+     1'    1. To provide variable names, definitions and helping'/
+     1'       paragraphs that will make it easy for others to'/
+     1'       optimize things that fit within the problem class ',A//
+     1'    2. To complete subroutines BEHX1, BEHX2, BEHX3,. . .BEHXn'/
+     1'       which calculate ',A,' behavior for a given design;')
+C BEG FEB 2009
+ 5002 format(
+     1'    3. To compile and collect all pertinent software that'/
+     1'       both you and GENOPT have written in order to generate'/
+     1'       the absolute elements:  BEGIN.EXE, DECIDE.EXE,'/
+     1'       MAINSETUP.EXE, OPTIMIZE.EXE, and  CHANGE.EXE.'/)
+ 5003 FORMAT(
+     1'       to complete SUBROUTINE OBJECT, which calculates the'/
+     1'       objective to be minimized; and/or to add any other'/
+     1'       subroutines, common blocks, utilities, etc. that you'/
+     1'       may wish.'//
+     1'    2b.Possibly "flesh out" SUBROUTINE STRUCT (struct.new'/
+     1'       library) instead of or in addition to "fleshing out"'/
+     1'       the "behavioral" subroutines, BEHXi. See Ref. [2]'/
+     1'       listed in ',A,'.DEF for an example in which both SUB.'/
+     1'       STRUCT and the "behavior" routines, BEHXi, were'/
+     1'       "fleshed out". See Ref. [2b] in ',A,'.DEF for an'/
+     1'       example in which SUBROUTINE STRUCT was "fleshed out"'/
+     1'       but the "behavioral" routines, BEHXi, were left in'/
+     1'       their skeletal forms just as GENOPT automatically'/
+     1'       created them.'/)
+C END FEB 2009
+-----------------------------------------------------------------------
+
+
+
+25. February, 2009
+The huge report, sdm50.report, was added to ..genopt/case/torisph . This report
+and other documentation are for the optimum design of imperfect externally pressurized
+isogrid-stiffened ellipsoidal shells.
+
+
+
+26. May, 2009
+A new case, "weldland"/"wcold" was added to the GENOPT sample cases.
+The new directory is called .../genopt/case/weldland. The title and 
+an abstract of the project follow:
+-------------------------------------------------------------------
+
+Use of GENOPT and a BIGBOSOR4 "huge torus" model to optimize
+a typical weld land and weld land edge stringers in
+a previously optimized internally stiffened cylindrical
+shell without weld lands
+
+David Bushnell
+
+May 15, 2009
+
+
+ABSTRACT
+
+BIGBOSOR4 is used in an optimization loop in which the
+dimensions of a typical weld land and the dimensions of
+Tee-shaped stringers along the two straight edges
+(generators) of the weld land are decision variables.
+The optimization is carried out in a GENOPT context.
+Any number of equally spaced weld lands in a 360-degree
+cylindrical shell can be accommodated. The weld lands
+are inserted in an internally stiffened cylindrical shell
+which has been previously optimized by PANDA2. The
+previously optimized cylindrical shell must have internal
+stringers and rings of rectangular cross sections. The
+spacings, heights, and thicknesses of the internal rectangular
+stiffeners are not decision variables for the optimization
+problem in which the optimum weld land and "extra" weld
+land edge stringers are optimized. The design constraints
+for the cylindrical shell with the weld lands are:
+1. general buckling, 2. inter-ring buckling, and 3. stress.
+The prebuckled state is assumed to be uniform end
+shortening, with the axial compression in each segment
+of the structure proportional to the axial membrane
+stiffness of that segment. The entire structure is
+assumed to be fabricated of the same material. In the
+model for general buckling the previously optimized
+rectangular rings and stringers are smeared out and the
+cylindrical shell is simply supported at its ends. In the
+model for inter-ring buckling adjacent rings are replaced
+by simple supports, a length of shell equal to the ring
+spacing is analyzed, and the previously optimized
+stringers are smeared out. The maximum stress in the
+weld-land-edge-stringer region is computed as if there
+were no prebuckling bending (membrane compression). The
+cylindrical shell is modeled as a 180-degree segment
+of a huge torus, with symmetry conditions applied along
+the generators at the bottom and at the top of the
+huge toroidal segment. Weld lands in the previously
+optimized cylindrical shell called "nasacoldbend" are
+optimized for the case in which there are weld lands
+with weld land edge Tee-shaped stringers spaced at
+120-degree intervals around the circumference of the
+internally stiffened cylindrical shell.
+----------------------------------------------------------
+
+The case is in the directory:
+...genopt/case/weldland
+The case is documented in the files:
+2009weldlandopt.vol1.pdf
+2009weldlandopt.vol2.pdf
+2009weldlandopt.vol3.pdf
+
+
+
+
+27. June, 2009
+The program, ../genopt/sources/insert.src was modified in
+a way analogous to the October, 2005 modifications to the
+program, ../genopt/sources/genprompt.src. That is, insert.src
+was updated so that GENOPT-user-provided variable names can
+now contain up to 7 characters rather than six characters.
+The modifications to insert.src are enclosed in "C BEG JUN 2009"
+and "C END JUN 2009" brackets.
+
+
+
+
+28. June, 2009
+..genopt/sources/main.src and ../genopt/sources/store.src were
+updated with "JUNE, 2009" version designation.
+
+
+
+
+29. June, 2009
+The program, chauto.src ("AUTOCHANGE") was modified. Previously,
+AUTOCHANGE did not take into account inequality constraints. With
+the modification listed below the values of certain variables may
+be changed in AUTOCHANGE in an attempt to eliminate violations of
+inequality constraints. In this modification, no attempt is made
+to "loop" multiple times through the new "inequality constraint"
+section listed below. Mulitple passes through the new section
+would check to see if previous passes through that section
+introduced new violations of the inequality constraints. This
+"multiple looping" is not performed because there is a danger
+that the "multiple loop" would become an infinite loop.
+The program, chauto.src, was modified as follows:
+---------------------------------------------------------------
+   10 CONTINUE
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+C BEG JUN 2009
+C  Add statements that may lead to satisfaction of the inequality
+C  constraints. "VALUE" = value of the right-hand side of the
+C  inequality constraint. "REMAIN" = value of the remainder of the
+C  right-hand side of the inequality constraint after the second
+C  term in that expression has been subtracted from "VALUE". The
+C  variable, VAR(IVAR), in that second term is changed only if
+C  the inequality constraint is violated and the power to which
+C  VAR(IVAR) is raised is unity. 
+      IF (NINEQ.EQ.0) GO TO 18
+      DO 16 KOUNT = 1,NINEQ
+        VALUE = CINEQ(1,KOUNT)
+        JINEQ1 = JINEQ(KOUNT)
+        IF (JINEQ1.GE.2) THEN
+          DO 14 JJ = 2,JINEQ1
+             IVAR = IDINEQ(JJ,KOUNT)
+             IPWR = DPWREQ(JJ,KOUNT)
+             VALUE = VALUE + CINEQ(JJ,KOUNT)*VAR(IVAR)**IPWR
+   14     CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF ((IEQTYP(KOUNT).EQ.2.AND.VALUE.LT.1.0).OR.
+     1        (IEQTYP(KOUNT).EQ.1.AND.VALUE.GT.1.0)) THEN
+C   Inequality type 2 or type 1 is violated...
+C            First, try the 2nd term in the inequality expression:
+             IVAR = IDINEQ(2,KOUNT)
+             IPWR = DPWREQ(2,KOUNT)
+             REMAIN = VALUE -CINEQ(2,KOUNT)*VAR(IVAR)**IPWR
+             IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                         .AND.CINEQ(2,KOUNT).NE.0.) THEN
+C               2nd term variable no. IVAR is a decision variable
+C               (IDEC(IVAR)=1), and the 2nd term is otherwise acceptable.
+                VAR(IVAR) = (1.0 - REMAIN)/CINEQ(2,KOUNT) 
+             ELSE
+C               2nd term variable IVAR is NOT a decision variable or the
+C               the 2nd term is otherwise unacceptable. Try the 3rd term:
+                IF (JINEQ1.GE.3) THEN
+                  IVAR = IDINEQ(3,KOUNT)
+                  IPWR = DPWREQ(3,KOUNT)
+                  REMAIN = VALUE -CINEQ(3,KOUNT)*VAR(IVAR)**IPWR
+                  IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                              .AND.CINEQ(3,KOUNT).NE.0.) THEN
+C                    3rd term variable IVAR is a decision variable and
+C                    the 3rd term is otherwise acceptable:
+                     VAR(IVAR) = (1.0 - REMAIN)/CINEQ(3,KOUNT)
+                  ELSE
+C                 3rd term variable IVAR is NOT a decision variable or
+C                 third term is otherwise unacceptable. Try 4th term:
+                    IF (JINEQ1.GE.4) THEN
+                      IVAR = IDINEQ(4,KOUNT)
+                      IPWR = DPWREQ(4,KOUNT)
+                      REMAIN = VALUE -CINEQ(4,KOUNT)*VAR(IVAR)**IPWR
+                      IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                                  .AND.CINEQ(4,KOUNT).NE.0.) THEN
+C                        Variable IVAR is a decision variable and
+C                        the 4th term is otherwise acceptable:
+                         VAR(IVAR) = (1.0 - REMAIN)/CINEQ(4,KOUNT)
+                      ENDIF
+                    ENDIF
+                  ENDIF
+                ENDIF
+             ENDIF
+          ENDIF
+        ENDIF
+   16 CONTINUE
+   18 CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JUN 2009
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+-------------------------------------------------------------------
+
+
+
+
+30. June, 2009
+A new GENOPT case called "trusscomp" was generated. The title and
+abstract of the report on this effort are as follows:
+-------------------------------------------------------------------
+
+Use of GENOPT and BIGBOSOR4 to obtain optimum designs of a
+cylindrical shell with a composite truss-core sandwich wall 
+
+David Bushnell
+
+June 20, 2009
+
+ABSTRACT
+
+This GENOPT/BIGBOSOR4 case is analogous to the case called
+"weldland". (See the directory,...genopt/case/weldland, in
+particular the "weldland" report contained in the three files,
+2009weldlandopt.vol1.pdf,2009weldlandopt.vol2.pdf,
+2009weldlandopt.vol3.pdf, in that directory). Here, GENOPT/BIGBOSOR4
+is applied to the problem of an axially compressed perfect
+elastic cylindrical shell the wall of which is a composite
+truss-core sandwich. The design constraints are local buckling,
+general buckling, and five stress constraints for each material.
+Local and general buckling are computed from BIGBOSOR4 models
+in which the "huge torus" representation of the cylindrical
+shell is employed. In the "huge torus" representation of the
+cylindrical shell, what was the axial coordinate in the
+cylindrical shell becomes the circumferential coordinate
+in the "huge torus" model, and what was the circumferential
+coordinate in the cylindrical shell becomes the meridional
+coordinate in the "huge torus" model. In both the local and
+general buckling models the "huge torus" representation of the
+cylindrical shell consists of a number of identical modules
+strung together along the curved meridian of the "huge torus".
+The local buckling model usually consists of a single module
+that has 22 shell segments (although multiple-22-segment-module
+local buckling models are permitted). The rather elaborate 22-segment
+single-module model used for local buckling includes the small
+curved segments that occur at the corners of the trapezoidal
+tool around which the truss-core is wrapped during the fabrication
+process. The presence of "noodles" that fill the prismatic
+triangular-like gaps between adjacent trapezoids is accounted for.
+These "noodles" are represented in the "huge torus" model as
+rings attached to appropriate shell segments. The single module
+used in the general buckling model is much simpler. It consists
+of six straight shell segments analogous to those used in the
+truss-core sandwich model employed in PANDA2. The effect of the
+"noodles" is accounted for, however, which is not possible in
+the PANDA2 model. The number of modules used in the model for 
+general buckling is computed such that 90 degrees of the
+circumference of the cylindrical shell is included in the
+model. Stress constraints are computed in a way completely
+analogous to that used in PANDA2 for composite laminates. The
+computation of stress constraints is much simpler here than
+in PANDA2 because the prebuckled state of the "huge torus"
+is a uniform membrane state. The decision variables are the
+width of a single module, the width of the crown of one
+trapezoid, the height of the trapezoid, the small radius from
+the base to the sloping side of a trapezoid, the small radius
+from the sloping side to the crown of a trapezoid, and several
+lamina thicknesses. Optimum designs are obtained via SUPEROPT.
+The objective is the weight per unit area of the shell.
+------------------------------------------------------------------
+
+The case is stored in the directory:
+...genopt/case/trusscomp
+The case is documented in the files:
+trusscomp.vol1.pdf
+trusscomp.vol2.pdf
+trusscomp.vol3.pdf
+
+
+
+
+31. July, 2009
+A new GENOPT case called "submarine" was generated. The title and
+abstract of the report on this effort are as follows:
+-------------------------------------------------------------------
+
+Use of GENOPT and BIGBOSOR4 to obtain optimum designs of a
+deep submergence tank 
+
+David Bushnell
+
+July 1, 2009
+
+ABSTRACT
+
+The GENOPT/BIGBOSOR4 capability [1-3] is used to obtain an optimum
+design of a titanium cylindrical tank with hemispherical ends.
+The tank is subjected to 15000 psi uniform external pressure.
+The objective of the optimization is to minimize the weight of
+the tank subject to stress and buckling design constraints. The
+decision variables establish the distribution of the shell wall
+material in a wide neighborhood of the junction between the
+hemispherical and cylindrical segments of the tank. The titanium
+is assumed to remain elastic. Creep is not included. The maximum
+allowable effective stress is assumed to be 120000 psi. A factor
+of safety of 1.3 is used for buckling and a factor of safety of
+1.0 is used for stress. Enough detail is given so that an
+engineer or researcher other than the writer will be able to
+optimize similar shell structures with GENOPT/BIGBOSOR4.
+------------------------------------------------------------------
+
+The new case is stored in the diectory:
+...genopt/case/submarine
+The case is documented in the files:
+submarine.bigbosor4.pdf
+submarine.genopt.vol1.pdf
+submarine.genopt.vol2.pdf
+
+
+
+32. July, 2009
+The program, .../genopt/sources/genprompt.src was modified to
+provide additional output in the *.DEF file. The additional output
+is as follows:
+------------------------------------------------------------------
+ genopt/case/weldland/behavior.weldland (tiny mod.of struct.new
+ genopt/case/trusscomp/behavior.trusscomp (tiny mod. struct.new
+ genopt/case/submarine/behavior.submarine (tiny mod. struct.new
+ genopt/case/span/behavior.span (tiny modification   struct.new
+
+ The "tiny modification" of struct.new consists of adding only
+ three lines to struct.new: CALL OPNGEN, CALL RWDGEN, and
+ CALL CLSGEN, added as described on p. 2 of Table 8 of the file
+ ...genopt/case/trusscomp/trusscomp.vol1.pdf (see p. 53 of that
+ file). The three added statements, CALL OPNGEN, CALL RWDGEN,
+ and CALL CLSGEN, open, rewind, and close various files used by
+ BIGBOSOR4. If you plan to optimize some other shell using
+ GENOPT/BIGBOSOR4 you can "flesh out" struct.new in exactly the
+ same way. To find the places in the "skeletal" version of
+ struct.new that is automatically produced by GENTEXT, search
+ for the string, "YOU MAY WANT" in order to find where you
+ should insert the two lines, CALL OPNGEN and CALL RWDGEN.
+ Search for the string, "NCONSX", in order to find where you
+ should insert the line, CALL CLSGEN.
+----------------------------------------------------------------
+
+
+
+
+33. July, 2009
+The capability to have more terms in a linking expression was
+added. The following labelled common blocks had to be changed
+to do this:
+-----------------------------------------------------------------------
+C BEG JUL 2009 (change second dimension 5 to 20 in next 3 lines)
+      COMMON/PARAM2/FLAR(50),CAR(99),OAR(50),FSAFE(99),CPWR(50,20)
+      COMMON/LWRUPR/VARLOW(50),VARHI(50),CLINK(50,20),VLINK(50),VBV(99)
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,20),ISCAPE(50),JTERMS(20)
+C END JUL 2009
+-----------------------------------------------------------------------
+
+Also, statements in several libraries had to be changed. The files that
+had to be changed were all in the ...genopt/sources directory. They are:
+-----------------------------------------------------------------------
+-rw-r--r--  1 bush bush  17400 Jul 11 15:19 begin.tmpl
+-rw-r--r--  1 bush bush  11186 Jul 11 15:19 change.tmpl
+-rw-r--r--  1 bush bush   9808 Jul 11 11:01 chauto.src
+-rw-r--r--  1 bush bush  22187 Jul 11 11:17 conman.src
+-rw-r--r--  1 bush bush  35112 Jul 11 10:17 decide.src
+-rw-r--r--  1 bush bush  42447 Jul 11 11:08 main.src
+-rw-r--r--  1 bush bush  13128 Jul 11 11:09 mainsetup.src
+-rw-r--r--  1 bush bush   4573 Jul 11 15:19 stoget.tmpl
+-rw-r--r--  1 bush bush  35550 Jul 11 11:09 store.src
+-rw-r--r--  1 bush bush   9404 Jul 11 15:19 struct.tmpl
+----------------------------------------------------------------------
+
+
+
+34. July, 2009
+
+A case was run (generic name = span3) for which AUTOCHANGE produced
+an unacceptable new "starting" design. AUTOCHANGE (chauto.src) was
+modified as follows:
+-------------------------------------------------------------------
+
+(lines skipped to save space)
+
+C  A VECTOR DVAR OF RANDOM NUMBERS FROM 0 TO 1 ARE ADDED TO X.
+C  SETUPV GETS THE NEW VECTOR VAR FROM THE NEW X.
+C  SETUPC GETS THE NEW B,B2,H,W,W2, ETC. FROM THE NEW VAR.
+C
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      CALL MOVER(X,1,Y,1,NDEC)
+C BEG JUL 2009 (next 5 lines not needed)
+C     KOUNT = 0
+C     DO 8 I = 1,NVAR
+C     IF (IDEC(I).EQ.0) GO TO 8
+C     KOUNT = KOUNT + 1
+C   8 CONTINUE
+C END JUL 2009
+
+(lines skipped to save space)
+
+      IF (NINEQ.EQ.0) GO TO 19
+      DO 17 KOUNT = 1,NINEQ
+        VALUE = CINEQ(1,KOUNT)
+        JINEQ1 = JINEQ(KOUNT)
+        IF (JINEQ1.GE.2) THEN
+          DO 14 JJ = 2,JINEQ1
+             IVAR = IDINEQ(JJ,KOUNT)
+             IPWR = DPWREQ(JJ,KOUNT)
+             VALUE = VALUE + CINEQ(JJ,KOUNT)*VAR(IVAR)**IPWR
+   14     CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF ((IEQTYP(KOUNT).EQ.2.AND.VALUE.LT.1.0).OR.
+     1        (IEQTYP(KOUNT).EQ.1.AND.VALUE.GT.1.0)) THEN
+C BEG JUL 2009
+             IF (JINEQ1.GT.3) THEN
+                VALUEC = 0.
+                DO 15 JJ = 2,JINEQ1
+                 IVAR = IDINEQ(JJ,KOUNT)
+                 IPWR = DPWREQ(JJ,KOUNT)
+                 IF (IDEC(IVAR).EQ.0)
+     1           VALUEC = VALUEC + CINEQ(JJ,KOUNT)*VAR(IVAR)**IPWR
+   15           CONTINUE
+                CMODIF = (1. -CINEQ(1,KOUNT) -VALUEC)/
+     1                (VALUE -CINEQ(1,KOUNT) -VALUEC)
+                WRITE(IFILE8,'(/,A,/,2I4,1P,4E12.4)')
+     1        ' KOUNT,JINEQ1,VALUE,VALUEC,CINEQ(1,KOUNT),CMODIF=',
+     1          KOUNT,JINEQ1,VALUE,VALUEC,CINEQ(1,KOUNT),CMODIF
+                DO 16 JJ = 2,JINEQ1
+                 IVAR = IDINEQ(JJ,KOUNT)
+                 IF (IDEC(IVAR).EQ.1) VAR(IVAR) = CMODIF*VAR(IVAR)
+   16           CONTINUE
+                GO TO 17
+             ENDIF
+C END JUL 2009
+C   Inequality type 2 or type 1 is violated...
+C            First, try the 2nd term in the inequality expression:
+             IVAR = IDINEQ(2,KOUNT)
+             IPWR = DPWREQ(2,KOUNT)
+             REMAIN = VALUE -CINEQ(2,KOUNT)*VAR(IVAR)**IPWR
+             IF(IDEC(IVAR).EQ.1.AND.IPWR.EQ.1
+     1                         .AND.CINEQ(2,KOUNT).NE.0.) THEN
+C               2nd term variable no. IVAR is a decision variable
+C               (IDEC(IVAR)=1), and the 2nd term is otherwise acceptable.
+                VAR(IVAR) = (1.0 - REMAIN)/CINEQ(2,KOUNT) 
+             ELSE
+
+ (lines skipped to save space)
+
+             ENDIF
+          ENDIF
+        ENDIF
+   17 CONTINUE
+C BEG JUL 2009
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      DO 18 I = 1,NDEC
+         IF (X(I).LT.VLB(I)) X(I) = VLB(I)
+         IF (X(I).GT.VUB(I)) X(I) = VUB(I)
+   18 CONTINUE
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+   19 CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JUL 2009
+C END JUN 2009
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+      WRITE(IFILE8,20) (Y(I),I=1,NDEC)
+      WRITE(IFILE8,30) (X(I),I=1,NDEC)
+      WRITE(IFILE8,40) (DVARS(I),I=1,NDEC)
+------------------------------------------------------------------------
+
+In the new section bracketed by the statements:
+
+             IF (JINEQ1.GT.3) THEN
+             
+             ENDIF
+
+The quantity,
+
+                CMODIF = (1. -CINEQ(1,KOUNT) -VALUEC)/
+     1                (VALUE -CINEQ(1,KOUNT) -VALUEC)
+
+is used to generate new values of all the decision variables
+in the multi-termed KOUNTth inequality expression. (This fix
+works correctly only if the power to which the decision variable
+is raised in each term of the inequality expression is unity.)
+In the expression above for CMODIF:
+
+VALUE  = value of the right-hand side of the inequality expression,
+         including all terms involving variables and including the
+         constant term in the KOUNTth inequality expression,
+         CINEQ(1,KOUNT).
+
+VALUEC = value of all the terms on the right-hand-side of the
+         inequality expression that involve decision variable
+         candidates that are NOT decision variables.
+
+CINEQ(1,KOUNT) = the constant in the KOUNTth inequality expression.
+
+
+The new section bracketed by the statements "17 CONTINUE" and "19 CONTINUE"
+correct the updated variables to ensure that their newly established
+values do not violate the lower (VLB) and upper (VUB) bounds set by
+the user in "DECIDE".
+
+
+
+
+35. July, 2009
+An important FORMAT statement was modified in the following libraries:
+.../genopt/sources/main.src, mainsetup.src, and store.src . The new
+FORMAT statement in store.src, for example, is as follows:
+--------------------------------------------------------------------
+      WRITE(IFILE8,202)
+C BEG JUL 2009
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  202 FORMAT(
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  "OPTIMIZE"  MANY TIMES DURING AN OPTIMIZATION AND/OR USE'/
+     1' THE "GLOBAL" OPTIMIZING SCRIPT, "SUPEROPT".'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "OPTIMIZE" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' **** "How many design iterations in this run (3 to 25)?" ****'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' *** "5   $ How many design iterations in this run (3 to 25)?"'/)
+C END JUL 2009
+----------------------------------------------------------------------
+
+The new lines in the modified FORMAT statement are:
+
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "OPTIMIZE" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' **** "How many design iterations in this run (3 to 25)?" ****'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' *** "5   $ How many design iterations in this run (3 to 25)?"'/)
+
+These new lines will appear at the end of the *.OPM file, at the end of
+the *.OPP file, and on your screen at the end of the MAINSETUP interactive
+session. They have been added because the writer has discovered that users
+tend to put in the maximum allowable number of design iterations (25),
+which wastes computer time and which also prevents SUPEROPT from employing
+enough new "starting designs" during an execution of SUPEROPT. Please see
+the next news item, Item No. 36 for more on this same subject.
+
+
+
+
+36. July, 2009
+There is a new "CALL DATUM" in the library, .../genopt/sources/mainsetup.src,
+as follows:
+-------------------------------------------------------------------------
+      CALL DATUM(IFILE,710,1,2,ITYPE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (ITYPE.EQ.1) THEN
+C BEG JUL 2009
+         CALL DATUM(IFILE,715,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP) <--NEW
+C END JUL 2009
+         CALL DATUM(IFILE,720,1,2,ITER,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+-------------------------------------------------------------------------
+
+Too many GENOPT users have set the number of design iterations to a
+number that is much too high. The user should use 5, as explained in Item 35
+and next. Accordingly, a new "introductory"  "help" paragraph, number 715,
+in the file, .../genopt/execute/URPROMPT.DAT, has been introduced. This "help"
+paragraph pertains to the number of design iterations that the user is asked to
+provide near the end of the MAINSETUP interactive session. As explained in this
+new paragraph, the user is urged to choose a small number, such as 5 . The new
+"introductory" paragraph follows:
+--------------------------------------------------------------------------
+715.0
+      Next you will be asked for the number of design iterations.
+      This is the number of iterations corresponding to a single
+      execution of "OPTIMIZE", not the total number of iterations
+      to be processed for your entire case. It is almost always
+      best to use a small number like 5 iterations. The best
+      optimization strategy is explained in connection with Fig. 83
+      on p. 582 of the long 1987 PANDA2 paper, "PANDA2 - Program
+      for minimum weight design of stiffened, composite, locally
+      buckled panels. Computers & Structures, Vol. 25, No. 4,
+      pp. 469 - 605, 1987. You should get an optimum design by
+      several executions of "OPTIMIZE" with 5 iterations in each
+      execution. Better yet, use SUPEROPT. With many executions of
+      "OPTIMIZE" and few design iterations with each execution you
+      obtain the most efficient convergence to an optimum design.
+      When you execute SUPEROPT you get more "starting" designs
+      per SUPEROPT run when you use a small number like 5 for the
+      number of iterations, therefore a more complete exploration of
+      design space in the search for the best "global" optimum design.
+      The developer of GENOPT almost always uses 5 iterations.
+      -------------------------------------------------------------------------
+
+
+
+37. July, 2009
+Whenever you have inequality constraints it is generally a good 
+idea to normalize the variables in them, that is to make the inequality
+constraints non-dimensional, in order to keep the gradients
+of the corresponding constraint conditions reasonably small. In one
+example there exist several non-dimensionalized inequality constraints
+as follows:
+-------------------------------------------------------------
+  1 <1-0.10*V(2)+0.18*V(7)
+  1 <1-0.10*V(3)+0.18*V(8)
+  1 <1-0.10*V(4)+0.18*V(9)
+  1 <1-0.10*V(5)+0.18*V(10)
+  1 <1-0.10*V(6)+0.09*V(11)
+  1 <6.05-0.10*V(2)-0.10*V(3)-0.10*V(4)-0.10*V(5)-0.10*V(6)
+  1 <-3.95+0.10*V(2)+0.10*V(3)+0.10*V(4)+0.10*V(5)+0.10*V(6)
+-------------------------------------------------------------
+
+
+The variables in these non-dimensionalized inequality constraints
+are defined as follows:
+----------------------------------------------------------------------
+ PARAMETERS FROM WHICH DECISION VARIABLES CAN BE CHOSEN IN DECIDE
+ VAR.   CURRENT
+ NO.     VALUE            DEFINITION
+  2    1.111E+01  projected width (x-width) of sub-plate: SUBWID(1 )
+  3    1.111E+01  projected width (x-width) of sub-plate: SUBWID(2 )
+  4    1.111E+01  projected width (x-width) of sub-plate: SUBWID(3 )
+  5    1.111E+01  projected width (x-width) of sub-plate: SUBWID(4 )
+  6    5.556E+00  projected width (x-width) of sub-plate: SUBWID(5 )
+  7    1.000E+01  radius of corrugation: RPLATE(1 )
+  8    1.000E+01  radius of corrugation: RPLATE(2 )
+  9    1.000E+01  radius of corrugation: RPLATE(3 )
+ 10    1.000E+01  radius of corrugation: RPLATE(4 )
+ 11    1.000E+01  radius of corrugation: RPLATE(5 )
+---------------------------------------------------------------------
+
+The first five non-dimensionalized inequality constraints listed above
+force the sub-widths, SUBWID(i), i = 1, 2, 3, 4, 5, to be less than
+1.8 times the radii, RPLATE(i), i = 1, 2, 3, 4, 5. In this case the
+variables SUBWID(i) and RPLATE(i) have been normalized by 10.0, which
+happens to be, in this particular case, the starting value of RPLATE(i),
+i = 1, 2, 3, 4, 5. The sixth and seventh inequality constraints have
+been normalized by the the same value, 10 inches. If too large a
+normalization value is used the constraint gradients become so small
+that the optimizer, ADS, stops optimizing and GENOPT issues the
+message "Unable to find a better design" or some such.
+
+
+Before the non-dimensionalization, the "non-normalized" inequality constraints
+were originally as follows:
+-------------------------------------------------------------
+  1 <1-1.00*V(2)+1.80*V(7)
+  1 <1-1.00*V(3)+1.80*V(8)
+  1 <1-1.00*V(4)+1.80*V(9)
+  1 <1-1.00*V(5)+1.80*V(10)
+  1 <1-1.00*V(6)+0.90*V(11)
+  1 <51.5-1.00*V(2)-1.00*V(3)-1.00*V(4)-1.00*V(5)-1.00*V(6)
+  1 <-48.5+1.00*V(2)+1.00*V(3)+1.00*V(4)+1.00*V(5)+1.00*V(6)
+-------------------------------------------------------------
+
+These dimensional ("non-normalized") inequality constraints, originally
+used during optimization, gave rise to large constraint gradients (constraint
+gradients between 10 and 20).
+
+
+
+
+38. August, 2009
+This is a fairly important GENOPT news item. As a result of some
+attempts at "global" optimization that did not work out too well,
+AUTOCHANGE (the chauto.src library) was modified. A new input datum
+was introduced into the MAINSETUP interactive session. This new
+input datum is explained in a new section added to the prompting
+file, ../genopt/execute/URPROMPT.DAT, as listed next:
+--------------------------------------------------------------------
+ 749.1 Choose IAUTOF= 1 or 2 or 3 or 4 or 5 or 6 to change X(i)
+ 749.2
+       X(i) is the vector of decision variables. In AUTOCHANGE the
+       decision variables, X(i), i = 1, 2, ... NDEC, are changed
+       in one of the six following ways, that is, the index
+       you must provide now (named "IAUTOF") can be one of the
+       following: 1 or 2 or 3 or 4 or 5 or 6:
+
+       If IAUTOF = 1 the formula used to change the vector X(i)
+       is as follows:
+
+          X(I) = Y(I)*(1. + DVARS(I))
+
+       in which Y(I) is the original vector of decision variables,
+       DVARS(I) is given by DVARS(I) = 2.0*DVAR(I) - 0.5, and
+       DVAR(I) is a vector of random numbers between 0. and 1.0.
+       This is the only formula that existed before August, 2009,
+       when no index, IAUTOF, existed.
+
+       If IAUTOF = 2 the formula used to change the vector X(i)
+       in AUTOCHANGE is the same as for IAUTOF = 1 except that
+       DVARS(I) =1.5*DVAR(I)-0.5 instead of DVARS(I) =2.0*DVAR(I)-0.5.
+
+       If IAUTOF = 3 the formula used to change the vector X(i)
+       in AUTOCHANGE is as follows:
+
+          X(I) = (VUB(I) - VLB(I))*DVAR(I) + VLB(I)
+
+       in which VUB(I) is the vector of upper bounds of the decision
+       variables, VLB(I) is the vector of lower bounds of the decision
+       variables, and DVAR(I) is a vector of random numbers between 0.0
+       and 1.0. (DVAR(I) is the same for IAUTOF = 1 or 2 or 3). The
+       choice, IAUTOF = 3, may work well if there do not exist huge
+       differences between VUB(I) and VLB(I), I = 1, 2, ... NDEC, in
+       which NDEC is the number of decision variables.
+
+       If IAUTOF = 4 or 5 or 6 the formula used to change the vector
+       X(i) in AUTOCHANGE is as follows:
+       For IAUTOF = 4: X(I) = Y(I)*(1. + 0.7*DVARS(I))
+       For IAUTOF = 5: X(I) = Y(I)*(1. + 0.4*DVARS(I))
+       For IAUTOF = 6: X(I) = Y(I)*(1. + 0.2*DVARS(I))
+       in which DVARS(I) =1.5*DVAR(I)-0.5 and DVAR is the same as
+       for IAUTOF = 1, 2, or 3. IAUTOF = 4 or 5 or 6 might be used
+       in cases when it is useful to search for another optimum design
+       in increasingly restricted neighborhoods of the local optimum
+       design, Y(i), that exists just before the execution of
+       AUTOCHANGE.
+
+       The preferred choice is IAUTOF = 1 . However, there may be some
+       global optimization problems for which either IAUTOF = 2 or
+       IAUTOF = 3 are better choices. SUGGESTION: Optimize first with
+       IAUTOF = 1, then re-optimize with IAUTOF = 2 and then possibly
+       re-optimize again with IAUTOF = 3. Then try IAUTOF = 4 or 5
+       or 6 if the previous choices of IAUTOF have not worked well.
+----------------------------------------------------------------------
+
+
+The new input datum appears in the file, *.OPT, as follows:
+-----------------------------------------------------------------------------------------
+      n         $ Do you want a tutorial session and tutorial output?
+         0      $ Choose an analysis you DON'T want (1, 2,..), IBEHAV
+         0      $ NPRINT= output index (0=GOOD, 1=ok, 2=debug, 3=too much)
+         1      $ Choose type of analysis (1=opt., 2=fixed, 3=sensit.) ITYPE
+         5      $ How many design iterations in this run (3 to 25)?
+      n         $ Take "shortcuts" for perturbed designs (Y or N)?
+         2      $ Choose 1 or 2 or 3 or 4 or 5 for IDESIGN
+         5      $ Choose 1 or 2 or 3 or 4 or 5 for move limits, IMOVE
+      n         $ Do you want default (RATIO=10) for initial move limit jump?
+    100000      $ Provide a value for the "move limit jump" ratio, RATIO
+      y         $ Do you want the default perturbation (dx/x = 0.05)?
+      n         $ Do you want to have dx/x modified by GENOPT?
+      n         $ Do you want to reset total iterations to zero (Type H)?
+         2      $ Choose IAUTOF= 1 or 2 or 3 or 4 or 5 or 6 to change X(i) <--New input datum
+-------------------------------------------------------------------------------------------
+
+In order to incorporate this modification the following GENOPT libraries
+had to be changed:
+ ../genopt/sources/mainsetup.src, main.src, chauto.src, and stoget.tmpl
+
+In particular, the AUTOCHANGE library, chauto.src, was modified as follows:
+--------------------------------------------------------------------------------
+
+ (lines skipped to save space)
+
+C BEG AUG 2009
+      COMMON/IAUTOG/IAUTOF
+C END AUG 2009
+C BEG NOV 2005
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+C END NOV 2005
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+
+ (lines skipped to save space)
+
+      DO 10 I = 1,NDEC
+C BEG AUG 2009
+         IF (IAUTOF.EQ.0.OR.IAUTOF.EQ.1) THEN
+            DVARS(I) = 2.0*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.2) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.3) THEN
+            X(I) = (VUB(I) - VLB(I))*DVAR(I) + VLB(I)
+         ENDIF
+         IF (IAUTOF.EQ.4) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.7*DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.5) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.4*DVARS(I))
+         ENDIF
+         IF (IAUTOF.EQ.6) THEN
+            DVARS(I) = 1.5*DVAR(I) - 0.5
+            X(I) = Y(I)*(1. + 0.2*DVARS(I))
+         ENDIF
+C END AUG 2009
+         IF (X(I).LT.VLB(I)) X(I) = VLB(I)
+         IF (X(I).GT.VUB(I)) X(I) = VUB(I)
+   10 CONTINUE
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+-------------------------------------------------------------------------------
+
+
+
+
+39. August, 2009
+The decide.src library was modified as follows:
+----------------------------------------------------------------------------
+   21 CONTINUE
+C BEG AUG 2009
+      CALL DATUM(IFILE,533,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      CALL DATUM(IFILE,535,1,2,INT,REALL,ANSOUT,IOUT,IVAR,0,1,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         CALL DATUM(IFILE,537,1,2,INT,CMOVE(IVAR),ANSOUT,IOUT,IVAR,0,
+     1                                                      1,IPROMP)
+      ENDIF
+C END AUG 2009
+------------------------------------------------------------------------------
+
+
+This modification allows the user to restrict the moves of selected
+decision variables more (or less) than the values generated automatically
+by the optimizer, ADS. Corresponding to this change, new prompting entries
+were introduced into the file, URPROMPT.DAT, as follows:
+------------------------------------------------------------------------------
+ 533.0
+       You will next be asked if this particular decision variable
+       should have its movement during optimization cycles especially
+       restricted. It is sometimes necessary to ensure that certain
+       of the decision variables don't change too much in successive
+       optimization cycles. This is often true for decision variables
+       such as angles that may have widely separated lower and upper
+       bounds (such as lower bound = 5.0 degrees and upper bound =
+       90 degrees) and for which the behavior is quite sensitive to
+       changes in this decision variable. In most cases you will
+       probably answer "no" (n or N) to the following prompting
+       question. However, if this decision variable is especially
+       critical, you may well wish to answer "yes" (y or Y). If you
+       answer y or Y you will then be asked to provide a maximum
+       move for this especially critical decision variable. For
+       example, for an angle in degrees you might well specify
+       that the maximum move be 5.0 degrees in one optimization cycle.
+
+ 535.1 Do you want especially to restrict variable no.
+ 535.2
+       If you answer "yes" (y or Y), you will next be asked to
+       provide the maximum amount by which this decision variable
+       can change during the next optimization cycle.
+
+ 537.1 Maximum permitted change in variable no.
+ 537.2
+       If this decision variable is an angle in degrees, then
+       specify something like 5.0 degrees.
+--------------------------------------------------------------------------------
+
+NOTE: Because of this modification earlier (unchanged) versions of *.DEC
+files will no longer work because of the newly introduced prompting
+question, 535: "Do you want especially to restrict variable no.". Whereas
+old *.DEC files will have entries such as:
+
+      y         $ Any more decision variables (Y or N) ?
+         3      $ Choose a decision variable (1,2,3,...)
+   1.000000     $ Lower bound of variable no.( 3)
+   10.00000     $ Upper bound of variable no.( 3)
+
+the modified *.DEC files will require the following entries:
+
+      y         $ Any more decision variables (Y or N) ?
+         3      $ Choose a decision variable (1,2,3,...)
+   1.000000     $ Lower bound of variable no.( 3)
+   10.00000     $ Upper bound of variable no.( 3)
+      n         $ Do you want especially to restrict variable no.( 3)  <--new entry
+
+If you answer "y" to the prompt, "Do you want especially to restrict variable no.( 3)",
+then there will be an additional entry in *.DEC following the "Do you want..."
+answer, "y".
+
+
+
+
+
+40. June, 2010
+There was an error in the program, "genprompt" (...genopt/sources/genprompt.src)
+that affected results when the user elected to choose a behavior NOT to include
+during the MAINSETUP (*.OPT file) interactive session. The error affected results
+only when one or more of the BEHXi, i = 1, 2, 3,..., subroutines involves a
+behavior that is a two-dimensional matrix [behavior(ILOADX,J)] rather than a
+vector [behavior(ILOADX)]. Here is an example of the part of the interactive
+MAINSETUP session that the error pertains to:
+----------------------------------------------------------------------------
+ ***********************************************************
+ Next, choose behaviors NOT to process for load set,  1 of   1
+ ***********************************************************
+
+ You must provide input data, IBEHAV, for EACH LOAD SET.
+ Provide IBEHAV for the next load set.
+
+ Because of excessive time required for computer runs, you
+ may not want to run all the analyses listed next.
+
+ Please indicate, by choosing numbers at the left-hand margin,
+ which of the analyses you do NOT want to run. Choose one at
+ a time.
+
+ If you want to run ALL the analyses, just hit zero (0).
+
+      LIST FROM WHICH AN INDEX MUST NOW BE CHOSEN
+ BEHAVIOR
+  NUMBER                  DEFINITION
+    1  local buckling load factor: LOCBUK(1 )
+    2  symmetric general buckling: BUKSYM(1 )
+    3  antisymmetric general buckling: BUKASY(1 )
+    4  classical buckling load factor: CYLBUK(1 ,1 )
+    5  classical buckling load factor: CYLBUK(1 ,2 )
+    6  classical buckling load factor: CYLBUK(1 ,3 )
+    7  classical buckling load factor: CYLBUK(1 ,4 )
+    8  maximum effective stress: STRESS(1 )
+ Choose an analysis you DON'T want (1, 2,..), IBEHAV=         5
+ Any more analysis types NOT wanted (Y or N) ?= n
+--------------------------------------------------------------------------
+
+The behavior called "CYLBUK" is a two-dimensional array. In this
+particular example we choose to ignore BEHAVIOR NUMBER 5. Before
+the modifications to the program, "genprompt" (command = gentext)
+GENOPT would not have executed SUBROUTINE BEHX5, which deals with
+a different constraint entirely, when instead it should have not
+calculated CYLBUK(1,2), which is one of the elements of
+SUBROUTINE BEHX4.
+
+The program, genprompt.src, was modified as follows:
+------------------------------------------------------------------------
+               WRITE(ICON,'(6X,A)')'CALL BLANKX(PHRASE,IENDP4)'
+C BEG SEP 1999
+C BEG DEC 2005
+C BEG JUN 2010
+               IF (ICAR.EQ.1) WRITE(ICON,'(6X,A)')'JXX = 0'
+               WRITE(ICON,'(6X,A)')'JXX = JXX + 1'
+               WRITE(ICON,'(6X,A,A)') VB(1:MLET4),' = 0.0'
+               WRITE(ICON,'(6X,A,A,/,5X,A)')
+     1        'IF (IBEHV(JXX).EQ.0) CALL BEHX',CARN,
+     1        '1 (IFILE8,NPRINX,IMODX,IFAST'
+C END JUN 2010
+C END DEC 2005
+C END SEP 1999
+               WRITE(ICON,'(5X,A,A,A)')
+     1        '1 ''',P4(:IENDP4),''')'
+
+(lines skipped to save space)
+
+               WRITE(ICON,'(6X,A)')'PHRASE ='
+               WRITE(ICON,'(5X,A,A,A)')'1 ''',P4(1:IENDP4),''''
+               WRITE(ICON,'(6X,A)')'CALL BLANKX(PHRASE,IENDP4)'
+C BEG SEP 1999
+C BEG DEC 2005
+C BEG JUN 2010
+               IF (ICAR.EQ.1) THEN
+                  IF (NDIMEN.EQ.2)
+     1                 WRITE(ICON,'(6X,A)')'IF (J.EQ.1) JXX = 0'
+                  IF (NDIMEN.EQ.1) WRITE(ICON,'(6X,A)')'JXX = 0'
+               ENDIF
+               WRITE(ICON,'(6X,A)')'JXX = JXX + 1'
+               IF (NDIMEN.EQ.2)
+     1         WRITE(ICON,'(6X,A,A)') VB(1:MLET4),'(ILOADX,J) = 0.0'
+               IF (NDIMEN.EQ.1)
+     1         WRITE(ICON,'(6X,A,A)') VB(1:MLET4),'(ILOADX) = 0.0'
+               WRITE(ICON,'(6X,A,A,/,5X,A,A,A)')
+     1        'IF (IBEHV(JXX).EQ.0) CALL BEHX',CARN,
+     1        '1 (IFILE8,NPRINX,IMODX,IFAST,',WIJ,','
+C END JUN 2010
+C END DEC 2005
+C END SEP 1999
+               WRITE(ICON,'(5X,A,A,A)')
+     1        '1 ''',P4(1:IENDP4),''')'
+C
+               IF (INDX.EQ.1.OR.INDX.EQ.3)
+------------------------------------------------------------------
+
+
+Before the modification the skeletal struct.new routine created
+automatically by GENOPT contained the following lines, for example:
+------------------------------------------------------------------
+      DO 295  J=1,JCYLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'classical buckling load factor'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(4  ).EQ.0) CALL BEHX4
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'classical buckling load factor')
+------------------------------------------------------------------
+
+After the modification the skeletal struct.new routine created
+automatically by GENOPT now contains the following lines:
+-----------------------------------------------------------------
+      DO 295  J=1,JCYLBUK
+      CALL CONVR2(J,CJX)
+      PHRASE =
+     1 'classical buckling load factor'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = JXX + 1
+      CYLBUK(ILOADX,J) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX4
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX,J,
+     1 'classical buckling load factor')
+-----------------------------------------------------------------
+
+Analogous changes exist relating to CALL BEHX1,
+CALL BEHX2, CALL BEHX3, CALL BEHX5,... CALL BEHXn.
+In the case of CALL BEHX1 (the first behavior) the
+new counting index, JXX is initialized, as follows:
+-----------------------------------------------------------------
+      PHRASE =
+     1 'local buckling load factor'
+      CALL BLANKX(PHRASE,IENDP4)
+      JXX = 0                          <--JXX is initialized before the
+      JXX = JXX + 1                       "CALL BEHX1" statement
+      LOCBUK(ILOADX) = 0.0
+      IF (IBEHV(JXX).EQ.0) CALL BEHX1
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'local buckling load factor')
+----------------------------------------------------------------- 
+
+
+
+
+41. August, 2010
+The libraries, prompter.src and prompter2.src, were modified in
+a way completely analogous to the August, 2010 modfication to
+.../bigbosor4/sources/prompter.src. A typical modification of
+.../genopt/sources/prompter.src follows:
+----------------------------------------------------------------
+   20 CONTINUE
+      IF (ITYPE) 30,40,50
+   30 CONTINUE
+C     INPUT DATA IS OF CHARACTER TYPE...
+      CALL I2C(INTEGR,CHARAC)
+      IF (IARRAY.EQ.0)
+     1WRITE(OUTFIL,'(6X,A1,9X,A,A)') CHARAC(1:1),'$ ',PHRASE(1:IBLANK)
+C BEG AUG 2010
+C     IF(IARRAY.GT.0)WRITE(OUTFIL,'(6X,A1,9X,A,A,A,I2,A)')CHARAC(1:1),
+C    1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+      IF(IARRAY.GT.0)WRITE(OUTFIL,'(6X,A1,9X,A,A,A,I3,A)')CHARAC(1:1),
+     1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+C END AUG 2010
+      WRITE(6,'(1X,A1)') CHARAC(1:1)
+      IF (IPROMP.GT.1) WRITE(IPROMP,'(1X,A1)') CHARAC(1:1)
+      GO TO 100
+   40 CONTINUE
+C
+C     INPUT DATA IS OF INTEGER TYPE...
+C
+      IF (NDIMEN.EQ.0) WRITE(OUTFIL,'(1X,I9,6X,A,A)')INTEGR,'$ ',
+     1 PHRASE(1:IBLANK)
+C BEG AUG 2010
+C     IF (NDIMEN.EQ.1) WRITE(OUTFIL,'(1X,I9,6X,A,A,A,I2,A)') INTEGR,
+C    1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+C     IF (NDIMEN.EQ.2) WRITE(OUTFIL,'(1X,I9,6X,A,A,A,I2,A,I2,A)')
+C    1 INTEGR,'$ ',PHRASE(1:IBLANK),'(',IARRAY,',',JARRAY,')'
+      IF (NDIMEN.EQ.1) WRITE(OUTFIL,'(1X,I9,6X,A,A,A,I3,A)') INTEGR,
+     1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+      IF (NDIMEN.EQ.2) WRITE(OUTFIL,'(1X,I9,6X,A,A,A,I3,A,I3,A)')
+     1 INTEGR,'$ ',PHRASE(1:IBLANK),'(',IARRAY,',',JARRAY,')'
+C END AUG 2010
+      WRITE(6,'(1X,I9)') INTEGR
+      IF (IPROMP.GT.1) WRITE(IPROMP,'(1X,I9)') INTEGR
+      GO TO 100
+   50 CONTINUE
+C
+C     INPUT DATA IS OF FLOATING POINT TYPE...
+C
+      IF (NDIMEN.EQ.0) WRITE(OUTFIL,'(1X,G14.7,1X,A,A)')REALL,
+     1 '$ ',PHRASE(1:IBLANK)
+C BEG AUG 2010
+C     IF (NDIMEN.EQ.1) WRITE(OUTFIL,'(1X,G14.7,1X,A,A,A,I2,A)') REALL,
+C    1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+C     IF (NDIMEN.EQ.2) WRITE(OUTFIL,'(1X,G14.7,1X,A,A,A,I2,A,I2,A)')
+C    1 REALL,'$ ',PHRASE(1:IBLANK),'(',IARRAY,',',JARRAY,')'
+      IF (NDIMEN.EQ.1) WRITE(OUTFIL,'(1X,G14.7,1X,A,A,A,I3,A)') REALL,
+     1 '$ ',PHRASE(1:IBLANK),'(',IARRAY,')'
+      IF (NDIMEN.EQ.2) WRITE(OUTFIL,'(1X,G14.7,1X,A,A,A,I3,A,I3,A)')
+     1 REALL,'$ ',PHRASE(1:IBLANK),'(',IARRAY,',',JARRAY,')'
+C END AUG 2010
+C
+      WRITE(6,'(1X,G14.7)') REALL
+      IF (IPROMP.GT.1) WRITE(IPROMP,'(1X,G14.7)') REALL
+  100 CONTINUE
+      RETURN
+      END
+--------------------------------------------------------------------
+
+
+
+
+42. August, 2010
+The libraries, main.src and store.src were modified to let the
+GENOPT user know that he or she is using the AUGUST, 2010 version,
+as follows:
+--------------------------------------------------------------------
+C BEG AUG 2010
+      WRITE(IFILE8,'(A)')
+     1' ************ AUGUST, 2010 VERSION OF GENOPT ****************'
+C END AUG 2010
+--------------------------------------------------------------------
+
+That message will now appear in the *.OPM and *.OPP files.
+
+
+
+
+43. July, 2011
+There is a new GENOPT processor called "SUPERDUPEROPT". SUPERDUPEROPT
+essentially executes SUPEROPT in a loop. In addition to asking the end
+user to provide as input the number of executions of OPTIMIZE to perform
+between each execution of AUTOCHANGE (as is done in the SUPEROPT processor),
+the new SUPERDUPEROPT processor asks the end user also to provide as input
+the number of sequential SUPEROPT/CHOOSEPLOT executions to perform during
+the (potentially very long) execution of SUPERDUPEROPT. The end user is
+asked to permit less than or equal 20 automatic sequential executions of
+SUPEROPT/CHOOSEPLOT. The purpose of SUPERDUPEROPT is to permit a more
+extensive automatic search in design space for a "global" optimum design
+than is possible with a single execution of SUPEROPT. Each SUPEROPT
+execution in the sequential series of SUPEROPT/CHOOSEPLOT executions
+generates about 470 design iterations. The "current" optimum design
+at the end of each SUPEROPT execution and at the beginning of the next
+execution of SUPEROPT/CHOOSEPLOT in the SUPERDUPEROPT sequence is the 
+"best" design determined from the entire automatic sequence of SUPEROPT/CHOOSEPLOT
+executions performed until then. The end user can execute SUPERDUPEROPT 
+multiple times in succession.
+
+To implement this improvement in the GENOPT capability the following steps
+were taken:
+
+1. The file, genprompt.com, was updated in order to activate the new
+GENOPT command, "SUPERDUPEROPT".
+
+2. Two new scripts were created: superduperopt.com and superduperopt.bat
+These new scripts were created with the use of the scripts, superopt.com
+and superopt.bat, as starting scripts.
+
+3. A new "main" processor called "ZEROIT" was created. ZEROIT is a very
+simple processor: its only purpose is to reset the total number of
+design iterations, ITRTOT, equal to zero between each sequential execution
+of SUPEROPT. In this regard, ZEROIT plays the role formerly played by
+the GENOPT processor called "CHOOSEPLOT". Therefore, CHOOSEPLOT, is never
+executed during the SUPERDUPEROPT process.
+
+4. The GENOPT "make" file, makefile.linux, was updated to include the new
+"main" processor, ZEROIT.
+
+5. The GENOPT "make" file, usermake.x86_64, was updated to include the new
+"main" processor, ZEROIT.
+
+6. SUBROUTINE STORE (store.src library) was modified so that plots of the
+objective versus design iterations can be obtained by the end user
+corresponding to each execution of SUPEROPT within the loop in SUPERDUPEROPT
+over sequential SUPEROPT executions.(See the "brackets", BEG JULY 2011 and
+END JULY 2011, in SUBROUTINE STORE).
+
+
+-----------------------------------------------------------------------
+A Sample Run Stream. It is assumed that the home directory is called "/home/progs"
+
+cd genoptcase (you must always execute GENOPT cases in a directory called
+	      "genoptcase")
+genoptlog
+[The following definitions of GENOPT commands now appears on your screen:]
+GENOPT commands have been activated.
+
+  gentext      GENOPT user generates a prompt file.
+  genprograms  GENOPT user generates (makes) executables:
+               begin, decide, mainsetup, optimize,
+               change, chooseplot, and diplot.
+  begin        End user provides starting data.
+  decide       End user chooses decision variables, bounds,
+               linked variables, and inequality constraints.
+  mainsetup    End user sets up strategy parameters.
+  optimize     End user performs optimization.
+  change       End user changes some parameters.
+  autochange   New values for decision variables randomly
+  superopt     End user find global optimum (autochange/optimize)...
+  superduperopt     End user executes superopt/chooseplot x times...
+  chooseplot   End user chooses which variable to plot vs.
+               iterations.
+  diplot       End user plots variables vs. iterations.
+  insert       GENOPT user adds parameters to the problem.
+  cleangen     GENOPT user cleans up GENeric case files.
+  cleanspec    End user cleans up SPECific case files.
+
+[Note that the new process is called "superduperopt". Continue the run stream:]
+
+[In this example the generic case is called "span9" and the specific case
+ is called "wide98". See the directory, .../genopt/case/span.]
+
+gentext		(input file is span9.INP)
+
+[Obtain the "fleshed out" versions of behavior.new and struct.new as follows:]
+
+cp /home/progs/genopt/case/span/behavior.span9 behavior.new
+cp /home/progs/genopt/case/span/struct.span9 struct.new
+
+[Obtain the FORTRAN code that generates the appropriate BIGBOSOR4 input file
+ as follows:]
+
+cp /home/progs/genopt/case/span/bosdec.span9 /home/progs/bosdec/sources/bosdec.src
+
+genprograms	(no additional input file is required. The computer programs
+		 for the optimization of axially compressed corrugated walls
+		 are compiled. These programs are BEGIN, DECIDE, MAINSETUP,
+		 OPTIMIZE, CHOOSEPLOT, CHANGE, etc.)
+
+[Next, run the specific case, "wide98":]
+
+begin           (input file is wide98.BEG)
+decide          (input file is wide98.DEC)
+mainsetup       (input file is testax4.OPT)
+superduperopt	(The end user chooses 7 OPTIMIZEs per AUTOCHANGE and
+		 2 automatic sequential executions of SUPEROPT/CHOOSEPLOT)
+
+After the completion of SUPERDUPEROPT (about 24 hours later) the following
+files exist (among others):
+
+-rw-r--r--  1 bush bush 396550 Jul 22 03:18 wide98.OPP.1
+-rw-r--r--  1 bush bush 396806 Jul 22 12:26 wide98.OPP.2
+
+which contain the results from the first and second sequential executions
+of SUPEROPT, and
+
+-rw-r--r--  1 bush bush 113520 Jul 22 03:18 wide98.PL2.1
+-rw-r--r--  1 bush bush 113520 Jul 22 12:26 wide98.PL2.2
+
+which are the files from which plots of objective versus design iterations
+can be obtained from the first and second sequential executions of
+SUPEROPT.
+
+The optimized (ALMOST FEASIBLE) weight at the end of the first automatic
+execution of SUPEROPT is 206.7 lb, and the optimized (ALMOST FEASIBLE)
+weight at the end of the second automatic execution of SUPEROPT is 194.2 lb.
+
+The two files, wide98.OPP.n and wide98.PL2.n, correspond to the nth execution
+of SUPEROPT during the (possibly very long) execution of SUPERDUPEROPT.
+
+For example, in order to obtain a plot of the objective versus design iterations
+during the first execution of SUPEROPT after completion of the
+SUPERDUPEROPT process, the end user does the following:
+
+cp wide98.PL2.1 testax4.PL2    (wide98.PL2 is used by CHOOSEPLOT)
+chooseplot      (input file = wide98.CPL is as follows:
+      n         $ Do you want a tutorial session and tutorial output?
+      n         $ Any design variables to be plotted v. iterations (Y or N)?
+      n         $ Any design margins to be plotted (Y or N)?
+NOTE: y         $ Do you want to get more plots before your next "SUPEROPT"?
+
+[Note that a "y" (yes) answer MUST be given as the last input datum for CHOOSEPLOT
+ instead of the "n" (no) answer.
+ The "y" answer must be given in order to prevent the total number of iterations,
+ ITRTOT, being reset to zero. If the PANDA2 user answers "n" here, ITRTOT will be
+ reset to zero and subsequently he or she will not be able to obtain plots of the
+ objective versus design iterations corresponding to any of the other 
+ executions of SUPEROPT during the SUPERDUPEROPT process. The file, wide98.PL2.2
+ will still exist, but chooseplot will not allow
+ it to be used for obtaining a plot because it "thinks" that no design iterations
+ have been performed and therefore terminates.]
+
+diplot          (no input is required. The "plot" file is called wide98.5.ps ,
+                 which has been transformed into the file,
+                 wide98.superopt1.objective.png, via a "screen shot" of the
+                 results of the command: "gv wide98.5.ps")
+
+[Plots of objective versus design iterations during any of the other
+ executions of SUPEROPT (the second in this particular example) can be obtained
+ in a manner completely analogous to that just described in connection with
+ wide98.PL2.1 (produced by the first execution of SUPEROPT during SUPERDUPEROPT).]
+
+
+[Launch SUPERDUPEROPT again, with the same conditions: 7 OPTIMIZEs per AUTOCHANGE
+ and 2 automatic sequential executions of SUPEROPT]
+
+[After completion of SUPERDUPEROPT there exist in the directory,
+/home/progs/genoptcase, the following files (among other "wide98" files:]
+
+-rw-r--r--  1 bush bush 396806 Jul 23 00:57 wide98.OPP.1
+-rw-r--r--  1 bush bush 396550 Jul 23 10:08 wide98.OPP.2
+
+and
+
+-rw-r--r--  1 bush bush 113520 Jul 23 00:57 wide98.PL2.1
+-rw-r--r--  1 bush bush 113520 Jul 23 10:08 wide98.PL2.2
+
+The optimized (ALMOST FEASIBLE) weight at the end of the first automatic
+execution of SUPEROPT is 194.1 lb, and the optimized (ALMOST FEASIBLE)
+weight at the end of the second automatic execution of SUPEROPT is 193.1 lb.
+
+
+[Launch SUPERDUPEROPT again, with different conditions: 9 OPTIMIZEs per AUTOCHANGE
+ and 4 automatic sequential executions of SUPEROPT]
+
+[After completion of SUPERDUPEROPT there exist in the directory,
+/home/progs/genoptcase, the following files (among other "wide98" files:]
+
+-rw-r--r--  1 bush bush 396358 Jul 24 00:24 wide98.OPP.1
+-rw-r--r--  1 bush bush 396358 Jul 24 09:39 wide98.OPP.2
+-rw-r--r--  1 bush bush 396358 Jul 24 18:53 wide98.OPP.3
+-rw-r--r--  1 bush bush 396358 Jul 25 04:07 wide98.OPP.4
+ 
+and
+
+-rw-r--r--  1 bush bush 113520 Jul 24 00:24 wide98.PL2.1
+-rw-r--r--  1 bush bush 113520 Jul 24 09:39 wide98.PL2.2
+-rw-r--r--  1 bush bush 113520 Jul 24 18:53 wide98.PL2.3
+-rw-r--r--  1 bush bush 113520 Jul 25 04:07 wide98.PL2.4
+
+The optimized weight does not change from 193.1 lb.
+
+
+
+
+44. July 2011
+The script, ...genopt/bin/superopt.bat, was modified as follows;
+-------------------------------------------------------------------------
+#
+# superopt.bat: Performs multiple execution of
+# combinations of (autochange,optimize,optimize,optimize...)
+#
+set case = $1
+@ optimizes = `echo $2`
+echo "Number of OPTIMIZEs for each autochange= $optimizes"
+# beg July 19, 2011                        <--begin new script
+# zeroit
+# This program resets the total number of iterations to zero.
+# There are no input data.
+echo ""
+echo "Running GENOPT: zeroit, case: $case"
+echo ""
+'rm' fort.* FOR0*     >>& /dev/null
+'rm' ${case}.ERR >>& /dev/null
+echo "----------------------------"
+echo  Executing zeroit
+ln -s ${case}.NAM fort.12
+ln -s ${case}.NAM ftn12
+./zeroit.${MACHINE} $case
+set stat = $status
+echo "----------------------------"
+if ($stat == 0) then
+   echo  Normal termination: zeroit
+   echo  still processing... Please wait.
+else
+   echo  Abnormal termination: zeroit
+   echo  "Exit status: $stat"
+  'rm' fort.* ftn* >>& /dev/null
+   exit 1
+   goto nearend
+endif
+# end July 19, 2011                         <--end of new script
+@ count = 0
+#ln -s ${GENOPT}/execute GENOPT
+goto start0
+------------------------------------------------------------------------
+
+This modification eliminates the need to execute CHOOSEPLOT between
+successive executions of SUPEROPT. The new GENOPT processor, ZEROIT,
+resets the total number of design iterations, ITRTOT, to zero. Now
+the end user can execute SUPEROPT several times in succession without
+any intervening executions of CHOOSEPLOT. However, the writer stongly
+urges GENOPT users to execute CHOOSEPLOT after each execution of
+SUPEROPT in order to obtain a plot of the objective versus the
+design iterations processed during the execution of SUPEROPT.
+
+
+
+
+45.September 2011
+Old (out-of-date) PROMPT.DAT and PROMPT2.DAT files were located
+in the GENOPT directory, ...genopt/execute. It was necessary to copy the
+updated PROMPT.DAT and PROMPT2.DAT files from the BIGBOSOR4 directory,
+...bigbosor4/execute, to the GENOPT directory, ...genopt/execute. For
+some unknown reason prior to this modification, no error occurred on
+the 32 bit LINUX architecture. However, prior to this modification a
+file error occurred on the 64-bit LINUX machine. Updating the PROMPT.DAT
+and the PROMPT2.DAT files on the 64-bit machine fixed the problem.
+
+
+
+46. February 2012
+The maximum number of decision variables was increased from 50 to 98.
+Many changes had to be made (especially to labeled common blocks)
+in the files, ...genopt/sources/*.src and ...genopt/sources/*.tmpl.
+
+
+
+47. June 2013
+This news item is related to Item No. 46. There were more array
+dimensions that should have been increased to 98 in order to be
+consistent with the increase in maximum number of permitted decision
+variables as described in the previous news item. The affected files
+are: conman.src, decide.src, main.src and stoget.tmpl in the
+directory, .../genopt/sources. The corrections are bracketed with
+"C BEG JUN 2013" and "C END JUN 2013". The errors were detected during 
+initial attempts to run a big specific case, "fold98updwn", in the
+generic class, "span9". See the file, .../genopt/case/span/span9.tar.gz.
+
+
+
+48. July 2013
+In a failed experiment, the following items in
+../genopt/sources were modified:
+store.src, main.src, stoget.tmpl and begin.tmpl
+The purpose was to introduce strategy that it was hoped
+would make it likely that
+a "better" global optimum design would be obtained during an
+execution of SUPEROPT. The following new code was temporarily
+introduced into store.src (then partly commented out when it
+was discovered that the new strategy failed to get better
+optimum designs in important cases). The new coding is
+bracketed by the comments: C BEG JULY 2013 ... C END JULY 2013:
+------------------------------------------------------------
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+C BEG JULY 2013
+      COMMON/ITERX/ITERS,ITIGHTS,ITERCHG,ITERNEW,ITRCHG2,ITRCHG3
+C END JULY 2013
+
+(many lines skipped to save space)
+
+      ITRLST = ITRTOT - ITER1
+C END FEB 1998
+C BEG JULY 2013
+      IF (ITYPE.EQ.1.AND.ITRLST.LE.1) THEN
+         ITERS = ITER
+         ITIGHTS = ITIGHT
+         ITERCHG = 0
+         ITRCHG2 = 0
+         ITRCHG3 = 0
+      ENDIF
+C END JULY 2013
+C BEG JULY 2011
+      ITERUP = ITER1
+
+(many lines skipped to save space)
+
+  720    CONTINUE
+C       Only the best FEASIBLE or ALMOST FEASIBLE design is acceptable...
+         IF (KOUNT1.GT.0.OR.KOUNT2.GT.0) THEN
+            IF (OBJMN2.LT.OBJMN1) THEN
+               CALL MOVER(VARBS2,1,VARBST,1,100)
+               CALL MOVER(MARBS2,1,MARBST,1,100)
+               OBJBST = OBJMN2
+            ELSE
+               CALL MOVER(VARBS1,1,VARBST,1,100)
+               CALL MOVER(MARBS1,1,MARBST,1,100)
+               OBJBST = OBJMN1
+            ENDIF
+C BEG JULY 2013
+            ITER = ITERS
+            ITERNEW = ITER
+            IF (IITIGH(1).EQ.0.AND.IITIGH(2).EQ.0.AND.IITIGH(3).EQ.0)
+     1       ITIGHT = ITIGHTS
+            WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+     1    ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+     1      ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+            IF (ITERCHG.EQ.0.AND.KOUNT3.GT.0.AND.
+     1                           OBJMN3.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS3,1,VARBST,1,100)
+C              CALL MOVER(MARBS3,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITERCHG = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ITRCHG2.EQ.0.AND.KOUNT4.GT.0.AND.
+     1                           OBJMN4.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS4,1,VARBST,1,100)
+C              CALL MOVER(MARBS4,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITRCHG2 = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ITRCHG3.EQ.0.AND.KOUNT5.GT.0.AND.
+     1                           OBJMN5.LT.0.95*OBJBST) THEN
+C              CALL MOVER(VARBS5,1,VARBST,1,100)
+C              CALL MOVER(MARBS5,1,MARBST,1,100)
+C              CALL SETUPX(NVAR,IDV,VARBST,VARLOW,VARHI,X,VLB,VUB,
+C    1                     NDEC,WORDV)
+C              CALL SETUPV(NVAR,IDV,ILV,IDLINK,CLINK,VAR,X,WORDV,
+C    1                     CPWR,JTERMS)
+C              IZERO = 0
+C              CALL SETUPC(NVAR,VAR)
+C              WRITE(IFILE8,995) OBJBST
+C              IF (ITERS.LT.15) ITER = 15
+C              ITERNEW = ITER
+C              ITIGHT = 1
+C              ITRCHG3 = 1
+C              WRITE(IFILE8,'(A,/,5I5,1P2E12.4)')
+C    1       ' ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST=',
+C    1         ITIGHT,ITER,KOUNT1,KOUNT2,KOUNT3,OBJMN3,OBJBST
+C              GO TO 760
+            ENDIF
+C END JULY 2013
+         ENDIF
+         GO TO 760
+  730    CONTINUE
+C
+--------------------------------------------------------------------
+
+The new code is bracketed by the comments, C BEG JULY 2013 and
+C END JULY 2013. A new labeled common block /ITERX/ was also
+introduced into store.src, main.src, begin.tmpl and stoget.tmpl:
+--------------------------------------------------------------
+C BEG JULY 2013
+      COMMON/ITERX/ITERS,ITIGHTS,ITERCHG,ITERNEW,ITRCHG2,ITRCHG3
+C END JULY 2013
+----------------------------------------------------------------
+
+and begin.tmpl and stoget.tmpl were modified accordingly. 
+
+New coding in main.src is as follows:
+---------------------------------------------------------------
+        CALL DATUM(IFILE,720,1,2,ITER,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG JULY 2013
+        IF (ITERCHG.EQ.1) ITER = ITERNEW
+C END JULY 2013
+---------------------------------------------------------------
+
+In the rather long section of new coding introduced into
+store.src, the quantities, OBJMN3, OBJMN4, and OBJMN5 are
+the "best" (lowest) objectives corresponding to designs
+that are "MILDLY UNFEASIBLE", "MORE UNFEASIBLE" and
+"MOSTLY UNFEASIBLE", respectively.
+
+The effect of this new coding is sometimes to start with "better"
+(e.g. lower weight) objectives and, with the use of temporarily
+tightened move limits to be applied during each optimization
+cycle (ITIGHT=1), possibly to arrive at "better" FEASIBLE
+or ALMOST FEASIBLE objectives than might be found via the
+old strategy that lacked this "JULY 2013" refinement.
+
+For example, with the new refined strategy the *.OPP file
+includes the following lines:
+ ------------------------------------------------------OPTIMIZE
+   151         1.1983E+02     ALMOST FEASIBLE         2
+   152         1.1082E+02      NOT FEASIBLE           4
+   153         1.1874E+02     MILDLY UNFEASIB         2
+   154         1.1127E+02     MORE UNFEASIBLE         4
+   155         1.0976E+02     MILDLY UNFEASIB         4
+   156         1.0940E+02     MILDLY UNFEASIB         4
+ ------------------------------------------------------OPTIMIZE
+   157         1.0940E+02     MILDLY UNFEASIB         4
+   158         1.0294E+02      NOT FEASIBLE           4
+   159         1.1264E+02     MILDLY UNFEASIB         4
+   160         1.0925E+02     MORE UNFEASIBLE         4
+   161         1.0852E+02     MILDLY UNFEASIB         4
+   162         1.0719E+02     MILDLY UNFEASIB         4
+   163         1.0656E+02     MILDLY UNFEASIB         4
+   164         1.0844E+02     ALMOST FEASIBLE         4
+   165         1.0814E+02     ALMOST FEASIBLE         4
+   166         1.0689E+02     ALMOST FEASIBLE         4
+   167         1.0712E+02     ALMOST FEASIBLE         4
+   168         1.0713E+02     ALMOST FEASIBLE         4
+   169         1.0734E+02         FEASIBLE            4
+   170         1.0682E+02     ALMOST FEASIBLE         4
+   171         1.0708E+02         FEASIBLE            4
+ ------------------------------------------------------OPTIMIZE
+   172         1.0708E+02         FEASIBLE            4
+   173         9.9077E+01      NOT FEASIBLE           4
+   174         1.0709E+02     MILDLY UNFEASIB         4
+   175         1.0409E+02     MILDLY UNFEASIB         4
+   176         1.0107E+02     MORE UNFEASIBLE         4
+   177         1.0213E+02     MILDLY UNFEASIB         4
+ ------------------------------------------------------OPTIMIZE
+   178         1.0213E+02     MILDLY UNFEASIB         4
+   179         9.6972E+01      NOT FEASIBLE           4
+   180         1.0087E+02     MORE UNFEASIBLE         4
+   181         9.9531E+01     MILDLY UNFEASIB         4
+   182         9.8927E+01     MORE UNFEASIBLE         4
+   183         1.0106E+02     MILDLY UNFEASIB         4
+ ------------------------------------------------------OPTIMIZE
+   184         9.9531E+01     MILDLY UNFEASIB         4
+   185         9.4440E+01      NOT FEASIBLE           4
+   186         1.0287E+02     MORE UNFEASIBLE         4
+   187         1.0310E+02     ALMOST FEASIBLE         4
+   188         9.8943E+01     MOSTLY UNFEASIB         4
+   189         1.0283E+02     ALMOST FEASIBLE         4
+   190         1.0047E+02     MILDLY UNFEASIB         4
+   191         1.0015E+02     MILDLY UNFEASIB         4
+   192         9.9386E+01     MILDLY UNFEASIB         4
+   193         1.0029E+02     ALMOST FEASIBLE         4
+   194         1.0027E+02     ALMOST FEASIBLE         4
+   195         1.0086E+02     ALMOST FEASIBLE         4
+   196         1.0175E+02     ALMOST FEASIBLE         4
+   197         1.0225E+02         FEASIBLE            3
+   198         1.0232E+02         FEASIBLE            3
+ ----------------------------------------------------AUTOCHANGE
+ ------------------------------------------------------OPTIMIZE
+   199         5.4343E+02         FEASIBLE            3
+   200         3.2641E+02     ALMOST FEASIBLE         2
+   201         2.2422E+02     MORE UNFEASIBLE         3
+   202         1.7762E+02         FEASIBLE            1
+   203         1.4863E+02     MILDLY UNFEASIB         3
+   204         1.2995E+02      NOT FEASIBLE           4
+ ------------------------------------------------------OPTIMIZE
+   205         1.2995E+02      NOT FEASIBLE           4
+   206         1.1623E+02      NOT FEASIBLE           4
+ etc.
+---------------------------------------------------------------
+In this specific case (called "fold916updwn") at Iteration
+Number 157 GENOPT detects that the objective corresponding
+to a "MILDLY UNFEASIBLE" design (109.40 lb) is less than
+0.95 x (the best FEASIBLE or ALMOST FEASIBLE design) determined
+so far (119.83 lb = ALMOST FEASIBLE design at Iteration No. 151).
+Therefore, GENOPT temporarily increases ITER from 5 to 15 and
+temporarily changes ITIGHT from 0 to 1, which decreases the move
+limits of the decision variables from (in this particular case)
+10 per cent (IMOVE = 1; SMOVE = 0.10) to 2 per cent (IMOVE = 4;
+SMOVE = 0.02). At Iteration Number 170 we have a significantly
+lighter-weight (lower objective) ALMOST FEASIBLE panel: WEIGHT
+= 106.82 lb, compared to the previous "best" ALMOST FEASIBLE
+design (WEIGHT=119.83 lb at Iteration No. 151). Also, at
+Iteration No. 171 we have a significantly lighter-weight
+FEASIBLE design (WEIGHT=107.08 lb) compared to the previous
+"best" FEASIBLE design (WEIGHT=214.73 lb at Iteration No. 42).
+
+Similarly, at Iteration Number 184 GENOPT again detects that
+the objective corresponding to a "MILDLY UNFEASIBLE" design
+(99.531 lb) is less than 0.95 x 106.82 lb at Iteration No. 170.
+Again, GENOPT temporarily increases ITER from 5 to 15 and
+temporarily changes ITIGHT from 0 to 1. At Iteration Number 194
+we have a significantly lighter-weight ALMOST FEASIBLE panel:
+WEIGHT = 100.27 lb, compared to the previous "best" ALMOST
+FEASIBLE design (WEIGHT=106.82 lb at Iteration No. 170). Also,
+at Iteration No. 197 we have a significantly lighter-weight
+FEASIBLE design (WEIGHT=102.25 lb) compared to the previous
+"best" FEASIBLE design (WEIGHT=107.08 lb at Iteration No. 171
+ 
+In the neighborhood of Iteration No. 400 the fold916updwn.OPP
+file has the following lines:
+ ------------------------------------------------------OPTIMIZE
+   397         1.0722E+02     MOSTLY UNFEASIB         4
+   398         1.2681E+02      NOT FEASIBLE           4
+   399         9.7931E+01      NOT FEASIBLE           6
+   400         1.1448E+02      NOT FEASIBLE           4
+   401         1.1830E+02     MOSTLY UNFEASIB         4
+   402         1.0606E+02      NOT FEASIBLE           4
+ ------------------------------------------------------OPTIMIZE
+   403         9.2781E+01     MORE UNFEASIBLE         4
+   404         8.7174E+01      NOT FEASIBLE           4
+   405         8.9795E+01      NOT FEASIBLE           4
+   406         9.3828E+01      NOT FEASIBLE           4
+   407         9.6268E+01     MILDLY UNFEASIB         4
+   408         9.5920E+01     MILDLY UNFEASIB         4
+   409         9.6083E+01     MILDLY UNFEASIB         4
+   410         9.5974E+01     MILDLY UNFEASIB         4
+   411         9.6668E+01     MILDLY UNFEASIB         4
+   412         9.7062E+01     MILDLY UNFEASIB         4
+   413         9.7419E+01     MILDLY UNFEASIB         4
+   414         9.7968E+01     ALMOST FEASIBLE         4
+   415         9.8766E+01     ALMOST FEASIBLE         4
+   416         9.9400E+01     ALMOST FEASIBLE         4
+   417         9.9922E+01         FEASIBLE            4
+ ------------------------------------------------------OPTIMIZE
+   418         9.9922E+01         FEASIBLE            4
+   419         9.1843E+01      NOT FEASIBLE           4
+   420         9.5659E+01     MORE UNFEASIBLE         4
+   421         9.3798E+01     MORE UNFEASIBLE         4
+   422         9.5612E+01     MILDLY UNFEASIB         4
+   423         9.4493E+01     MORE UNFEASIBLE         4
+---------------------------------------------------------------
+
+At Iteration No. 403 GENOPT detects that the objective corresponding
+to a "MORE UNFEASIBLE" design (92.781 lb) is less than
+0.95 x (the best FEASIBLE or ALMOST FEASIBLE design) determined
+so far (100.27 lb = ALMOST FEASIBLE design at Iteration No. 313).
+Therefore, GENOPT temporarily increases ITER from 5 to 15 and
+temporarily changes ITIGHT from 0 to 1, which decreases the move
+limits of the decision variables from (in this particular case)
+10 per cent (IMOVE = 1; SMOVE = 0.10) to 2 per cent (IMOVE = 4;
+SMOVE = 0.02). At Iteration Number 414 we have a somewhat 
+lighter-weight (lower objective) ALMOST FEASIBLE panel: WEIGHT
+= 97.97 lb, compared to the previous "best" ALMOST FEASIBLE
+design (WEIGHT=100.27 lb at Iteration No. 313). Also, at
+Iteration No. 417 we have a slightly lighter-weight
+FEASIBLE design (WEIGHT=99.922 lb) compared to the previous
+"best" FEASIBLE design (WEIGHT=102.25 lb at Iteration No. 197).
+
+
+
+49. 

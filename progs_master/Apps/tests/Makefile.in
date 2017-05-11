@@ -1,0 +1,89 @@
+#***********************************************************************
+# Makefile parameters for current machine
+#***********************************************************************
+# special dependencies
+# ====================
+
+.SUFFIXES:
+.SUFFIXES: .F .f .c .o
+
+# macro definitions for:  X86 Linux using the GNU Fortran compiler (gfortran)
+# ===========================================================================
+
+DIR       =  /home/progs/Apps/tests
+
+# DEBUG     =
+DEBUG     = -g
+
+CPP       =  /usr/bin/cpp
+
+CPPFLAGS  = -D_linux_
+
+# CLANG     =  ${CC}
+CLANG     =  gcc
+
+# CFLAGS    = -O3
+# CFLAGS0   = -O1
+
+CFLAGS    =
+CFLAGS0   =
+
+# FPP       =  /usr/bin/fpp
+
+# FPPFLAGS  = -P
+
+# FORTRAN   =  ${FC}
+FORTRAN   =  gfortran
+
+# FFLAGS    = -O2 -fno-automatic -fcray-pointer -D_gfc95_ -D_linux_
+# FFLAGS0   =     -fno-automatic -fcray-pointer -D_gfc95_ -D_linux_
+
+FFLAGS    =     -fno-automatic -fcray-pointer -D_gfc95_ -D_linux_
+FFLAGS0   =     -fno-automatic -fcray-pointer -D_gfc95_ -D_linux_
+
+INCLUDES  = -I.
+
+PPU       =
+
+LINK      = -lm
+
+LIBS      =
+
+AR        =  ar
+ARFLAGS   =  rv
+
+CP        =  cp
+
+RM        =  /bin/rm
+RMFLAGS   =  -f
+
+# ================================================================
+# C-compile rules ( using flags defined above)
+# ================================================================
+
+.c.o:
+	@echo "==================== compilation of " $*.c "===================="
+	${CLANG} ${CFLAGS} ${CPPFLAGS} ${INCLUDES} ${DEBUG} -c $*.c
+
+# ================================================================
+# FORTRAN rules  ( using flags defined above)
+# ================================================================
+
+.f.o:
+	@echo "==================== compilation of " $*.f "===================="
+	${FORTRAN} ${FFLAGS} ${PPU} ${DEBUG} -c  $*.f
+
+# ================================================================
+# FORTRAN rules  ( using flags defined above)
+# ================================================================
+
+.F.o:
+	@echo "==================== compilation of " $*.F "===================="
+	/bin/rm -f $*.f
+#	${FPP} ${FPPFLAGS} $*.F $*.f
+	fpp -P $*.F $*.f
+	${FORTRAN} ${FFLAGS}  ${PPU} ${DEBUG} -c  $*.f
+
+# ================================================================
+# end of rules
+# ================================================================

@@ -1,0 +1,273 @@
+
+The FORTRAN coding in SUBROUTINE STRUCT and in
+SUBROUTINES BEHXi, i = 1,2,...9 includes "CHAPTER"
+headings with brief descriptions of the calculations that
+follow the CHAPTER headings, as listed here:
+=======================================================
+ CHAPTER 1 (BEHX01x, x = 1,2,...; x=load case):
+ Find the lengths of struts and the axial loads in the
+ struts from a BIGBOSOR4 model of the propellant tank
+ supported by springs with an arbitrarily assigned spring
+ constant. The flexibility of the propellant tank is
+ neglected, the strut end fittings are neglected, and the
+ propellant tank is loaded by ullage pressure, PRESS, tank
+ cool-down, TNKCOOL, axial acceleration, GAXIAL, and lateral
+ acceleration, GLATRL. This is a first approximation.
+ The BIGBOSOR4 model is stored in *.BEHX01x, x = 1, 2...,
+ in which "x" represents the load case.
+----------------------------------------------------------
+
+ CHAPTER 2:
+ Optain PostScript plot files, *.PL6.ps, *.PL7.ps, *.PL8.ps,
+ which contain a plan view of the AFT set of struts (*.PL6.ps),
+ a plan view of the FORWARD set of struts (*.PL7.ps, if any),
+ and an elevation view of both AFT and FORWARD sets of struts
+ (*.PL8.ps). The FORTRAN software is "borrowed" from the
+ "DEWAR" system (SUBROUTINE STPLOT and the subroutines called
+ by  STPLOT). These FORTRAN subroutines are part of the
+ bosdec.tank library.
+----------------------------------------------------------
+
+ CHAPTER 3 (BEHX02x, x=1,2,...; x=load case):
+ 1. Fill the "DEWAR" labelled common blocks with the
+ proper quantities so that buckling load factors of
+ the strut launch tubes (buckling as thin shells) and
+ so that the 5 stress components in composite laminate
+ plies can be determined from "PANDA-type" of analyses
+ similar to those analyses that are used in the "DEWAR"
+ system for buckling and stress of the strut launch tubes.
+
+ 2. Compute from SUBROUTINE GETCIJ the 6 x 6 constitutive
+ stiffness matrix for each type of strut tube. SUBROUTINE
+ GETCIJ is very like a subroutine of the same name in PANDA2.
+
+ 3. Find the axial stiffnesses of aft and forward strut
+ tubes. These strut tube stiffnesses are to be used in the
+ computation of spring constants associated with each strut
+ in the AFT set of struts and associated with each strut in
+ the FORWARD set of struts (if any). In the "DO 20" loop of
+ SUBROUTINE STRUCT, I = 1 corresponds to the AFT set of struts
+ and I = 2 corresponds to the FORWARD set of struts.
+------------------------------------------------------------
+
+ CHAPTER 4 (BEHX03x, x = 1,2,...; x=load case):
+ Compute the linear static response of the propellant tank
+ to concentrated loads applied by the struts (springs) to
+ the tank along the tank support ring no. 1 (aft strut set)
+ and along the tank support ring no. 2 (forward strut set).
+ In this BIGBSOSOR4 model of the propellant tank the springs
+ (struts) are replaced by concentrated loads obtained from
+ the CHAPTER 1 computations. The concentrated loads are modeled
+ in BIGBOSOR4 as line loads with little triangular "pulses"
+ centered about the circumferential angles where the struts
+ are pinned to the propellant tank and at the global axial
+ coordinates that corresponds to the global axial coordinates
+ of the centroids of the aft and forward propellant tank
+ support rings. The circumferential distributions of the line
+ loads are expanded in Fourier series, and the static response
+ to each Fourier component is superposed by BIGBOSOR4 in what
+ is called in BIGBOSOR4 jargon an "INDIC=3" type of analysis.
+ Sixty Fourier terms are used in the Fourier series expansion.
+
+ The purpose of this calculation is to find the maximum
+ displacement of the propellant tank wall in the same direction
+ as the axis of one of the struts: 1. the strut associated with
+ the greatest tank wall displacement produced by the AFT strut
+ set and 2. the strut associated with the greatest tank wall
+ displacement produced by the FORWARD strut set. These two
+ maximum local tank wall displacements are used in the
+ determination of the spring constants to be associated with
+ each of the AFT struts and with each of the FORWARD struts in
+ the models in which the flexibility of the propellant tank is
+ accounted for in the computation of the behavior(e.g.vibration)
+
+ In this BIGBOSOR4 model there exist "fake" springs, that is,
+ springs with zero axial stiffness. These "fake" springs have
+ no influence on the behavior.
+-------------------------------------------------------------
+
+ CHAPTER 5 (BEHX04x, x = 1, 2,...; x = load case):
+ Repeat the CHAPTER 1 type of computations with the new
+ (significantly smaller) spring constants that now account
+ for the flexibility of the propellant tank. The purpose of
+ this computation is to determine more accurate values of the
+ loads in each strut (spring) caused by the loads, PRESS,
+ GAXIAL, GLATRL, and TNKCOOL. The updated strut loads are
+ used in the following computations:
+ 1. Buckling of the most highly compressed strut of each type
+ (type 1 = "AFT"; type 2 = "FORWARD") as a column (BEHX5) and
+ as a shell (BEHX6).
+ 2. Maximum of each of five stress components in each type
+ of strut (BEHX2 for AFT struts and BEHX3 for FORWARD struts).
+ 3. Maximum stress in the propellant tank due to loading by
+ the AFT and FORWARD sets of struts and by the loads, PRESS,
+ GAXIAL, GLATRL, and TNKCOOL (BEHX8).
+ 4. Minimum buckling of the propellant tank under the AFT and
+ FORWARD sets of struts and by the loads, PRESS, GAXIAL,
+ GLATRL, and TNKCOOL (BEHX9).
+-------------------------------------------------------------
+
+ CHAPTER 6: Free vibration analysis-BEHX1x, x=1,2; x=load case)
+ This is a BIGBOSOR4 model of the propellant tank with springs
+ (pinned struts) attached. There is no loading. The mass of the
+ propellant is "lumped" into the middle wall of the three-
+ layered wall (inner layer = smeared orthogrid; middle layer=
+ propellant tank wall of constant thickness; outer layer=
+ tapered doubler centered on the global axial coordinate where
+ each set of struts (AFT and FORWARD) are pinned to the tank.
+ The strut (spring) stiffness takes into account the
+ flexibility of the propellant tank wall.
+--------------------------------------------------------------
+
+ CHAPTER 7: strut stress analysis-BEHX2x, x=1,2; x=load case)
+ This is the stress analysis from both BIGBOSOR4 and from
+ a PANDA2-type of laminate analysis of the most highly loaded
+ strut of the AFT set of struts (struts of type 1). The struts
+ are tubes made of composite laminate. The most highly loaded
+ strut under both axial tension and equal axial compression is
+ analyzed. The tensile/compressive load to which the most
+ highly loaded strut is subjected is derived in the computation
+ under CHAPTER 5. The five stress "behavioral" constraints
+ computed here correspond to:
+ 1. tension along the fibers of a ply,
+ 2. compression along the fibers of a ply,
+ 3. tension transverse to the fibers of a ply,
+ 4. compression transverse to the fibers of a ply,
+ 5. in-plane shear stress in a ply.
+ Recorded as 5 behavioral constraints are the maximum values
+ of each of the five components just listed from tension or
+ compression and from a BIGBOSOR4 or a PANDA2-type of model.
+ In other words, only the worst (highest) stress component from
+ four computations (tension BIGBOSOR4,compression BIGBOSOR4,
+ tension PANDA2, compression PANDA2) is recorded as each
+ component behavioral constraint.
+---------------------------------------------------------------
+
+ CHAPTER 8: strut stress analysis-BEHX3x, x=1,2; x=load case)
+ This is the stress analysis from both BIGBOSOR4 and from
+ a PANDA2-type of laminate analysis of the most highly loaded
+ strut of the FWD set of struts (struts of type 2). The struts
+ are tubes made of composite laminate. The most highly loaded
+ strut under both axial tension and equal axial compression is
+ analyzed. The tensile/compressive load to which the most
+ highly loaded strut is subjected is derived in the computation
+ under CHAPTER 5. The five stress "behavioral" constraints
+ computed here correspond to:
+ 1. tension along the fibers of a ply,
+ 2. compression along the fibers of a ply,
+ 3. tension transverse to the fibers of a ply,
+ 4. compression transverse to the fibers of a ply,
+ 5. in-plane shear stress in a ply.
+ Recorded as 5 behavioral constraints are the maximum values
+ of each of the five components just listed from tension or
+ compression and from a BIGBOSOR4 or a PANDA2-type of model.
+ In other words, only the worst (highest) stress component from
+ four computations (tension BIGBOSOR4,compression BIGBOSOR4,
+ tension PANDA2, compression PANDA2) is recorded as each
+ component behavioral constraint.
+-------------------------------------------------------------
+
+ CHAPTER 9: Buckling of strut as a column
+ -BEHX5xy, x=1,2 x=strut type; y=1,2 y=load case
+ Only the most highly axially compressed strut in the strut
+ set "x" is included in the analysis. Two models are used:
+ 1. a BIGBOSOR4 model of the strut. n = 1 circumferential wave
+    corresponds to buckling of the strut as a column. The
+    effect of propellant tank flexibility is NOT included in
+    this BIGBOSOR4 model.
+ 2. an Euler buckling model of the strut. This model is
+    analogous to the column buckling model used in "DEWAR".
+    The effect of propellant tank flexibility IS included.
+ The Euler buckling model usually gives the lower buckling
+ load factor, mainly because of propellant tank flexibility.
+ The buckling constraint is based on the minimum column
+ buckling load factor obtained from the two models just listed.
+-------------------------------------------------------------
+
+ CHAPTER 10: Buckling of strut as a shell
+ -BEHX6xy, x=1,2 x=strut type; y=1,2 y=load case
+ Only the most highly axially compressed strut in the strut
+ set "x" is included in the analysis. Two models are used:
+ 1. a BIGBOSOR4 model of a sub-length of the strut. A search
+    is conducted over the number n of circumferential waves in
+    the buckling mode to determine the critical buckling load
+    factor. The effect of propellant tank flexibility is not
+    relevant in this analysis.
+ 2. a PANDA2-type buckling model of the strut. This model is
+    analogous to the shell buckling model used in "DEWAR".
+    The effect of propellant tank flexibility is not relevant.
+
+ The PANDA2-type buckling model usually gives the lower
+ buckling load factor, mainly because of the effect of
+ transverse shear deformation (t.s.d.) and the effect of the
+ anisotropic terms, D16 and D26, that BIGBOSOR4 cannot handle.
+ The buckling constraint is based on the minimum shell
+ buckling load factor obtained from the two models just listed.
+--------------------------------------------------------------
+
+ CHAPTER 11: Launch-hold force in a strut
+ -BEHX7x, x=1,2; x=load case
+ If the propellant tank is oriented vertically in the launch
+ vehicle all the struts in each strut set experience the same
+ launch-hold force. The launch-hold force in the AFT struts
+ may differ from that in the FORWARD struts. Behavioral
+ constraints are computed for each set of struts. The
+ behavioral constraint is called "FORCE(i,j)", in which i =
+ the load case number and j =the strut set number (strut type).
+
+ FORCE(i,j) is computed from a BIGBOSOR4 model of the
+ propellant tank with struts (springs) attached to it. The
+ spring constants include the effect of the flexibility of the
+ propellant tank. The tank is loaded by PRESS, GAXIAL=1g, and
+ TNKCOOL. The maximum allowable strut launch-hold force is
+ provided for each load case by the End user. The behavioral
+ constraint, FORCE(i,j), must be less than the maximum
+ allowable, FORCEA(i,j). The End user must supply FORCEA(i,j)
+ at a small enough value so that if the struts contain a
+ disconnect feature they will not "short out" during the
+ launch-hold phase of a mission.
+------------------------------------------------------------
+
+ CHAPTER 12: Maximum effective stress in the isotropic
+ propellant tank - BEHX8xy, x=1,2 x=meridian; y=1,2 y=load case
+ This is a BIGBOSOR4 model in which the springs (struts) are
+ replaced by concentrated loads. The model is analogous to that
+ described in CHAPTER 4 (*.BEHX03x, x=1,2; x=load case).
+ The propellant tank is loaded by PRESS, GAXIAL, GLATRL, and
+ TNKCOOL. The modeling of the concentrated loads that replace
+ the springs (struts) is described in CHAPTER 4. The purpose
+ of this model is to compute the maximum effective stress in
+ the propellant tank, which is assumed to be fabricated of
+ isotropic material. This is an "INDIC=3" BIGBOSOR4 model.
+-----------------------------------------------------------
+
+ CHAPTER 13: Buckling of the isotropic propellant tank
+ - BEHX9xy, x=1,2 x=meridian; y=1,2 y=load case
+ This is a BIGBOSOR4 model in which the springs (struts) are
+ replaced by concentrated loads. The model is analogous to that
+ described in CHAPTER 12 (*.BEHX8xy) except that in this case
+ we are interested in buckling rather than maximum stress.
+ The propellant tank is loaded by PRESS, GAXIAL, GLATRL, and
+ TNKCOOL. The modeling of the concentrated loads that replace
+ the springs (struts) is described in CHAPTER 4. The purpose
+ of this model is to compute the minimum buckling load of
+ the propellant tank, which is assumed to be fabricated of
+ isotropic material. This is an "INDIC=4" BIGBOSOR4 model.
+-----------------------------------------------------------
+
+ CHAPTER 14: Computation of the objective:
+ In general the objective has the form:
+
+ objective =
+       WGT*(normalized weight of empty tank)
+ +(1.-WGT)*(normalized total strut conductance)
+
+ in which (normalized weight of empty tank) =    TOTMAS/TNKNRM
+ and      (normalized total strut conductance) = CONDCT/CONNRM
+ and WGT, TNKNRM, CONNRM are input variables provided by the
+ End user during his/her interactive "BEGIN" session (*.BEG).
+
+ If WGT = 0, then the objective is simply the total strut
+ conductance, CONDCT. Note that the listed definition of the
+ objective is always "total conductance into the tank: CONDCT".
+=============================================================

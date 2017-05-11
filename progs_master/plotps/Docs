@@ -1,0 +1,310 @@
+
+plotps documentation
+====================
+
+plotps takes "X Y" input from either stdin or a file in a similar format to an
+Xgraph data file and plots the points according to the command line arguments or
+the directives embedded in the input file.  plotps was originally written to
+substitute for Xgraph, but the latest version of plotps has added capabilities.
+Instead of plotting a graph to a window, plotps creates a PostScript file that
+can be printed on most modern laser printers or viewed using PostScript
+previewers.  PostScript output is sent to stdout.
+
+There are two ways of issuing plot options: (1) on the command line, and (2)
+from directives embedded in the input file.  Options issued on the command line
+are global.  They affect all the traces (curves, data sets), the legend, and
+any other attribute of a plot.
+
+Directives embedded in the input file can be one of two varieties: global and
+local.  Global directives can be substituted for command-line options and are
+identified in the input file by an equals (=) sign in the first column.  Local
+directives define attributes of a particular trace and are identified by a plus
+(+) sign in the first column.  In the event of a conflict local directives
+override global directives.
+
+Global directives can appear anywhere in an input file.  A good convention to
+follow is to place global directives either at the beginning or at the end of
+an input file.  Local directives are bound to their contiguous data set in the
+input file.  A directive is contiguous to a data set if it appears either at
+the beginning of a data set, within a data set, or immediately at the end of a
+data set.  A directive is not contiguous with a data set if a blank line
+appears between a directive and that data set.  If a local directive appears
+without any associated data set, it is effectively ignored.  If two or more
+global directives contradict each other, the directive that appears latest in
+the file will override all other conflicting directives.  If two or more local
+directives contradict each other, the directive that appears latest within the
+data set will override all other conflicting directives.  In the event
+that a command-line option and a global directive conflict, the global
+directive takes precedence.
+
+Below is a list of each of the global command-line options, the corresponding
+embedded directive, and a description of each option.  A (=) appears if a
+directive can be applied globally, and a (+) appears if it can be applied
+locally.  A += before the directive below indicates that it can be applied both
+globally and locally.  e.g. markerfreq(n) directive can be applied either as a
+local directive, +markerfreq(n), or as a global directive, =markerfreq(n).
+
+-ac     =autocolor              Automatically assign colors to traces.
+
+-bb	=border			Draw plot border.  Default is no border.
+
+        +color(string)          Draw a particular plot trace in a color given
+                                by string.  string can be one of "black", "red",
+                                "green", "blue", "purple", "turquoise",
+                                "orange", or "yellow".  More colors may be added
+				later.  This option overrides =autocolor.
+                                Default color is black.
+
+-e	=eps			Produce encapsulated PostScript output
+				according to Version 2.0 specifications.
+				This option causes additional post-processing.
+				Default is standard PostScript, not
+				encapsulated PostScript.
+
+-l	=landscape		Rotate plot 90 degrees and draw in landscape
+				orientation.  Default is draw in portrait
+				orientation.
+
+-nm	+=markeroff		Plot traces without point markers.
+
+	+=markeron		Plot traces with point markers.  Default is to
+				plot with markers.
+
+-ss	=samescale		Keep scale of x and y axes the same.  Default
+				is to allow scales to differ.
+
+-u				Print plotps invocation syntax to stdout.
+
+-xz	=xzero			Force zero to appear on the x-axis of the plot.
+				Default is not to force zero to appear on the
+				x-axis.
+
+-xyz	=xyzero			Force the origin to appear on the plot.
+				Default is not to force the origin to appear
+				on the plot.
+
+-yz	=yzero			Force zero to appear on the y-axis of the
+				plot.  Default is not to force zero to appear
+				on the y-axis.
+
+-g n,m	=gridlines(n, m)	Draw n grid lines for every tick mark on the
+				x-axis and m grid lines for every tick mark on
+				the y-axis.  Default is to draw 1 gridline for
+				every tick mark for both axes.
+
+	+legend(string)		Print legend string for associated data set.
+				Close parentheses contained in string should
+				not be escaped.
+
+-leg a,b =legendloc(a, b)	Draw lower-left corner of legend a inches to
+				the right of and b inches up from the lower
+				left corner of the plot.  Scaling does not
+				affect placement of legend relative to plot
+				corner.  This option also puts a shadow box
+				around the legend.  Default is to plot legend
+				without shadow box above upper left corner of
+				plot.
+
+-ls style +=linestyle(style)	Set the interpolating line style to one of the
+				following: none for no line, dotted for a dotted
+				line, dashed for a dashed line, or continuous
+				for a continuous line.  Default is continuous
+				line for all traces.
+
+-mk n	+=markerfreq(n)		Draw marker for every |n| data points.  If n=0
+				then no markers are drawn.  i.e. -mk 0 is
+				equivalent to -nm.  If n<0 then only markers
+				are drawn and interpolating lines are
+				suppressed.  Default is -mk 1.
+
+-pd a,b	=dimensions(a, b)	Set the length of the x-axis to a inches and the
+				length of the y-axis to b inches.  Default is
+				a=b=6.5.
+
+-s x	=plotscale(x)		Scale entire plot by x, where x is a real number
+				greater than zero.  Default is x=1.0.
+
+-scm x	+=scalemarker(x)	Scale markers by x, where x is a real number
+				greater than zero.  Default is x=1.0.
+
+-sl x	+=scaleline(x)		Scale line thickness by x, where x is a real
+				number greater than zero.  Default is x=1.0.
+
+-sm n	+=setmarker(n)		Set marker for current (+) or initial
+                                (=) trace to symbol n.  Unless overridden by
+                                a +setmarker() directive, the current marker
+                                advances by one for the next trace.
+				Default for initial marker is n=0.
+
+-st x	=scaletext(x)		Set scale factor, x>0.0, for text written to
+				the plot page.  Typical values of x lie in the
+				interval [0.5, 1.7].  Text is all alphanumeric
+				output that appears on the plot page.  Default
+				is x=1.0.
+
+-t string =title(string)	Write title string at the top of the plot page.
+				If given on the command line, a multi-word title
+				must be placed inside quotes.  If given as a
+				directive, title is not quoted.  Close
+				parentheses contained in string should not be
+				escaped.  Default is no title written to page.
+
+-tr a,b	=translate(a, b)	Translate plot physical origin a inches to the
+				right of and b inches up from the lower left
+				corner of the page.  Positive a or b moves plot 
+				right or up and negative a or b moves plot left
+				or down.  Default is a visually-pleasing margin,
+				something like a=b=1.5.
+
+-x string =xlabel(string)	Write x-axis label string beneath the x-axis.
+				If given on the command line, a multi-word
+				label string must be placed inside quotes.  If
+				given as a directive, string is not quoted.
+				Parentheses contained in label string should
+				not be escaped.  Default is no x-axis label
+				written.
+
+-xr a,b	=xrange(a, b)		Set minimum, a, and maximum, b, values to plot
+				on x-axis.  This option will generate a warning
+				to stderr if some data points lie outside of the
+				requested range.  Default is for a and b to be
+				set so that the minimum and maximum data appear
+				in the plot.
+
+-y string =ylabel(string)	Write y-axis label string beneath the y-axis.
+				If given on the command line, a multi-word
+				label string must be placed inside quotes.  If
+				given as a directive, string is not quoted.
+				Parentheses contained in string should not be
+				escaped.  Default is no y-axis label written.
+
+-yr a,b	=yrange(a, b)		Set minimum, a, and maximum, b, values to plot
+				on y-axis.  This option will generate a warning
+				to stderr if some data points lie outside of the
+				requested range.  Default is for a and b to be
+				set so that the minimum and maximum data appear
+				in the plot.
+
+Other single-word command-line options are permitted but are ignored.  A
+warning message is printed to stderr when unknown or obsolete options are
+requested.
+
+To associate a legend with a data set users may employ either the "legend_text
+or the +legend(legend_text) format.  The old " format allows Xgraph input files
+to be read.
+
+Input files should adhere to a specific format.  Files contain a number of data
+sets.  A data set is associated with one plot trace.  Data sets are separated
+by one or more blank lines.  A new data set is also assumed at the start of
+each input file.  A data set consists of an ordered list of points in the form
+"X Y".  Each point must appear on a separate line.  A # sign appearing in the
+first column indicates a comment.  Data that does not conform to the expected
+format is ignored, however, a warning is printed to stderr indicating that the
+file is not in the proper format.
+
+Sample input file:
+
+# Global directives
+=title(A sample plot)
+=xlabel(x-axis label)
+=ylabel(y-axis label)
+=border
+=setmarker(7)
+=scaleline(0.8)
+
+# data set 1
+0 1
+0.1 2
+0.3 3
++legend(data set one)
+0.6 3.1
+1.0 3.15
+
+# data set 2
++legend(data set two)
+1	1.2e1
+2	5.4e1
+3	7.8e1
+4	8.9e1
+5	9.3e1
+6	1.0e2
+
+# data set 3
++linestyle(none)
++scalemarker(1.4)
++setmarker(15)
+-4.64	23
+-5.32	10
+-4.67	6.7
+-2.6	3.0
+-1.54	2.7
++legend(data set three)
+
+# data set 4
++markeroff
++scaleline(1.3)
+5	1
+4	2
+3	3
+2	4
+1	5
+
+# data set 5
++markeroff
++linestyle(dotted)
++scaleline(0.8)
+1 1
+2 2
+3 3
+4 4
+5 5
+6 6
+7 7
+8 8
+9 9
+10 10
+
+-------------------------------
+
+The marker symbol definitions follow the convention used by DISSPLA.  See the
+DISSPLA manual for a picture of each of the markers.  A short description of
+each marker symbol follows:
+
+0)	square with thin border
+1)	octagon
+2)	triangle (base on bottom)
+3)	plus (+) symbol
+4)	X symbol (cross-product symbol)
+5)	diamond
+6)	triangle (base on tope)
+7)	square with inscribed X symbol
+8)	X symbol with horizontal line through center
+9)	diamond with inscribed plus symbol
+10)	octagon with inscribed plus symbol
+11)	symbols (2) and (6) superimposed
+12)	square with inscribed plus symbol
+13)	octagon with superimposed X symbol
+14)	square with inscribed triangle (base on bottom)
+15)	bullet (filled circle)
+16)	circle
+17)	square with thick border
+18)	block (filled square)
+
+-------------------------------
+
+Invocation syntax:	plotps [options] [filename] [options]
+
+Input is expected from stdin if a filename is not specified.  PostScript output
+is sent to stdout.
+
+Examples:
+
+plotps -t "Title of plot" -y "Y data" -x "X data" input_file >output.ps
+plotps -t "Title of plot" -y "Y data" -x "X data" input_file | lpr
+{program that generates plotps input} | plotps | lpr
+
+Limitations
+
+1)  Only the first 19 legends are printed.
+2)  Markers repeat after 19 curves have been drawn unless markers are
+    suppressed.

@@ -1,0 +1,2532 @@
+
+OPTIMUM DESIGN OF STIFFENED PANELS WITH SUBSTIFFENERS,
+AIAA Paper 2005-1932, 46th AIAA SDM Meeting, Austin, TX, April 2005,
+
+by
+
+David Bushnell and Charles Rankin
+
+
+ABSTRACT
+
+The capability of the computer program PANDA2 to generate minimum-weight designs
+of stiffened panels and cylindrical shells is enhanced to permit the
+adding of substiffeners with rectangular cross sections between adjacent major
+stringers and rings. As a result many new buckling margins exist that
+govern buckling over various domains and subdomains of the doubly stiffened
+panel or shell. These generally influence the evolution of the design during
+optimization cycles. The substiffeners may be stringers and/or rings or may
+form an isogrid pattern. The effects of local, inter-ring, and general buckling
+modal imperfections can be accounted for during optimization. Perfect and
+imperfect cylindrical shells with external T-shaped stringers and T-shaped 
+rings and with and without substringers and subrings and under combined
+axial compression, external pressure, and in-plane shear are optimized
+by multiple executions of a "global" optimizer called SUPEROPT. It is found 
+that from the point of view of minimum weight there is little advantage of
+adding substiffeners. However, with substiffeners present the major stringers
+and rings are spaced farther apart at the optimum design than is so when there
+are no substiffeners. The weight of a cylindrical shell with substiffeners is much
+less sensitive to the spacing of the major T-shaped stringers than is the case
+for a cylindrical shell without substiffeners. The optimum designs obtained
+by PANDA2 are evaluated by comparisons with buckling loads obtained from a
+general-purpose finite element program called STAGS. Predictions from STAGS
+agree well with those from PANDA2. 
+
+
+INTRODUCTION
+
+Local and overall buckling and optimization of panels can be determined 
+with the PANDA2 [1], POSTOP [2], VICONOPT [3], and PASCO [4] computer 
+programs. These four programs are capable of obtaining optimum designs, 
+and PANDA2, POSTOP, and VICONOPT can do so including the effect of 
+local postbuckling of the panel skin and/or parts of the stringers.
+
+Other contributions to the field of buckling and postbuckling
+of panels include works by Weaver and his colleagues [5-7], Hilburger, 
+et al[8], Baruch and Singer [9], the creators of the STAGS general 
+purpose program, Almroth, Rankin, Brogan, and Riks [10-12], Arbocz and 
+his colleagues [13-15], Stein [16], Leissa [17], Arnold and Parekh
+[18], Starnes, Knight, and Rouse [19], Spier [20,21], Khot and Bauld
+[22,23], Zhang and Matthews [24], Gurdal and his colleagues [25-30],
+Haftka and his colleagues [30-32], Librescu and his colleagues [33-35],
+Sridharan and his colleagues [36,37], Myers and Hyer [38], Nemeth [39],
+and Noor, Starnes, and Peters [40], to identify but a few in a vast 
+literature.
+
+
+PURPOSE OF THIS PAPER
+
+The purpose of this paper is to report on an enhancement to PANDA2 that 
+permits the optimization of flat and/or cylindrical panels and shells 
+with the "usual" stringers and rings and also with "substiffeners". 
+That is, the skin between the "usual" stringers and rings can be 
+further stiffened by additional members, called "substiffeners" in this 
+work. The substiffeners must be of rectangular cross section. The 
+"usual" stiffeners (stringers and rings) can, as always, have a variety 
+of cross sections, such as rectangular, Tee, Jay, Zee, Hat, Truss-Core, 
+as described in [1]. The new version of PANDA2 is used to find minimum 
+weight designs of cylindrical shells with T-shaped stringers and 
+T-shaped rings and with rectangular substringers and subrings. Figure 1
+shows a STAGS model of a piece of a cylindrical shell with major T-shaped stringers,
+major T-shaped rings and rectangular (blade) substringers and subrings.
+
+Thermal loading is not included in cases that involve substiffeners. 
+Also, local postbuckling is not permitted in such cases. The objective 
+of this research is to determine if the minimum-weight designs of 
+cylindrical shells with the more complex "double" stiffening scheme are 
+significantly lighter than those optimized with just T-shaped stringers 
+and T-shaped rings.
+
+The substiffeners can also form an isogrid pattern between major axial
+stiffeners (stringers) and circumferential major stiffeners (rings).
+If the major stiffeners form an isogrid there cannot be any substiffeners. If there
+are substiffeners present, there can be no post-local buckling analysis (no "Koiter"
+analysis,[1,45]). There are no discretized single module models of a segment of
+panel skin with one substiffener, as with the major stiffeners [1]. In the skin-stringer
+and skin-ring discretized modules, the substiffeners are smeared out in the manner
+of Baruch and Singer [9]. Hence, in these discretized module models the new
+panel "skin" between major stiffeners is the actual panel skin plus smeared
+substringers and smeared subrings.
+
+Only the panel skin can have substiffeners.
+As of this writing there can be no substiffeners attached to the webs or
+outstanding flanges of major stiffeners. The substiffeners cannot be laminated
+composite. They are modelled as if they were of a single orthotropic material
+with user-specified E1, E2, G, nu, density, and maximum allowable stress components.
+
+No attempt has yet been made to account properly for THERMAL loading in cases that
+have substiffeners.
+
+This paper is a summary of a section of the file called .../panda2/doc/panda2.news
+called "Item no. 600" [1b]. Please see that file for details about input data, output
+data, and "how to.." directions and suggestions with regard to obtaining optimum designs
+with the new version of PANDA2. 
+
+
+DESCRIPTION OF PANDA2
+
+PANDA2 is a computer program for the minimum weight design of
+stiffened, composite, flat or cylindrical, perfect or imperfect panels
+and shells subjected to multiple sets of combined in-plane loads,
+normal pressure, edge moments, and temperature.  For most
+configurations the panels can be locally postbuckled. Previous work
+on PANDA2 is documented in [1]. PANDA2 incorporates the theories of
+earlier codes PANDA [41] and BOSOR4 [42]. The optimizer used in PANDA2
+is called ADS [43,44]. Panels are optimized subject primarily to buckling
+and stress constraints.
+
+
+PANDA2 Processors and Types of Analysis
+
+As described in [1], the PANDA2 system consists of several processors, 
+BEGIN, SETUP, DECIDE, MAINSETUP, PANDAOPT, CHOOSEPLOT, CHANGE, 
+STAGSMODEL, STAGSUNIT, etc. The functions of these processors
+are as follows:
+
+BEGIN		User establishes starting design, material properties,
+		prebuckling and buckling boundary conditions.
+
+SETUP		System sets up BOSOR4-type templates for stiffness and
+		load-geometric matrices.
+
+DECIDEi		User chooses decision variables and bounds and sets up
+		equality and inequality constraints.
+
+MAINSETUP	User chooses analysis type,  loading, and solution
+		strategies.
+
+PANDAOPT	Analysis type is performed (e.g. optimization).
+
+CHOOSEPLOT	User chooses what to plot.
+
+DIPLOT		The system obtains plots (postscript files).
+
+CHANGE		User changes selected variables and constants.
+
+AUTOCHANGE	A new starting design is automatically generated in a
+		random manner.
+
+SUPEROPT	An attempt is made to find a global optimum design.
+
+PANEL		A BOSOR4 input file is generated for inter-ring buckling
+		of panel skin and stringers, with stringers modelled as
+		flexible shell branches.
+
+PANEL2		A BOSOR4 input file is generated for inter-ring buckling
+		of panel skin+smeared stringers with rings modelled as
+		flexible shellbranches.
+
+STAGSMODEL	Input files for STAGS [10-12] are generated (one
+		finite element unit, only stringers are permitted).
+
+STAGSUNIT	Input files for STAGS are generated (multiple shell
+		units, both stringers and rings are permitted).
+
+CLEANPAN	Delete all files except files containing user-provided
+		input data for BEGIN, DECIDE, MAINSETUP, CHANGE, PANEL,
+		PANEL2, STAGSMODEL and STAGSUNIT.
+
+
+PANDA2 can be run in five modes:
+
+	1. optimization
+	2. simple analysis of a fixed design
+	3. test simulation
+	4. design sensitivity
+	5. load-interaction (Nx,Ny), (Nx,Nxy), (Ny,Nxy)
+
+
+Types of Buckling Included in PANDA2 Before Substiffeners Added
+
+PANDA2 computes general, inter-ring, and local skin buckling loads and
+mode shapes. General buckling is buckling in which both stringers (or
+isogrid stiffeners) and rings participate; panel (inter-ring)
+buckling is buckling between adjacent rings in which stringers (or
+isogrid stiffeners) participate but the lines of intersection of ring
+web roots with the panel skin do not translate; local buckling is
+buckling of the panel skin between adjacent stringers (or isogrid
+stiffeners) and rings. PANDA2 includes the following buckling models:
+
+1. A discretized single skin-stringer module. This model is used for 
+local buckling, local postbuckling, and wide column buckling of the 
+panel region between adjacent rings (transverse stiffeners).
+
+2. Simple models for the buckling of the panel skin and stiffener
+segments of the type described in [41]. Typical buckling modes of the
+panel skin and stiffeners are shown in Figs. 5 and 6 of [41]. In the 
+panel skin the buckling nodal lines are assumed to be straight, as 
+shown in Fig. 9 of [41]. This type of buckling model is used in some of
+the software written by Arbocz and Hol [13-15] and by Khot and his colleagues
+[22,23]. These models are called "PANDA-type (closed form)" in PANDA2
+jargon because they are the only ones used in the original PANDA
+program [41], which was superseded by PANDA2 [1] many years ago.  Over
+the years an elaborate strategy has been developed in order to ensure
+that for each type of buckling in this PANDA-type category,
+the most critical (lowest) buckling load factor is not missed. The
+critical eigenvalue is determined from several searches over various
+regions in the (m,n,slope) domain, where m is the number of axial
+halfwaves, n is the number of circumferential halfwaves, and
+slope is the slope of the buckling nodal lines (non-zero when
+there is in-plane shear loading and/or shell wall anisotropy).  More
+details are given in the panda2.news file identified in [1].
+
+For sandwich panels and shells PANDA2 computes load factors for
+additional types of buckling that only occur for sandwich walls: face
+sheet wrinkling, buckling over the diameter of a single cell of a
+honeycomb core, and core crimping [1].
+
+Three additional buckling models were fairly recently added to PANDA2 as
+described in [1]:
+
+3. Local buckling between adjacent stringers and rings of a cylindrical
+or flat panel obtained from a Ritz model in which the buckling modal
+displacement components, u, v, w,  are expanded in double trigonometric
+series. The local region is assumed to be simply supported on all four
+edges.
+
+4. General buckling of a cylindrical panel in which stringers and rings
+are treated as discrete beams with undeformable cross sections. Again,
+the general buckling modal displacement components, u, v, w, are
+expanded in double trigonometric series. The edges of the domain are
+assumed to be simply supported and to have discrete stiffeners of half
+the user-specified modulus. The domain for this model is a three-bay by
+three-bay subdomain of the entire panel.
+
+5. A discretized single module model for a cylindrical panel in which
+the ring segments and panel skin-with-smeared-stringers are 
+discretized. In this "branched shell" model the cross sections of the 
+rings can deform in the buckling mode, since they are subdivided into 
+finite elements of the type used in BOSOR4[42].
+
+Buckling loads corresponding to a given type of buckling (such as local
+buckling of the skin between stringers or general buckling) may be
+computed by more than one model in order to verify results and to
+provide appropriate knockdown factors to account for anisotropy,
+inherent unconservativeness in smearing stiffeners, the presence of in-
+plane shear loading, and variation of in-plane loading within the
+domain that buckles. The effect of transverse shear deformation (t.s.d.)
+is accounted for as described in [1].
+
+PANDA2 can optimize imperfect stiffened panels and shells [1]. 
+Imperfections are assumed to be in the shapes of the general, 
+inter-ring, and local buckling modes obtained from the PANDA-type model 
+identified as Item No. 2 above. Imperfections in stiffened panels and 
+shells have two major effects:
+
+a. The imperfect panel or shell bends as soon as any loading is 
+applied. This bending causes significant redistribution of stresses 
+between the panel skin and the various stiffener parts, thus affecting 
+significantly many buckling and stress constraints in the optimization 
+problem.
+
+b. The "effective" curvature of a cylindrical panel or shell depends on 
+the amplitude of the initial imperfection and on the circumferential 
+wavelength of the critical buckling mode of the perfect shell. This 
+"effective" curvature is larger than the nominal radius of curvature 
+because it corresponds to the radius of a typical inward 
+circumferential lobe of the initial and subsequently load-amplified 
+buckling modal imperfection. In PANDA2 this larger local radius of 
+curvature is assumed to be the governing radius in the buckling 
+equations pertaining to the imperfect shell.
+
+
+Local post buckling analysis
+
+An analysis branch exists in which local post buckling of the panel
+skin is accounted for [1]. In this branch a constraint condition
+that prevents stiffener pop-off is introduced into the optimization
+calculations. The postbuckling theory incorporated into PANDA2 is
+similar to that formulated by Koiter for panels loaded into the far-
+postbuckling regime [45].
+
+
+Stress constraints
+
+In addition to buckling constraints, PANDA2 computes stress constraints
+including local postbuckling deformations and thermal loading by both
+curing and applied temperature distributions. For laminated composite
+walls PANDA2 generates stress constraints corresponding to maximum
+tension along fibers, maximum compression along fibers, maximum tension
+transverse to fibers, maximum compression transverse to fibers, and
+maximum in-plane shear stress for each different material in a
+stiffened panel. For isotropic material PANDA2 generates stress
+constraints based on the von Mises effective stress.
+
+
+Global optimizer called SUPEROPT introduced into PANDA2
+
+Global optimum designs can be obtained with PANDA2 by means of multiple 
+sequential executions of a processor called SUPEROPT, which is 
+described in more detail in [1]. At intervals during the optimization
+process new starting designs are automatically generated as follows:
+
+    y(i) = x(i)[1 + dx(i)], i = 1,2,3...number of decision variables (1)
+
+in which x(i) is the old value of the ith decision variable, y(i) is
+the new value, and dx(i) is a random number between -0.5 and +1.5 if the
+decision variable is other than a stiffener spacing and a random number
+between -1.0 and +1.0 if the decision variable is a stiffener spacing.
+The difference in treatment for decision variables that are not
+stiffener spacings from those that are results from early experiments
+with SUPEROPT. In order to obtain global optimum designs it is almost 
+always necessary to execute SUPEROPT several times in succession, not 
+just once or twice.
+
+
+Frequent use of "knockdown" factors in PANDA2
+
+As mentioned in previous PANDA2 literature, in PANDA2 knockdown factors are used often.
+There are knockdown factors for weakening due to transverse shear deformation (t.s.d.),
+to compensate for the inherent unconservativeness of smearing stiffeners, to
+compensate for anisotropic effects and the application of in-plane shear loading,
+to compensate for initial imperfections, and to compensate for possible truncation
+error in the double trigonometric series expansions used in the alternative buckling
+models.
+
+
+DESCRIPTION OF STAGS
+
+STAGS (STructural Analysis of General Shells) is a finite element code for
+general-purpose nonlinear analysis of stiffened shell structures of
+arbitrary shape and complexity. Its capabilities include stress,
+stability, vibration, and transient analyses with both material and
+geometric nonlinearities permitted in all analysis types.
+STAGS includes enhancements, such as a higher order thick shell element,
+more advanced nonlinear solution strategies, and more comprehensive
+post-processing features such as a link with STAPL [1b].
+
+Research and development of STAGS by Brogan, Almroth, Rankin, Stanley,
+Cabiness, Stehlin and others of the Computational Mechanics Department of
+the Lockheed Palo Alto Research Laboratory has been under continuous
+sponsorship from U.S. government agencies and internal Lockheed funding
+for the past 30 years.  During this time particular emphasis has been
+placed on improvement of the capability to solve difficult nonlinear
+problems such as the prediction of the behavior of axially compressed
+stiffened panels loaded far into their locally postbuckled states. STAGS
+has been extensively used worldwide for the evaluation of stiffened panels
+and shells loaded well into their locally postbuckled states. See [12], for
+example.
+
+A large rotation algorithm that is independent of the finite element
+library has been incorporated into STAGS [46].  With this algorithm there
+is no artificial stiffening due to large rotations.  The finite elements
+in the STAGS library do not store energy under arbitrary rigid-body motion
+and the first and second variations of the strain energy are consistent.
+These properties lead to quadratic convergence during Newton iterations.
+
+Solution control in nonlinear problems includes specification of load
+levels or use of the advanced Riks-Crisfield path parameter [12] that enables
+traversal of limit points into the post-buckling regime. Two load systems
+with different histories (Load Sets A and B) can be defined and controlled
+separately during the solution process. Flexible restart procedures permit
+switching from one strategy to another during an analysis.  This includes
+shifts from bifurcation buckling to nonlinear collapse analyses and back
+and shifts from static to transient and transient to static analyses with
+modified boundary conditions and loading.  STAGS provides solutions to the
+generalized eigenvalue problem for buckling and vibration from a linear or
+nonlinear stress state.
+
+Quadric surfaces can be modeled with minimal user input as individual
+substructures called "shell units" in which the analytic geometry is
+represented exactly. "Shell units" can be connected along edges or
+internal grid lines with partial or complete compatibility.  In this way
+complex structures can be assembled from relatively simple units.
+Alternatively, a structure of arbitrary shape can be modelled with use of
+an "element unit".
+
+Geometric imperfections can be generated automatically in a variety of
+ways, thereby permitting imperfection-sensitivity studies to be performed.
+For example, imperfections can be generated by superposition of several
+buckling modes determined from previous STAGS analyses of a given case.
+
+A variety of material models is available, including both plasticity and
+creep. STAGS handles isotropic and anisotropic materials, including
+composites consisting of up to 60 layers of arbitrary orientation. Four
+plasticity models are available, including isotropic strain hardening, the
+White Besseling (mechanical sublayer model), kinematic strain hardening,
+and deformation theory.
+
+Two independent load sets, each composed from simple parts that may be
+specified with minimal input, define a spatial variation of loading. Any
+number of point loads, prescribed displacements, line loads, surface
+tractions, thermal loads, and "live" pressure (hydrostatic pressure which
+remains normal to the shell surface throughout large deformations) can be
+combined to make a load set. For transient analysis the user may select
+from a menu of loading histories, or a general temporal variation may be
+specified in a user-written subroutine.
+
+Boundary conditions (B.C.) may be imposed either by reference to certain
+standard conditions or by the use of single- and multi-point constraints.
+Simple support, symmetry, antisymmetry, clamped, or user-defined B.C. can
+be defined on a "shell unit" edge.  Single-point constraints which allow
+individual freedoms to be free, fixed, or a prescribed non-zero value may
+be applied to grid lines and surfaces in "shell units" or "element units".
+ A useful feature for buckling analysis allows these constraints to differ
+for the prestress and eigenvalue analyses. Langrangian constraint
+equations containing up to 100 terms may be defined to impose multi-point
+constraints.
+
+STAGS has a variety of finite elements suitable for the analysis of
+stiffened plates and shells.  Simple four node quadrilateral plate
+elements with a cubic lateral displacement field (called "410" and "411"
+elements) are effective and efficient for the prediction of postbuckling
+thin shell response.  A linear (410) or quadratic (411) membrane
+interpolation can be selected.  For thicker shells in which transverse
+shear deformation is important, STAGS provides the Assumed Natural Strain
+(ANS) nine node element (called "480" element).  A two node beam element
+compatible with the four node quadrilateral plate element is provided to
+simulate stiffeners and beam assemblies.  Other finite elements included
+in STAGS are described in the STAGS literature [10-12].
+
+
+THEORY AND MODIFICATIONS TO PANDA2 TO PERMIT SUBSTIFFENERS
+
+With the introduction of substiffeners between major stiffeners, there are
+many new buckling constraints introduced into the optimization problem,
+such as buckling of the panel skin between substiffeners including rolling
+of the substiffeners, buckling of the panel skin with smeared substringers
+between adjacent subrings, buckling of the substringers, buckling of the
+subrings, and buckling from the alternative theory (double trigonometric
+series expansions) of various "patches" involving segments of the panel
+skin with discrete substiffeners.
+
+These new constraints are generated in PANDA2 by means of new coding that
+is analogous to that previously existing for buckling of segments of the
+major stiffeners and for buckling of sections of the panel skin stiffened
+by major stiffeners.
+
+In the case of a panel with substiffeners that form an isogrid pattern
+between adjacent major stringers and rings, a new capability has been implemented
+with regard to buckling of the triangular portion
+of panel skin between adjacent isogrid members. Previously, the buckling
+theory was based on the assumption that the triangular piece of panel skin
+between adjacent isogrid members was simply supported along its three edges.
+The contributions of stiffener rolling to the strain energy and work done by
+prebuckling stiffener resultants during buckling modal rotations were neglected.
+Now, provided that the stiffeners are of rectangular cross section (as is always
+the case with substiffeners), these contributions are included. For panels
+in which the major stiffeners form an isogrid pattern, if the major stiffeners
+are of rectangular cross section, their rolling during buckling modal rotations
+is now included. If the major stiffeners form an isogrid pattern, substiffeners
+are not allowed.
+
+There are new stress constraints that involve the substiffeners.
+
+
+EXAMPLE
+
+The numerical results presented here are all derived from an example of
+an aluminum cylindrical shell, the dimensions, material properties, loading,
+boundary conditions, and imperfection for which are listed in Table 1. Table 2 lists
+the names and definitions of all the variables that may or may not be
+decision variables in optimization problems. Variable No. 2, the stringer
+base B2(STR), is always equal to one tenth the stringer spacing in this study,
+and the properties of the wall in the stringer base are the same as those
+in the wall midway between stringers; there is no stringer faying
+flange. The width of the ring base, B2(RNG), is always zero in this study.
+
+The new variables pertaining to the substiffeners are called TSUB (thickness),
+HSUB (height), and BSUB (spacing). In the examples presented here there are always
+both substringers and subrings.
+
+Table 3 lists the starting design and optimum designs for perfect and imperfect
+shells with and without substiffeners. One can see from the weights listed that
+there is little advantage of adding substiffeners from the point of view of
+weight alone.
+
+
+RUNSTREAM TO OBTAIN THE "GLOBAL" OPTIMUM DESIGN
+
+The runstream to produce a "global" optimum design is listed in Table 4. The case name is
+"testax4p". "Global" is in quotes because there is no guarantee that the optimum is truly
+a global optimum design. The more sets of "superopt/chooseplot/diplot" the user executes,
+the more likely it is that a truly global optimum design will result. In the "global"
+optimization in this case, there were four executions of the sequence
+SUPEROPT/CHOOSEPLOT/DIPLOT.
+
+Each execution of SUPEROPT must be followed by an
+execution of CHOOSEPLOT because CHOOSEPLOT is where the total number of design
+iterations gets reset to zero between executions of SUPEROPT. This must always
+be done before the next execution of SUPEROPT.
+
+Figure 2 shows a plot of the objective function vs design iterations after
+the first execution of SUPEROPT for the perfect shell with substiffeners.
+The final optimum design of the perfect shell is listed in Column 3 of Table 3.
+
+
+RESULTS CORRESPONDING TO THE "GLOBAL" OPTIMUM DESIGN: PERFECT SHELL WITH
+SUBSTIFFENERS
+
+With substiffeners present there exist many new margins. Table 5 lists
+the margins corresponding to the optimized perfect cylindrical panel
+with T-shaped major stringers and T-shaped rings and with rectangular substringers 
+and subrings (case name = "testax4p"). The optimum dimensions are listed
+in Column 3 of Table 3.
+
+The new margins pertaining to substiffeners are listed in Table 6.
+
+In PANDA2 the new margins involving substiffeners are computed in a manner
+analogous to similar margins involving major stiffeners. For example, Margin 21
+in Table 6 is computed from the PANDA-type (closed-form) theory in which the effect of
+rolling of the substiffeners along the edges of a local region of skin between
+adjacent substiffeners is included. In PANDA2 models with IQUICK=1 (no discretized
+skin-stringer module model) and no alternative solution and no substiffeners and
+major stiffeners with rectangular cross sections, there is an analogous margin: 
+
+ "buck.(SAND);rolling with local buck.; M=1;N=1;slope=0.2236;FS=1.
+
+computed from the same subroutines.
+
+Margins 22 and 23 in Table 6 are computed from the same subroutines as those for
+the analogous margins that involve major stiffeners. For example, the
+"old" margin pertaining to a major stringer (Table 5),
+
+ 7  1.76E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+
+is computed in SUBROUTINE STFEIG. (In this particular case there is no buckling
+of ring "Iseg.3" because there exists only tension along the axis of the ring web).
+
+The new margins pertaining to a substringer and subring,
+ 
+22 -4.04E-04 buckling:simp-support of substring.M=1;FS=1.
+23  1.14E+01 buckling:simp-support of subrings  N=1;FS=1.
+
+are computed from statements taken from SUBROUTINE STFEIG and inserted in
+the proper place in SUBROUTINE BUCPAN.
+
+The new margins 24, 25,and 27 in Table 6, computed from the alternative buckling theory
+described in [1]:
+
+24 -2.86E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+25  3.21E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+27  5.78E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+
+are calculated in the same subroutine, ALTSOL, used for computation of the
+"old" margins (Table 5): 
+
+12  1.53E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+13 -3.84E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+15  2.35E-03 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+
+The new alternative buckling models are analogous to the old. The new margin (Table 6),
+
+25  3.21E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+
+is analogous to the "old" one (Table 5),
+
+12  1.53E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+
+In the new margin (Margin 25) the buckling domain is the panel skin between
+adjacent substiffeners with rolling of the substiffeners along the edges of
+the domain included in the model. In the old margin, (Margin 12 in Table 5) the domain
+is the panel skin + smeared substiffeners between adjacent major stiffeners.
+
+The new margin (Table 6),
+
+27  5.78E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+
+is analogous to the "old" one (Table 5),
+
+13 -3.84E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+
+In the new margin (Margin 27) the buckling domain is the panel skin plus
+substringers between subrings. A 6-substringer-bay model is used. In the
+"old" margin (Margin 13) the domain is the panel skin + smeared substiffeners
+between adjacent major rings. A 6-major-stringer-bay model is now used. (See
+panda2,news Item No. 603. Previously it was a 3-major-stringer bay model.)
+
+The new margin (Table 6),
+
+24 -2.86E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+
+is analogous to the "old" one (Table 5),
+
+15  2.35E-03 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+
+In the new margin (Margin 24) the buckling domain is an N-substringer-bay x
+M-subring-bay "patch", in which N can be as high as 6 and M can be as
+high as 5. In the "old" margin (Margin 15) the buckling domain is an
+N-major-stringer bay x M-major-ring-bay "patch", in which N can be as high
+as 6 and M can be as high as 5, with substringers and subrings smeared.
+(See panda2.news Item No. 603 for the recent modification of the way
+in which the "old" Margin 15 is now computed with a larger "patch" than
+was previously used. The old "patch" had 3-major-ring bays x 3-major-stringer
+bays.) 
+
+The two new margins pertaining to substiffeners (Table 6),
+
+28  5.77E+00 buck.(SAND);rolling with smear subrng;M=39;N=1;slope=0.01;FS=0.999
+29  6.91E-01 buck.(SAND);rolling only of substring;M=20;N=0;slope=0.;FS=1.6
+
+are analogous to the two "old" margins pertaining to major stiffeners (Table 5):
+
+16  5.72E+00 buck.(SAND);rolling with smear rings; M=52;N=1;slope=0.01;FS=0.999
+17  6.94E-03 buck.(SAND);rolling only of stringers;M=16;N=0;slope=0.;FS=1.6
+
+The two new margins pertaining to substiffeners (Table 6),
+
+26  2.18E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=16.67;FS=0.999
+30  8.00E+00 buck.(SAND);rolling only of subrings; M=0;N=4;slope=0.;FS=1.6
+
+are analogous to similar "old" margins pertaining to major stiffeners. However,
+the "old" margins, although computed, are not recorded as constraints on the
+design because they are both superceded by the discretized skin-with-smeared-
+stringers/ring single module model that yields the margin (Table 5),
+
+ 4  2.53E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+
+With the NPRINT index set equal to 2 in the *.OPT file, PANDA2 prints messages
+such as the following:
+
+ Inter-ring buckling with smeared stringers and ring rolling
+ is not recorded as a margin because this type of buckling
+ has been superceded by the results from the discretized
+ inter-ring module model, for which inter-ring buckling
+ load factors have been computed in the range from n =     1
+ to n =    70 circumferential halfwaves.
+ The critical inter-ring-buckling-with-ring-rolling model has    7
+ circ. half waves, which lies within this range.
+
+ Ring rolling without participation of the panel skin
+ is not recorded as a margin because this type of buckling
+ has been superceded by the results from the discretized
+ "skin"-ring module model, for which buckling load factors
+ have been computed in the range from n =     1 to n =    70 circ. halfwaves.
+ The critical ring-rolling-without-participation-of-the-panel-skin model has    7
+ circ. half waves, which lies within this range.
+
+Please see panda2.news Item No. 463 [1] for more about the discretized module
+model that involves the panel skin with smeared major stringers and a single
+discretized major ring cross section and how this model supercedes several
+buckling constraints that involve major ring rolling. Note that there exists no
+analogous discretized skin-with-smeared-substringers/subring module model.
+Therefore, margins such as Margin No. 26 and Margin No. 30 are recorded and
+not superceded by any other buckling model.
+
+Table 7 lists margins in which the substringers and subrings are smeared
+in the manner of Baruch and Singer [9].
+
+Margins 1-3 in Table 7:
+ 1  2.53E-02 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  2.23E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  3.24E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+
+are from the discretized "skin"-major-stringer single module model. In
+Margin 1 the term "local" means "local buckling of the "skin" between major
+stringers. In the presence of substiffeners, what used to be called the panel
+skin is now the panel skin-with-smeared-substiffeners. Margins 2 and 3 are
+computed from the same discretized single module model with smeared substiffeners.
+
+With substiffeners present there exist buckling modes more local than that
+corresponding to Margin 1. For example, the margin, 
+
+21  4.60E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1939;FS=0.999
+
+(Table 6) involves local buckling of the panel skin between adjacent substiffeners,
+with rolling of the substiffeners included in the model.
+
+Margins 4 and 13 in Table 7,
+
+ 4  2.53E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+13 -3.84E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+
+are computed with substiffeners smeared and major stringers smeared.
+
+Margin 12 in Table 7,
+
+12  1.53E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+
+used to be called "buck.(SAND);simp-support local buckling; (0.95*altsol)". It
+is generated from the same alternative buckling theory (double trigonometric series
+expansion) as before when there existed only skin between adjacent stringers and
+rings. Now the domain between adjacent major stringers and rings includes smeared
+substiffeners.
+
+Margins 14 and 15 in Table 7,
+
+14 -2.02E-02 buck.(SAND);simp-support general buck;M=6;N=0;slope=0.4637;FS=0.999
+15  2.35E-03 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+
+are derived from two different models of general instability, a closed form
+PANDA-type model in which all stiffeners (major and sub) are smeared out (Margin 14)
+and an alternative (double trig series expansion) model in which the substiffeners
+are smeared out and the major stiffeners are treated as discrete beams in a
+6-major stringer bay by 5-major-ring-bay "patch" (Margin 15).
+
+Margin 16 in Table 7,
+
+16  5.72E+00 buck.(SAND);rolling with smear rings; M=52;N=1;slope=0.01;FS=0.999
+
+is generated from a model in which the substiffeners as well as the major rings
+are smeared out and the major stringers are treated as discrete beams that run
+along the two generators at the straight edges of the long, narrow domain that
+includes the entire length of shell between two adjacent major stringers.
+
+
+GENERATING AN OPTIMUM DESIGN THAT CAN BE ANALYZED WITH STAGS
+
+It is important to evaluate the optimum design obtained by PANDA2 by use of
+a general-purpose finite element program operating on the same design. The
+general-purpose finite element program STAGS [10-12] was used. The PANDA2 processor
+STAGSUNIT [1] had to be modified to work for panels with substiffeners.
+
+In order to generate a PANDA2 model that, via STAGSUNIT, produces suitable input
+files, *.bin and *.inp, for STAGS, it is necessary first to find an optimum design
+with PANDA2 in which there are integral numbers of major stiffeners over the entire 
+domain of the STAGS model and integral numbers of substiffeners between adjacent
+major stiffeners. This is done by the following steps:
+
+1. Use the PANDA2 processor called CHANGE to reset the variables,
+B(STR), B2(STR), B(RNG) BSUB(substringer), BSUB(subrings)
+so that there are integral numbers of each kind of stiffener
+in the appropriate domains. Choose values that are close to
+those found in the optimum designs listed in Table 3. (See Table 8
+for appropriate values of the stiffener spacings for STAGS models).
+
+2. Use the PANDA2 processor called DECIDE. The stiffener spacings
+B(STR), B2(STR), B(RNG) BSUB(substringer), BSUB(subrings),
+should no longer be decision variables, and the therefore inappropriate
+inequality constraints,
+
+a. The stringer spacing must be at least 3 times the substringer spacing.
+b. The ring spacing must be at least 3 times the subring spacing.
+
+should be eliminated.
+
+3. Execute SUPEROPT/CHOOSEPLOT/DIPLOT at least once to find a new "global"
+optimum design for which there are integral numbers of major stiffeners
+and substiffeners in the appropriate domains.
+
+4. Execute PANDAOPT once more for a fixed design: the optimum design.
+
+New optimum designs suitable for analysis by STAGS are listed in Table 8.
+
+The margins corresponding to the perfect shell with substiffeners (second
+column in Table 8) are listed in Table 9.
+
+
+CREATION OF STAGS MODELS
+
+STAGS models, such as that shown in Fig. 1, are generated via the PANDA2 processor 
+called STAGSUNIT. The purpose of STAGSUNIT is to generate the two input files,
+*.bin and *.inp, for the STAGS general purpose finite element program. In this
+example "*" stands for the case name, "testax4p". Typical input data files for
+STAGSUNIT are listed in several tables in [1b].
+
+As described in [1],
+the processor STAGSUNIT is written in such a way that "patches" of various portions 
+of a complete panel or shell can be analyzed with STAGS. The correct prebuckled
+state of a perfect panel is preserved independently of the size of the "patch"
+to be included in the STAGS model. The minimum size "patch" must contain at
+least one major stiffener spacing in each direction, and major stringers are
+always included along the two straight edges of the "patch".
+There may or may not be rings running along the two curved edges of the "patch",
+depending on input to STAGSUNIT provided by the user of PANDA2.
+Stiffeners that run along the four boundaries of the "patch" have half the
+stiffness of those that lie within the "patch". Figure 1 shows a STAGS "patch"
+model that includes only three bays between major stringers (four major
+stringers) and one bay between two major rings.
+
+Substiffeners always lie within the patch. There must always be integral numbers
+of uniformly spaced substiffeners (substringers and/or subrings) between adjacent
+major stiffeners. The substiffeners that are closest to the major stiffeners are
+one half a substiffener spacing away from the major stiffeners. Substringers
+and subrings never occur along coordinate lines where there exist major
+stringers and/or major rings. As of this writing STAGSUNIT cannot handle
+isogrid stiffening or substiffening.
+
+The STAGS models are constructed by the PANDA2 processor STAGSUNIT in such a
+way that all stiffeners (major and sub) are connected only to the panel skin.
+That is, where stiffeners intersect they simply pass through eachother with
+no constraints between them along their lines of intersection. This is a
+conservative model with respect to buckling.
+
+There can be gaps between the
+roots of the stiffeners and the reference surface of the panel skin. For
+example, if the reference surface of the panel skin is the middle surface,
+there are gaps equal to half the skin thickness. The user can elect to have
+what in STAGS jargon are called "fasteners" that relate the nodal displacement
+components on the skin reference surface to those at the root of a stiffener
+web. The STAGS model shown in Fig. 1 has fasteners. They can barely be seen
+as tiny black dots at nodal points along the roots of all the stiffeners.
+
+Several examples of input data for the PANDA2 processor, STAGSUNIT, are given
+in [1b]. Detailed instructions on running STAGSUNIT followed by running STAGS
+are also listed there.
+
+
+RESULTS FROM STAGS
+
+The execution of STAGS produces a number of files. The user must inspect the *.out1 and
+*.out2 files if the STAGS run bombs. The user must inspect the *.out2 file if the run
+finishes in a normal fashion.
+
+Table 10 lists the most important part of the testax4p.out2 file generated from the 
+successful STAGS run to which Fig. 3 corresponds: a three-axial-bay by nine-
+circumferential-bay "patch" in which all of the major stiffeners and substiffeners
+are modelled as shell units and in which the "480" STAGS finite element is used
+throughout the STAGS model. The middle surface is used as the reference surface of the
+cylindrical skin and there exist fasteners that connect this middle surface to the
+roots of the stiffeners.
+
+The buckling modes corresponding to the eigenvalues (buckling load factors) listed
+in Table 10 are all mixtures of the types corresponding to the following margins
+from PANDA2 (Table 9):
+
+ 1  1.24E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  3.38E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  4.50E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 4  1.03E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+13 -3.76E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+17 -2.58E-02 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6
+24 -4.18E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+
+The numbers listed under "TYPES OF BUCKLING" in Table 10 correspond to the PANDA2
+margins from Table 9 and repeated just above.
+
+According to PANDA2, the three types of buckling
+
+ 1  1.24E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  3.38E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  4.50E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+
+are not critical. In contrast, these three modes play a prominant role in the STAGS 
+model of buckling. In PANDA2 the domain used for these three types of buckling includes
+only the axial dimension between adjacent major rings. Therefore, the string "M=2" means
+"two axial halfwaves between major rings". In the STAGS model the axial wavelength of
+the "bending-torsion" buckling or "lateral-torsional" buckling (sidesway of the major
+stringers) is not restricted to the distance between adjacent major rings because
+the stiffeners are allowed to deform relative to eachother where they intersect. The
+PANDA2 model that leads to the margin,
+
+17 -2.58E-02 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6
+
+also allows the stringers to deform relative to the major rings because the domain
+is the entire axial length of the panel. Therefore, the string "M=14" means "14
+axial halfwaves over the entire axial length of the panel". The inclusion of this
+type of buckling prevents PANDA2 from yielding an unconservative design in this
+case because the buckling domain is longer than one major ring spacing.
+
+Figure 3 shows the buckling mode from STAGS corresponding to the lowest eigenvalue
+(buckling load factor), 0.97738.
+
+Figure 4 shows the "same" STAGS model and buckling mode except that the STAGS 410
+finite element is used for the panel skin and the major stiffeners and the STAGS
+210 finite element is used for the substiffeners. If any stiffeners
+(major or sub) are modelled as beams (210 element), then the user has no
+choice: the STAGS 410 element MUST be used for all shell units since this element
+is compatible with the STAGS 210 beam element.
+
+Figure 5 shows the fundamental buckling mode from the same model that produced
+Figure 3 except that the substiffeners are smeared out in the manner of Baruch
+and Singer [9]. The buckling modes from STAGS are similar to those corresponding
+to the STAGS models in which the substiffeners are treated as shell units
+except that there is little evidence of the type of buckling from PANDA2's
+margin 24: "intermajorpatch".
+
+
+GENERAL BUCKLING MODE(S) FROM STAGS
+
+Of particular interest is the determination of the general buckling load factor
+according to STAGS. In this case one must include the entire cylindrical
+shell in the STAGS model. Because of the presence of uniform in-plane
+shear loading, Nxy, (Table 1) there are no planes of symmetry. In the STAGS
+model of the entire shell the substiffeners are smeared out and the major stiffeners
+are treated as shell units. The STAGS "480" finite element is used throughout. The
+outer surface of the panel skin is used as the reference surface and there are no
+fasteners in this particular model.
+
+In order to find the lowest long-wavelength general buckling mode in this case it is
+necessary to make several STAGS runs, each successive run with a slightly higher
+initial eigenvalue "shift". This has
+to be done because there are many "inter-ring" buckling modes that have eigenvalues
+(buckling load factors) that bracket the lowest eigenvalue corresponding to the 
+general buckling mode. "Inter-ring" is in quotation marks here because most of these
+short-wavelength modes involve significant in-plane bending of the major rings,
+as will be seen later. This places them in the "general buckling" category. Three
+STAGS runs were required in this case to obtain the lowest long-wavelength general
+buckling mode (Mode 19).
+
+There are results from two sets of three runs each listed in Table 600.24 of [1b].
+The first set of three runs corresponds to a model in which the outer surface
+of the shell skin is used as a reference surface and there are no fasteners.
+The second set of three runs corresponds to a model in which the middle surface
+of the shell skin is used as a reference surface and there are fasteners. The
+effect of this difference in modeling is minor: The buckling load factors from
+the model with fasteners are from one to two per cent lower than those without
+fasteners.
+
+The general buckling load factor, 1.0511, for the "no fasteners" model,
+corresponds to the 19th eigenvalue. This general buckling mode has three
+circumferential waves. The general buckling load factor, 1.04201, for
+the "fasteners" model, also corresponds to the 19th eigenvalue for that
+model and also has three circumferential waves.
+
+The buckling mode corresponding to the lowest eigenvalue, 1.022198E+00, is
+shown in Fig. 6 and the buckling mode for the lowest eigenvalue corresponding
+to long-wavelength general instability, 1.051100E+00, is shown in Fig. 7. Both of these modes
+are for the STAGS model with no fasteners. The modes for the STAGS model with
+fasteners, corresponding to the first eigenvalue, 1.008428, and to the 19th
+eigenvalue, 1.042010,  are essentially the same.
+
+All of the other eigenvalues correspond approximately to "inter-ring" buckling modes
+similar to that in Fig. 6. In these relatively short wavelength buckling modes
+the axes of the stringers deform and the rings primarily twist. However, for
+most of the rings the axes of the rings also deform, as shown in Fig. 8. Figure 8
+is produced by elimination of all the shell units except the two shell units
+that correspond to the web and outstanding flange of the fourth ring from the
+left end of the model shown in Fig. 6. In Fig. 8 the
+buckling modal deformations for the same mode (Mode No. 1) as that shown in
+Fig. 6 are plotted to the same scale as is shown in Fig. 6. Because there is
+significant bending in the plane of this and in the planes of the other rings, 
+these "inter-ring" modes may also be considered to have significant components 
+of general buckling: a short-wavelength general buckling mode similar in type to
+that shown in Figs. 21, 26, 27, 29 of the paper, 
+"Additional buckling solutions in PANDA2" [1].
+
+For a complete (360 degrees) cylindrical shell the converged eigenvalues (buckling load
+factors) occur in pairs. This is typical in STAGS models of complete (360-degree) cylindrical
+shells. The buckling mode corresponding to each eigenvalue in a pair is the same except 
+that one mode in the pair is rotated around the shell circumference relative to the
+other.
+
+
+RESULTS FROM STAGS MODELS OF THE COMPLETE CYLINDRICAL SHELL WITH ALL STIFFENERS 
+(MAJOR AND SUB) SMEARED
+
+STAGS produces the results listed in Table 11.
+The critical buckling mode is shown in Fig. 9 and the buckling mode corresponding
+to the third eigenvalue, 1.371375, is shown in Figs. 10 and 11. The axisymmetric
+buckling load factor, 1.371375, is not far above the critical buckling load factor,
+1.288339, which corresponds to a general buckling mode with three circumferential
+waves, essentially the same buckling mode as that shown in Fig. 7.
+
+A similar STAGS model was run with use of the "410" finite element rather than the
+"480" finite element. For that model, the same nodal point density leads to a
+prediction of general buckling at a load factor (eigenvalue) of 1.340773, reasonably
+close to the 1.288339 obtained from the model with use of the 480 finite element.
+The order of the n=2 and n=0 modes is reversed compared to that for the model
+in which the STAGS "480" finite element was used (Table 11). 
+
+Although the critical general buckling mode according to STAGS
+has long wavelengths (one halfwave in the axial direction and three full waves
+over the entire circumference), a model in which all stiffeners are smeared
+produces a prediction that is unacceptably unconservative (Table 11).
+Compare the STAGS buckling load factor, 1.288339, from the smeared stiffener model
+with the STAGS buckling load factor from the model in which the substiffeners are
+smeared but the major stiffeners are modelled as shell units and fasteners are
+included: lowest eigenvalue = 1.04201.
+The model in which all stiffeners are smeared is unconservative by about 24 per cent.
+
+With use of the "410" finite element rather than the "480" finite element in the
+STAGS model, the unconservativeness of the smeared model:
+
+	general buckling load factors = 1.340773E+00 vs 1.042010E+00,
+
+is even more pronounced. The conclusion is that even though the general buckling
+mode in Fig. 7 appears to be smooth, it does not seem to be good practice to smear the
+major stiffeners for optimized shells. Models with smeared stiffeners may well lead to
+unacceptably unconservative designs.
+
+
+COMMENTS ON DIFFERENCES IN BUCKLING MODES FROM STAGS AND PANDA2 FOR THE PERFECT SHELL
+
+STAGS is a general-purpose finite element program. Therefore, the buckling modes
+obtained from STAGS do not necessarily have to fall into a classification such
+as "general" or "inter-ring" or "local" or "stiffener rolling without participation
+of the panel skin", etc. For example, a buckling mode from STAGS may be a combination
+of "general" and "inter-ring". The buckling load factors listed in Table 10 
+correspond to buckling modes of this "mixed" type. Also, the buckling mode shown
+in Figs. 6 and 8 is a mixture of general and inter-ring buckling.
+
+What may be termed a "general buckling" mode from STAGS for descriptive purposes
+is not always a "pure" general buckling mode. The AIAA Paper 2002-1408 [1] 
+shows examples of "pure" and "not so pure"
+general buckling modes. Figure 25 of that paper shows a "pure" general buckling
+mode; Figure 24 shows a "somewhat impure" general buckling mode; and Figure 23
+shows a "very impure" general buckling mode. The "impure" general buckling modes
+have differing degrees of short-wavelength deformation superposed on what is basically
+a general buckling mode. (Incidentally, Figures 20-22 of AIAA Paper 2002-1408 show
+an "inter-ring" buckling mode similar in nature to the "inter-ring" modes in
+the present case; there is considerable deformation of at least one ring in its
+plane, as displayed in Fig. 22 of that paper, making the mode a combination of
+"inter-ring" buckling and "general buckling".)
+
+The classifications of "general", "inter-ring", "local", etc. ARE meaningful in the 
+PANDA2 "universe", however. PANDA2 arrives at reasonable optimum designs with
+reasobable computer execution times through the use of many different simplified
+models for the prediction of buckling and stress. In applying PANDA2, one
+expects that the appropriate combination of these simplified models will
+lead to reliable preliminary optimum designs that are not too conservative and
+for which all the "holes have been plugged", that is, there are not any critical
+modes of failure that have been overlooked. Over the many years that PANDA2 has
+been evolving, many such "holes" have been discovered and eliminated. (See the
+file, ..panda2/doc/panda2.news [1]).
+
+Table 600.30 in [1b] lists results from PANDA2 computations for the types of buckling
+that are seen to occur in the STAGS models of the complete (360-degree) cylindrical
+shell to which the results shown in Figs. 6-11 correspond. Results from
+ten different buckling models are listed there, including three models of inter-ring
+buckling, two models of general buckling, and five models of stiffener buckling.
+Several comments, "<--NOTE...", and several paragraphs of comments have been added
+to the standard PANDA2 output
+listed in Table 600.30 in [1b] in order to help give the reader a physical "feel" for
+what is going on. The information given in that table, which is too
+long to include in this paper, should be absorbed by any researcher interested in
+using PANDA2 and understanding how it tries to solve difficult shell problems
+reasonably accurately through the use of many different approximate models.
+
+The critical STAGS buckling mode for short-wavelength "general" buckling is shown
+in Fig. 6 and the critical STAGS buckling mode for long-wavelength general buckling
+is shown in Fig. 7. As seen from Fig. 8 the short-wavelength "general" buckling mode
+has five circumferential waves around the 360-degree circumference of the cylindrical
+shell. The long-wavelength general buckling mode has three circumferential waves.
+
+PANDA2 uses two models for general instability, to which the following two
+margins, taken from Table 9, correspond:
+
+14 -3.66E-02 buck.(SAND);simp-support general buck;M=6;N=0;slope=0.473;FS=0.999
+15  6.26E-04 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+
+The first margin, Margin No. 14, is computed from the closed-form PANDA-type model [41].
+In that model all stiffeners are smeared out and transverse shear deformation (t.s.d.)
+is neglected. PANDA2 makes an elaborate search over (m,n,slope) = (MWAVEX,NWAVEX,SLOPEX)
+space for the critical (lowest) buckling load factor, EIGMNC, in which MWAVEX = number of
+axial halfwaves over the entire shell, NWAVEX = number of circumferential halfwaves
+over 180 degrees of circumference (the "width" of the panel = pi x r), and
+SLOPEX = the slope of the buckling nodal
+lines, non-zero in this case because of the presence of in-plane shear loading,
+Nxy = 20000 lb. The search over (m,n,slope) space must be thorough because there
+often are multiple minima of buckling load factor vs (m,n,slope). The following
+lines are typical PANDA2 output giving the results of this thorough search:
+
+EIGMNC=  1.52E+00  1.52E+00  1.69E+00  1.93E+00  1.69E+00  1.52E+00  1.48E+00
+SLOPEX=  6.81E-01  6.81E-01  1.00E-02  1.32E-01  0.00E+00  6.81E-01  4.73E-01
+MWAVEX=    1         1         7         6         7         1         6
+NWAVEX=    3         3         2         4         2         3         0
+
+In this particular case there are at least four minima in (m,n,slope) space,
+corresponding to (m,n) = (1,3), (7,2), (6,4), and (6,0) and various nodal line
+slopes. [Question: Why do we write, "at least four minima", instead of, "four minima"?
+Answer: For given (m,n) there are often two minmima over the practical
+range of nodal line slope]. PANDA2 chooses the
+smallest EIGMNC as the critical buckling load factor and mode shape
+for general buckling from the closed-form PANDA-type theory [41].
+
+Notice that in this particular case the general buckling load factors
+corresponding to the buckling modes (m,n.slope) = (1,3,0.681) and (6,0,0.473)
+are fairly close: 1.52 and 1.48, respectively. The (1,3,0.681) buckling mode
+is similar to the STAGS mode
+from the smeared stiffener model shown in Fig. 9. The (6,0,0.473) buckling
+mode is similar to the STAGS mode from the smeared stiffener model shown in
+Figs. 10 and 11 (axisymmetric mode).
+
+PANDA2 "knocks down" the most critical buckling load factor from PANDA-type theory
+as follows:
+
+Buckling load factor before t.s.d.= 1.4820E+00 After t.s.d.=  1.4019E+00
+Buckling load factor BEFORE knockdown for smeared stringers=  1.4019E+00
+Buckling load factor AFTER  knockdown for smeared stringers=  1.3147E+00
+
+General buckling load factor before and after knockdown:
+EIGGEN(before modification by 2 factors below)     =1.3147E+00
+Knockdown factor from modal imperfection(s)        =9.4144E-01
+Knockdown factor for smearing rings on cyl. shell  =7.7761E-01
+
+Final buckling load factor from closed-form PANDA theory =    9.6249E-01
+
+Note that there is a knockdown factor for modal imperfection(s) even though
+in this particular example the shell is perfect. Why? Because the ratio,
+(ARBOCZ/PANDA2) is equal to 0.94144. The ratio, (ARBOCZ/PANDA2) is the ratio
+of buckling loads from ARBOCZ theory [13] to PANDA-type (closed form) theory [41]
+for general buckling of a perfect cylindrical shell.
+
+After knockdown, EIGENVALUE = 9.6249E-01. This buckling load factor should
+be compared to those predicted from STAGS, given in Fig. 6 (pcr = 1.0222) and
+Fig. 7 (pcr = 1.0511). The EIGENVALUE, 9.6249E-01, is the buckling 
+load factor from which Margin No. 14 in Table 9 is derived:
+
+margin = (buckling load factor)/(factor of safety) - 1.0 
+       = 0.96249/0.999 -1.0 = -3.66E-02.
+
+The most critical general buckling mode from PANDA2 probably would have
+corresponded to the (m,n) = (1,3) mode if the knockdown factor for
+smearing rings, which depends on the number of circumferential waves in
+the buckling mode, had been applied before PANDA2 decided which mode was
+the most critical. Then the long-wavelength general buckling mode shape
+from STAGS (Fig. 7)  would have agreed with that from PANDA2. However, this
+is not the way PANDA2 works, and it is not feasible to change the order
+of computations in PANDA2.
+
+The other model of general instability in PANDA2 is the so-called "alternative
+buckling theory" in which the buckling load factor is computed from a double
+trigonometric series expansion of the buckling modal displacements over a
+"patch" of the cylindrical shell [1]. This is the theory from which Margin No.
+15 in Table 9 is computed. The mode shape corresponding to the buckling
+load factor derived from this alternative buckling theory resembles an
+inter-ring buckling mode, although there are components of buckling modal
+displacements that give rise to some in-plane bending of the rings. In the
+alternative theory model for general buckling the substiffeners are smeared.
+
+The short-wavelength STAGS buckling mode shown in Figs. 6 and 8 seems to be 
+a combination of inter-ring buckling of the type covered by PANDA2 in
+Margin No. 4 of Table 9,
+
+4  1.03E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+
+and general buckling from the alternative theory covered by Margin No. 15 of Table 9,
+
+15  6.26E-04 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+
+Thus, by the use of several approximate models that cover the same or similar
+buckling phenomena, PANDA2 produces margins that guide the design toward
+an optimum similar to one that might be produced by STAGS if STAGS were
+used in an optimization context.
+
+
+STAGS MODEL FOR LOCAL BUCKLING
+
+It is best to determine local buckling behavior from a rather small "patch". In
+this case the STAGS "patch" includes only one bay between major rings, with a major
+ring at each end of the "patch", and three bays between major stringers, with
+a major stringer running along each straight edge (generator) of the "patch".
+Hence, the "patch" is 37.5 inches long in the axial direction and 43.836 inches
+long in the circumferential direction. The major stiffeners that run along the
+four boundaries of the "patch" have half the stiffnesses of those that lie
+within the "patch". As mentioned previously, all of the substiffeners lie within
+the "patch". Figures 1, 12, 13, and 14 show the STAGS "patch" model suitable for a local
+buckling survey. The STAGS 480 finite element is used, the reference surface is
+the middle surface of the panel skin, and there are fasteners connecting this
+reference surface to the roots of all of the stiffeners. The fasteners are seen
+as tiny black dots at the stiffener roots shown in Figs. 1, 12, 13, and 14.
+
+The purpose of the STAGS model with use of a small "patch" is to compare predictions
+with the various models that PANDA2 uses for the many types of buckling that can
+be classified as "local" in this case. The buckling margins from Subcase 1 in
+Table 9 that seem to apply best in this context are as follows:
+
+ 1  1.24E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  3.38E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  4.50E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 7  1.45E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+ 8 -3.99E-03 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.
+ 9  4.64E-01 buckling stringer Isegs.3+4 together.M=9  ;C=0.     ;MID.;FS=1.4
+10  7.63E-02 buckling stringer Iseg 4 as beam on foundation. M=198;MID.;FS=3.
+11  1.43E+01 buckling   ring   Iseg 4 as beam on foundation. M=140;MID.;FS=3.
+12  2.95E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+13 -3.76E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+17 -2.58E-02 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6
+18  7.89E-01 buck.(SAND);hiwave roll. of stringers;M=84;N=0;slope=0.;FS=1.2
+19  1.43E+00 buck.(SAND); STRINGERS:  web buckling;M=9;N=1;slope=0.;FS=1.
+20  1.51E+01 buck.(SAND);   RINGS:    web buckling;M=2;N=1;slope=0.;FS=1.
+21  4.86E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1978;FS=0.999
+22  6.44E-03 buckling:simp-support of substring.M=1;FS=1.
+23  1.41E+01 buckling:simp-support of subrings  N=1;FS=1.
+24 -4.18E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+25  3.18E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+26  1.21E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=20.;FS=0.999
+27  1.16E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+
+Many buckling modes were generated via five STAGS runs, each successive run made with use
+of a slightly higher eigenvalue "shift" in the STAGS input file, testax4p.bin.
+Table 600.32 of [1b] lists the abridged testax4p.out2 files from each of the five STAGS
+executions. Figure 1 shows the buckling mode and eigenvalue (buckling load factor)
+corresponding to the critical (lowest) buckling load, 0.98903. Figures 12 - 14 show
+selected higher buckling modes, modes that display especially well some of the
+idealized buckling modes of the type computed by PANDA2 and listed above and in Table 9.
+
+
+DESCRIPTION OF PANDA2 MODELS OF VARIOUS MODES OF LOCAL BUCKLING
+
+Table 600.33 in [1b] is analogous to Table 600.30 in [1b]. Table 600.33 in [1b]
+lists output from PANDA2 corresponding to thirteen models of local
+buckling that PANDA2 includes as design constraints. The local buckling modes
+from STAGS listed in Table 600.32 of [1b] are combinations of the simplified buckling
+models listed in Table 600.33 of [1b] This table is too long to include here.
+As with Table 600.30 in [1b] its information should be absorbed by researchers
+interested in using PANDA2.
+
+Figures 1 and 12 - 14 show selected buckling modes from the STAGS "patch" model.
+Figure 1 shows buckling of the panel skin and substiffeners together with some
+deformation of the major stringers, a mode covered by PANDA2 margins 1 and 24.
+Figure 12 shows mainly buckling between subrings with
+subring rolling and substringers participating in the buckling mode. This type
+of buckling is covered by PANDA2 margins 26 and 27.
+Figure 13 shows mainly rolling of the stringers, a mode covered by PANDA2 Margin
+No. 17. Figure 14 displays a combination of local buckling modes covered by PANDA2
+margins 21, 22, and 25.
+
+
+OPTIMUM DESIGN INCLUDING INITIAL BUCKLING MODAL IMPERFECTION
+
+A general buckling modal imperfection with amplitude Wimpg2 equal to 1.0 inch
+is assumed. The case is the same as before except it is called "testax4"
+instead of "testax4p" (the "p" in testax4p is for "perfect").
+
+The testax4.BEG and testax4.DEC files, listed in [1b], are the same as those for testax4p.
+The new testax4.OPT file is listed in Table 600.35 of [1b]. There are
+two load cases, the first with a positive general buckling modal imperfection (+1.0 inch)
+and the second with a negaive general buckling modal imperfection (-1.0 inch).
+
+The optimum design is listed in Column 4 of Table 3. This optimum design
+was obtained via the runstream listed in Table 4.
+
+In order to obtain a new (close) optimum design that is suitable for
+analysis by STAGS, we must ensure that there are integral numbers of equally spaced  major
+stiffeners over the entire shell and integral numbers of equally spaced substiffeners
+between adjacent major stiffeners, just as we did with the perfect shell (testax4p).
+The final optimum design suitable for analysis
+by STAGS is listed in the third column of Table 8.
+As before, this optimum design is obtained with the use of two load cases:
+the first with an initial general buckling modal imperfection with amplitude Wimpg2 = +1.0
+inch and the second with imperfection amplitude Wimpg2 = -1.0 inch. The margins
+corresponding to Load Case 1, Subcase 1 are listed in Table 12.
+
+In the STAGS runs the imperfection is not present. If we wish to
+compare the behavior of the newly optimized shell with the imperfection
+neglected, we must execute PANDAOPT again for the same design, this time
+with the imperfection amplitude set equal to zero. This was done and the
+new margins for Load Case 1, Subcase 1 are listed in Table 13.
+
+PANDA2 generates two estimates of general buckling, one from a PANDA-type
+(closed form) theory (Margin No. 16 in Load Set 1, Subcase 1 in Table 12 
+and Margin No. 14 in Load Set 1, Subcase 1 in Table 13) and the other from
+the alternative, double trigonometric series expansion, theory (Margin No. 17
+in Load Set 1, Subcase 1 in Table 12 and Margin No. 15 in Load Set 1,
+Subcase 1 in Table 13). These margins are given by
+
+Including the initial general buckling modal imperfection (Table 12, Wimp=1.0 inch):
+16  8.71E-03 buck.(SAND);simp-support general buck;M=1;N=2;slope=20.;FS=0.999 (PANDA-type)
+17  6.27E-02 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999    (alternative)
+
+Neglecting the initial buckling modal imperfection (Table 13, Wimp=0.0):
+14  1.46E-01 buck.(SAND);simp-support general buck;M=1;N=2;slope=20.;FS=0.999 (PANDA-type)
+15  5.03E-01 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999    (alternative)
+
+Note that the initial general buckling modal imperfection has a much smaller
+influence on the buckling margin derived from the PANDA-type (closed form) theory
+(Margin 16 with the imperfection and Margin 14 without the imperfection)
+than on the buckling margin derived from the alternative (double trig series expansion)
+theory (Margin 17 with the imperfection and Margin 15 without the imperfection).
+
+This difference in behavior is explained by Table 600.42 in [1b]. In the PANDA-type (closed
+form) model the redistribution of stress from stiffeners to skin during prebuckling
+bending of the imperfect shell has no influence on the predicted buckling load or mode 
+because all stiffeners are smeared out in the PANDA-type model. Hence, this simplified
+theory makes use only of the overall applied stress resultants which are the same
+whether there is or is not an initial imperfection. In the alternative theory, in which
+the major stiffeners are treated as discrete beams and only the substiffeners are
+smeared out, the redistribution of stress from major stiffeners to skin-with-smeared-
+substiffeners during prebuckling bending of the imperfect shell does have an
+influence on the predicted buckling load and mode shape. This influence is apparent
+from the output from PANDA2 listed in Table 600.42 in [1b] and from a comparison
+of Margin No. 17 with Margin No. 15 listed just above.
+
+
+RESULTS FROM STAGS FOR THE CASE testax4 WITH IMPERFECTION ABSENT
+
+The STAGS model includes the entire shell. The major
+stiffeners are treated as shell units, the substiffeners are smeared, and
+the STAGS "480" finite element is used. The middle surface of the panel
+skin is the reference surface and there are fasteners connecting this
+reference surface to the roots of the major stiffener webs.
+
+Figure 15 shows the general instability buckling mode from the STAGS model with
+only the substiffeners smeared, and Fig. 16 shows the same mode with all stiffeners
+(major and sub) smeared. Note that smearing the major stiffeners raises the buckling load
+factor from 1.2410 to 1.6193, more than 30 per cent. Even though the critical general
+buckling mode is smooth (has long wavelengths) a model in which the major stiffeners
+are smeared yields an unacceptably unconservative prediction for general buckling.
+
+With use of the 410 finite element rather than the 480 finite element in the model
+with all stiffeners (major and sub) smeared out, STAGS obtains eigenvalue=1.6953
+for the first pair of modes, which correspond to n = 3 circumferential waves,
+and 1.7260 for the second pair of modes, which correspond to n = 2 circumferential
+waves. The buckling load factors corresponding to n = 3 and n = 2 are close to
+eachother.
+
+With neglect of the initial general buckling modal imperfection, PANDA2 obtains the
+following general buckling margin (from Table 13):
+
+14  1.46E-01 buck.(SAND);simp-support general buck;M=1;N=2;slope=20.;FS=0.999
+
+(buckling load factor = (buckling margin + 1.0)*(factor of safety, FS).
+ buckling load factor = (0.146 + 1.0)*(0.999) = 1.4485)
+
+The PANDA2 prediction is about eight per cent conservative compared to the STAGS
+prediction, and PANDA2 predicts buckling with two rather than three circumferential
+waves. The PANDA2 buckling load factor for general buckling is computed as follows:
+
+------------------------------------------------------------------------------------
+EIGMNC=  1.92E+00  1.92E+00  1.94E+00  3.67E+00  1.94E+00  1.92E+00  1.00E+17<--closed form
+SLOPEX=  5.00E-02  5.00E-02  0.00E+00  1.32E-01  0.00E+00  5.00E-02  2.31E+00   theory:Eq.(57)
+MWAVEX=    1         1         1         5         1         1         1        p.553 of [41]
+NWAVEX=    2         2         2         5         2         2         0  
+ 
+Buckling load factor before t.s.d.=  1.9158E+00 After t.s.d.=  1.8184E+00
+Buckling load factor BEFORE knockdown for smeared stringers=   1.8184E+00
+Buckling load factor AFTER  knockdown for smeared stringers=   1.7053E+00
+
+General buckling load factor before and after knockdown:
+EIGGEN(before modification by 2 factors below)     =  1.7053E+00
+Knockdown factor from modal imperfection(s)        =  8.9720E-01 <--(ARBOCZ/PANDA2 theory)
+Knockdown factor for smearing rings on cyl. shell  =  7.4801E-01
+
+ 14   1.14441E+00   buckling load factor simp-support general buck;M=1;N=2;slope=20.
+------------------------------------------------------------------------------------------
+
+
+A second STAGS model includes three major ring bays and nine
+major stringer bays for the case called testax4. All the stiffeners, major
+as well as sub, are treated as shell units, there are fasteners, and the
+STAGS "480" finite element is used. This is the same type of model as that
+used for the optimized perfect shell and shown in Fig. 3.
+
+Figure 17 shows the third buckling mode from the STAGS 3 x 9 bay "patch" model.
+The third mode rather than the first is shown because the modal deformations
+show up better in the plot. (The first three eigenvalues are practically identical).
+
+A third STAGS model includes one major ring bay and three 
+major stringer bays for the case called testax4. All the stiffeners, major
+as well as sub, are treated as shell units, there are fasteners, and the
+STAGS "480" finite element is used. This is the same type of model as that
+used for the optimized perfect shell and shown in Figs. 1 and 12-14.
+
+Figures 18 and 19 show buckling modes from the STAGS 1 x 3 bay "patch". The buckling
+mode corresponding to the lowest eigenvalue, 1.23892, is displayed in Fig. 18, and
+the buckling mode corresponding to the 17th eigenvalue, 1.424294, is displayed in
+Fig. 19. Figure 18 is a combination of the PANDA2 modes from Table 13,
+
+ 1  2.60E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+17  2.33E-01 buck.(SAND);rolling only of stringers;M=12;N=0;slope=0.;FS=1.6
+
+and Fig. 19 is a combination of the PANDA2 modes from Table 13,
+
+25  4.39E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+27  3.49E-01 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+
+
+RESULTS FOR A SIMILAR STIFFENED SHELL WITHOUT SUBSTIFFENERS
+
+The name of the case for the externally T-stiffened cylindrical shell
+with the same overall dimensions (Table 1) 
+but without any substiffeners is "testax3". It is of interest to
+optimize this shell and to compare the optimized weights of perfect
+and imperfect shells without substiffeners with the optimized weights
+of perfect and imperfect shells with substiffeners.
+
+There are two inequality conditions in testax3.DEC (Table 600.51 in [1b] not present in the
+preceeding cases, testax4p and testax4, in which substiffeners are present. The first
+of these two new inequality constraints requires that the width of the flange of
+the T-ring be less than the ring spacing. The second new inequality constraint
+requires that the spacing of the T-stringers be less than five times the
+spacing of the T-rings. After several preliminary optimizations it became
+clear that these two additional inequality conditions were required for the
+following reasons:
+
+1. to prevent impossible designs in which the rings become so closely spaced
+or their outstanding flanges so wide that the outstanding flanges overlap.
+
+2. to prevent "bombs" from SUPEROPT caused by a requirement that for an
+IQUICK = 0 type of analysis the stringers must be closer together than
+a distance equal to five times the ring spacing. This condition is
+built into PANDA2; the user has no choice. When it is violated SUPEROPT
+bombs because PANDA2 demands a change of model from IQUICK = 0 to
+IQUICK = 1 and then exits from the mainprocessor.
+
+The difficulties leading to the need for these two new inequality constraints
+arise because, without any substiffeners present, optimum designs tend to
+correspond to configurations in which the T-shaped stiffeners are close together.
+
+The optimum design of the perfect shell is listed in the fifth column of Table 3.
+This optimum results from the runstream listed in Table 4.
+The fourth column of Table 8 lists the optimum design of the perfect
+shell without substiffeners that is suitable for analysis by STAGS
+(integral numbers of equally spaced stringers and rings over the entire
+shell). The corresponding margins for Load case 1, Subcase 1 are listed in Table 14.
+
+
+COMPARISON OF THE OPTIMIZED DESIGNS OF THE PERFECT SHELLS WITH AND WITHOUT SUBSTIFFENERS
+
+The weights of the optimized perfect shells with and without substiffeners
+are listed in columns 3 and 5, respectively, of Table 3.
+
+It is disappointing that the difference in optimized weights of
+the perfect cylindrical shells with and without substiffeners
+is insignificant.
+For the optimized perfect cylindrical shell with substiffeners the weight
+of the shell skin plus the weight of the substiffeners is close to
+the weight of the shell skin in the optimized cylindrical shell
+without substiffeners. The weights of the major stringers and the
+weights of the major rings are approximately the same in the two
+cases. It is not worthwhile including substiffeners just to save weight.
+
+However, substiffeners may be considered if it is important that
+the number of major stringers be minimized. The spacing of the major
+stringers in the optimized cylindrical shell with substiffeners is
+given in Table 3 by B(STR) = 14.775 inches. In contrast, the spacing of
+the stringers in the optimized cylindrical shell without substiffeners is
+B(STR) = 5.2141 inches.
+
+There is a somewhat less dramatic effect on the spacing of the major rings:
+39.157 B(RNG):major ring spacing  perfect shell WITH substiffeners
+22.208 B(RNG):major ring spacing  perfect shell WITHOUT substiffeners.
+
+Optimized designs of the perfect, externally T-stiffened cylindrical 
+shells with and without substiffeners were determined for a range of
+spacing of the major stringers. The results are shown in Fig. 20, generated
+via a plotting routine "plotps" written by W. D. Bushnell [1].
+From Fig. 20 one can see that the weight of the optimized
+cylindrical shells without substiffeners is much more sensitive
+to spacing of the major stringers than is the case for the
+optimized cylindrical shells with substiffeners. This seems to
+be the only advantage of adding substiffeners of rectangular cross
+section to the panel skin. 
+
+Other loadings, such as external hydrostatic compression (Nx = p*r/2;
+Ny = p*r) and load combinations with more in-plane shear Nxy, were
+investigated with the same conclusion: there is very little if any
+advantage of adding substiffeners of rectangular cross section in order
+to decrease minimum weight as long as the stringer spacing is permitted to vary
+widely during optimization cycles. Also, the advantage of adding substiffeners
+of rectangular cross section disappears if stresses become critical.
+
+Different conclusions might be drawn if the substiffeners have other than
+rectangular cross section. PANDA2 is not yet capable of handling
+substiffeners with non-rectangular cross sections.  Also, it may be
+that adding substiffeners to other parts of the structure than the panel
+skin would be advantageous. Perhaps lighter-weight shells could be
+made if substiffeners were added to webs and outstanding flanges of the
+major stiffeners. There are no plans at this time to expand PANDA2's
+capability to handle these new geometries.
+
+
+RESULTS FROM STAGS FOR THE OPTIMIZED PERFECT SHELL WITHOUT SUBSTIFFENERS
+
+The fourth column of Table 8 lists the optimum design of the perfect
+shell without substiffeners that is suitable for analysis by STAGS
+(integral numbers of equally spaced stringers and rings over the entire
+shell). The corresponding margins for Load case 1, Subcase 1 are listed in Table 14.
+
+The PANDA2 processor STAGSUNIT was used to generate a STAGS model corresponds to a "patch"
+that includes three ring bays and nine stringer bays. The middle surface
+of the panel skin is the reference surface and there are fasteners that
+connect the roots of the stiffener webs to this reference surface (tiny
+black dots in Fig. 21). The critical buckling mode for the "patch" is
+displayed in Fig. 21. This mode is similar in character to the buckling modes
+shown for a similar "patch" of the optimized perfect shell with substiffeners
+in Figs. 3-5.
+
+An endview plot of the same buckling mode appears in Fig. 22, which
+shows clearly that there are five circumferential halfwaves
+in the nine-stringer-bay "patch". This patch spans 47.124 inches of shell
+circumference [9 x (B(STR)=5.236 in Col. 4 of Table 8) = 47.124 inches].
+The 47.124-inch-wide "patch" represents 1/13.333th of the 360-degree shell circumference.
+Hence, the same buckling pattern over the entire circumference would have 66.667
+half waves over 360 degrees or about 33 halfwaves over 180 degrees. This mode is in
+very good agreement with that predicted by PANDA2 for inter-ring buckling from the
+PANDA-type (closed form) analyis (PANDA2 buckling mode type 5 listed in Table 14):
+
+ 5  1.57E-01 Inter-ring bucklng, discrete model, n=32  circ.halfwaves;FS=0.999
+
+STAGSUNIT was used to generate a STAGS model of the optimized, perfect, complete
+cylindrical shell. The T-shaped stringers and T-shaped rings are modelled as shell
+units, and the STAGS "480" finite element is used. The outer surface of the shell
+skin is used as the reference surface and there are no fasteners.
+At the optimum design of the perfect
+shell the T-shaped stringers are very closely spaced; there are 120 of them over
+the entire (360-degree) circumference. There are 15 T-rings over the 300-inch
+length of the cylindrical shell. Since each T-shaped stringer consists of
+two shell units and each T-shaped ring consists of two shell units, there are
+1 + (2 x 120) + (2 x 15) = 271 shell units in this very large STAGS model. This
+STAGS model has about 580000 degrees of freedom.
+
+The STAGS model predicts general buckling in a mode with three circumferential
+waves at a load factor of 1.060638. This general buckling mode corresponds to
+the 25th eigenvalue. Figure 23 shows the general buckling mode from STAGS.
+
+All the other eigenvalues correspond to inter-ring buckling
+in which the stringers bend. The lowest eigenvalue (buckling load factor) is 1.0512.
+The corresponding buckling mode is displayed in Fig. 24. It was difficult to
+find the one general buckling mode hidden like a needle in a haystack among a
+thicket of short-wavelength buckling modes of the type shown in Fig. 24. (See
+ACKNOWLEDGMENTS).
+
+With the stringers and rings smeared out and with use of the 480 finite element,
+the lowest eigenvalue corresponds to general buckling at a load factor of 1.170279,
+an increase of about 10 per cent over that for the more accurate model: 1.060638.
+The general buckling mode is the same as that found for the STAGS model in which
+all stiffener parts were modelled as shell units. With use of the 410 finite
+element in the smeared stiffener model the lowest eigenvalue increases from that
+computed with use of the 480 element, eigenvalue=1.170279, to eigenvalue=1.194869.
+
+Note that for this shell without substiffeners, in which the T-shaped stringers
+and T-shaped rings are more closely spaced than is the case for the optimized shell
+with substringers, the degree of unconservativeness caused by smearing the major
+stiffeners is significantly less than for the optimized shell with substringers.
+In those cases (testax4p for the perfect shell and testax4 for the imperfect
+shell) smearing the major stiffeners raises the buckling load factor for
+general instability from 1.0511 to 1.2883 for the optimized PERFECT shell with
+substiffeners and from 1.2410 to 1.6193 for the optimized IMPERFECT shell
+with substiffeners.
+
+Notice in Table 14 that the margin corresponding to general buckling from
+the closed-form PANDA-type theory [41],
+
+13 -3.53E-02 buck.(SAND);simp-support general buck;M=8;N=0;slope=0.335;FS=0.999
+
+shows that the critical buckling mode from PANDA2 has (m,n) = (MWAVEX,NWAVEX) = (8,0)
+halfwaves in the (axial, circumferential) directions. This is similar to the
+critical general buckling mode from PANDA2 discussed at some length for the optimized
+perfect shell with substiffeners. In that case PANDA2 predicts the critical (m,n) = (6,0).
+As with the optimized shell with substiffeners, in the present case the critical
+long-wavelength general buckling mode predicted by STAGS
+for the shell without substiffeners, shown in Fig. 23, is very different from that
+predicted by PANDA2. According to STAGS the critical long-wavelength buckling mode
+has one axial halfwave and three circumferential waves.
+
+For the optimized perfect shell without substiffeners PANDA2 yields the following
+results from the exhaustive search over (m,n,slope) = (MWAVEX,NWAVEX,SLOPEX) space:
+
+EIGMNC=  1.30E+00  1.30E+00  1.27E+00  1.54E+00  1.35E+00  1.30E+00  1.00E+17
+SLOPEX=  2.77E+00  2.77E+00  3.35E-01  1.32E-01  0.00E+00  2.77E+00  0.00E+00
+MWAVEX=    1         1         8         8         9         1         0
+NWAVEX=    3         3         0         4         1         3         0
+
+Notice that the buckling load factors, EIGMNC for (m,n,slope) = (1,3,2.77)
+and (8,0,0.335) are close: EIGMNC = 1.30 and 1.27, respectively. As mentioned in this
+context previously, if the knockdown factor for smearing rings had been
+applied before PANDA2 chooses which mode is critical, PANDA2's prediction
+of buckling mode shape probably would have agreed with that from STAGS.
+What is important in this computation of buckling is not the buckling mode shapes
+but the buckling load factors. They are what control the evolution of the
+design of the perfect shell during optimization cycles.
+
+
+RESULTS FOR THE OPTIMIZED IMPERFECT SHELL WITHOUT SUBSTIFFENERS
+
+The optimum design resulting from the runstream listed in Table 4 is listed
+in the last column in Table 3. The optimum design suitable for analysis by
+STAGS is listed in the last column in Table 8. As with the imperfect shells
+with substiffeners, the optimum designs without substiffeners were obtained
+with application of two load cases:
+
+1. Load Case 1: general buckling modal imperfection amplitude, Wimpg2 = +1.0 inch,
+2. Load Case 2: general buckling modal imperfection amplitude, Wimpg2 = -1.0 inch.
+
+The margins corresponding to the optimized design suitable for analysis by STAGS
+are listed in Table 15.
+
+
+COMPARISON OF OPTIMUM DESIGNS OF IMPERFECT EXTERNALLY T-STIFFENED
+CYLINDRICAL SHELLS WITH AND WITHOUT SUBSTIFFENERS
+
+As is the case for the perfect optimized shells with substiffeners,
+a comparison of the optimum weights of the imperfect shells with and without
+substiffeners reveals that the weight saving by introduction of substiffeners
+is insignificant. (Compare weights in columns 4 and 6 of Table 3 and columns
+3 and 5 of Table 8).
+
+As with the optimized perfect shells with and without substiffeners, the
+major stiffeners weigh about the same amount for the optimized imperfect
+shells with and without substiffeners. The panel skin for the optimized
+imperfect cylindrical shell without substiffeners weighs about 8.3 per cent
+more than the skin plus substiffeners of the optimized cylindrical shell
+with substiffeners.
+
+The spacing of the major stringers in the optimized imperfect cylindrical
+shell with substiffeners is given in Table 3 as B(STR) = 17.782 inches. 
+In contrast, the spacing of the major stringers in the optimized imperfect
+cylindrical shell without substiffeners is given by B(STR) = 6.665 inches.
+Hence, as with the perfect shells, the presence of substiffeners of rectangular
+cross section permits the major stringers to be spaced at much wider intervals
+around the cylindrical shell.
+
+There is a much less dramatic effect on the spacing of the major rings:
+
+48.508 B(RNG):major ring spacing, imperfect shell with substiffeners
+33.480 B(RNG):major ring spacing, imperfect shell without substiffeners.
+
+Probably the spacing of the major rings would be influenced more by the presence of
+substiffening for loading by hydrostatic compression, in which the hoop compression
+is twice the axial compression, in contrast to the cases explored here, in which
+the axial compression is five times the hoop compression.
+
+Note that the optimum design suitable for analysis by STAGS is about 1.5 per
+cent lighter than the optimum design obtained with the stiffener spacings free
+to change during optimization cycles. (Weight = 21300 lb in Table 8 and
+Weight = 21620 lb in Table 3. One naturally asks, "How can the optimum
+design with the stiffener spacings held constant be lighter than that found
+when the stiffener spacings were allowed to change during optimization cycles?"
+or, one might ask, "Why didn't PANDA2 find the "better" (lighter) design when the
+stiffener spacings were allowed to change?" There are two answers to this
+apparent anomaly:
+
+1. The "better" design listed in col. 5 of Table 8 is actually not better because one
+or more of the margins is more negative than for the optimum listed in col. 6 of Table 3.
+PANDA2 accepts designs for which no margins are less than -0.05. In this example
+one of the margins listed in Table 15,
+
+ 7 -4.89E-02 Lo-n Ring sidesway, discrete model, n=7   circ.halfwaves;FS=0.999
+
+is very close to that limit of acceptability.
+
+2. Often the "global" optimum design is very difficult for PANDA2 to find because
+the behavior may change abruptly from design iteration to iteration. For example,
+one or more critical buckling mode shapes may change abruptly during optimization
+cycles, leading to relatively large excursions of design margins, especially if
+a buckling mode shape that represents an initial buckling modal imperfection
+changes abruptly. The often "jagged" property of margins in design space makes
+it very difficult to find a truly global optimum design.
+
+
+RESULTS FROM STAGS FOR THE DESIGN LISTED IN COLUMN 5 of Table 8
+
+The linear buckling analysis by STAGS for a three-ring-bay by nine-stringer-bay
+"patch" of the  optimized shell
+yields a buckling load factor of 1.1428 (initial imperfection
+not present in the STAGS model). With the amplitude of the general buckling
+modal imperfection set equal to zero, PANDA2 obtains the following margins (among
+other margins) for that design:
+
+ 5  3.23E-01 Inter-ring bucklng, discrete model, n=26  circ.halfwaves;FS=0.999
+12  8.04E-02 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+16  1.44E-01 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6
+
+The circumferential width of the "patch" in the STAGS model is 60.15816 inches,
+which corresponds to 1/10.4444th of the 360-degree circumference of the shell.
+The lowest buckling load factor from STAGS, 1.1428, is associated with a
+buckling mode that has five circumferential halfwaves over the 60.15816-inch
+width of the "patch". This mode translates into 5 x 10.4444/2 = 26 full circumferential
+waves over the entire 360-degree circumference of the shell. This mode is in
+agreement with the buckling mode associated with the 5th margin in the PANDA2
+model:
+
+ 5  3.23E-01 Inter-ring bucklng, discrete model, n=26  circ.halfwaves;FS=0.999
+
+which has 26 circumferential halfwaves over 180 degrees of the circumference of
+the shell. The three buckling margins from PANDA1, Margins 5, 12, and 16, cover
+the type of buckling observed in the STAGS model.
+
+
+PANELS WITH SUBSTIFFENERS THAT FORM AN ISOGRID
+
+The "substiffener" capability in PANDA2 was extended to include panels
+with axial and circumferential major stiffeners and a skin that may be
+reinforced by substiffeners of rectangular cross section that form an
+isogrid pattern between adjacent major stringers and rings. Results from
+optimizations of perfect and imperfect cylindrical shells with external T-shaped
+stringers and external T-shaped rings and with external subisogrid stiffening
+are given in [1b]. Also presented in [1b] is the improvement to the theory
+for local buckling of the triangular piece of panel skin between adjacent
+isogrid or subisogrid members. The improved theory includes the contribution
+of the isogrid members to the total potential energy, provided that the
+cross section of the isogrid members is rectangular.
+
+As with the cases involving axial and circumferential substiffeners, for
+the various loadings investigated it was found that there is no weight
+saving from introduction of subisogrid stiffening. The optimized weight
+of the perfect shell with an external subisogrid is 17392 lb, which is
+greater than the optimized weight of the perfect shell with no substiffeners
+(16846 lb) and greater than the optimized weight of the perfect shell with
+axial and circumferential substiffeners (16712 lb).
+The optimized weight of the imperfect shell with
+an external subisogrid is 21560 lb, which is less than the
+optimized weight of the imperfect shell without substiffeners (21620 lb)
+and greater than the optimized weight of the perfect shell with
+axial and circumferential substiffeners (20560 lb). 
+
+With subisogrid stiffening the optimum designs have major stiffeners spaced
+farther apart than for the optimum designs without any substiffeners, although
+the difference in spacing between the case with substiffeners and that without
+is less pronounced than for the cases involving axial and circumferential
+substiffeners.
+
+
+OTHER SUBSTIFFENING CONFIGURATIONS
+
+Cases involving substringers and subrings on opposite sides of the panel skin
+and involving internal substringers and internal subrings combined with
+external major T-shaped stringers and external T-shaped major rings were explored.
+Some results are presented in [1b], especially for the case of a perfect cylindrical
+shell with external major stringers and major rings and internal substringers and
+subrings. The optimzed weight of this perfect cylindrical shell is 16612 lb, slightly
+less than the 16712 lb for the optimized weight of the perfect cylindrical shell
+with external substringers and subrings.
+
+
+NONLINEAR COLLAPSE
+
+In the paper, AIAA 2002-1408 [1], nonlinear collapse is computed for a ring and
+stringer stiffened cylindrical shell with general and local buckling modal
+imperfections. Figures 27 and 28 of that paper show the results from such an
+analysis. Collapse occurs because both the general and local imperfections grow
+as the load is increased. Unfortunately, it was not possible to perform a similar
+analysis in the effort leading to the present paper for the following reasons:
+
+1. The entire shell must be included in the model because there are no planes
+of symmetry due to the presence of in-plane shear loading, Nxy = 20000 lb/in.
+
+2. In the example of the optimized imperfect shell without substiffeners, the
+T-shaped stiffeners are so close together that a converged finite element model
+would contain too many degrees of freedom to capture the local component of
+collapse, which is seen as small dimples in Fig. 27 of AIAA Paper 2002-1408 [1].
+It was barely possible to compute the general buckling mode from linear theory
+for a similar model (Fig. 23). A nonlinear collapse analysis requires far more
+computer resources. Also, as Fig. 24 demonstrates, the very large STAGS model is
+probably not large enough to capture accurately either inter-ring buckling or
+local buckling between adjacent stringers and rings.
+
+3. In the example of the optimized imperfect shell with substiffeners one might
+well conduct a nonlinear collapse analysis in a model in which the substiffeners
+are smeared, such as that shown in Fig. 15. However, an analysis of this type
+would simply be a repeat of the type of study that produced Figs. 27 and 28 in
+AIAA Paper 2002-1408. It would not reveal the effect of prebuckling bending of
+the globally imperfect shell on the local buckling behavior of panel skin and
+substiffeners, such as that displayed in Figs 1, 12, and 14 of the present work.
+A model of the complete cylindrical shell that would capture the complex local
+behavior of shell skin and substiffeners would require far more
+degrees of freedom (d.o.f.) than the approximately 580000 d.o.f. model needed 
+to predict the general buckling mode shown in Fig. 23.
+
+
+CONCLUSIONS
+
+Adding substiffeners of rectangular cross section between major stiffeners does not
+lead to significantly lower optimum weights. However, with substiffeners present the
+optimum weights correspond to configurations in which the major stiffeners are
+spaced farther apart than is the case for optimized cylindrical shells without
+substiffeners.
+
+
+ACKNOWLEDGMENTS
+
+The author (D. Bushnell) is most grateful for the help of Dr. Frank Weiler, a friend and colleague
+at Lockheed Martin in Palo Alto, California.  Dr. Weiler frequently helped Bushnell 
+whenever any problems arose in connection with executing STAGS on various computers
+at the Lockheed Martin Advanced Technology Center. Dr. Weiler ran and reran and reran
+and reran the 580000-degree-of-freedom STAGS model generated by the file listed in
+Table 600.62 of [1b] and shown in Figs 23 and 24. Several reruns at different
+"eigenvalue shifts" were required in order
+to capture the lowest general buckling mode, which was buried like a needle in a
+haystack among a thicket of local buckling modes. Each run required about 40 minutes on
+the computer. (Dr. Weiler had to use a special computer with enhanced memory and disk
+capacities. That computer, a Pentium 4 desktop with two gigabytes of memory, was
+available to him only.)
+
+
+REFERENCES
+
+[1] D. Bushnell, "PANDA2-Program for minimum weight design of stiffened,
+composite, locally buckled panels", Computers and Structures, Vol. 25
+(1987) pp. 469-605. See also: "Optimization of composite, stiffened, 
+imperfect panels under combined loads for service in the postbuckling 
+regime", Computer Methods in Applied Mechanics and Engineering, Vol. 
+103, pp 43-114, 1993; "Recent enhancements to PANDA2" 37th AIAA SDM 
+Conference, April 1996; "Approximate method for the optimum design of 
+ring and stringer stiffened cylindrical panels and shells with local, 
+inter-ring, and general buckling modal imperfections", Computers and 
+Structures, Vol. 59, No. 3, 489-527, 1996; "Optimum design via PANDA2 
+of composite sandwich panels with honeycomb or foam cores", AIAA Paper 
+97-1142, AIAA 38th SDM Conference, April 1997; "Additional buckling 
+solutions in PANDA2", AIAA 40th SDM Conference, p 302-345, April 1999; 
+"Minimum-weight design of a stiffened panel via PANDA2 and evaluation 
+of the optimized panel via STAGS", Computers and Structures, Vol. 50, 
+569-602 (1994); "Optimization of perfect and imperfect ring and 
+stringer stiffened cylindrical shells with PANDA2 and evaluation of the 
+optimum designs with STAGS", AIAA Paper 2002-1408, pp 1562-1613,
+Proceedings of the 43rd AIAA SDM Meeting, April, 2002;
+
+[1b] D. Bushnell, .../panda2/doc/panda2.news, a continually
+updated file distributed with PANDA2 that contains a log of all 
+significant modifications to PANDA2 from 1987 on. In particular,
+see ITEM No. 600 in that file, which contains more details about
+the "substiffener" project..
+
+[2] J. N. Dickson, S. B. Biggers, and J. T. S. Wang, "Preliminary design
+procedure for composite panels with open-section stiffeners loaded in the
+post-buckling range," in:  Advances in Composite Materials, A. R. Bunsell,
+et al,editors, Pergamon Press Ltd., Oxford, England, 1980, pp 812-825.
+Also see, J. N. Dickson and S. B. Biggers, "POSTOP: Postbuckled open-
+stiffened optimum panels, theory and capability", NASA Langley Research
+Center, Hampton, Va., NASA Contractor Report from NASA Contract NAS1 -
+15949, May 1982.
+
+[3] Butler, R. and Williams, F. W., "Optimuam design features of VICONOPT,
+an exact buckling program for prismatic assemblies of anisotropic plates,"
+AIAA Paper 90-1068-CP, Proceedings 31st AIAA/ASME Structures, Structural
+Dynamics, and Materials Meeting, pp 1289-1299. Also see Williams, F. W.,
+Kennedy, D., Anderson, M.S., "Analysis features of VICONOPT, an exact
+buckling and vibration program for prismatic assemblies of anisotropic
+plates,", AIAA Paper 90-0970-CP, Proceedings 31st AIAA/ASME Structures,
+Structural Dynamics, and Materials Meeting, pp 920-929
+
+[4] M. S. Anderson and W. J. Stroud, "General panel sizing computer code
+and its application to composite structural panels," AIAA Journal, 17,
+(1979) pp. 892-897. Also see  W. J. Stroud and M. S. Anderson, "PASCO:
+Structural panel analysis and sizing code, capability and analytical
+foundations," NASA TM-80181, NASA Langley Research Center, Hampton, Va.,
+1981. Also see W. J. Stroud, W. H. Greene and M. S. Anderson, "Buckling
+loads of stiffened panels subjected to combined longitudinal compression
+and shear: Results obtained with PASCO, EAL, and STAGS computer programs,"
+NASA TP 2215, Nasa Langley Research Center, Hampton, Va., January 1984.
+
+[5] Wong, K. F. W. and Weaver, P. M., "Approximate solution for the
+compression buckling of fully-anisotropic cylindrical shells", 45th
+AIAA Structures, Structural Dynamics & Materials Conference, April
+2004, Palm Springs, California
+
+[6] Weaver, P. M., "On optimisation of long anisotropic flat plates
+subject to shear buckling loads", 45th AIAA SDM Conference, April 2004
+
+[7] Diaconu, C. G. and Weaver, P. M., "Approximate solution and optimum
+design for postbuckling of infinite laminated composite plates subjected
+to compression loading", 45th AIAA SDM Conference, April 2004
+
+[8] Hilburger, M. W., Nemeth, M. P., Riddick, J. C., and Thornburgh,
+R. P., "Effects of elastic edge restraints and initial prestress on
+the buckling response of compression-loaded composite panels", 45th
+AIAA SDM Conference, April 2004
+
+[9] Baruch, M. and Singer, J., "Effect of eccentricity of stiffeners
+on the general instability of stiffened cylindrical shells under
+hydrostatic pressure," Journal of Mechanical Engineering Science, 5,
+(1) (1963) pp.23-27.
+
+[10] Almroth, B. O. and Brogan, F. A., "The STAGS computer code", NASA
+CR-2950, NASA Langley Research Center, Hampton, VA, 1978.
+
+[11] Rankin, C. C., Stehlin, P., and Brogan, F. A., "Enhancements to
+the STAGS computer code", NASA CR-4000, NASA Langley Research center,
+Hampton, VA, 1986.
+
+[12] Riks, E., Rankin C. C., Brogan F. A., "On the solution of mode
+jumping phenomena in thin walled shell structures", First ASCE/ASM/SES
+Mechanics Conference, Charlottesville, VA, June 6-9, 1993, in: Computer
+Methods in Applied Mechanics and Engineering, Vol.136, 1996.
+
+[13] Arbocz, J., "The effect of initial imperfections on shell
+stability - An updated review", Delft University Faculty of Aerospace
+Engineering Report LR-695, September 1992.
+
+[14] Arbocz, J. and Hol, J. M. A. M., "On the reliability of buckling
+load predictions", AIAA Paper 94-1371, Proc. 35th AIAA Structures,
+Structural Dynamics, and Materials Conference, Hilton Head SC, 514-527
+(1993).
+
+[15] Arbocz, J. and Hol, J., "Shell stability analysis in a computer
+aided engineering (CAE) environment", AIAA Paper 93-133, Proc. 34th
+AIAA Structures, Structural Dynamics, and Materials Conference, La
+Jolla, CA, 300-314 (1993).
+
+[16] Stein, M, "The phenomenon of change of buckling patterns in elastic
+structures,", NASA Technical report R-39, NASA (1959)
+
+[17] A. W. Leissa, "Buckling of laminated composite plates and shell
+panels," AFWAL-TR-85-3069, Air Force Wright Aeronautical Laboratories,
+Wright-Patterson AFB, Ohio 45433, June, 1985.
+
+[18] R. R. Arnold and J. C. Parekh, "Buckling, postbuckling, and failure
+of flat and shallow-curved, edge-stiffened composite plates subject to
+combined axial compression and shear loads", Presented at 27th SDM
+Meeting, San Antonio, Tx., April 1986, AIAA Paper No. 86-1027-CP, 1986,
+Proceedings pp. 769-782.
+
+[19] J. H. Starnes,Jr., N. F. Knight,Jr. and M. Rouse, "Postbuckling
+behavior of selected flat stiffened graphite- epoxy panels loaded in
+compression," AIAA Paper 82-0777, presented at AIAA 23rd Structures,
+Structural Dynamics, and Materials Conference, New Orleans, May, 1982.
+See also, AIAA J., 23, (8) (1985) pp.1236-1246.
+
+[20] E. E. Spier, "On experimental versus theoretical incipient buckling
+of narrow graphite/epoxy plates in compression," Proc. AIAA 21st SDM
+Conference, AIAA Paper 80-0686-CP, May, 1980.
+
+[21] E. E. Spier, "Local buckling, postbuckling, and crippling behavior of
+graphite-epoxy short thin-walled compression members," Naval Air Systems
+Command, Washington, D. C., NASC-N00019-80-C-0174, July 1981.
+
+[22] N. R. Bauld, Jr. and N. S. Khot, "A numerical and experimental
+investigation of the buckling behavior of composite panels", Computers and
+Structures, 15 (1982) pp. 393-403.
+
+[23] N. S. Khot and N. R. Bauld, Jr., "Further comparison of the numerical
+and experimental buckling behaviors of composite panels," Computers and
+Structures, 17, (1983) pp. 61-68.
+
+[24] Y. Zhang and F. L. Matthews, "Postbuckling behavior of anisotropic
+laminated plates under pure shear and shear combined with compressive
+loading", AIAA Journal, 22, (2), (1984) pp 281-286.
+
+[25] Stoll, F. and Gurdal, Z., "Nonlinear analysis of compressively loaded
+linked-plate structures," AIAA Paper 90-0968-CP, Proceedings 31st
+AIAA/ASME Structures, Structural Dynamics, and Materials Meeting, pp
+903-913 (1990).
+
+[26] Stoll, F. and Gurdal, Z., and Starnes, J. H., Jr., "A method for the
+geometrically nonlinear analysis of compressively loaded prismatic
+composite structures," VIPSU Center for Composite Materials and Structures
+Report CCMS-91-03 (VPI-E-91-01), February, 1991
+
+[27] Shin, D. K., Gurdal, Z., and Griffin, O. H., Jr., "Minimum weight
+design of laminated composite plates for postbuckling performance," AIAA
+Paper 91-0969-CP, Proceedings 32nd AIAA/ASME Structures, Structural
+Dynamics, and Materials Meeting, pp 257-266 (1991)
+
+[28] Ley, R.P., Gurdal, Z., and Johnson, E.R. (1993). Optimal design of
+imperfect, anisotropic, ring-stiffened cylinders under combined loads.
+AIAA Paper 93-1526-CP, Proceedings of 34th AIAA Structures, Structural
+Dynamics, and Materials Conference, Part 4, pp 1881-1889.
+
+[29] Ley, R.P., Johnson, E.R., and Gurdal, Z. (1992). Buckling of
+imperfect, anisotropic, ring-stiffened cylinders under combined loads.
+AIAA Paper 92-2232-CP, Proceedings of 33rd AIAA Structures, Structural
+Dynamics, and Materials Conference, Part 1, pp 86-94.
+
+[30] Nagendra, S., Haftka, R. T., and Gurdal, Z. (1992). Stacking sequence
+optimization of simply supported laminates with stability and strain
+constraints. AIAA Paper 92-2310-CP, Proceedings of 33rd AIAA Structures,
+Structural Dynamics, and Materials Conference, Part 5, pp. 2526-2535.
+
+[31] Le Riche, R. and Haftka, R. T. (1992). Optimization of laminate
+stacking sequence for buckling load maximization by genetic algorithm.
+AIAA Paper 92-2314-CP, Proceedings of 33rd AIAA Structures, Structural
+Dynamics, and Materials Conference, Part 5, pp. 2564-2575.
+
+[32] Lombardi, M., Haftka, R. T., and Cinquini, C. (1992). Optimization of
+composite plates for buckling by simulated annealing. AIAA Paper
+92-2313-CP, Proceedings of 33rd AIAA Structures, Structural Dynamics, and
+Materials Conference, Part 5, pp. 2552-2563.
+
+[33] Librescu, L. and Chang, M.-Y. (1993). Effects of geometric
+imperfections on vibration of compressed shear deformable laminated
+composite curved panels. Acta Mechanica, 96, 203-224.
+
+[34] Librescu, L. and Souza, M. A. (1991). Postbuckling behavior of shear
+deformable flat panels under the complex action of thermal and in-plane
+mechanical loadings. AIAA Paper 91-0913-CP, Proceedings of 32rd AIAA
+Structures, Structural Dynamics, and Materials Conference, Part 2, pp.
+917-925.
+
+[35] Librescu, L. and Stein, M. (1991). A geometrically nonlinear theory
+of transversely isotropic laminated composite plates and its use in the
+post-buckling analysis. Thin-Walled Structdures, 11, 177-201.
+
+[36] Graves-Smith, T.R. and Sridharan, S., "A finite strip method for the
+post-locally-buckled analysis of plate structures," Int. J. Mech. Sci.,
+Vol. 20, pp 833-843 (1978)
+
+[37] Peng, M-H and Sridharan, S., "Optimized design of stiffened panels
+subject to interactive buckling," AIAA Paper 90-1067-CP, Proceedings 31st
+AIAA/ASME Structures, Structural Dynamics, and Materials Meeting, pp
+1279-1288
+
+[38] Meyers, C. A. and Hyer, M. W. (1992). Thermally-induced,
+geometrically nonlinear response of symmetrically laminated composite
+plates. AIAA Paper 92-2539-CP, Proceedings of 33rd AIAA Structures,
+Structural Dynamics, and Materials Conference, Part 2, pp. 1027-1037.
+
+[39] Nemeth, M. P. (1992). Buckling behavior of long symmetrically
+laminated plates subjected to compresion, shear, and inplane bending
+loads. AIAA Paper 92-2286-CP, Proceedings of 33rd AIAA Structures,
+Structural Dynamics, and Materials Conference, Part 2, pp. 274-282.
+
+[40] Noor, A. K., Starnes, J. H., Jr., and Peters, J. M. (1992).
+Thermomechanical buckling and postbuckling of multilayered composite
+panels. AIAA Paper 92-2541-CP, Proceedings of 33rd AIAA Structures,
+Structural Dynamics, and Materials Conference, Part 2, pp. 1052-1068.
+
+[41] Bushnell, D.,"Theoretical basis of the PANDA computer program for 
+preliminary design of stiffened panels under combined in-plane loads", 
+COMPUTERS AND STRUCTURES, v. 27, No. 4, pp 541-563 (1987).
+
+[42] D. Bushnell, "BOSOR4: Program for stress, buckling, and vibration of
+complex shells of revolution," Structural Mechanics Software Series - Vol.
+1, (N. Perrone and W. Pilkey, editors), University Press of Virginia,
+Charlottesville, 1977, pp. 11-131. See also Computers and Structures, Vol.
+4, (1974) pp. 399-435;  AIAA J, Vol. 9, No. 10, (1971) pp. 2004-2013;
+Structural Analysis Systems, Vol. 2, A. Niku-Lari, editor, Pergamon Press
+Oxford, 1986, pp. 25-54, and Computers and Structures, 18, (3), (1984) pp.
+471-536.
+
+[43] Vanderplaats, G. N., "ADS--a FORTRAN program for automated design
+synthesis, Version 2.01", Engineering Design Optimization, Inc, Santa
+Barbara, CA, January, 1987
+
+[44] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose optimization
+program for engineering design", Computers and Structures, Vol. 24, pp
+13-21, 1986
+
+[45] Koiter, W. T., "Het Schuifplooiveld by Grote Overshrijdingen van 
+de Knikspanning", National Luchtvaart Laboratorium, The Netherlands, 
+Report X295, November 1946 (in Dutch).
+
+[46] ? referred to in summary about STAGS. Charles: please supply this
+reference.
+
+---------------------------------------------------------------------
+
+tables follow...
+
+
+Table 1 Geometry, Material Properties, and Loading
+=======================================================================================
+Geometry (cylindrical shell):
+	Length = 300 inches
+	Radius = 100 inches
+	External T-shaped major stringers
+	External T-shaped major rings
+
+Material properties (aluminum):
+	Young's modulus = 10 msi
+	Poisson ratio   = 0.3
+	Maximum allowable stress = 1.0 msi (set high to avoid active stress constraints)
+
+Loading used for all cases:
+	-100000.0 $ Axial Resultant (lb/in), Nx(1)  Load Set A
+	-20000.00 $ Hoop  Resultant (lb/in), Ny(1)  Load Set A
+	 20000.00 $ In-plane shear  (lb/in), Nxy(1) Load Set A
+	-200.0000 $ Uniform pressure, (psi),   p(1) Load Set A
+	 Zero loading in Load Set B
+
+Boundary conditions:
+	Simple support
+
+Imperfection:
+	General buckling modal imperfection amplitude, Wimpg2 = +1.0 inch and -1.0 inch.
+	Imperfect shells have two load cases:
+		Load Case 1: Wimpg2 = +1.0 inch
+		Load Case 2: Wimpg2 = -1.0 inch
+                                        
+========================================================================================
+
+
+
+
+Table 2 Definitions of variables used in PANDA2 examples
+===========================================================================================
+Variable	Variable		Definition				Structural
+Number		  Name								   Part
+  1		B(STR)		stiffener spacing, b: STR seg=NA, layer=NA	stringer
+  2		B2(STR)		width of stringer base, b2 (must be > 0,	stringer
+  3		H(STR)		height of stiffener (type H for sketch), h:	stringer
+  4		W(STR)		width of outstanding flange of stiffener, w:	stringer
+  5		T(1 )(SKN)	thickness for layer index no.(1 ): SKN seg=1	panel skin
+  6		TSUB,substr	thickness, TSUB, of substiffener set(1 ): SKN	substringer
+  7		HSUB,substr	height, HSUB, of substiffener set(1 ): SKN	substringer
+  8		BSUB,substr	spacing, BSUB, of substiffener set(1 ): SKN	substringer
+  9		TSUB,subrng	thickness, TSUB, of substiffener set(2 ): SKN	subring
+ 10		HSUB,subrng	height, HSUB, of substiffener set(2 ): SKN	subring
+ 11		BSUB,subrng	spacing, BSUB, of substiffener set(2 ): SKN	subring
+ 12		T(2 )(STR)	thickness for layer index no.(2 ): STR seg=3	stringer web
+ 13		T(3 )(STR)	thickness for layer index no.(3 ): STR seg=4	strnger flnge
+ 14		B(RNG)		stiffener spacing, b: RNG seg=NA, layer=NA	ring
+ 15		B2(RNG)		width of ring base, b2 (zero is allowed): RNG	ring
+ 16		H(RNG)		height of stiffener (type H for sketch), h:	ring
+ 17		W(RNG)		width of outstanding flange of stiffener, w:	ring
+ 18		T(4 )(RNG)	thickness for layer index no.(4 ): RNG seg=3	ring web
+ 19		T(5 )(RNG)	thickness for layer index no.(5 ): RNG seg=4	ring flange
+=============================================================================================
+
+
+
+
+Table 3 Starting design and optimum designs from PANDA2 with and without substiffeners
+(dimensions in inches)
+=======================================================================================
+			   With Substiffeners		  Without Substiffeners
+		     Perfect Shell  Imperfect shell  Perfect Shell  Imperfect Shell
+Variable      Starting	Optimum		Optimum		Optimum		Optimum
+  Name         Design	Design		Design		Design		Design
+B(STR)		20.0	14.775		17.782		5.2141		6.665
+B2(STR)		2.0	1.4775		1.7782		0.52141		0.6665
+H(STR)		10.0	4.5048		5.8903		2.7194		4.193
+W(STR)		10.0	2.9341		4.0625		2.1716		2.566
+T(1 )(SKN)	1.0	0.30150		0.34951		0.49158		0.6055
+TSUB,substr	1.0	0.23625		0.24390		-------		-------
+HSUB,substr	5.0	1.1934		1.3623		-------		-------
+BSUB,substr	5.0	2.8821		3.3480		-------		-------
+TSUB,subrng	1.0	0.24665		0.29250		-------		-------
+HSUB,subrng	5.0	2.4665		2.9250		-------		-------
+BSUB,subrng	5.0	7.0617		7.7504		-------		-------
+T(2 )(STR)	1.0	0.52521		0.67001		0.25874		0.3873
+T(3 )(STR)	1.0	0.27664		0.38816		0.17386		0.2082
+B(RNG)		20.0	39.157		48.508		22.208		33.48
+B2(RNG)		0.0	 0.0		0.0		0.0		0.0
+H(RNG)		10.0	11.046		9.7282		8.2778		9.145
+W(RNG)		10.0	4.661		7.7950		3.4935		5.874
+T(4 )(RNG)	1.0	0.55228		0.76362		0.41389		0.5629
+T(5 )(RNG)	1.0	0.25829		0.42586		0.26031		0.3646
+---------------------------------------------------------------------------------------
+WEIGHT			16712 lb	20560 lb	16846 lb	21620 lb
+=======================================================================================
+
+
+
+
+Table 4 Runstream for finding the "global" optimum design 
+=========================================================================================
+COMMAND		MEANING OF THE COMMAND			INPUT FILE	OUTPUT FILE(s)
+-------		---------------------------		------------	--------------
+panda2log	activate PANDA2 command set
+begin		user provides starting design		testax4p.BEG	testax4p.OPB
+setup		PANDA2 sets up matrix templates		none		many files
+decide		user chooses decision variables		testax4p.DEC	testax4p.OPD
+mainsetup	user chooses loading, strategy		testax4p.OPT	none
+
+superopt	PANDA2 finds "global" optimum		testax4p.OPT	testax4p.OPM, -.OPP
+chooseplot	user chooses what to plot		testax4p.CPL	testax4p.OPL
+diplot		user obtains plot hard copies				testax4p.5.ps, etc.
+
+superopt	PANDA2 finds "global" optimum		testax4p.OPT	testax4p.OPM, -.OPP
+chooseplot	user chooses what to plot		testax4p.CPL	testax4p.OPL
+diplot		user obtains plot hard copies				testax4p.5.ps, etc.
+
+superopt	PANDA2 finds "global optimum		testax4p.OPT	testax4p.OPM, -.OPP
+chooseplot	user chooses what to plot		testax4p.CPL	testax4p.OPL
+diplot		user obtains plot hard copies				testax4p.5.ps, etc.
+
+superopt	PANDA2 finds "global optimum		testax4p.OPT	testax4p.OPM, -.OPP
+chooseplot	user chooses what to plot		testax4p.CPL	testax4p.OPL
+diplot		user obtains plot hard copies				testax4p.5.ps, etc.
+===========================================================================================
+
+
+
+
+Table 5 Margins computed by PANDA2 for Load Case No. 1, Subcase No. 1 for
+the optimized perfect shell with substiffeners (Case name = testax4p)
+=================================================================================
+ MAR. MARGIN
+ NO.  VALUE		DEFINITION
+ 1  2.53E-02 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  2.23E-01 Bending-torsion buckling; M=2  ;FS=0.999                           
+ 3  3.24E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999     
+ 4  2.53E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999  
+ 5  4.28E+00 eff.stress:matl=1,SKN,Iseg=2,at:n=1,layer=1,z=-0.1507;-MID.;FS=1.  
+ 6  5.49E+00 matl=2 ; substiffener effective stressSTRCON MID.;FS=1.            
+ 7  1.76E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.   
+ 8  5.68E-03 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.   
+ 9  7.44E-01 buckling stringer Isegs.3+4 together.M=9  ;C=0.     ;MID.;FS=1.4   
+10  1.27E-01 buckling stringer Iseg 4 as beam on foundation. M=212;MID.;FS=3.   
+11  1.18E+01 buckling   ring   Iseg 4 as beam on foundation. M=169;MID.;FS=3.   
+12  1.53E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999       
+13 -3.84E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999       
+14 -2.02E-02 buck.(SAND);simp-support general buck;M=6;N=0;slope=0.4637;FS=0.999
+15  2.35E-03 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999       
+16  5.72E+00 buck.(SAND);rolling with smear rings; M=52;N=1;slope=0.01;FS=0.999 
+17  6.94E-03 buck.(SAND);rolling only of stringers;M=16;N=0;slope=0.;FS=1.6     
+18  1.28E+00 buck.(SAND);hiwave roll. of stringers;M=86;N=0;slope=0.;FS=1.2     
+19  1.73E+00 buck.(SAND); STRINGERS:  web buckling;M=9;N=1;slope=0.;FS=1.       
+20  1.35E+01 buck.(SAND);   RINGS:    web buckling;M=2;N=1;slope=0.;FS=1.       
+21  4.60E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1939;FS=0.999
+22 -4.04E-04 buckling:simp-support of substring.M=1;FS=1.                       
+23  1.14E+01 buckling:simp-support of subrings  N=1;FS=1.                       
+24 -2.86E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999          
+25  3.21E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999          
+26  2.18E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=16.67;FS=0.999 
+27  5.78E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999          
+28  5.77E+00 buck.(SAND);rolling with smear subrng;M=39;N=1;slope=0.01;FS=0.999 
+29  6.91E-01 buck.(SAND);rolling only of substring;M=20;N=0;slope=0.;FS=1.6     
+30  8.00E+00 buck.(SAND);rolling only of subrings; M=0;N=4;slope=0.;FS=1.6      
+31  6.43E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.      
+32  4.15E-01 1.-3.V(8)^1+V(1)^1-1	inequality constraint no. 1 
+33  4.59E-01 1.-3.V(11)^1+V(14)^1-1	inequality constraint no. 2
+34  9.80E-01 1.+10.V(6)^1-V(7)^1-1	inequality constraint no. 3
+35  0.00E+00 1.+10.V(9)^1-V(10)^1-1	inequality constraint no. 4
+36  1.33E+00 1.-V(3)^1+20.V(12)^1-1	inequality constraint no. 5
+37 -3.62E-05 1.-V(16)^1+20.V(18)^1-1	inequality constraint no. 6
+=================================================================================
+NOTE: The six inequality expressions provided by the user in DECIDE impose the
+following conditions on the optimum design:
+
+1. The stringer spacing must be at least 3 times the substringer spacing.
+2. The ring spacing must be at least 3 times the subring spacing.
+3. The substringer height must be less than 10 times the substringer thickness.
+4. The subring height must be less than 10 times the subring thickness.
+5. The major stringer web height must be less than 20 times the major stringer web thickness.
+6. The major ring web height must be less than 20 times the major ring web thickness.
+
+ANOTHER NOTE: There is one linking expression: the stringer base width, B2(STR),
+must equal 0.1 x (stringer spacing B(STR)). In this case the
+stringer base has the same thickness and properties as the skin
+between stringers; there are no faying flanges in any of the
+cases explored here.
+
+YET ANOTHER NOTE: PANDA2 accepts designs that are "ALMOST FEASIBLE", that is, for
+which there may be some slightly negative margins: that is. any margin greater than
+-0.05.
+
+
+
+
+Table 6 New margins in the case testax4p pertaining to substringers and subrings
+====================================================================================
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 6  5.49E+00 matl=2 ; substiffener effective stressSTRCON MID.;FS=1.
+21  4.60E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1939;FS=0.999
+22 -4.04E-04 buckling:simp-support of substring.M=1;FS=1.
+23  1.14E+01 buckling:simp-support of subrings  N=1;FS=1.
+24 -2.86E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+25  3.21E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+26  2.18E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=16.67;FS=0.999
+27  5.78E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+28  5.77E+00 buck.(SAND);rolling with smear subrng;M=39;N=1;slope=0.01;FS=0.999
+29  6.91E-01 buck.(SAND);rolling only of substring;M=20;N=0;slope=0.;FS=1.6
+30  8.00E+00 buck.(SAND);rolling only of subrings; M=0;N=4;slope=0.;FS=1.6
+================================================================================
+
+
+
+
+
+Table 7 Margins in the case testax4p for which the substiffeners are smeared out
+=====================================================================================
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  2.53E-02 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  2.23E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  3.24E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 4  2.53E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+12  1.53E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+13 -3.84E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+14 -2.02E-02 buck.(SAND);simp-support general buck;M=6;N=0;slope=0.4637;FS=0.999
+15  2.35E-03 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+16  5.72E+00 buck.(SAND);rolling with smear rings; M=52;N=1;slope=0.01;FS=0.999
+======================================================================================
+
+
+
+
+Table 8 Optimum designs suitable for analysis with STAGS (dimensions in inches)
+===============================================================================
+		   With Substiffeners		  Without Substiffeners
+	     Perfect Shell Imperfect shell   Perfect Shell  Imperfect Shell
+Variable	Optimum		Optimum		Optimum		Optimum
+  Name		Design		Design		Design		Design
+B(STR)		14.612		17.952		5.2360		6.6842
+B2(STR)		1.4612		1.7952		0.52360		0.66842
+H(STR)		4.2569		5.9286		2.6734		4.0754
+W(STR)		3.1474		3.9512		2.2670		2.8449
+T(1 )(SKN)	0.30574		0.35052		0.48975		0.60105
+TSUB,substr	0.24266		0.25270		-------		-------
+HSUB,substr	1.2074		1.4260		-------		-------
+BSUB,substr	2.9224		3.5904		-------		-------
+TSUB,subrng	0.26422		0.28665		-------		-------
+HSUB,subrng	2.6422		2.8665		-------		-------
+BSUB,subrng	7.5000		7.1428		-------		-------
+T(2 )(STR)	0.46728		0.68071		0.25758		0.35514
+T(3 )(STR)	0.29086		0.37527		0.18523		0.23015
+B(RNG)		37.500		50.000		21.429		33.333
+B2(RNG)		0.0		0.0		0.0		0.0
+H(RNG)		10.486		9.5375		9.0944		9.4406
+W(RNG)		5.2204		7.6387		2.0981		5.8882
+T(4 )(RNG)	0.52429		0.75505		0.45472		0.57307
+T(5 )(RNG)	0.32008		0.52564		0.091261	0.30031
+-------------------------------------------------------------------------------
+WEIGHT		16750 lb	20680 lb	17020 lb	21300 lb
+===============================================================================
+
+
+
+
+
+Table 9 Margins for the optimized perfect shell with substiffeners. Stiffener spacings
+        are suitable for an analysis with STAGS (Case name = testax4p)
+===========================================================================================
+ MARGINS FOR CURRENT DESIGN: LOAD CASE NO. 1, SUBCASE NO. 1 
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  1.24E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  3.38E-01 Bending-torsion buckling; M=2  ;FS=0.999                           
+ 3  4.50E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999     
+ 4  1.03E-02 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999  
+ 5  4.26E+00 eff.stress:matl=1,SKN,Iseg=2,at:n=1,layer=1,z=-0.1529;-MID.;FS=1.  
+ 6  5.39E+00 matl=2 ; substiffener effective stressSTRCON MID.;FS=1.            
+ 7  1.45E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.   
+ 8 -3.99E-03 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.   
+ 9  4.64E-01 buckling stringer Isegs.3+4 together.M=9  ;C=0.     ;MID.;FS=1.4   
+10  7.63E-02 buckling stringer Iseg 4 as beam on foundation. M=198;MID.;FS=3.   
+11  1.43E+01 buckling   ring   Iseg 4 as beam on foundation. M=140;MID.;FS=3.   
+12  2.95E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999       
+13 -3.76E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999       
+14 -3.66E-02 buck.(SAND);simp-support general buck;M=6;N=0;slope=0.473;FS=0.999 
+15  6.26E-04 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999       
+16  6.26E+00 buck.(SAND);rolling with smear rings; M=50;N=1;slope=0.01;FS=0.999 
+17 -2.58E-02 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6     
+18  7.89E-01 buck.(SAND);hiwave roll. of stringers;M=84;N=0;slope=0.;FS=1.2     
+19  1.43E+00 buck.(SAND); STRINGERS:  web buckling;M=9;N=1;slope=0.;FS=1.       
+20  1.51E+01 buck.(SAND);   RINGS:    web buckling;M=2;N=1;slope=0.;FS=1.       
+21  4.86E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1978;FS=0.999
+22  6.44E-03 buckling:simp-support of substring.M=1;FS=1.                       
+23  1.41E+01 buckling:simp-support of subrings  N=1;FS=1.                       
+24 -4.18E-02 buckling:simp-support altsoln4  intermajorpatch; FS=0.999          
+25  3.18E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999          
+26  1.21E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=20.;FS=0.999   
+27  1.16E-02 buckling:simp-support altsoln6  inter-subring  ; FS=0.999          
+28  6.04E+00 buck.(SAND);rolling with smear subrng;M=39;N=1;slope=0.01;FS=0.999 
+29  7.09E-01 buck.(SAND);rolling only of substring;M=18;N=0;slope=0.;FS=1.6     
+30  9.28E+00 buck.(SAND);rolling only of subrings; M=0;N=3;slope=0.;FS=1.6      
+31  6.33E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.      
+32  2.33E+00 0.3333 *(Stringer spacing, b)/(Stringer base width, b2)-1;FS=1.    
+33  1.01E+00 1.+10.V(6)^1-V(7)^1-1                                              
+34 -2.38E-07 1.+10.V(9)^1-V(10)^1-1                                             
+35  1.20E+00 1.-V(3)^1+20.V(12)^1-1                                             
+36 -1.79E-07 1.-V(16)^1+20.V(18)^1-1                                            
+===============================================================================
+
+
+
+
+Table 10 Abridged and edited version of the output file, testax4p.out2 from STAGS
+for a "patch" model containing three axial bays and nine circumferential bays between
+major stiffeners
+===========================================================================================
+threexninebays.testax4p.allshells.fasteners.480.out2
+shift=0.98, one negative buckling mode
+-----------------------------------------------------------------------------------------
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   8
+
+                 CRITICAL LOAD FACTOR COMBINATION                   TYPES OF BUCKLING
+NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+ 1   9.773792E-01   9.773792E-01   0.000000E+00   27287 <--1st mode  4, 13, 17 (See Fig. 3)
+ 2   9.816915E-01   9.816915E-01   0.000000E+00   17321 <--2nd mode  4, 13, 17
+ 3   1.012336E+00   1.012336E+00   0.000000E+00    4731 <--3rd mode  1, 2, 3, 4, 13, 17
+ 4   1.017679E+00   1.017679E+00   0.000000E+00    5335 <--4th mode  1, 2, 3, 4, 13, 17, 24
+ 5   1.024645E+00   1.024645E+00   0.000000E+00    6877 <--5th mode  1, 2, 3, 4, 13, 17, 24
+ 6   1.025765E+00   1.025765E+00   0.000000E+00  114463 <--6th mode  1, 2, 3, 17, 24
+ 7   1.028083E+00   1.028083E+00   0.000000E+00   27275 <--7th mode  1, 2, 3, 17, 24
+ 8   1.029080E+00   1.029080E+00   0.000000E+00    4605 <--8th mode  1, 2, 3, 17, 24
+=========================================================================================
+
+
+
+
+Table 11 Abridged and edited version of the output file, testax4p.out2 from STAGS
+for a model of the complete cylindrical shell with all stiffeners smeared and with
+use of the 480 finite element.
+==========================================================================================
+entireshell.testax4p.allstiffsmeared.480.out2
+shift=1.05, zero negative buckling modes
+MAXIMUM NUMBER OF ITERATIONS
+ CONVERGENCE HAS BEEN OBTAINED FOR EIGENVALUES  1 THROUGH   5
+ CONVERGENCE CRITERION HAS NOT BEEN SATISFIED FOR EIGENVALUES   6 THROUGH   6
+
+                     CRITICAL LOAD FACTOR COMBINATION
+   NO.    EIGENVALUE   LOAD SYSTEM A  LOAD SYSTEM B    @DOF
+     1   1.288339E+00   1.288339E+00   0.000000E+00   12879 <--n=3 circ.waves, Fig. 9
+     2   1.288339E+00   1.288339E+00   0.000000E+00   12663
+     3   1.371375E+00   1.371375E+00   0.000000E+00   18375 <--n=0 circ.waves, Figs.10, 11
+     4   1.371375E+00   1.371375E+00   0.000000E+00   18333
+     5   1.382606E+00   1.382606E+00   0.000000E+00   12735 <--n=2 circ.waves
+     6   1.382625E+00   1.382625E+00   0.000000E+00   12543 <--not converged
+===========================================================================================
+
+
+
+
+Table 12 Margins for the optimized imperfect shell with substiffeners. Stiffener spacings
+        are suitable for an analysis with STAGS (Case name = testax4)
+===========================================================================================
+ MAR. MARGIN
+ NO.  VALUE		DEFINITION
+ 1  7.90E-02 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  2.83E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  3.72E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 4 -7.25E-03 Ring sidesway buk., discrete model, n=6   circ.halfwaves;FS=0.999
+ 5  4.69E-01 Hi-n Ring flang buckl.discrete model,n=41  circ.halfwaves;FS=0.999
+ 6  4.76E+00 eff.stress:matl=1,SKN,Iseg=1,at:n=1,layer=1,z=0.1753;-MID.;FS=1.
+ 7  6.38E+00 matl=2 ; substiffener effective stressSTRCON MID.;FS=1.
+ 8  1.88E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+ 9  4.09E-03 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.
+10  7.57E-01 buckling stringer Isegs.3+4 together.M=8  ;C=0.     ;MID.;FS=1.4
+11  8.63E-02 buckling stringer Iseg 4 as beam on foundation. M=156;MID.;FS=3.
+12  2.56E+00 buckling margin   ring   Iseg.3 . Local halfwaves=2  .MID.;FS=1.
+13  2.88E-01 buckling   ring   Iseg 4 as beam on foundation. M=98 ;MID.;FS=3.
+14  1.72E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+15  8.98E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+16  8.71E-03 buck.(SAND);simp-support general buck;M=1;N=2;slope=20.;FS=0.999
+17  6.27E-02 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+18  5.21E+00 buck.(SAND);rolling with smear rings; M=35;N=1;slope=0.01;FS=0.999
+19  1.47E-02 buck.(SAND);rolling only of stringers;M=12;N=0;slope=0.;FS=1.6
+20  1.21E+00 buck.(SAND);hiwave roll. of stringers;M=67;N=0;slope=0.;FS=1.2
+21  1.91E+00 buck.(SAND); STRINGERS:  web buckling;M=8;N=1;slope=0.;FS=1.
+22  2.69E+00 buck.(SAND);   RINGS:    web buckling;M=2;N=1;slope=0.1901;FS=1.
+23  1.27E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1457;FS=0.999
+24  4.96E-03 buckling:simp-support of substring.M=1;FS=1.
+25  2.07E+00 buckling:simp-support of subrings  N=1;FS=1.
+26 -9.35E-03 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+27  7.12E-02 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+28  4.86E-01 buck.(SAND);rolling with smear substr;M=1;N=3;slope=20.;FS=0.999
+29  5.12E-03 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+30  6.18E+00 buck.(SAND);rolling with smear subrng;M=39;N=1;slope=0.01;FS=0.999
+31  6.99E-01 buck.(SAND);rolling only of substring;M=20;N=0;slope=0.;FS=1.6
+32  1.55E+00 buck.(SAND);rolling only of subrings; M=0;N=4;slope=0.;FS=1.6
+33  7.96E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.
+34  2.33E+00 0.3333 *(Stringer spacing, b)/(Stringer base width, b2)-1;FS=1.
+35  7.72E-01 1.+10.V(6)^1-V(7)^1-1
+36 -2.38E-07 1.+10.V(9)^1-V(10)^1-1
+37  1.30E+00 1.-V(3)^1+20.V(12)^1-1
+38  5.83E-01 1.-V(16)^1+20.V(18)^1-1
+========================================================================================
+
+
+
+
+Table 13 Margins for the optimized imperfect shell with substiffeners.Stiffener spacings
+        are suitable for an analysis with STAGS. The design is the same as that for
+        Table 12 but the amplitude of the initial imperfection has been set equal to zero.
+===========================================================================================
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  2.60E-01 Local buckling from discrete model-1.,M=2   axial halfwaves;FS=0.99
+ 2  5.06E-01 Bending-torsion buckling; M=2  ;FS=0.999
+ 3  6.40E-01 (m=2   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 4  5.17E-01 Inter-ring bucklng, discrete model, n=6   circ.halfwaves;FS=0.999
+ 5  5.37E+00 eff.stress:matl=1,SKN,Iseg=2,at:n=1,layer=1,z=-0.1753;-MID.;FS=1.
+ 6  7.01E+00 matl=2 ; substiffener effective stressSTRCON MID.;FS=1.
+ 7  2.30E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+ 8  2.77E-01 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.
+ 9  1.07E+00 buckling stringer Isegs.3+4 together.M=8  ;C=0.     ;MID.;FS=1.4
+10  3.82E-01 buckling stringer Iseg 4 as beam on foundation. M=156;MID.;FS=3.
+11  1.67E+01 buckling   ring   Iseg 4 as beam on foundation. M=98 ;MID.;FS=3.
+12  3.43E-01 buck.(SAND);simp-support smearsubstf; (0.95*altsol);FS=0.999
+13  1.94E-01 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+14  1.46E-01 buck.(SAND);simp-support general buck;M=1;N=2;slope=20.;FS=0.999
+15  5.03E-01 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+16  5.85E+00 buck.(SAND);rolling with smear rings; M=35;N=1;slope=0.01;FS=0.999
+17  2.33E-01 buck.(SAND);rolling only of stringers;M=12;N=0;slope=0.;FS=1.6
+18  1.67E+00 buck.(SAND);hiwave roll. of stringers;M=67;N=0;slope=0.;FS=1.2
+19  2.28E+00 buck.(SAND); STRINGERS:  web buckling;M=8;N=1;slope=0.;FS=1.
+20  3.19E+01 buck.(SAND);   RINGS:    web buckling;M=2;N=1;slope=0.;FS=1.
+21  5.58E-01 buck.(SAND);rolling with skin buckl.; M=1;N=1;slope=0.1978;FS=0.999
+22  2.39E-02 buckling:simp-support of substring.M=1;FS=1.
+23  1.04E+01 buckling:simp-support of subrings  N=1;FS=1.
+24  2.18E-01 buckling:simp-support altsoln4  intermajorpatch; FS=0.999
+25  4.39E-01 buckling:simp-support altsoln5  skin+edgsubroll; FS=0.999
+26  8.25E-01 buck.(SAND);rolling with smear substr;M=1;N=2;slope=16.67;FS=0.999
+27  3.49E-01 buckling:simp-support altsoln6  inter-subring  ; FS=0.999
+28  7.00E+00 buck.(SAND);rolling with smear subrng;M=42;N=1;slope=0.01;FS=0.999
+29  7.24E-01 buck.(SAND);rolling only of substring;M=20;N=0;slope=0.;FS=1.6
+30  7.92E+00 buck.(SAND);rolling only of subrings; M=0;N=4;slope=0.;FS=1.6
+31  7.96E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.
+32  2.33E+00 0.3333 *(Stringer spacing, b)/(Stringer base width, b2)-1;FS=1.
+33  7.72E-01 1.+10.V(6)^1-V(7)^1-1
+34  0.00E+00 1.+10.V(9)^1-V(10)^1-1
+35  1.30E+00 1.-V(3)^1+20.V(12)^1-1
+36  5.83E-01 1.-V(16)^1+20.V(18)^1-1
+========================================================================================
+
+
+
+
+Table 14 Margins for Load case 1, Subcase 1 for the perfect optimized externally
+T-stiffened cylindrical shell without substiffeners for the optimum design suitable
+for analysis by STAGS (case name = testax3)
+====================================================================================
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  2.12E-01 Local buckling from discrete model-1.,M=1   axial halfwaves;FS=0.99
+ 2  2.37E-01 Bending-torsion buckling; M=1  ;FS=0.999
+ 3  5.73E+00 eff.stress:matl=1,STR,Dseg=5,node=11,layer=1,z=0.2449; MID.;FS=1.
+ 4  3.07E-01 (m=1   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 5  1.57E-01 Inter-ring bucklng, discrete model, n=32  circ.halfwaves;FS=0.999
+ 6  5.73E+00 eff.stress:matl=1,SKN,Iseg=1,at:n=1,layer=1,z=0.2449;-MID.;FS=1.
+ 7  1.27E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+ 8  4.52E-02 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.
+ 9  2.65E-01 buckling stringer Isegs.3+4 together.M=7  ;C=0.     ;MID.;FS=1.4
+10  1.48E-01 buckling stringer Iseg 4 as beam on foundation. M=292;MID.;FS=3.
+11  3.53E-01 buck.(SAND);simp-support local buck.; (0.95*altsol);FS=0.999
+12  2.58E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+13 -3.53E-02 buck.(SAND);simp-support general buck;M=8;N=0;slope=0.335;FS=0.999
+14  1.52E-01 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+15  1.28E+01 buck.(SAND);rolling with smear rings; M=152;N=1;slope=0.01;FS=0.999
+16  5.13E-02 buck.(SAND);rolling only of stringers;M=18;N=0;slope=0.;FS=1.6
+17  4.74E-01 buck.(SAND);hiwave roll. of stringers;M=123;N=0;slope=0.;FS=1.2
+18  5.32E+01 buck.(SAND);rolling only axisym.rings;M=0;N=0;slope=0.;FS=1.6
+19  1.27E+00 buck.(SAND); STRINGERS:  web buckling;M=8;N=1;slope=0.;FS=1.
+20  7.73E+03 buck.(SAND);   RINGS:    web buckling;M=1;N=8;slope=0.;FS=1.
+21  7.37E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.
+22  2.33E+00 0.3333 *(Stringer spacing, b)/(Stringer base width, b2)-1;FS=1.
+23  9.27E-01 1.-V(3)^1+20.V(6)^1-1
+24 -5.96E-08 1.-V(10)^1+20.V(12)^1-1
+===================================================================================
+
+
+
+
+Table 15 Margins for Load case 1, Subcase 1 for the imperfect optimized externally
+T-stiffened cylindrical shell without substiffeners for the optimum design suitable
+for analysis by STAGS (case name = testax3)
+====================================================================================
+ MAR. MARGIN
+ NO.  VALUE                DEFINITION
+ 1  3.50E-01 Local buckling from discrete model-1.,M=1   axial halfwaves;FS=0.99
+ 2  3.62E-01 Bending-torsion buckling; M=1  ;FS=0.999
+ 3  7.28E+00 eff.stress:matl=1,STR,Dseg=4,node=11,layer=1,z=-0.1151; MID.;FS=1.
+ 4  4.02E-01 (m=1   lateral-torsional buckling load factor)/(FS)-1;FS=0.999
+ 5  3.16E-01 Inter-ring bucklng, discrete model, n=26  circ.halfwaves;FS=0.999
+ 6  2.31E-01 Hi-n Ring flang buckl.discrete model,n=70  circ.halfwaves;FS=0.999
+ 7 -4.89E-02 Lo-n Ring sidesway, discrete model, n=7   circ.halfwaves;FS=0.999
+ 8  7.15E+00 eff.stress:matl=1,SKN,Iseg=1,at:n=1,layer=1,z=0.3005;-MID.;FS=1.
+ 9  1.25E+00 buckling margin stringer Iseg.3 . Local halfwaves=8  .MID.;FS=1.
+10  2.50E-02 buckling margin stringer Iseg.4 . Local halfwaves=8  .MID.;FS=1.
+11  3.71E-01 buckling stringer Isegs.3+4 together.M=8  ;C=0.     ;MID.;FS=1.4
+12  2.15E-01 buckling stringer Iseg 4 as beam on foundation. M=229;MID.;FS=3.
+13  2.14E+00 buckling margin   ring   Iseg.3 . Local halfwaves=1  .MID.;FS=1.
+14  2.09E-01 buckling   ring   Iseg 4 as beam on foundation. M=149;MID.;FS=3.
+15  6.51E-01 buck.(SAND);simp-support local buck.; (0.95*altsol);FS=0.999
+16  3.51E-03 buck.(SAND);simp-support inter-ring;  (1.00*altsol);FS=0.999
+17 -2.75E-02 buck.(SAND);simp-support general buck;M=1;N=3;slope=6.5682;FS=0.999
+18 -2.47E-02 buck.(SAND);simp-support general buck;(0.85*altsol);FS=0.999
+19  1.44E+01 buck.(SAND);rolling with smear rings; M=105;N=1;slope=0.01;FS=0.999
+20 -2.04E-02 buck.(SAND);rolling only of stringers;M=14;N=0;slope=0.;FS=1.6
+21  6.99E-01 buck.(SAND);hiwave roll. of stringers;M=87;N=0;slope=0.;FS=1.2
+22  1.13E+00 buck.(SAND); STRINGERS:  web buckling;M=8;N=1;slope=0.;FS=1.
+23  2.32E+00 buck.(SAND);   RINGS:    web buckling;M=1;N=1;slope=0.1715;FS=1.
+24  9.64E+01 (Max.allowable ave.axial strain)/(ave.axial strain) -1; FS=1.
+25  2.33E+00 0.3333 *(Stringer spacing, b)/(Stringer base width, b2)-1;FS=1.
+26  7.43E-01 1.-V(3)^1+20.V(6)^1-1
+27  2.14E-01 1.-V(10)^1+20.V(12)^1-1
+=====================================================================================

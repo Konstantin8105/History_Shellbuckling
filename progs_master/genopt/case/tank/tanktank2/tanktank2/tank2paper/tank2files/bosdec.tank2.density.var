@@ -1,0 +1,5029 @@
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILES FOR "tank",
+C  A PROGRAM TO OPTIMIZE A SKIRT-SUPPORTED PROPELLANT TANK.
+C  This work was done in 2012.
+C  BIGBOSOR4 is used in connection with GENOPT.
+C
+      SUBROUTINE BOSDEC(INDX,IFIL14,ILOADX,INDIC,JSTRUT)
+C
+C  Insert labelled common blocks: tank2.COM
+      COMMON/FV01/GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      REAL GRAV,DIAVEH,AFTDIA,AFTHI,FWDDIA,FWDHI,FLTANK,ZAPEX
+      COMMON/FV09/DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      REAL DENPRP,ZCG,THKAFT,THKMID,THKFWD,STRSPC,RNGSPC,STRTHK
+      COMMON/FV24/ZTANK(2 ),IZTANK 
+      REAL ZTANK
+      COMMON/IV02/RNGTYP(2 )
+      INTEGER RNGTYP
+      COMMON/FV25/ZGRND(2 )
+      REAL ZGRND
+      COMMON/FV26/DUBAXL(2 ),IDUBAXL
+      REAL DUBAXL
+      COMMON/FV27/DUBTHK(2 ),TRNGTH(2 ),TRNGHI(2 ),TRNGE(2 ),ALRNGT(2 )
+      REAL DUBTHK,TRNGTH,TRNGHI,TRNGE,ALRNGT
+      COMMON/IV03/SKRTYP(2 ),ISKRTYP
+      INTEGER SKRTYP
+      COMMON/FV32/LNGTNK1(2 ),THKTNK1(2 ),LNGTNK2(2 ),THKTNK2(2 )
+      REAL LNGTNK1,THKTNK1,LNGTNK2,THKTNK2
+      COMMON/FV36/LNGVEH1(2 ),THKVEH1(2 ),LNGVEH2(2 ),THKVEH2(2 )
+      REAL LNGVEH1,THKVEH1,LNGVEH2,THKVEH2
+      COMMON/IV04/WALTYP(2 )
+      INTEGER WALTYP
+      COMMON/FV40/THICK(15),ITHICK 
+      REAL THICK
+      COMMON/IV05/MATTYP(15)
+      INTEGER MATTYP
+      COMMON/IV06/LAYTYP(90,2 ),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/FV41/ANGLE(15)
+      REAL ANGLE
+      COMMON/FV42/E1(2 ),IE1    
+      REAL E1
+      COMMON/FV43/E2(2 ),G12(2 ),NU(2 ),G13(2 ),G23(2 ),ALPHA1(2 )
+      REAL E2,G12,NU,G13,G23,ALPHA1
+      COMMON/FV49/ALPHA2(2 ),TEMTUR(2 ),COND1(2 ),COND2(2 ),DENSTY(2 )
+      REAL ALPHA2,TEMTUR,COND1,COND2,DENSTY
+      COMMON/FV17/STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      REAL STRHI,RNGTHK,RNGHI,ETANK,NUTANK,DENTNK,ALTNK,WGT
+      COMMON/FV57/PRESS(20)
+      REAL PRESS
+      COMMON/FV63/FREQ(20,4 ),JFREQ  ,FREQA(20,4 ),FREQF(20,4 )
+      REAL FREQ,FREQA,FREQF
+      COMMON/FV66/STRES1(20,6 ),JSTRES1,STRES1A(20,6 ),STRES1F(20,6 )
+      REAL STRES1,STRES1A,STRES1F
+      COMMON/FV69/STRES2(20,6 ),STRES2A(20,6 ),STRES2F(20,6 )
+      REAL STRES2,STRES2A,STRES2F
+      COMMON/FV72/SHLBUK(20,2 ),JSHLBUK,SHLBUKA(20,2 ),SHLBUKF(20,2 )
+      REAL SHLBUK,SHLBUKA,SHLBUKF
+      COMMON/FV75/FORCE(20,2 ),FORCEA(20,2 ),FORCEF(20,2 )
+      REAL FORCE,FORCEA,FORCEF
+      COMMON/FV78/TNKSTR(20,2 ),TNKSTRA(20,2 ),TNKSTRF(20,2 )
+      REAL TNKSTR,TNKSTRA,TNKSTRF
+      COMMON/FV81/TNKBUK(20,2 ),TNKBUKA(20,2 ),TNKBUKF(20,2 )
+      REAL TNKBUK,TNKBUKA,TNKBUKF
+      COMMON/IV01/IAXIS,IPHASE
+      INTEGER IAXIS,IPHASE
+      COMMON/FV55/TNKNRM,CONNRM,CONDCT
+      REAL TNKNRM,CONNRM,CONDCT
+      COMMON/FV58/GAXIAL(20),GLATRL(20),TNKCOOL(20)
+      REAL GAXIAL,GLATRL,TNKCOOL
+C  end of tank2.COM
+C Common blocks needed from BIGBOSOR4 and from SUBROUTINE STRUCT
+C and from SUBROUTINE BOSDEC.
+      COMMON/CSKINY/CSKIN1(6,6,295),THERM1(4,295)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/STRUTP/THKTOT(3),LENGTH(3),CONDUT(3),LOAD(30,10)
+      REAL LENGTH,LOAD
+      COMMON/LAYUP1/NLAYER(3),LAYID(90,3),MATLID(90,3),NEWLAY(90,3)
+      COMMON/LAYUP2/THK(90,3),THETA(90,3)
+      COMMON/NWAVEX/NBEGIN,NMAX,INCRN,NEIGS
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/TANK1/NSEGS,NSEGDM,NMESH(50),NRING(50),IRNGTP(50),IRING(50)
+      COMMON/TANK2/ZRING(50),ZGROND(50),ZVAL(50)
+      COMMON/TANK3/R1(50),Z1(50),R2(50),Z2(50),RC(50),ZC(50)
+      COMMON/TANK4/ERING(50),FL2(50),TL2(50),RM(50)
+      COMMON/TANK6/LINAB(50),IDISAB(50),NTHICK(50),NWALL(50),NSUR(50)
+      COMMON/TANK7/ZTHICK(3,50),TNKTHK(3,50)
+      COMMON/TANK8/GSKIN(50),EXSKIN(50),EYSKIN(50),UXYSKN(50)
+      COMMON/TANK9/SMSKIN(50),A1SKIN(50),A2SKIN(50)
+      COMMON/TANK16/CIRCANG(3),RDOME(2)
+      COMMON/TANK19/IZDOM1,IZDOM2
+      COMMON/ITRIPX/ITRIP
+      COMMON/CONDTX/CONDT(2),CON1L(90),CON2L(90)
+C BEG FEB 2012 
+      COMMON/DENMLX/DENMLT(295),DENFLD
+C END FEB 2012 
+C
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA2,CASA3
+      CHARACTER*10 CN
+C
+      DIMENSION RLAYER(3,3)
+      DIMENSION LAYIDM(2),NSKMSH(50)
+      DIMENSION RSKRT1(50),RSKRT2(50),ZSKRT1(50),ZSKRT2(50)
+C BEG FEB 2012
+      DIMENSION SALLOW(5)
+C END FEB 2012
+C BEG MAR 2012
+      DIMENSION TEMPR(11),ZSKIRT(11)
+C END MAR 2012
+      dimension xinput(21)
+      dimension x1(21),y1(21),x2(21),y2(21),x3(21),y3(21)
+      dimension XS1(21),YS1(21),XS2(21),YS2(21),XS3(21),YS3(21)
+      dimension XX1(21),YY1(21),XX2(21),YY2(21),XX3(21),YY3(21)
+      double precision x1,y1,x2,y2,x3,y3
+C
+      REWIND IFIL14
+C
+      PI = 3.1415927
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a BIGBOSOR4 shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BIGBOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+C      INDX = 0 or 1 or 2 or 3
+C            means that a BIGBOSOR4 model of a launch tube
+C            is being set up. We need the following things
+C            from the launch tube model:
+C            0 axial stiffness of launch tube (INDX = 0)
+C            1 column buckling of the launch tube (INDX = 1)
+C            2 shell buckling of the launch tube  (INDX = 2)
+C            3 maximum stress components in the launch tube (INDX=3)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      DO 5 ICOL = 1,IZTANK
+C
+C  Find the number of layers in laminated composite skirt wall type ICOL
+C  Also, find the total thickness of the composite part of that skirt
+C  wall...
+C
+        PI = 3.1415927
+        THKTOT(ICOL) = 0.
+        LAYIDM(ICOL) = 0
+        ICOL1 = ICOL - 1
+        IF (ICOL.GT.1) LAYIDM(ICOL) = LAYIDM(ICOL1) - 1
+        CONDT(ICOL)  = 0.
+        DO 2 I = 1,90
+          IF (LAYTYP(I,ICOL).EQ.0) THEN
+           NLAYER(ICOL) = I - 1
+           GO TO 4
+          ENDIF
+          NEWLAY(I,ICOL) = 0
+          IF (LAYTYP(I,ICOL).GT.LAYIDM(ICOL)) THEN
+             LAYIDM(ICOL) = LAYIDM(ICOL) + 1
+             NEWLAY(I,ICOL) = 1
+          ENDIF
+          LTYPE = LAYTYP(I,ICOL)
+          THK(I,ICOL) = THICK(LTYPE)
+          THETA(I,ICOL) = ANGLE(LTYPE)
+          M = MATTYP(LTYPE)
+          CON1L(I)= COND1(M)
+          CON2L(I)= COND2(M)
+          ZA = ANGLE(LTYPE)*PI/180.
+          CALL MOVER (0,0,RLAYER,1,9)
+          CALL RTRSFX(1.,1.,0.,ZA,RLAYER)
+          CONDF = RLAYER(1,1)*CON1L(I) + RLAYER(2,1)*CON2L(I)
+          CONDT(ICOL) = CONDT(ICOL) + CONDF*THICK(LTYPE)
+          MATLID(I,ICOL) = MATTYP(LTYPE) + 1
+          LAYID(I,ICOL) = LAYTYP(I,ICOL) + 1
+          THKTOT(ICOL) = THKTOT(ICOL) + THICK(LTYPE)
+C         IF (INDX.EQ.7) WRITE(IFILE4,'(A,5I3)')
+C    1  ' ICOL,I,LAYTYP(I,ICOL),NEWLAY(I,ICOL),LAYIDM(ICOL)=',
+C    1    ICOL,I,LAYTYP(I,ICOL),NEWLAY(I,ICOL),LAYIDM(ICOL)
+    2   CONTINUE
+    4   CONTINUE
+        LAYIDM(ICOL) = LAYIDM(ICOL) + 1
+    5 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C   Begin the section in which is modeled the spring-supported
+C   propellant tank or the tank with concentrated loads that act
+C   where the springs previously existed.
+C
+C   INDX = 4 or 5 or 6 or 7 or 8 or 9 or 10- a multisegment propellant
+C                               tank with either springs or concentrated
+C                               loads from the springs that act
+C                               upon the propellant tank wall. 
+C
+C     INDX = 4: propellant tank with springs and no concentrated loads.
+C               The purpose of this model is to obtain the axial loads
+C               in the springs from GAXIAL and GLATRL. Input
+C               data on concentrated loads applied by the springs to
+C               the propellant tank wall are generated. These data
+C               are used in other models of the propellant tank.
+C               (BIGBOSOR4 analysis type, INDIC = 3)
+C
+C     INDX = 5: propellant tank with springs replaced by concentrated
+C               loads acting where the springs were previously attached
+C               to the propellant tank support ring(s). The purpose of
+C               this model is to obtain the influence of the flexible 
+C               propellant tank on the effective axial stiffness of
+C               the springs that should be used in the model in which
+C               the tank is assumed to be rigid, that is, in the free
+C               vibration model.
+C               (BIGBOSOR4 analysis type, INDIC = 3)
+C
+C     INDX = 6: propellant tank with springs and no concentrated
+C               loads. The springs now have an effective stiffness
+C               that accounts for the flexibility of the propellant
+C               tank. The density of the propellant is "lumped" into
+C               the tank wall. The purpose is to find the free
+C               vibration frequencies and mode shapes corresponding to
+C               to rolling, axial motion, and two lateral-pitching
+C               modes.
+C               (BIGBOSOR4 analysis type, INDIC = 2)
+C
+C     INDX = 7: propellant tank with springs replaced by concentrated
+C               loads acting where the springs were previously attached
+C               to the propellant tank support ring(s). The purpose of
+C               this model is to determine the maximum stress in the
+C               propellant tank from PRESS, GAXIAL, GLATRL, and TNKCOOL.
+C               (BIGBOSOR4 analysis type, INDIC = 3)
+C
+C     INDX = 8: propellant tank with springs replaced by concentrated
+C               loads acting where the springs were previously attached
+C               to the propellant tank support ring(s). The purpose of
+C               this model is to determine the minimum buckling load
+C               in the propellant tank from PRESS, GAXIAL, GLATRL, and
+C               TNKCOOL. (BIGBOSOR4 analysis type, INDIC = 4)
+C
+C     INDX = 9: propellant tank with springs and no concentrated loads.
+C               The purpose of this model is to obtain the axial loads
+C               in the springs from the launch-hold condition. The
+C               maximum axial load in any spring from the launch-hold
+C               condition must be less than a user-specified value.
+C               This allowable value is the smallest skirt force that
+C               will "short circuit" the disconnect "pods" in cases
+C               that involve the "pods" type of skirts.
+C               (BIGBOSOR4 analysis type, INDIC = 3)
+C
+C     INDX =10: This model is analogous to the model generated with
+C               INDX = 4, except that now the two additional loadings,
+C               uniform ullage pressure, PRESS, and tank cooldown,
+C               TNKCOOL are present in addition to GAXIAL and GLATRL.
+C               The propellant tank has springs and no concentrated loads.
+C               The purpose of this model is to obtain the axial loads
+C               in the springs due to PRESS, GAXIAL, GLATRL and TNKCOOL.
+C               Input data on concentrated loads applied by the springs
+C               to the propellant tank wall are generated. These data
+C               are used in other models of the propellant tank.
+C               (BIGBOSOR4 analysis type, INDIC = 3)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C     First fill the arrays needed for building the tank model...
+C
+C     If NSEGDM > 1 it means that the domes are
+C     ellipsoidal. The model from bosdec.equivellipse
+C     is used.
+C
+C BEG FEB 2012
+      CALL MOVER(0.,0,DENMLT,1,295)
+C END FEB 2012
+      CALL MOVER(0,0,NMESH,1,200)
+      CALL MOVER(0.,0,ZRING,1,150)
+      CALL MOVER(0.,0,R1,1,300)
+      CALL MOVER(0.,0,ERING,1,200)
+      CALL MOVER(0,0,LINAB,1,250)
+      CALL MOVER(0.,0,ZTHICK,1,300)
+      CALL MOVER(0.,0,GSKIN,1,200)
+      CALL MOVER(0.,0,SMSKIN,1,150)
+      CALL MOVER(0.,0,VAXIAL,1,200)
+C
+      NRTOT = 0
+      NSPTOT = 0
+      NSEGDM = 1
+      DIFF = ABS((AFTDIA - 2.*AFTHI)/AFTDIA)
+C     If DIFF is less than or equal to 0.0001 the
+C     end domes are spherical. Otherwise, they are
+C     ellipsoidal.
+C
+      IF (DIFF.GT.0.0001) THEN
+C      get the multi-segment equivalent ellipse...
+C      The software, SUBROUTINE EQUIV, is "borrowed"
+C      (in a somewhat modified form) from the file:
+C      /home/progs/genopt/case/torisph/bosdec.equivellipse
+       NSEGDM = 12
+       NPRINT = 2
+       IF (IMODX.NE.0.AND.INDX.NE.5) NPRINT = 0
+       npoint = NSEGDM + 1 
+       ainput = AFTDIA/2.
+       binput = AFTHI
+C
+       xinput(1) = 0.
+       xinput(2) = 0.10*ainput
+       xinput(3) = 0.22*ainput
+       xinput(4) = 0.35*ainput
+       xinput(5) = 0.48*ainput
+       xinput(6) = 0.60*ainput
+       xinput(7) = 0.71*ainput
+       xinput(8) = 0.79*ainput
+       xinput(9) = 0.86*ainput
+       xinput(10)= 0.92*ainput
+       xinput(11)= 0.96*ainput
+       xinput(12)= 0.99*ainput
+       xinput(13)= ainput
+C
+       CALL EQUIV(NPRINT,IFILE4,ainput,binput,npoint,xinput,
+     1                   x1,y1,x2,y2,x3,y3)
+C
+C      bottom dome segment geometry...
+       DO 25 I = 1,NSEGDM
+         XS1(I) = x1(I)
+         YS1(I) = y1(I) + ZAPEX + AFTHI
+         XS2(I) = x2(I)
+         YS2(I) = y2(I) + ZAPEX + AFTHI
+         XS3(I) = x3(I)
+         YS3(I) = y3(I) + ZAPEX + AFTHI
+   25  CONTINUE
+C
+C      top dome segment geometry...
+       DO 26 I = 1,NSEGDM
+         J = NSEGDM - I + 1
+         FLADD = FLTANK + ZAPEX
+         XX1(I) = XS2(J)
+         YY1(I) = FLADD - YS2(J) +ZAPEX
+         XX2(I) = XS1(J)
+         YY2(I) = FLADD - YS1(J) +ZAPEX
+         XX3(I) = XS3(J)
+         YY3(I) = FLADD - YS3(J) +ZAPEX
+   26  CONTINUE
+C
+      ENDIF
+C     end of "IF (DIFF.GT.0.0001)" condition
+C
+      DIFF = ABS((ZTANK(1) - AFTHI - ZAPEX)/ZTANK(1))
+      IBEGIN = 0
+      IF (DIFF.LT.0.01) IBEGIN = 1
+C     IBEGIN = 1 means that there exists a propellant tank
+C     support ring with attached skirt at the junction
+C     between the aft dome and the cylindrical portion.
+      DIFF = ABS((ZTANK(IZTANK) - (ZAPEX+FLTANK-FWDHI))/FLTANK)
+      IEND = 0
+      IF (DIFF.LT.0.01) IEND = 1
+C     IEND = 1   means that there exists a propellant tank
+C     support ring with attached skirt at the junction
+C     between the cylindrical portion and the forward dome.
+C
+      IZMIDL = 0
+      DO 30 I = 1,IZTANK
+C BEG MAR 2012
+C      IF (ZTANK(I).GT.(ZAPEX+1.05*AFTHI).AND.
+C    1     ZTANK(I).LT.(ZAPEX+FLTANK-1.05*FWDHI))
+C    1  IZMIDL = IZMIDL + 1
+       IF (ZTANK(I).GT.(ZAPEX+1.01*AFTHI).AND.
+     1     ZTANK(I).LT.(ZAPEX+FLTANK-1.01*FWDHI))
+     1  IZMIDL = IZMIDL + 1
+C END MAR 2012
+   30 CONTINUE
+C
+C     NSEGS is the number of shell segments in the BIGBOSOR4
+C     model of the propellant tank.
+      NSEGS = 2*NSEGDM + 4*IZMIDL + IBEGIN + IEND + 2
+      IF (IZMIDL.GT.0.AND.IBEGIN.EQ.0.AND.IEND.EQ.0)
+     1 NSEGS =2*NSEGDM +4*IZMIDL
+C
+      IF (NSEGDM.EQ.1) THEN
+         NMESH(1) = 97
+         NMESH(NSEGS) = 97
+      ENDIF
+C
+      DO 41 ISEG = 1,NSEGS
+         NWALL(ISEG) = 9
+         NRING(ISEG) = 0
+         NTHICK(ISEG) = 2
+         TNKTHK(1,ISEG) = 0.0
+         TNKTHK(2,ISEG) = 0.0
+   41 CONTINUE
+C
+      RDOME(1) = AFTDIA/2.
+      RDOME(2) = FWDDIA/2.
+C
+      IF (NSEGDM.GT.1) THEN
+C     The end domes are multi-segment equivalent ellipsoidal shells.
+C
+C     If NSEGDM > 1 it means that the domes are
+C     ellipsoidal. The model from the file,
+C     /home/progs/genopt/case/torisph/bosdec.equivellipse
+C     is used (with modifications).
+C
+       IZDOM1 = 0
+       IZDOM2 = 0
+       DO 70 I = 1,NSEGDM
+C        bottom dome...
+         NMESH(I) = 11
+         IF (I.EQ.NSEGDM.AND.IBEGIN.EQ.1) THEN
+           NSUR(I) =-1
+         ENDIF
+         R1(I) = XS1(I)
+         Z1(I) = YS1(I)
+         R2(I) = XS2(I)
+         Z2(I) = YS2(I)
+         RC(I) = XS3(I)
+         ZC(I) = YS3(I)
+C
+C    See if there is a skirt attached to the
+C    bottom dome...
+         IF (ZTANK(1).LT.(ZAPEX+AFTHI).AND.
+     1       ZTANK(1).GT.ZAPEX) THEN
+C    A skirt is attached to the aft ellipsoidal dome
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (ZTANK(1).GT.Z1(I).AND.ZTANK(1).LE.Z2(I)) THEN
+            ISEG = I
+            IRING1= RNGTYP(1)
+            DUBAX = DUBAXL(IRING1)
+            DUBTH = DUBTHK(IRING1)
+            NRING(ISEG) = 1
+            IRING(ISEG) = 1
+            IZDOM1 = 1
+C
+            NSUR(ISEG) = -1
+            NTHICK(ISEG) = 3
+            ZTHICK(1,ISEG) = Z1(ISEG)
+            ZTHICK(2,ISEG) = 0.5*(Z1(ISEG) + Z2(ISEG)) 
+            ZTHICK(3,ISEG) = Z2(ISEG)
+            TNKTHK(1,ISEG) = 0. 
+            TNKTHK(2,ISEG) = DUBTH
+            TNKTHK(3,ISEG) = 0. 
+            ZRING(ISEG) = 0.5*(Z1(ISEG) + Z2(ISEG)) 
+            RM(ISEG)     = DENTNK
+            RDOME(1) = 0.5*(R1(ISEG) + R2(ISEG))
+           ENDIF
+C          end of "IF (ZTANK(1).GT.Z1(I).AND.ZTANK(1).LE.Z2(I))"
+C          condition
+         ENDIF
+C        end of "IF (ZTANK(1).LT.(ZAPEX+AFTHI).AND
+C                    ZTANK(1).GT.ZAPEX)" condition
+C
+C        top dome...
+         JSEG = NSEGS - NSEGDM + I
+         NMESH(JSEG) = 11
+         IF (I.EQ.1.AND.IEND.EQ.1) THEN
+           NSUR(JSEG) = -1
+         ENDIF
+         R1(JSEG) = XX1(I)
+         Z1(JSEG) = YY1(I)
+         R2(JSEG) = XX2(I)
+         Z2(JSEG) = YY2(I)
+         RC(JSEG) = XX3(I)
+         ZC(JSEG) = YY3(I)
+C
+C    See if there is a skirt attached to the
+C    top dome...
+         IF (ZTANK(IZTANK).LT.(ZAPEX+FLTANK).AND.
+     1       ZTANK(IZTANK).GT.(ZAPEX+FLTANK-FWDHI)) THEN
+C    A skirt is attached to the forward ellipsoidal dome
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (ZTANK(IZTANK).GT.Z1(JSEG).AND.
+     1         ZTANK(IZTANK).LE.Z2(JSEG)) THEN
+            ISEG = JSEG
+            IRING1= RNGTYP(IZTANK)
+            DUBAX = DUBAXL(IRING1)
+            DUBTH = DUBTHK(IRING1)
+            NRING(ISEG) = 1
+            IRING(ISEG) = IZDOM1 +2*IBEGIN +2*IZMIDL +2*IEND +1
+            IZDOM2 = 1
+C
+            NSUR(ISEG) = -1
+            NTHICK(ISEG) = 3
+            ZTHICK(1,ISEG) = Z1(ISEG)
+            ZTHICK(2,ISEG) = 0.5*(Z1(ISEG) + Z2(ISEG)) 
+            ZTHICK(3,ISEG) = Z2(ISEG)
+            TNKTHK(1,ISEG) = 0. 
+            TNKTHK(2,ISEG) = DUBTH
+            TNKTHK(3,ISEG) = 0. 
+            ZRING(ISEG) = 0.5*(Z1(ISEG) + Z2(ISEG)) 
+            RM(ISEG)     = DENTNK
+            RDOME(2) = 0.5*(R1(ISEG) + R2(ISEG))
+           ENDIF
+C          end of
+C          "IF (ZTANK(IZTANK).GT.Z1(JSEG).AND.
+C               ZTANK(IZTANK).LE.Z2(JSEG))"
+C          condition
+         ENDIF
+C        end of "IF (ZTANK(IZTANK).LT.(ZAPEX+FLTANK).AND
+C               ZTANK(IZTANK).GT.(ZAPEX+FLTANK-FWDHI))" condition
+   70  CONTINUE
+C      end of loop over the number of segments in the dome (NSEGDM)
+C
+      ENDIF
+C     end of "IF (NSEGDM.GT.1)" condition (dome is ellipsoidal)
+C
+      Z2(NSEGDM) = ZAPEX + AFTHI
+      NSEGDM1 = NSEGDM + 1
+      Z1(NSEGDM1) = Z2(NSEGDM)
+      IRING1 = RNGTYP(1)
+      DUBAX = DUBAXL(IRING1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      FLONG = 0.5*(FLTANK - AFTHI - FWDHI)
+      IF (IBEGIN.EQ.0.AND.IZDOM1.EQ.0.AND.IZDOM2.EQ.0)
+     1 FLONG = 0.5*(ZTANK(1) - Z2(NSEGDM) -0.5*DUBAX)
+      IF (IBEGIN.EQ.1) FLONG = 0.5*DUBAX
+      Z2(NSEGDM1) = Z1(NSEGDM1) + FLONG
+      NSEGSM = NSEGS - NSEGDM
+      IRING1 = RNGTYP(IZTANK)
+      DUBAX = DUBAXL(IRING1)
+      Z2(NSEGSM) = ZAPEX + FLTANK - FWDHI
+      FLONG = 0.5*(FLTANK - AFTHI - FWDHI)
+      IF (IEND.EQ.0.AND.IZDOM1.EQ.0.AND.IZDOM2.EQ.0)
+     1 FLONG = 0.5*(Z2(NSEGSM)-ZTANK(IZTANK) -0.5*DUBAX)
+      IF (IEND.EQ.1) FLONG = 0.5*DUBAX
+      Z1(NSEGSM) = Z2(NSEGSM) - FLONG
+C
+      NRTOT = IZDOM1
+      NSPTOT = IZDOM1
+C
+      IF (IBEGIN.EQ.1) THEN
+         NSEGDM2 = NSEGDM + 2
+         Z1(NSEGDM2) = Z2(NSEGDM1)
+         IRING1 = RNGTYP(1)
+         DUBAX1 = DUBAXL(IRING1)
+         DUBAX2 = 0.
+         IF (IZTANK.GT.1) THEN
+           IRING1 = RNGTYP(2)
+           DUBAX2 = DUBAXL(IRING1)
+           FLONG = 0.5*(ZTANK(2) - ZTANK(1) -0.5*(DUBAX1 + DUBAX2))
+           IF (IZDOM2.EQ.1.AND.IZTANK.EQ.2) THEN
+              FLONG = 0.5*(FLTANK +ZAPEX -FWDHI
+     1                     -(ZAPEX +AFTHI +DUBAX1))
+           ENDIF
+         ELSE 
+           FLONG = 0.5*(FLTANK + ZAPEX - FWDHI - ZTANK(1)
+     1                                      -0.5*(DUBAX1 + DUBAX2))
+           IF (IEND.EQ.0)
+     1     FLONG = 0.5*(FLTANK + ZAPEX - FWDHI - ZTANK(1) - DUBAX1)
+         ENDIF
+         Z2(NSEGDM2) = Z1(NSEGDM2) + FLONG
+         IRING(NSEGDM) = 1
+         IRING(NSEGDM1) = 1
+         NRTOT = IZDOM1 + 2 
+         NSPTOT = IZDOM1 + 1
+         IF (IEND.EQ.0.AND.IZTANK.EQ.1) THEN
+           NSEGDM3 = NSEGDM + 3
+           Z1(NSEGDM3) = Z2(NSEGDM2)
+           Z2(NSEGDM3) = FLTANK + ZAPEX - FWDHI
+         ENDIF
+      ENDIF
+C
+      IF (IEND.EQ.1) THEN
+         NSEGSM1 = NSEGSM - 1
+         Z2(NSEGSM1) = Z1(NSEGSM)
+         IZTANK1 = IZTANK - 1
+         IRING1 = RNGTYP(IZTANK)
+         DUBAX1 = DUBAXL(IRING1)
+         DUBAX2 = 0
+         IF (IZTANK.GT.1) THEN
+           IRING1 = RNGTYP(IZTANK1)
+           DUBAX2 = DUBAXL(IRING1)
+           FLONG = 0.5*(ZTANK(IZTANK) - ZTANK(IZTANK1)
+     1          -0.5*(DUBAX1 + DUBAX2))
+           IF (IZDOM1.EQ.1.AND.IZTANK1.EQ.1) THEN
+              FLONG = 0.5*(ZTANK(IZTANK) - (ZAPEX+AFTHI)
+     1          -0.5*(DUBAX1 + DUBAX2))
+           ENDIF
+         ELSE
+           FLONG = 0.5*(ZTANK(IZTANK) - (AFTHI + ZAPEX) 
+     1          -0.5*(DUBAX1 + DUBAX2))
+         ENDIF
+         Z1(NSEGSM1) = Z2(NSEGSM1) - FLONG
+      ENDIF
+C
+      IF (IZMIDL.EQ.0.AND.IBEGIN.EQ.0.AND.IEND.EQ.0) THEN
+C     The cylindrical part of the propellant tank has
+C     no skirt attached to it other than possibly those
+C     at the beginning (IBEGIN.EQ.1) and/or at the end
+C     (IEND.EQ.1) of the cylindrical part of the tank.
+       NSEGDM1 = NSEGDM + 1
+       NSEGDM2 = NSEGDM + 2
+       Z1(NSEGDM1) = ZAPEX + AFTHI
+       Z2(NSEGDM2) = ZAPEX + FLTANK -FWDHI
+       Z2(NSEGDM1) = Z1(NSEGDM1) + 0.5*(Z2(NSEGDM2) - Z1(NSEGDM1))
+       Z1(NSEGDM2) = Z2(NSEGDM1)
+       ZTHICK(1,NSEGDM1) = Z1(NSEGDM1)
+       ZTHICK(2,NSEGDM1) = Z2(NSEGDM1)
+       ZTHICK(1,NSEGDM2) = Z1(NSEGDM2)
+       ZTHICK(2,NSEGDM2) = Z2(NSEGDM2)
+       NMESH(NSEGDM1) = 51
+       NMESH(NSEGDM2) = 51
+      ENDIF
+C
+      IF (IZMIDL.GE.1) THEN
+C      There is at least one propellant tank support ring
+C      with attached skirt in the cylindrical portion of
+C      the tank.
+       IADD = 1
+       IF (IBEGIN.EQ.1) IADD = 3
+       I1 = 1
+       IF (IBEGIN.EQ.1) I1 = 2
+       I2 = IZMIDL
+C
+       ISEGST = NSEGDM + IADD
+C
+       DO 100 I = I1,I2
+C
+        ISEGSTM = ISEGST - 1
+        ISGSTP1 = ISEGST + 1
+        ISGSTP2 = ISEGST + 2
+        ISGSTP3 = ISEGST + 3
+        Z1(ISEGST) = Z2(ISEGSTM)
+        IMINUS = I - 1
+        IPLUS  = I + 1
+        IF (I.GT.1) THEN
+         IRING1 = RNGTYP(IMINUS)
+         DUBAX1 = DUBAXL(IRING1)
+        ENDIF
+        IRING2 = RNGTYP(I)
+        DUBAX2 = DUBAXL(IRING2)
+        DUBAX3 = 0.
+        IF (IZMIDL.GT.1) THEN
+         IRING3 = RNGTYP(IPLUS)
+         DUBAX3 = DUBAXL(IRING3)
+        ENDIF
+        IF (I.GT.1)
+     1  FLONG = 0.5*(ZTANK(I) - ZTANK(IMINUS) -0.5*(DUBAX1 +DUBAX2)) 
+        IF (I.EQ.1)
+     1  FLONG = ZTANK(I) - Z2(NSEGDM) - 0.5*DUBAX2
+        Z2(ISEGST) = Z1(ISEGST) + FLONG
+        Z1(ISGSTP1) = Z2(ISEGST)
+        Z2(ISGSTP1) = Z1(ISGSTP1) + 0.5*DUBAX2
+        Z1(ISGSTP2) = Z2(ISGSTP1)
+        Z2(ISGSTP2) = Z1(ISGSTP2) + 0.5*DUBAX2
+        Z1(ISGSTP3) = Z2(ISGSTP2)
+        IF (IEND.EQ.1.OR.I.LT.I2)
+     1  FLONG = 0.5*(ZTANK(IPLUS) - ZTANK(I) -0.5*(DUBAX2 +DUBAX3))
+        IF (IEND.EQ.0.AND.I.EQ.I2)
+     1  FLONG = FLTANK+ZAPEX-FWDHI - ZTANK(I) - 0.5*DUBAX2
+        Z2(ISGSTP3) = Z1(ISGSTP3) + FLONG
+        NMESH(ISEGST)  = 51
+        NMESH(ISGSTP1) = 11
+        NMESH(ISGSTP2) = 11
+        NMESH(ISGSTP3) = 51
+        NRING(ISEGST) = 0
+        NRING(ISGSTP1) = 1
+        NRING(ISGSTP2) = 1
+        NRING(ISGSTP3) = 0
+        IRING(ISGSTP1) = NRTOT + 1
+        IRING(ISGSTP2) = NRTOT + 2
+        NRTOT = NRTOT + 2
+        NSPTOT = NSPTOT + 1
+        IRNG = IRING(ISGSTP2)
+        IRNGTP(ISGSTP1) = 4
+        IRNGTP(ISGSTP2) = 0 
+C BEG MAY 2012
+        LINAB(ISGSTP1) = 1
+        IF (INDX.EQ.8) LINAB(ISGSTP1) = 2
+C END MAY 2012
+        NSUR(ISGSTP1) = -1
+        NSUR(ISGSTP2) = -1
+        NTHICK(ISGSTP1) = 2
+        NTHICK(ISGSTP2) = 2
+        ZTHICK(1,ISGSTP1) = Z1(ISGSTP1)
+        ZTHICK(2,ISGSTP1) = Z2(ISGSTP1)
+        ZTHICK(1,ISGSTP2) = Z1(ISGSTP2)
+        ZTHICK(2,ISGSTP2) = Z2(ISGSTP2)
+        TNKTHK(1,ISGSTP1) = 0. 
+        TNKTHK(2,ISGSTP1) = DUBTHK(IRING2)
+        TNKTHK(1,ISGSTP2) = DUBTHK(IRING2)
+        TNKTHK(2,ISGSTP2) = 0. 
+        ZRING(ISGSTP1) = Z2(ISGSTP1)
+        ZRING(ISGSTP2) = Z1(ISGSTP2)
+        FL2(ISGSTP1) = TRNGHI(IRING2)
+        TL2(ISGSTP1) = TRNGTH(IRING2)
+        ERING(ISGSTP1) = TRNGE(IRING2)
+        RM(ISGSTP1)     = DENTNK
+C
+        ISEGST = ISEGST + 4
+  100  CONTINUE
+      ENDIF
+C     end of the "IF (IZMIDL.GE.1)" condition
+C
+      I1 = NSEGDM +1
+      I2 = NSEGS - NSEGDM
+      DO 200 I = I1,I2
+      R1(I) = AFTDIA/2.
+      R2(I) = AFTDIA/2.
+      ZVAL(I) = THKMID/2. +STRHI
+  200 CONTINUE
+      DO 210 I = 1,NSEGDM
+       ZVAL(I) = THKAFT/2. +STRHI
+  210 CONTINUE
+      I1 = NSEGS - NSEGDM + 1
+      DO 220 I = I1,NSEGS
+       ZVAL(I) = THKFWD/2. +STRHI
+  220 CONTINUE
+C
+      DO 230 I = 1,NSEGS
+         EXSKIN(I) = ETANK
+         EYSKIN(I) = ETANK
+         UXYSKN(I) = NUTANK
+         GSKIN(I) = ETANK/(2.*(1.+NUTANK))
+         A1SKIN(I) = ALTNK
+         A2SKIN(I) = ALTNK
+         SMSKIN(I) = DENTNK
+C BEG MAY 2012
+         IDISAB(I) = 1
+         IF (INDX.EQ.8) IDISAB(I) = 2
+C END MAY 2012
+C BEG DEC 3, 2011
+C        IF (INDX.EQ.4.OR.INDX.EQ.5.OR.INDX.EQ.6) IDISAB(I) = 0
+C BEG FEB 2012
+C        IF (INDX.EQ.5.OR.INDX.EQ.6) IDISAB(I) = 0
+         IF (INDX.EQ.5) IDISAB(I) = 0
+C END FEB 2012
+C END DEC 3, 2011
+  230 CONTINUE
+C
+      IF (NSEGDM.EQ.1) THEN
+         R1(1) = 0.
+         Z1(1) = ZAPEX
+         R2(1) = AFTDIA/2.
+         Z2(1) = ZAPEX + AFTHI
+         RC(1) = 0.
+         ZC(1) = Z2(1)
+         R1(NSEGS) = FWDDIA/2.
+         Z1(NSEGS) = ZAPEX + FLTANK - FWDHI
+         R2(NSEGS) = 0.
+         Z2(NSEGS) = ZAPEX + FLTANK
+         RC(NSEGS) = 0.
+         ZC(NSEGS) = Z1(NSEGS)
+      ENDIF
+C
+      IF (IBEGIN.EQ.1) THEN
+C       There is a propellant tank support ring with
+C       attached skirt at the beginning of the cylindrical
+C       portion of the propellant tank.
+        NSEGDM1 = NSEGDM + 1
+        NSEGDM2 = NSEGDM + 2
+        NMESH(NSEGDM1) = 11
+        NMESH(NSEGDM2) = 51
+        NRING(NSEGDM) = 1
+        NRING(NSEGDM1) = 1
+        IRING(NSEGDM) =  IZDOM1 + 1
+        IRING(NSEGDM1) = IZDOM1 + 2
+        IF (IEND.EQ.0) THEN
+           NSEGDM3 = NSEGDM + 3
+           NSEGDM4 = NSEGDM + 4
+           NMESH(NSEGDM3) = 51
+        ENDIF 
+        IRNG = IRING(NSEGDM1)
+        IRNGTP(NSEGDM) = 4
+        IRNGTP(NSEGDM1) = 0 
+C BEG MAY 2012
+        LINAB(NSEGDM) = 1
+        IF (INDX.EQ.8) LINAB(NSEGDM) = 2
+C END MAY 2012
+        NSUR(NSEGDM) = -1
+        NSUR(NSEGDM1) = -1
+        NTHICK(NSEGDM) = 3
+        IF (NSEGDM.GT.1) NTHICK(NSEGDM) = 2
+        NTHICK(NSEGDM1) = 2
+        ZTHICK(1,NSEGDM) = Z1(NSEGDM)
+        IRING1 = RNGTYP(1)
+        DUBAX = DUBAXL(IRING1)
+        IF (NSEGDM.EQ.1) THEN
+         ZTHICK(2,NSEGDM) = Z2(NSEGDM) - 0.5*DUBAX
+         ZTHICK(3,NSEGDM) = Z2(NSEGDM)
+        ELSE
+         ZTHICK(2,NSEGDM) = Z2(NSEGDM)
+        ENDIF
+        ZTHICK(1,NSEGDM1) = Z1(NSEGDM1)
+        ZTHICK(2,NSEGDM1) = Z2(NSEGDM1)
+        TNKTHK(1,NSEGDM) = 0. 
+        IF (NSEGDM.EQ.1) THEN
+         TNKTHK(2,NSEGDM) = 0. 
+         TNKTHK(3,NSEGDM) = DUBTHK(IRING1)
+        ELSE
+         TNKTHK(2,NSEGDM) = DUBTHK(IRING1)
+        ENDIF
+        TNKTHK(1,NSEGDM1) = DUBTHK(IRING1)
+        TNKTHK(2,NSEGDM1) = 0. 
+        ZRING(NSEGDM) = Z2(NSEGDM)
+        ZRING(NSEGDM1) = Z1(NSEGDM1)
+        FL2(NSEGDM) = TRNGHI(IRING1)
+        TL2(NSEGDM) = TRNGTH(IRING1)
+        ERING(NSEGDM) = TRNGE(IRING1)
+        RM(NSEGDM)     = DENTNK
+      ENDIF
+C     End of "IF (IBEGIN.EQ.1)" condition
+C
+      IF (IEND.EQ.1) THEN
+C       There is a propellant tank support ring with
+C       attached skirt at the end of the cylindrical
+C       portion of the propellant tank.
+        ISEGFWD = NSEGS - NSEGDM + 1
+        NSEGDM1 = ISEGFWD - 1
+        NSEGDM2 = ISEGFWD - 2
+        NSEGDM3 = ISEGFWD - 3
+        NMESH(NSEGDM1) = 11
+        NMESH(NSEGDM2) = 51
+        IF (IBEGIN.EQ.0) NMESH(NSEGDM3) = 51
+        NRING(ISEGFWD) = 1
+        NRING(NSEGDM1) = 1
+        IRING(ISEGFWD) = IZDOM1 +2*IBEGIN +2*IZMIDL + 2
+        IRING(NSEGDM1) = IRING(ISEGFWD) - 1
+        NSPTOT = IZDOM1 + IBEGIN + IZMIDL + 1
+        IRNG = IRING(NSEGDM1)
+        IRNGTP(ISEGFWD) = 4
+        IRNGTP(NSEGDM1) = 0 
+C BEG MAY 2012
+        LINAB(ISEGFWD) = 1
+        IF (INDX.EQ.8) LINAB(ISEGFWD) = 2
+C END MAY 2012
+        NSUR(ISEGFWD) = -1
+        NSUR(NSEGDM1) = -1
+        NTHICK(ISEGFWD) = 3
+        IF (NSEGDM.GT.1) NTHICK(ISEGFWD) = 2
+        NTHICK(NSEGDM1) = 2
+        ZTHICK(1,ISEGFWD) = Z1(ISEGFWD)
+        IRING1 = RNGTYP(IZTANK)
+        DUBAX = DUBAXL(IRING1)
+        IF (NSEGDM.EQ.1) THEN
+         ZTHICK(2,ISEGFWD) = Z1(ISEGFWD) + 0.5*DUBAX
+         ZTHICK(3,ISEGFWD) = Z2(ISEGFWD)
+        ELSE
+         ZTHICK(2,ISEGFWD) = Z2(ISEGFWD)
+        ENDIF
+        ZTHICK(1,NSEGDM1) = Z1(NSEGDM1)
+        ZTHICK(2,NSEGDM1) = Z2(NSEGDM1)
+        TNKTHK(1,ISEGFWD) = DUBTHK(IRING1)
+        TNKTHK(2,ISEGFWD) = 0. 
+        IF (NSEGDM.EQ.1) TNKTHK(3,ISEGFWD) = 0. 
+        TNKTHK(1,NSEGDM1) = 0. 
+        TNKTHK(2,NSEGDM1) = DUBTHK(IRING1)
+        ZRING(ISEGFWD) = Z1(ISEGFWD)
+        ZRING(NSEGDM1) = Z2(NSEGDM1)
+        FL2(ISEGFWD) = TRNGHI(IRING1)
+        TL2(ISEGFWD) = TRNGTH(IRING1)
+        ERING(ISEGFWD) = TRNGE(IRING1)
+        RM(ISEGFWD)     = DENTNK
+      ENDIF
+C     End of "IF (IEND.EQ.1)" condition
+C
+      DO 248 ISEG = 1,NSEGS
+         IF (NTHICK(ISEG).EQ.2) THEN
+            ZTHICK(1,ISEG) = Z1(ISEG)
+            ZTHICK(2,ISEG) = Z2(ISEG)
+         ENDIF
+  248 CONTINUE
+C
+      IF (INDX.EQ.4) WRITE(IFIL14,'(A)') 'Springs on tank exist'
+      IF (INDX.EQ.5) WRITE(IFIL14,'(A)')'Concentrated loads; no springs'
+      IF (INDX.EQ.6) WRITE(IFIL14,'(A)') 'vibration of spring-supported'
+      IF (INDX.EQ.7) WRITE(IFIL14,'(A)') 'stresses in the tank'
+      IF (INDX.EQ.8) WRITE(IFIL14,'(A)') 'buckling of the tank'
+      IF (INDX.EQ.9) WRITE(IFIL14,'(A)') 'launch-hold condition'
+      WRITE(IFIL14,'(I3,A)') INDIC, ' $ INDIC'
+      WRITE(IFIL14,'(A)') ' 2  $ NPRT'
+      IF (INDX.NE.7) WRITE(IFIL14,'(A)') ' 0  $ ISTRS'
+      IF (INDX.EQ.7) WRITE(IFIL14,'(A)') ' 1  $ ISTRS'
+      IF (INDX.EQ.8) WRITE(IFIL14,'(A)') ' 1  $ IPRE'
+      IF (IZTANK.EQ.1) WRITE(IFIL14,'(I4,A)') NSEGS+5,' $ NSEG'
+      IF (IZTANK.EQ.2) WRITE(IFIL14,'(I4,A)') NSEGS+10,' $ NSEG'
+      IF (INDX.EQ.4.OR.INDX.EQ.9) THEN
+         WRITE(IFIL14,'(A)') ' 0  $ NSTART'
+         WRITE(IFIL14,'(A)') ' -1  $ NFIN'
+         WRITE(IFIL14,'(A)') ' -1  $ INCR'
+      ENDIF
+      IF (INDX.EQ.5.OR.INDX.EQ.7.OR.INDX.EQ.8) THEN
+         WRITE(IFIL14,'(A)') '  0   $ NSTART'
+         WRITE(IFIL14,'(A)') ' -1   $ NFIN'
+         WRITE(IFIL14,'(A)') ' -1   $ INCR'
+      ENDIF
+      IF (INDX.NE.6) WRITE(IFIL14,'(A)') ' 180.  $ THETAM'
+C
+C     Start with the 5-segment model of the aft skirt:
+C
+      ICOL = 1
+      LENGTH(ICOL) = SQRT((ZTANK(ICOL)-ZGRND(ICOL))**2 
+     1                        +(0.5*DIAVEH-RDOME(ICOL))**2)
+      SINANG = (0.5*DIAVEH-RDOME(ICOL))/LENGTH(ICOL)
+      COSANG = SQRT(1. - SINANG**2)
+      NSKMSH(1) = 11
+      NSKMSH(2) = 11
+      NSKMSH(3) = 97
+      NSKMSH(4) = 11
+      NSKMSH(5) = 11
+      RSKRT1(1) = DIAVEH/2.
+      ZSKRT1(1) = ZGRND(ICOL)
+      RSKRT2(1) = RSKRT1(1) - SINANG*LNGVEH1(ICOL)
+      ZSKRT2(1) = ZSKRT1(1) + COSANG*LNGVEH1(ICOL)
+      RSKRT1(2) = RSKRT2(1) 
+      ZSKRT1(2) = ZSKRT2(1)
+      RSKRT2(2) = RSKRT1(2) - SINANG*LNGVEH2(ICOL)
+      ZSKRT2(2) = ZSKRT1(2) + COSANG*LNGVEH2(ICOL)
+      RSKRT1(3) = RSKRT2(2)
+      ZSKRT1(3) = ZSKRT2(2)
+      RSKRT2(3) = RSKRT1(3) - SINANG*(LENGTH(ICOL)
+     1  -LNGVEH1(ICOL)-LNGVEH2(ICOL)-LNGTNK1(ICOL)-LNGTNK2(ICOL))
+      ZSKRT2(3) = ZSKRT1(3) + COSANG*(LENGTH(ICOL)
+     1  -LNGVEH1(ICOL)-LNGVEH2(ICOL)-LNGTNK1(ICOL)-LNGTNK2(ICOL))
+      RSKRT1(4) = RSKRT2(3)
+      ZSKRT1(4) = ZSKRT2(3)
+      RSKRT2(4) = RSKRT1(4) - SINANG*LNGTNK2(ICOL)
+      ZSKRT2(4) = ZSKRT1(4) + COSANG*LNGTNK2(ICOL)
+      RSKRT1(5) = RSKRT2(4)
+      ZSKRT1(5) = ZSKRT2(4)
+      RSKRT2(5) = RSKRT1(5) - SINANG*LNGTNK1(ICOL)
+      ZSKRT2(5) = ZSKRT1(5) + COSANG*LNGTNK1(ICOL)
+C
+      DO 300 ISEG = 1,5
+         WRITE(IFIL14,'(A)') ' H  $'
+         WRITE(IFIL14,'(A,I3)') ' H  $  THIS IS SEGMENT NO.',ISEG
+         WRITE(IFIL14,'(I3,A)')  NSKMSH(ISEG),' $ NMESH'
+         IF (ISEG.NE.3) THEN
+          WRITE(IFIL14,'(A)') ' 3  $ NTYPEH'
+         ELSE
+          WRITE(IFIL14,'(A)') ' 1  $ NTYPEH'
+C BEG APR 2012
+C         WRITE(IFIL14,'(A)') ' 4  $ NHVALU'
+C         WRITE(IFIL14,'(A)') '  1  $ IHVALU(1)'
+C         WRITE(IFIL14,'(A)') ' 50  $ IHVALU(2)'
+C         WRITE(IFIL14,'(A)') ' 51  $ IHVALU(3)'
+C         WRITE(IFIL14,'(A)') ' 96  $ IHVALU(4)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(1)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(2)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(3)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(4)'
+C
+          WRITE(IFIL14,'(A)') ' 6  $ NHVALU'
+          WRITE(IFIL14,'(A)') '  1  $ IHVALU(1)'
+          WRITE(IFIL14,'(A)') ' 32  $ IHVALU(2)'
+          WRITE(IFIL14,'(A)') ' 33  $ IHVALU(3)'
+          WRITE(IFIL14,'(A)') ' 63  $ IHVALU(2)'
+          WRITE(IFIL14,'(A)') ' 64  $ IHVALU(3)'
+          WRITE(IFIL14,'(A)') ' 96  $ IHVALU(4)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(1)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(2)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(3)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(4)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(5)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(6)'
+C END APR 2012
+         ENDIF
+         WRITE(IFIL14,'(A)') ' 1  $ NSHAPE'
+         WRITE(IFIL14,'(1PE14.6,A)') RSKRT1(ISEG),' $ R1'
+         WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+         WRITE(IFIL14,'(1PE14.6,A)') RSKRT2(ISEG),' $ R2'
+         WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+         WRITE(IFIL14,'(A)') ' 0  $ IMP'
+         IF (ISEG.NE.3) THEN
+           WRITE(IFIL14,'(A)') ' 1  $ NTYPEZ'
+           WRITE(IFIL14,'(A)') ' 2  $ NZVALU'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (ISEG.EQ.1) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') 0.5*THKVEH1(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKVEH2(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (ISEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKVEH2(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (ISEG.EQ.4) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKTNK2(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (ISEG.EQ.5) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKTNK2(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)') 0.5*THKTNK1(ICOL),' $ ZVAL2'
+           ENDIF
+         ELSE
+           WRITE(IFIL14,'(A)') ' 3  $ NTYPEZ'
+           WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL'
+         ENDIF
+C
+         WRITE(IFIL14,'(A)') ' N  $ do you want print r(s),etc?'
+         WRITE(IFIL14,'(A)') ' 0  $ NRINGS'
+         WRITE(IFIL14,'(A)') ' 0  $ K elastic foundation'
+         WRITE(IFIL14,'(A)') ' 0  $ LINTYP'
+C BEG MAR 2012
+         IF (INDX.EQ.6) THEN
+          ITHERML = 0
+          WRITE(IFIL14,'(A)') ' 0  $ IDISAB'
+         ELSE
+          ITHERML = 1
+C BEG MAY 2012
+          IF (INDX.NE.8) WRITE(IFIL14,'(A)') ' 1  $ IDISAB'
+          IF (INDX.EQ.8) WRITE(IFIL14,'(A)') ' 2  $ IDISAB'
+C END MAY 2012
+         ENDIF
+         IF (ITHERML.NE.0) THEN
+C   temperature input...
+          WRITE(IFIL14,'(A)') ' 2  $ NLTYPE (thermal loading only)'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.1.OR.ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.5) THEN
+           WRITE(IFIL14,'(A)') ' 2  $ NTSTAT (two merid. callouts)'
+          ENDIF
+          IF (ISEG.EQ.3) THEN
+           WRITE(IFIL14,'(A)') ' 11  $ NTSTAT (two merid. callouts)'
+          ENDIF
+          WRITE(IFIL14,'(A)') ' 1  $ NTGRAD (thermal gradient type)'
+          WRITE(IFIL14,'(A)') ' 4  $ NTYPEL (thermal loading type)'
+          WRITE(IFIL14,'(A)') ' 1  $ NLOAD(1) (temp. T1 coeff.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2) (temp. T2 coeff.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(3) (temp. T3 coeff.)'
+          IF (ISEG.EQ.1.OR.ISEG.EQ.2) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') 0.0001*TNKCOOL(ILOADX),
+     1     ' $ skirt temp'
+           WRITE(IFIL14,'(1PE14.6,A)') 0.0001*TNKCOOL(ILOADX),
+     1     ' $ skirt temp'
+          ENDIF
+          IF (ISEG.EQ.3) THEN
+           DZ = (ZSKRT2(ISEG) - ZSKRT1(ISEG))/10.
+           TEMPR(1) = 0.0001*TNKCOOL(ILOADX)
+           TEMPR(2) = 0.001*TNKCOOL(ILOADX)
+           TEMPR(3) = 0.01*TNKCOOL(ILOADX)
+           TEMPR(4) = 0.05*TNKCOOL(ILOADX)
+           TEMPR(5) = 0.10*TNKCOOL(ILOADX)
+           TEMPR(6) = 0.20*TNKCOOL(ILOADX)
+           TEMPR(7) = 0.40*TNKCOOL(ILOADX)
+           TEMPR(8) = 0.65*TNKCOOL(ILOADX)
+           TEMPR(9) = 0.8*TNKCOOL(ILOADX)
+           TEMPR(10) = 0.9*TNKCOOL(ILOADX)
+           TEMPR(11) = 1.0*TNKCOOL(ILOADX)
+           DO 249 IPOINT = 1,11
+            WRITE(IFIL14,'(1PE14.6,A)') TEMPR(IPOINT),' $ skirt temp'
+  249      CONTINUE
+          ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.4.OR.ISEG.EQ.5) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ skirt temp'
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ skirt temp'
+          ENDIF
+          WRITE(IFIL14,'(A)') ' 2  $ NTHETA (2 circ.coord.callouts)'
+          WRITE(IFIL14,'(A)') ' 2  $ NOPT (2 means either even or odd)'
+          WRITE(IFIL14,'(A)') ' 1  $ NODD (1 means even circ.distrib.)'
+          WRITE(IFIL14,'(A)') ' 0.   $ THETA (1st circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 180. $ THETA (2nd circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,1st callout)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,2nd callout)'
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print Fourier ser?'
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 = z-callout for temp)'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.1.OR.ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.5) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),
+     1     ' $ Z(1) axial callout'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),
+     1     ' $ Z(2) axial callout'
+          ENDIF
+          IF (ISEG.EQ.3) THEN
+           ZSKIRT(1) = ZSKRT1(ISEG)
+           ZSKIRT(11) = ZSKRT2(ISEG)
+           DO 251 IPOINT = 2,10
+            ZSKIRT(IPOINT) = ZSKRT1(ISEG) + FLOAT(IPOINT-1)*DZ
+  251      CONTINUE
+           DO 252 IPOINT = 1,11
+            WRITE(IFIL14,'(1PE14.6,A)') ZSKIRT(IPOINT),
+     1      ' $ Z(i) axial callout'
+  252      CONTINUE
+          ENDIF
+         ENDIF
+C        End of "IF (ITHERML.NE.0)" condition
+C END MAR 2012
+C
+         IF (ISEG.EQ.1.OR.ISEG.EQ.5) THEN
+          WRITE(IFIL14,'(A)') ' 2  $ NWALL'
+          WRITE(IFIL14,'(1PE14.6,A)') ETANK,' $ E (Elastic modulus)'
+          WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ U (Poisson ratio)'
+          WRITE(IFIL14,'(1PE14.6,A)') DENTNK,' $ SM (mass density)'
+          WRITE(IFIL14,'(1PE14.6,A)') ALTNK,' $ ALPHA (thermal coef.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NRS (0=no smeared stiff)'
+          WRITE(IFIL14,'(A)') ' 0  $ NSUR (control for thk.)'
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+         ENDIF
+C
+         IF (ISEG.EQ.2.OR.ISEG.EQ.3.OR.ISEG.EQ.4) THEN
+          WRITE(IFIL14,'(A)') ' 9  $ NWALL'
+          NLAY = NLAYER(ICOL)
+          IF (ISEG.EQ.2.OR.ISEG.EQ.4) NLAY = NLAYER(ICOL) + 2
+          WRITE(IFIL14,'(I5,A)') NLAY,' $ number of layers'
+C
+          MAXMAT = 1
+C BEG MAR 2012
+          DO 253 I = 1,NLAY
+C END MAR 2012
+           J = I
+           IF (ISEG.EQ.2.OR.ISEG.EQ.4) THEN
+              J = I-1
+              IF (I.EQ.1) THEN
+                WRITE(IFIL14,'(A)') ' 1 $ layer index'
+                IF (ISEG.EQ.4) 
+     1           WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+                IF (ISEG.EQ.2) THEN
+                 WRITE(IFIL14,'(A)') ' Y  $ is this a new layer type?'
+                 WRITE(IFIL14,'(1PE14.6,A)')THKVEH2(ICOL),' $ thickness'
+                 WRITE(IFIL14,'(A)') ' 0.  $ layup angle'
+                 WRITE(IFIL14,'(A)') ' 1   $ material type'
+                ENDIF
+C BEG MAR 2012
+                GO TO 253
+C END MAR 2012
+              ENDIF
+              IF (I.EQ.NLAY) THEN
+                WRITE(IFIL14,'(A)') ' 1 $ layer index'
+                WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+C BEG MAR 2012
+                GO TO 253
+C END MAR 2012
+              ENDIF
+           ENDIF
+           WRITE(IFIL14,'(I5,A)') LAYID(J,ICOL),' $ layer index'
+           IF (ISEG.EQ.2.AND.NEWLAY(J,ICOL).EQ.1) THEN
+            WRITE(IFIL14,'(A)') ' Y  $ is this a new layer type?'
+            WRITE(IFIL14,'(1PE14.6,A)') THK(J,ICOL),' $ thickness'
+            WRITE(IFIL14,'(1PE14.6,A)') THETA(J,ICOL),' $ layup angle'
+            WRITE(IFIL14,'(I5,A)') MATLID(J,ICOL),' $ material type'
+            MAXMAT = MAX(MATLID(J,ICOL),MAXMAT)
+           ELSE
+            WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+           ENDIF
+C BEG MAR 2012
+  253     CONTINUE
+C END MAR 2012
+C         End loop over number of layers
+C
+          IF (ISEG.EQ.2) THEN
+           DO 260 I = 1,MAXMAT
+            J = I
+            IF (I.GT.1) J = I - 1
+            WRITE(IFIL14,'(A)') ' Y  $ is this a new material?'
+            IF (I.EQ.1) THEN
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ETANK,' $ E1(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ETANK,' $ E2(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)')
+     1                       ETANK/(2.*(1.+NUTANK)),' $ G(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') NUTANK,' $ NU(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ALTNK,' $ A1(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ALTNK,' $ A2(',J,')'
+             WRITE(IFIL14,'(A,I2,A)')            ' 0. $ TEMTUR(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') DENTNK,
+     1                                           ' $ MASS DENS(',J,')'
+             DO 254 K = 1,5
+              FACT = 1.0
+              IF (K.EQ.5) FACT = 2.*(1.+NUTANK)
+              WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1         TNKSTRA(ILOADX,1)/FACT,' $ TNKSTRA(',ILOADX,',',K,')'
+  254        CONTINUE
+            ELSE
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') E1(J),' $ E1(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') E2(J),' $ E2(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') G12(J),' $ G(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') NU(J),' $ NU(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ALPHA1(J),' $ A1(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') ALPHA2(J),' $ A2(',J,')'
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') TEMTUR(J),
+     1                                              ' $ TEMTUR(',J,')'
+             RHOSKT = DENSTY(J)/GRAV
+             WRITE(IFIL14,'(1PE14.6,A,I2,A)') RHOSKT,
+     1                                           ' $ MASS DENS(',J,')'
+             IF (J.EQ.1) THEN
+              DO 255 K = 1,5
+               WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1          STRES1A(ILOADX,K),' $ STRES1A(',ILOADX,',',K,')'
+  255         CONTINUE
+             ELSE
+              DO 257 K = 1,5
+               WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1          STRES2A(ILOADX,K),' $ STRES2A(',ILOADX,',',K,')'
+  257        CONTINUE
+             ENDIF
+            ENDIF
+C           End of "IF (I.EQ.1) . . . ELSE . . . ENDIF" condition
+  260      CONTINUE
+C          End of loop, I = 1,MAXMAT
+          ENDIF
+C         End of IF (ISEG.EQ.2) condition
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          WRITE(IFIL14,'(A)')' 0  $ NRS (do not add smeared stiffeners)'
+          WRITE(IFIL14,'(A)') ' Y  $ Do you want output for all points?'
+          IF (ISEG.EQ.3)
+     1    WRITE(IFIL14,'(A)') ' 0  $ control for constant or var.thick.'
+          IF (ISEG.EQ.2.OR.ISEG.EQ.4) THEN
+           WRITE(IFIL14,'(A)')' 1  $ control for constant or var.thick.'
+           WRITE(IFIL14,'(A)')' 1  $ Layer no. with varying thickness'
+           WRITE(IFIL14,'(A)')' 2  $ NTIN (no.thick.call.)'
+           WRITE(IFIL14,'(A)')' 2  $ NTYPE (2 means z-callout for thk.)'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (ISEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKVEH2(ICOL),' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+           ENDIF
+           IF (ISEG.EQ.4) THEN
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+            WRITE(IFIL14,'(1PE14.6,A)') THKTNK2(ICOL),' $ TIN(i)'
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL14,'(A)') ' Y  $ any more variable thick. layers?'
+           WRITE(IFIL14,'(I3,A)')
+     1                       NLAY,' $ Layer no. with varying thickness'
+           WRITE(IFIL14,'(A)') ' 2  $ NTIN (no.thick.call.)'
+           WRITE(IFIL14,'(A)')' 2  $ NTYPE (2 means z-callout for thk.)'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (ISEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKVEH2(ICOL),' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+           ENDIF
+           IF (ISEG.EQ.4) THEN
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+            WRITE(IFIL14,'(1PE14.6,A)') THKTNK2(ICOL),' $ TIN(i)'
+           ENDIF
+           WRITE(IFIL14,'(A)') ' N  $ any more variable thick. layers?'
+           WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+          ENDIF
+C         End of IF (ISEG.EQ.2.OR.ISEG.EQ.4) condition
+         ENDIF
+C        End of IF (ISEG.EQ.2.OR.ISEG.EQ.3.OR.ISEG.EQ.4) condition
+C
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print C(i,j)?'
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print loads?'
+  300 CONTINUE
+C     End of loop over the number of segments in the aft skirt
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C     Start the loop over the number of shell segments in the model
+C     of the propellant tank...
+C
+      DO 500 ISEG = 1,NSEGS
+         JSEG = ISEG + 5
+         WRITE(IFIL14,'(A)') ' H  $'
+         WRITE(IFIL14,'(A,I3)') ' H  $  THIS IS SEGMENT NO.',JSEG
+         WRITE(IFIL14,'(I3,A)') NMESH(ISEG), ' $ NMESH'
+         NTYPEH = 3
+         IF (NSEGDM.EQ.1.AND.(ISEG.EQ.1.OR.ISEG.EQ.NSEGS))
+     1   NTYPEH = 1
+         WRITE(IFIL14,'(I3,A)') NTYPEH,'  $ NTYPEH'
+         IF (NSEGDM.EQ.1.AND.(ISEG.EQ.1.OR.ISEG.EQ.NSEGS)) THEN
+            WRITE(IFIL14,'(A)') ' 4  $ NHVALU'
+            WRITE(IFIL14,'(A)') '  1  $ IHVALU(1)'
+            WRITE(IFIL14,'(A)') ' 50  $ IHVALU(2)'
+            WRITE(IFIL14,'(A)') ' 51  $ IHVALU(3)'
+            WRITE(IFIL14,'(A)') ' 96  $ IHVALU(4)'
+            IF (ISEG.EQ.1) THEN
+               WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(1)'
+               WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(2)'
+               WRITE(IFIL14,'(A)') ' 0.2  $ HVALU(3)'
+               WRITE(IFIL14,'(A)') ' 0.2  $ HVALU(4)'
+            ELSE
+               WRITE(IFIL14,'(A)') ' 0.2  $ HVALU(1)'
+               WRITE(IFIL14,'(A)') ' 0.2  $ HVALU(2)'
+               WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(3)'
+               WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(4)'
+            ENDIF
+         ENDIF
+C
+         NSHAPE = 1
+         IF (ISEG.LE.NSEGDM.OR.ISEG.GT.(NSEGS-NSEGDM)) NSHAPE = 2
+         WRITE(IFIL14,'(I3,A)') NSHAPE,' $ NSHAPE'
+         WRITE(IFIL14,'(1PE14.6,A)') R1(ISEG),' $ R1'
+         WRITE(IFIL14,'(1PE14.6,A)') Z1(ISEG),' $ Z1'
+         WRITE(IFIL14,'(1PE14.6,A)') R2(ISEG),' $ R2'
+         WRITE(IFIL14,'(1PE14.6,A)') Z2(ISEG),' $ Z2'
+         IF (NSHAPE.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') RC(ISEG),' $ RC'
+            WRITE(IFIL14,'(1PE14.6,A)') ZC(ISEG),' $ ZC'
+            WRITE(IFIL14,'(A)') ' -1  $ SROT'
+         ENDIF
+         WRITE(IFIL14,'(A)') ' 0  $ IMP'
+         WRITE(IFIL14,'(A)') ' 3  $ NTYPEZ'
+         WRITE(IFIL14,'(1PE14.6,A)') ZVAL(ISEG),' $ ZVAL'
+         WRITE(IFIL14,'(A)') ' N  $ do you want print r(s),etc?'
+         NRINGS = NRING(ISEG)
+         WRITE(IFIL14,'(I3,A)') NRINGS,' $ NRINGS'
+         IF (NRINGS.GT.0) THEN
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 means Z-callout)'
+          WRITE(IFIL14,'(1PE14.6,A)') ZRING(ISEG),' $ Z(1)'
+          WRITE(IFIL14,'(I3,A)') IRNGTP(ISEG),' $ NTYPER'
+          IF (IRNGTP(ISEG).EQ.4) THEN 
+           WRITE(IFIL14,'(A)') ' 0.  $ L1 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(1PE14.6,A)') FL2(ISEG),' $ ring height'
+           WRITE(IFIL14,'(A)') ' 0.  $ L3 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(A)') ' 0.  $ T1 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(1PE14.6,A)') TL2(ISEG),' $ ring thickness'
+           WRITE(IFIL14,'(A)') ' 0.  $ T3 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(1PE14.6,A)') ERING(ISEG),' $ E (modulus)'
+           WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ Poisson ratio'
+           X1P = THKMID/2.
+           WRITE(IFIL14,'(1PE14.6,A)') X1P,' $ X1P (pp 70-72 manual)'
+           WRITE(IFIL14,'(A)') ' 0.  $ Y1 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(A)') ' 0.  $ Y2 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(A)') ' 0.  $ Y3 (pp 70-72 BOSOR manual)'
+           WRITE(IFIL14,'(1PE14.6,A)') RM(ISEG),' $ RM (mass density)'
+          ENDIF
+C         end of "IF (IRNGTP(ISEG).EQ.4)" condition
+C
+C
+         ENDIF
+C        end of "IF (NRINGS.GT.0)" condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         WRITE(IFIL14,'(A)') ' 0  $ K=elastic foundation modulus'
+C
+         IF (INDX.EQ.4.OR.INDX.EQ.6.OR.INDX.EQ.9) LINAB(ISEG) = 0
+         WRITE(IFIL14,'(I3,A)') LINAB(ISEG),' $ LINAB'
+C
+C   line loads, if any...
+         IF (LINAB(ISEG).NE.0) THEN
+          WRITE(IFIL14,'(A)') ' 2  $ LINTYP (1 means mechanical only)'
+C   mechanical line loads...
+C
+C   thermal line load...
+          WRITE(IFIL14,'(A)') ' 4  $ NTYPEL (line load type)'
+          WRITE(IFIL14,'(A)') ' 1  $ NLOAD(1) (index for TNR; see p.74)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2) (index for TMX; see p.74)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(3) (index for TMY; see p.74)'
+          TNR = -ETANK*FL2(ISEG)*TL2(ISEG)*ALTNK*TNKCOOL(ILOADX)
+          WRITE(IFIL14,'(1PE14.6,A)') TNR,' $ minus thermal hoop load'
+          WRITE(IFIL14,'(A)') ' 2  $ NTHETA (2 circ.coord.callouts)'
+          WRITE(IFIL14,'(A)') ' 2  $ NOPT (2 means either even or odd)'
+          WRITE(IFIL14,'(A)') ' 1  $ NODD (1 means even circ.distrib.)'
+          WRITE(IFIL14,'(A)') ' 0.   $ THETA (1st circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 180. $ THETA (2nd circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (pressure mult.callout 1)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (pressure mult.callout 2)'
+          WRITE(IFIL14,'(A)') ' Y  $ do you want to print Fourier ser.?'
+C
+         ENDIF
+C        end of "IF (LINAB(ISEG).NE.0)" condition
+C
+C  distributed loads, if any...
+         WRITE(IFIL14,'(I3,A)') IDISAB(ISEG),' $ IDISAB'
+         IF (IDISAB(ISEG).NE.0) THEN
+C BEG FEB 2012
+          IF (INDX.EQ.6) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C   pressure input for vibration model...
+           WRITE(IFIL14,'(A)') ' 1  $ NLTYPE (pressure loading only)'
+           WRITE(IFIL14,'(A)') ' 2  $ NPSTAT (two merid. callouts)'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(1)=meridional traction'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2)=circumfer. traction'
+           WRITE(IFIL14,'(A)') ' 1  $ NLOAD(3)=normal pressure'
+           WRITE(IFIL14,'(1PE14.6,A)') PRESS(ILOADX),' $ normal pressur'
+           WRITE(IFIL14,'(1PE14.6,A)') PRESS(ILOADX),' $ normal pressur'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2= z-callout for pressure)'
+           WRITE(IFIL14,'(1PE14.6,A)') Z1(ISEG),' $ Z(1) axial callout'
+           WRITE(IFIL14,'(1PE14.6,A)') Z2(ISEG),' $ Z(2) axial callout'
+          ELSE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL14,'(A)') ' 3  $ NLTYPE (press & thermal loading)'
+C   pressure input...
+           WRITE(IFIL14,'(A)') ' 2  $ NPSTAT (two merid. callouts)'
+           WRITE(IFIL14,'(A)') ' 4  $ NTYPEL (thermal loading type)'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(1) (merid.traction)'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2) (circumf.traction)'
+           WRITE(IFIL14,'(A)') ' 1  $ NLOAD(3) (normal pressure)'
+           WRITE(IFIL14,'(1PE14.6,A)') PRESS(ILOADX),' $ normal pressur'
+           WRITE(IFIL14,'(1PE14.6,A)') PRESS(ILOADX),' $ normal pressur'
+           WRITE(IFIL14,'(A)') ' 2  $ NTHETA (2 circ.coord.callouts)'
+           WRITE(IFIL14,'(A)') ' 2  $ NOPT (2 means either even or odd)'
+           WRITE(IFIL14,'(A)') ' 1  $ NODD (1 means even circ.distrib.)'
+           WRITE(IFIL14,'(A)') ' 0.   $ THETA (1st circ.callout (deg))'
+           WRITE(IFIL14,'(A)') ' 180. $ THETA (2nd circ.callout (deg))'
+           WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (pressure mult.callout 1)'
+           WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (pressure mult.callout 2)'
+           WRITE(IFIL14,'(A)') ' N  $ do you want to print Fourier ser?'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2=z-callout for pressure)'
+           WRITE(IFIL14,'(1PE14.6,A)') Z1(ISEG),' $ Z(1) axial callout'
+           WRITE(IFIL14,'(1PE14.6,A)') Z2(ISEG),' $ Z(2) axial callout'
+C   temperature input...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL14,'(A)') ' 2  $ NTSTAT (two merid. callouts)'
+           WRITE(IFIL14,'(A)') ' 1  $ NTGRAD (thermal gradient type)'
+           WRITE(IFIL14,'(A)') ' 4  $ NTYPEL (thermal loading type)'
+           WRITE(IFIL14,'(A)') ' 1  $ NLOAD(1) (temp. T1 coeff.)'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2) (temp. T2 coeff.)'
+           WRITE(IFIL14,'(A)') ' 0  $ NLOAD(3) (temp. T3 coeff.)'
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ tank temp'
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ tank temp'
+           WRITE(IFIL14,'(A)') ' 2  $ NTHETA (2 circ.coord.callouts)'
+           WRITE(IFIL14,'(A)') ' 2  $ NOPT (2 means either even or odd)'
+           WRITE(IFIL14,'(A)') ' 1  $ NODD (1 means even circ.distrib.)'
+           WRITE(IFIL14,'(A)') ' 0.   $ THETA (1st circ.callout (deg))'
+           WRITE(IFIL14,'(A)') ' 180. $ THETA (2nd circ.callout (deg))'
+           WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,1st callout)'
+           WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,2nd callout)'
+           WRITE(IFIL14,'(A)') ' N  $ do you want to print Fourier ser?'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 = z-callout for temp)'
+           WRITE(IFIL14,'(1PE14.6,A)') Z1(ISEG),' $ Z(1) axial callout'
+           WRITE(IFIL14,'(1PE14.6,A)') Z2(ISEG),' $ Z(2) axial callout'
+          ENDIF
+C         end of "IF (INDX.EQ.6)... ELSE..." condition
+C END FEB 2012
+         ENDIF
+C        end of "IF (IDISAB(ISEG).NE.0)" condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         WRITE(IFIL14,'(I3,A)') NWALL(ISEG),' $ NWALL (5=orthotropic)'
+C
+         THKSKN = THKMID
+         IF (ISEG.LE.NSEGDM) THKSKN = THKAFT
+         IF (ISEG.GT.(NSEGS-NSEGDM)) THKSKN = THKFWD
+         NRS = 0
+C BEG FEB 2012
+         DENMLT(JSEG) = 0.
+         DENFLD = DENPRP/GRAV
+C END FEB 2012
+         SKNDEN = SMSKIN(ISEG)
+C     The following SKNDEN is accurate for a cylindrical segment,
+C     and is used here for all segments (including ellipsoidal)
+C     for ease in writing bosdec. The added fluid mass is used only
+C     for the free vibration model. Since the frequency varies as the
+C     square root of the ratio, stiffness/mass, this approximation is
+C     not horribly conservative. (conservative by about 20 per cent
+C     if the entire propellant tank is spherical, less if the
+C     propellant tank has a significant cylindrical portion).
+C BEG FEB 2012 
+C   bosdec.tank2 (permanent) version (remove the "C" in col. 1
+C   on the following two lines to get the permanent version):
+C        IF (INDX.EQ.6)
+C    1    SKNDEN = SMSKIN(ISEG) + 0.25*AFTDIA*(DENPRP/GRAV)/THKSKN
+C
+C   bosdec.src (temporary) version (set col. 1 to "C" in the
+C   following line to get the permanent version, bosdec.tank):
+         IF (INDX.EQ.6) DENMLT(JSEG) = 1.0
+C END FEB 2012 
+C
+C        IF (ISEG.LE.NSEGDM.OR.ISEG.GT.(NSEGS-NSEGDM)) THEN
+C           NRS = 0
+C           SKNDEN = SMSKIN(ISEG)
+C     The following SKNDEN is accurate for a spherical segment.
+C           IF (INDX.EQ.6)
+C    1      SKNDEN = SMSKIN(ISEG) +0.16666*AFTDIA*(DENPRP/GRAV)/THKSKN
+C        ENDIF
+C
+         IF (NWALL(ISEG).EQ.9) THEN
+          LAYIND = LAYIDM(1) + 1
+          WRITE(IFIL14,'(A)') ' 3  $ LAYERS (tank always has 3 layers)'
+          WRITE(IFIL14,'(I3,A)') LAYIND,'  $ layer index for layer no.1'
+          IF (ISEG.EQ.1) THEN
+            WRITE(IFIL14,'(A)') ' Y $ Is this a new layer type?'
+            THKEFF = 0.5*(STRHI + RNGHI)
+            WRITE(IFIL14,'(1PE14.6,A)') THKEFF,' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0  $ layup angle for layer 1'
+            WRITE(IFIL14,'(A)') ' 3  $ material index for layer 1'
+          ELSE
+            WRITE(IFIL14,'(A)') ' N $ Is this a new layer type?'
+          ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+          LAYIND = LAYIDM(1) + 2
+          IF (ISEG.LE.NSEGDM)
+     1    WRITE(IFIL14,'(I3,A)') LAYIND,'  $ layer index for layer no.2'
+          LAYIND = LAYIDM(1) + 4
+          IF (ISEG.GT.NSEGDM.AND.ISEG.LE.(NSEGS-NSEGDM))
+     1    WRITE(IFIL14,'(I3,A)') LAYIND,'  $ layer index for layer no.2'
+          LAYIND = LAYIDM(1) + 5
+          IF (ISEG.GT.(NSEGS-NSEGDM))
+     1    WRITE(IFIL14,'(I3,A)') LAYIND,'  $ layer index for layer no.2'
+C
+          IF (ISEG.EQ.1.OR.ISEG.EQ.(NSEGDM+1)
+     1                 .OR.ISEG.EQ.(NSEGS-NSEGDM+1)) THEN
+            WRITE(IFIL14,'(A)') ' Y $ Is this a new layer type?'
+            WRITE(IFIL14,'(1PE14.6,A)') THKSKN,' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0  $ layup angle for layer 2'
+            IF (ISEG.EQ.1)
+     1      WRITE(IFIL14,'(A)') ' 4  $ material index for layer 2'
+            IF (ISEG.EQ.(NSEGDM+1))
+     1      WRITE(IFIL14,'(A)') ' 6  $ material index for layer 2'
+            IF (ISEG.EQ.(NSEGS-NSEGDM+1))
+     1      WRITE(IFIL14,'(A)') ' 7  $ material index for layer 2'
+          ELSE
+            WRITE(IFIL14,'(A)') ' N $ Is this a new layer type?'
+          ENDIF
+C
+          LAYIND = LAYIDM(1) + 3
+          WRITE(IFIL14,'(I3,A)') LAYIND,'  $ layer index for layer no.3'
+          IF (ISEG.EQ.1) THEN
+            WRITE(IFIL14,'(A)') ' Y $ Is this a new layer type?'
+            WRITE(IFIL14,'(1PE14.6,A)') DUBTHK(1),' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0  $ layup angle for layer 3'
+            WRITE(IFIL14,'(A)') ' 5  $ material index for layer 3'
+          ELSE
+            WRITE(IFIL14,'(A)') ' N $ Is this a new layer type?'
+          ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.1) THEN
+           EXEFF = EXSKIN(ISEG)*STRTHK/STRSPC
+           EYEFF = EYSKIN(ISEG)*RNGTHK/RNGSPC
+           G12EFF = 0.
+           UXYEFF = 0.
+C BEG FEB 2012
+           RHOSTR = DENTNK*STRTHK/STRSPC
+           RHORNG = DENTNK*RNGTHK/RNGSPC
+           RHOEFF = RHOSTR + RHORNG
+           SALLOW(1) = TNKSTRA(ILOADX,1)*STRTHK/STRSPC
+           SALLOW(2) = SALLOW(1)
+           SALLOW(3) = TNKSTRA(ILOADX,1)*RNGTHK/RNGSPC
+           SALLOW(4) = SALLOW(3)
+           SALLOW(5) = 100000.*TNKSTRA(ILOADX,1)
+C END FEB 2012
+           WRITE(IFIL14,'(A)') ' Y $ Is material new for matl type 1?'
+           WRITE(IFIL14,'(1PE14.6,A)') EXEFF,' $ EX (merid.modu.)'
+           WRITE(IFIL14,'(1PE14.6,A)') EYEFF,' $ EY (circ. modu.)'
+           WRITE(IFIL14,'(1PE14.6,A)') G12EFF,' $ G (shear modulus)'
+           WRITE(IFIL14,'(1PE14.6,A)') UXYEFF,' $ UXY (Poisson))'
+           WRITE(IFIL14,'(1PE14.6,A)') A1SKIN(ISEG),' $ ALPHA1(cf.exp)'
+           WRITE(IFIL14,'(1PE14.6,A)') A2SKIN(ISEG),' $ ALPHA2(cf.exp)'
+           WRITE(IFIL14,'(A)') ' 0. $ residual stress temperature'
+           WRITE(IFIL14,'(1PE14.6,A)') RHOEFF,' $ SM (mass densty)'
+           DO 331 J = 1,5
+C BEG FEB 2012
+            WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1       SALLOW(J),' $ SALLOW(',ILOADX,',',J,')'
+C END FEB 2012
+  331      CONTINUE
+          ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.1.OR.ISEG.EQ.(NSEGDM+1)
+     1                 .OR.ISEG.EQ.(NSEGS-NSEGDM+1)) THEN
+
+           WRITE(IFIL14,'(A)') ' Y $ Is material new for matl type n?'
+           WRITE(IFIL14,'(1PE14.6,A)') EXSKIN(ISEG),' $ EX (merid.mod.)'
+           WRITE(IFIL14,'(1PE14.6,A)') EYSKIN(ISEG),' $ EY (circ. mod.)'
+           WRITE(IFIL14,'(1PE14.6,A)') GSKIN(ISEG),' $ G (shear modul.)'
+           WRITE(IFIL14,'(1PE14.6,A)') UXYSKN(ISEG),' $ UXY (Poisson))'
+           WRITE(IFIL14,'(1PE14.6,A)') A1SKIN(ISEG),' $ ALPHA1(cf.exp)'
+           WRITE(IFIL14,'(1PE14.6,A)') A2SKIN(ISEG),' $ ALPHA2(cf.exp)'
+           WRITE(IFIL14,'(A)') ' 0. $ residual stress temperature'
+           WRITE(IFIL14,'(1PE14.6,A)') SKNDEN,' $ SM (mass densty)'
+           DO 332 J = 1,5
+            WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1       TNKSTRA(ILOADX,1),' $ TNKSTRA(',ILOADX,',',J,')'
+  332      CONTINUE
+          ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (ISEG.EQ.1) THEN
+           WRITE(IFIL14,'(A)') ' Y $ Is material new for matl type 3?'
+           WRITE(IFIL14,'(1PE14.6,A)') EXSKIN(ISEG),' $ EX (merid.mod.)'
+           WRITE(IFIL14,'(1PE14.6,A)') EYSKIN(ISEG),' $ EY (circ. mod.)'
+           WRITE(IFIL14,'(1PE14.6,A)') GSKIN(ISEG),' $ G (shear modul.)'
+           WRITE(IFIL14,'(1PE14.6,A)') UXYSKN(ISEG),' $ UXY (Poisson))'
+           WRITE(IFIL14,'(1PE14.6,A)') A1SKIN(ISEG),' $ ALPHA1(cf.exp)'
+           WRITE(IFIL14,'(1PE14.6,A)') A2SKIN(ISEG),' $ ALPHA2(cf.exp)'
+           WRITE(IFIL14,'(A)') ' 0. $ residual stress temperature'
+           WRITE(IFIL14,'(1PE14.6,A)') DENTNK,' $ SM (mass densty)'
+           DO 333 J = 1,5
+            WRITE(IFIL14,'(1PE14.6,A,I2,A,I1,A)')
+     1       TNKSTRA(ILOADX,1),' $ TNKSTRA(',ILOADX,',',J,')'
+  333      CONTINUE
+          ENDIF
+C
+          WRITE(IFIL14,'(I3,A)') NRS,' $ NRS (0=no smeared stiff,1=yes)'
+          WRITE(IFIL14,'(A)') ' Y  $ Do you want output for all points?'
+          WRITE(IFIL14,'(A)') ' 1  $ control for constant or var.thick.'
+          WRITE(IFIL14,'(A)') ' 2  $ Layer no. with varying thickness'
+          WRITE(IFIL14,'(I3,A)') NTHICK(ISEG),' $ NTIN (no.thick.call.)'
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 means z-callout for thk.)'
+          NTIN = NTHICK(ISEG)
+          DO 334 I = 1,NTIN
+           WRITE(IFIL14,'(1PE14.6,A)') ZTHICK(I,ISEG),' $ Z(i)'
+  334     CONTINUE
+          DO 335 I = 1,NTIN
+           WRITE(IFIL14,'(1PE14.6,A)') THKSKN,' $ TIN(i)'
+  335     CONTINUE
+          WRITE(IFIL14,'(A)') ' Y  $ any more variable thick. layers?'
+C
+          WRITE(IFIL14,'(A)') ' 3  $ Layer no. with varying thickness'
+          WRITE(IFIL14,'(I3,A)') NTHICK(ISEG),' $ NTIN (no.thick.call.)'
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 means z-callout for thk.)'
+          NTIN = NTHICK(ISEG)
+          DO 337 I = 1,NTIN
+           WRITE(IFIL14,'(1PE14.6,A)') ZTHICK(I,ISEG),' $ Z(i)'
+  337     CONTINUE
+          DO 338 I = 1,NTIN
+           THKDUB = TNKTHK(I,ISEG)
+           WRITE(IFIL14,'(1PE14.6,A)') THKDUB,' $ TIN(i)'
+  338     CONTINUE
+          WRITE(IFIL14,'(A)') ' N  $ any more variable thick. layers?'
+C
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+         ENDIF
+C        End of the "IF (NWALL(ISEG).EQ.9)" condition
+C
+         IF (NWALL(ISEG).EQ.5) THEN
+          EXEFF = EXSKIN(ISEG)*STRTHK/STRSPC
+          EYEFF = EYSKIN(ISEG)*RNGTHK/RNGSPC
+          G12EFF = 0.
+          UXYEFF = 0.
+          RHOEFF = 0.5*RMTANK*(EXEFF + EYEFF)/ETANK
+          SALLOW(1) = 0.5*TNKSTRA(ILOADX,1)*(EXEFF + EYEFF)/ETANK
+          WRITE(IFIL14,'(A)') ' 2  $ LAYERS (tank always has 2 layers)'
+          WRITE(IFIL14,'(I3,A)') NRS,' $ NRS (0=no smeared stiff,1=yes)'
+          WRITE(IFIL14,'(A)') ' 1  $ NTYPET (1=varying thickness)'
+          WRITE(IFIL14,'(1PE14.6,A)') G12EFF,' $ G (shear modulus)'
+          WRITE(IFIL14,'(1PE14.6,A)') GSKIN(ISEG),' $ G (shear modulus)'
+          WRITE(IFIL14,'(1PE14.6,A)') EXEFF,' $ EX (merid.modu.)'
+          WRITE(IFIL14,'(1PE14.6,A)') EXSKIN(ISEG),' $ EX (merid.modu.)'
+          WRITE(IFIL14,'(1PE14.6,A)') EYEFF,' $ EY (circ. modu.)'
+          WRITE(IFIL14,'(1PE14.6,A)') EYSKIN(ISEG),' $ EY (circ. modu.)'
+          WRITE(IFIL14,'(1PE14.6,A)') UXYEFF,' $ UXY (Poisson))'
+          WRITE(IFIL14,'(1PE14.6,A)') UXYSKN(ISEG),' $ UXY (Poisson))'
+          WRITE(IFIL14,'(1PE14.6,A)') RHOEFF,' $ SM (mass densty)'
+          WRITE(IFIL14,'(1PE14.6,A)') SKNDEN,' $ SM (mass densty)'
+          WRITE(IFIL14,'(1PE14.6,A)') A1SKIN(ISEG),' $ ALPHA1(coef.exp)'
+          WRITE(IFIL14,'(1PE14.6,A)') A1SKIN(ISEG),' $ ALPHA1(coef.exp)'
+          WRITE(IFIL14,'(1PE14.6,A)') A2SKIN(ISEG),' $ ALPHA2(coef.exp)'
+          WRITE(IFIL14,'(1PE14.6,A)') A2SKIN(ISEG),' $ ALPHA2(coef.exp)'
+          WRITE(IFIL14,'(I3,A)') NTHICK(ISEG),' $ NTIN (no.thick.call.)'
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 means z-callout for thk.)'
+          NTIN = NTHICK(ISEG)
+          DO 345 I = 1,NTIN
+           WRITE(IFIL14,'(1PE14.6,A)') ZTHICK(I,ISEG),' $ Z(i)'
+  345     CONTINUE
+          DO 351 J = 1,2
+          DO 350 I = 1,NTIN
+           IF (J.EQ.1) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKSKN,' $ TIN(i)'
+           ELSE
+            THKDUB = TNKTHK(I,ISEG)
+            WRITE(IFIL14,'(1PE14.6,A)') THKDUB,' $ TIN(i)'
+           ENDIF
+  350     CONTINUE
+  351     CONTINUE
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+         ENDIF
+C        end of "IF (NWALL(ISEG).EQ.5)" condition
+C
+         IF (NWALL(ISEG).EQ.2) THEN
+          WRITE(IFIL14,'(1PE14.6,A)') ETANK,' $ E (Elastic modulus)'
+          WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ U (Poisson ratio)'
+          WRITE(IFIL14,'(1PE14.6,A)') SKNDEN,' $ SM (mass density)'
+          WRITE(IFIL14,'(1PE14.6,A)') ALTNK,' $ ALPHA (thermal coef.)'
+          WRITE(IFIL14,'(I3,A)') NRS,' $ NRS (0=no smeared stiff,1=yes)'
+          WRITE(IFIL14,'(I3,A)') NSUR(ISEG),' $ NSUR (control for thk.)'
+          IF (NSUR(ISEG).EQ.-1) THEN
+           WRITE(IFIL14,'(A)') ' 1  $ NTYPET (1 means variable thick.)'
+           WRITE(IFIL14,'(I3,A)') NTHICK(ISEG),' $ NTVALU (no.call.)'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 = z-callout for thk.)'
+           NTIN = NTHICK(ISEG)
+           DO 360 I = 1,NTIN
+           WRITE(IFIL14,'(1PE14.6,A)') ZTHICK(I,ISEG),' $ Z(i)'
+  360      CONTINUE
+           DO 371 J = 1,1
+           DO 370 I = 1,NTIN
+           IF (J.EQ.1) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKSKN,' $ TVAL(i)'
+           ELSE
+            THKDUB = TNKTHK(I,ISEG)
+            WRITE(IFIL14,'(1PE14.6,A)') THKDUB,' $ TVAL(i)'
+           ENDIF
+  370      CONTINUE
+  371      CONTINUE
+          ENDIF
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+         ENDIF
+C        end of "IF (NWALL(ISEG).EQ.2)" condition
+C
+         IF (NRS.GT.0) THEN
+           RMTANK = DENTNK
+           WRITE(IFIL14,'(A)') ' Y  $ are there smeared stringers?'
+           NSTRNG = PI*AFTDIA/STRSPC
+           WRITE(IFIL14,'(I3,A)') NSTRNG,' $ N1 (no.stringers in 360)'
+           WRITE(IFIL14,'(A)') ' 0  $ K1 (0 means internal smeared str)'
+           WRITE(IFIL14,'(1PE14.6,A)') ETANK,' $ E1 (stringer modulus)'
+           WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ U1 (stringer Poisson)'
+           WRITE(IFIL14,'(1PE14.6,A)') RMTANK,' $ STIFMD (mass densty)'
+           WRITE(IFIL14,'(A)') ' Y  $ is the stringer cross sect.const?'
+           WRITE(IFIL14,'(A)') ' Y  $ is the stringer rectangular?'
+           WRITE(IFIL14,'(1PE14.6,A)') STRTHK,' $ T1 (stringer thick.)'
+           WRITE(IFIL14,'(1PE14.6,A)') STRHI,' $ H1 (stringer height)'
+           WRITE(IFIL14,'(A)') ' Y  $ are there smeared rings?'
+           WRITE(IFIL14,'(A)') ' 0  $ K2 (0 means internal smeared rng)'
+           WRITE(IFIL14,'(1PE14.6,A)') ETANK,' $ E1 (ring modulus)'
+           WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ U1 (ring Poisson)'
+           WRITE(IFIL14,'(1PE14.6,A)') RMTANK,' $ STIFMD (mass densty)'
+           WRITE(IFIL14,'(A)') ' Y  $ is the ring cross sect.const?'
+           WRITE(IFIL14,'(A)') ' Y  $ is the ring cross rectangular?'
+           WRITE(IFIL14,'(1PE14.6,A)') RNGSPC,' $ D2 (ring spacing)'
+           WRITE(IFIL14,'(1PE14.6,A)') RNGTHK,' $ T2 (ring thick.)'
+           WRITE(IFIL14,'(1PE14.6,A)') RNGHI,' $ H2 (ring height)'
+         ENDIF
+C        end of "IF (NRS.GT.0)" condition
+C
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print C(i,j)?'
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print loads?'
+C
+  500 CONTINUE
+C     end of the loop over the number of shell segments           
+C
+      IF (IZTANK.LT.2) GO TO 547
+C
+C     Continue with the 5-segment model of the forward skirt:
+C
+      ICOL = 2
+      LENGTH(ICOL) = SQRT((ZTANK(ICOL)-ZGRND(ICOL))**2 
+     1                        +(0.5*DIAVEH-RDOME(ICOL))**2)
+      SINANG = (0.5*DIAVEH-RDOME(ICOL))/LENGTH(ICOL)
+      COSANG = SQRT(1. - SINANG**2)
+      I = 5 + NSEGS
+      I1 = I + 1
+      I2 = I + 2
+      I3 = I + 3
+      I4 = I + 4
+      I5 = I + 5
+      NSKMSH(I1) = 11
+      NSKMSH(I2) = 11
+      NSKMSH(I3) = 97
+      NSKMSH(I4) = 11
+      NSKMSH(I5) = 11
+      RSKRT1(I1) = FWDDIA/2.
+      ZSKRT1(I1) = ZGRND(ICOL)
+      RSKRT2(I1) = RSKRT1(I1) + SINANG*LNGTNK1(ICOL)
+      ZSKRT2(I1) = ZSKRT1(I1) + COSANG*LNGTNK1(ICOL)
+      RSKRT1(I2) = RSKRT2(I1) 
+      ZSKRT1(I2) = ZSKRT2(I1)
+      RSKRT2(I2) = RSKRT1(I2) + SINANG*LNGTNK2(ICOL)
+      ZSKRT2(I2) = ZSKRT1(I2) + COSANG*LNGTNK2(ICOL)
+      RSKRT1(I3) = RSKRT2(I2)
+      ZSKRT1(I3) = ZSKRT2(I2)
+      RSKRT2(I3) = RSKRT1(I3) + SINANG*(LENGTH(ICOL)
+     1  -LNGVEH1(ICOL)-LNGVEH2(ICOL)-LNGTNK1(ICOL)-LNGTNK2(ICOL))
+      ZSKRT2(I3) = ZSKRT1(I3) + COSANG*(LENGTH(ICOL)
+     1  -LNGVEH1(ICOL)-LNGVEH2(ICOL)-LNGTNK1(ICOL)-LNGTNK2(ICOL))
+      RSKRT1(I4) = RSKRT2(I3)
+      ZSKRT1(I4) = ZSKRT2(I3)
+      RSKRT2(I4) = RSKRT1(I4) + SINANG*LNGVEH2(ICOL)
+      ZSKRT2(I4) = ZSKRT1(I4) + COSANG*LNGVEH2(ICOL)
+      RSKRT1(I5) = RSKRT2(I4)
+      ZSKRT1(I5) = ZSKRT2(I4)
+      RSKRT2(I5) = RSKRT1(I5) + SINANG*LNGVEH1(ICOL)
+      ZSKRT2(I5) = ZSKRT1(I5) + COSANG*LNGVEH1(ICOL)
+C
+      DO 545 JSEG = 1,5
+         ISEG = 5 + NSEGS + JSEG
+         WRITE(IFIL14,'(A)') ' H  $'
+         WRITE(IFIL14,'(A,I3)') ' H  $  THIS IS SEGMENT NO.',ISEG
+         WRITE(IFIL14,'(I3,A)')  NSKMSH(ISEG),' $ NMESH'
+         IF (JSEG.NE.3) THEN
+          WRITE(IFIL14,'(A)') ' 3  $ NTYPEH'
+         ELSE
+          WRITE(IFIL14,'(A)') ' 1  $ NTYPEH'
+C BEG APR 2012
+C         WRITE(IFIL14,'(A)') ' 4  $ NHVALU'
+C         WRITE(IFIL14,'(A)') '  1  $ IHVALU(1)'
+C         WRITE(IFIL14,'(A)') ' 50  $ IHVALU(2)'
+C         WRITE(IFIL14,'(A)') ' 51  $ IHVALU(3)'
+C         WRITE(IFIL14,'(A)') ' 96  $ IHVALU(4)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(1)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(2)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(3)'
+C         WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(4)'
+C
+          WRITE(IFIL14,'(A)') ' 6  $ NHVALU'
+          WRITE(IFIL14,'(A)') '  1  $ IHVALU(1)'
+          WRITE(IFIL14,'(A)') ' 32  $ IHVALU(2)'
+          WRITE(IFIL14,'(A)') ' 33  $ IHVALU(3)'
+          WRITE(IFIL14,'(A)') ' 63  $ IHVALU(2)'
+          WRITE(IFIL14,'(A)') ' 64  $ IHVALU(3)'
+          WRITE(IFIL14,'(A)') ' 96  $ IHVALU(4)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(1)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(2)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(3)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ HVALU(4)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(5)'
+          WRITE(IFIL14,'(A)') ' 0.10  $ HVALU(6)'
+C END APR 2012
+         ENDIF
+         WRITE(IFIL14,'(A)') ' 1  $ NSHAPE'
+         WRITE(IFIL14,'(1PE14.6,A)') RSKRT1(ISEG),' $ R1'
+         WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+         WRITE(IFIL14,'(1PE14.6,A)') RSKRT2(ISEG),' $ R2'
+         WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+         WRITE(IFIL14,'(A)') ' 0  $ IMP'
+         IF (JSEG.NE.3) THEN
+           WRITE(IFIL14,'(A)') ' 1  $ NTYPEZ'
+           WRITE(IFIL14,'(A)') ' 2  $ NZVALU'
+           WRITE(IFIL14,'(A)') ' 2  $ NTYPE'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (JSEG.EQ.1) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') 0.5*THKTNK1(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKTNK2(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (JSEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKTNK2(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (JSEG.EQ.4) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKVEH2(ICOL),' $ ZVAL2'
+           ENDIF
+           IF (JSEG.EQ.5) THEN
+            WRITE(IFIL14,'(1PE14.6,A)')
+     1                     0.5*THKTOT(ICOL)+THKVEH2(ICOL),' $ ZVAL1'
+            WRITE(IFIL14,'(1PE14.6,A)') 0.5*THKVEH1(ICOL),' $ ZVAL2'
+           ENDIF
+         ELSE
+           WRITE(IFIL14,'(A)') ' 3  $ NTYPEZ'
+           WRITE(IFIL14,'(1PE14.6,A)')  0.5*THKTOT(ICOL),' $ ZVAL'
+         ENDIF
+C
+         WRITE(IFIL14,'(A)') ' N  $ do you want print r(s),etc?'
+         WRITE(IFIL14,'(A)') ' 0  $ NRINGS'
+         WRITE(IFIL14,'(A)') ' 0  $ K elastic foundation'
+         WRITE(IFIL14,'(A)') ' 0  $ LINTYP'
+C BEG MAR 2012
+         IF (INDX.EQ.6) THEN
+          ITHERML = 0
+          WRITE(IFIL14,'(A)') ' 0  $ IDISAB'
+         ELSE
+          ITHERML = 1
+C BEG MAY 2012
+          IF (INDX.NE.8) WRITE(IFIL14,'(A)') ' 1  $ IDISAB'
+          IF (INDX.EQ.8) WRITE(IFIL14,'(A)') ' 2  $ IDISAB'
+C END MAY 2012
+         ENDIF
+         IF (ITHERML.NE.0) THEN
+C   temperature input...
+          WRITE(IFIL14,'(A)') ' 2  $ NLTYPE (thermal loading only)'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (JSEG.EQ.1.OR.JSEG.EQ.2.OR.JSEG.EQ.4.OR.JSEG.EQ.5) THEN
+           WRITE(IFIL14,'(A)') ' 2  $ NTSTAT (two merid. callouts)'
+          ENDIF
+          IF (JSEG.EQ.3) THEN
+           WRITE(IFIL14,'(A)') ' 11  $ NTSTAT (two merid. callouts)'
+          ENDIF
+          WRITE(IFIL14,'(A)') ' 1  $ NTGRAD (thermal gradient type)'
+          WRITE(IFIL14,'(A)') ' 4  $ NTYPEL (thermal loading type)'
+          WRITE(IFIL14,'(A)') ' 1  $ NLOAD(1) (temp. T1 coeff.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(2) (temp. T2 coeff.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NLOAD(3) (temp. T3 coeff.)'
+          IF (JSEG.EQ.1.OR.JSEG.EQ.2) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ skirt temp'
+           WRITE(IFIL14,'(1PE14.6,A)') TNKCOOL(ILOADX),' $ skirt temp'
+          ENDIF
+          IF (JSEG.EQ.3) THEN
+           DZ = (ZSKRT2(ISEG) - ZSKRT1(ISEG))/10.
+           TEMPR(11) = 0.0001*TNKCOOL(ILOADX)
+           TEMPR(10) = 0.001*TNKCOOL(ILOADX)
+           TEMPR(9) = 0.01*TNKCOOL(ILOADX)
+           TEMPR(8) = 0.05*TNKCOOL(ILOADX)
+           TEMPR(7) = 0.10*TNKCOOL(ILOADX)
+           TEMPR(6) = 0.20*TNKCOOL(ILOADX)
+           TEMPR(5) = 0.40*TNKCOOL(ILOADX)
+           TEMPR(4) = 0.65*TNKCOOL(ILOADX)
+           TEMPR(3) = 0.8*TNKCOOL(ILOADX)
+           TEMPR(2) = 0.9*TNKCOOL(ILOADX)
+           TEMPR(1) = 1.0*TNKCOOL(ILOADX)
+           DO 503 IPOINT = 1,11
+            WRITE(IFIL14,'(1PE14.6,A)') TEMPR(IPOINT),' $ skirt temp'
+  503      CONTINUE
+          ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (JSEG.EQ.4.OR.JSEG.EQ.5) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') 0.0001*TNKCOOL(ILOADX),
+     1     ' $ skirt temp'
+           WRITE(IFIL14,'(1PE14.6,A)') 0.0001*TNKCOOL(ILOADX),
+     1     ' $ skirt temp'
+          ENDIF
+          WRITE(IFIL14,'(A)') ' 2  $ NTHETA (2 circ.coord.callouts)'
+          WRITE(IFIL14,'(A)') ' 2  $ NOPT (2 means either even or odd)'
+          WRITE(IFIL14,'(A)') ' 1  $ NODD (1 means even circ.distrib.)'
+          WRITE(IFIL14,'(A)') ' 0.   $ THETA (1st circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 180. $ THETA (2nd circ.callout (deg))'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,1st callout)'
+          WRITE(IFIL14,'(A)') ' 1.0  $ YPLUS (temp.mult.,2nd callout)'
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print Fourier ser?'
+          WRITE(IFIL14,'(A)') ' 2  $ NTYPE (2 = z-callout for temp)'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (JSEG.EQ.1.OR.JSEG.EQ.2.OR.JSEG.EQ.4.OR.JSEG.EQ.5) THEN
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),
+     1     ' $ Z(1) axial callout'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),
+     1     ' $ Z(2) axial callout'
+          ENDIF
+          IF (JSEG.EQ.3) THEN
+           ZSKIRT(1) = ZSKRT1(ISEG)
+           ZSKIRT(11) = ZSKRT2(ISEG)
+           DO 505 IPOINT = 2,10
+            ZSKIRT(IPOINT) = ZSKRT1(ISEG) + FLOAT(IPOINT-1)*DZ
+  505      CONTINUE
+           DO 507 IPOINT = 1,11
+            WRITE(IFIL14,'(1PE14.6,A)') ZSKIRT(IPOINT),
+     1      ' $ Z(i) axial callout'
+  507      CONTINUE
+          ENDIF
+         ENDIF
+C        End of "IF (ITHERML.NE.0)" condition
+C END MAR 2012
+C
+         IF (JSEG.EQ.1.OR.JSEG.EQ.5) THEN
+          WRITE(IFIL14,'(A)') ' 2  $ NWALL'
+          WRITE(IFIL14,'(1PE14.6,A)') ETANK,' $ E (Elastic modulus)'
+          WRITE(IFIL14,'(1PE14.6,A)') NUTANK,' $ U (Poisson ratio)'
+          WRITE(IFIL14,'(1PE14.6,A)') DENTNK,' $ SM (mass density)'
+          WRITE(IFIL14,'(1PE14.6,A)') ALTNK,' $ ALPHA (thermal coef.)'
+          WRITE(IFIL14,'(A)') ' 0  $ NRS (0=no smeared stiff)'
+          WRITE(IFIL14,'(A)') ' 0  $ NSUR (control for thk.)'
+          WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+         ENDIF
+C
+         IF (JSEG.EQ.2.OR.JSEG.EQ.3.OR.JSEG.EQ.4) THEN
+          WRITE(IFIL14,'(A)') ' 9  $ NWALL'
+          NLAY = NLAYER(ICOL)
+          IF (JSEG.EQ.2.OR.JSEG.EQ.4) NLAY = NLAYER(ICOL) + 2
+          WRITE(IFIL14,'(I5,A)') NLAY,' $ number of layers'
+C
+          LAYBEG = LAYIDM(1) + 5
+          DO 510 I = 1,NLAY
+           J = I
+           IF (JSEG.EQ.2.OR.JSEG.EQ.4) THEN
+              J = I-1
+              IF (I.EQ.1) THEN
+                WRITE(IFIL14,'(I5,A)') LAYBEG+1,' $ layer index'
+                IF (JSEG.EQ.4)
+     1           WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+                IF (JSEG.EQ.2) THEN
+                 WRITE(IFIL14,'(A)') ' Y  $ is this a new layer type?'
+                 WRITE(IFIL14,'(1PE14.6,A)')THKTNK2(ICOL),' $ thickness'
+                 WRITE(IFIL14,'(A)') ' 0.  $ layup angle'
+                 WRITE(IFIL14,'(A)') ' 1   $ material type'
+                ENDIF
+                GO TO 510
+              ENDIF
+              IF (I.EQ.NLAY) THEN
+                WRITE(IFIL14,'(I5,A)') LAYBEG+1,' $ layer index'
+                WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+                GO TO 510
+              ENDIF
+           ENDIF
+           LAYIND = LAYBEG + LAYID(J,ICOL) - LAYIDM(1) + 1
+           WRITE(IFIL14,'(I5,A)') LAYIND,' $ layer index'
+           IF (JSEG.EQ.2.AND.NEWLAY(J,ICOL).EQ.1) THEN
+            WRITE(IFIL14,'(A)') ' Y  $ is this a new layer type?'
+            WRITE(IFIL14,'(1PE14.6,A)') THK(J,ICOL),' $ thickness'
+            WRITE(IFIL14,'(1PE14.6,A)') THETA(J,ICOL),' $ layup angle'
+            WRITE(IFIL14,'(I5,A)') MATLID(J,ICOL),' $ material type'
+           ELSE
+            WRITE(IFIL14,'(A)') ' N  $ is this a new layer type?'
+           ENDIF
+  510     CONTINUE
+C         End loop over number of layers
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          IF (JSEG.EQ.2) THEN
+            WRITE(IFIL14,'(A)')' N  $ Is material new?'
+            WRITE(IFIL14,'(A)')' N  $ Is material new?'
+          ENDIF
+          WRITE(IFIL14,'(A)')' 0  $ NRS (do not add smeared stiffeners)'
+          WRITE(IFIL14,'(A)') ' Y  $ Do you want output for all points?'
+          IF (JSEG.EQ.3)
+     1    WRITE(IFIL14,'(A)') ' 0  $ control for constant or var.thick.'
+          IF (JSEG.EQ.2.OR.JSEG.EQ.4) THEN
+           WRITE(IFIL14,'(A)')' 1  $ control for constant or var.thick.'
+           WRITE(IFIL14,'(A)')' 1  $ Layer no. with varying thickness'
+           WRITE(IFIL14,'(A)')' 2  $ NTIN (no.thick.call.)'
+           WRITE(IFIL14,'(A)')' 2  $ NTYPE (2 means z-callout for thk.)'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (JSEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKTNK2(ICOL),' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+           ENDIF
+           IF (JSEG.EQ.4) THEN
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+            WRITE(IFIL14,'(1PE14.6,A)') THKVEH2(ICOL),' $ TIN(i)'
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL14,'(A)') ' Y  $ any more variable thick. layers?'
+           WRITE(IFIL14,'(I3,A)')
+     1                       NLAY,' $ Layer no. with varying thickness'
+           WRITE(IFIL14,'(A)') ' 2  $ NTIN (no.thick.call.)'
+           WRITE(IFIL14,'(A)')' 2  $ NTYPE (2 means z-callout for thk.)'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT1(ISEG),' $ Z1'
+           WRITE(IFIL14,'(1PE14.6,A)') ZSKRT2(ISEG),' $ Z2'
+           IF (JSEG.EQ.2) THEN
+            WRITE(IFIL14,'(1PE14.6,A)') THKTNK2(ICOL),' $ TIN(i)'
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+           ENDIF
+           IF (JSEG.EQ.4) THEN
+            WRITE(IFIL14,'(A)') ' 0.  $ TIN(i)'
+            WRITE(IFIL14,'(1PE14.6,A)') THKVEH2(ICOL),' $ TIN(i)'
+           ENDIF
+           WRITE(IFIL14,'(A)') ' N  $ any more variable thick. layers?'
+           WRITE(IFIL14,'(A)') ' N  $ do you want to print thicknesses?'
+          ENDIF
+C         End of IF (JSEG.EQ.2.OR.JSEG.EQ.4) condition
+         ENDIF
+C        End of IF (JSEG.EQ.2.OR.JSEG.EQ.3.OR.JSEG.EQ.4) condition
+C
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print C(i,j)?'
+         WRITE(IFIL14,'(A)') ' N  $ do you want to print loads?'
+  545 CONTINUE
+C     End of loop over the number of segments in the forward skirt
+  547 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFIL14,'(A)') ' H  $ GLOBAL DATA BEGINS...'
+      IF (INDX.EQ.4.OR.INDX.EQ.6.OR.INDX.EQ.8.OR.INDX.EQ.9)
+     1   WRITE(IFIL14,'(A)') ' 0  $ NLAST'
+      IF (INDX.EQ.5.OR.INDX.EQ.7) WRITE(IFIL14,'(A)') ' 1  $ NLAST'
+      WRITE(IFIL14,'(A)') ' N  $ do you want expanded plots?'
+C
+      IF (INDX.EQ.8) THEN
+       WRITE(IFIL14,'(I5,A)') NBEGIN,' $ starting no.of circ.waves'
+       WRITE(IFIL14,'(I5,A)') NBEGIN,' $ minimum no. of circ.waves'
+       WRITE(IFIL14,'(I5,A)') NMAX,' $ maximum no. of circ.waves'
+       WRITE(IFIL14,'(I5,A)') INCRN,' $ increment in no.of waves'
+       WRITE(IFIL14,'(I5,A)') NEIGS,' $ no. of eigenvalues/n'
+      ENDIF
+C
+      IF (INDX.EQ.6) THEN
+       WRITE(IFIL14,'(A)') ' 0  $ N0B=starting wave number'
+       WRITE(IFIL14,'(A)') ' 0  $ NMINB=minimum wave number'
+C BEG FEB 2012 (maybe make this change later)
+C      WRITE(IFIL14,'(A)') ' 4  $ NMAXB=maximum wave number'
+C      WRITE(IFIL14,'(A)') ' 1  $ INCR=increment in wave number'
+C      WRITE(IFIL14,'(A)') ' 1  $ NVEC=no. of eigenvalues/n'
+C END FEB 2012
+       WRITE(IFIL14,'(A)') ' 1  $ NMAXB=maximum wave number'
+       WRITE(IFIL14,'(A)') ' 1  $ INCR=increment in wave number'
+       WRITE(IFIL14,'(A)') ' 2  $ NVEC=no. of eigenvalues/n'
+C BEG FEB 2012
+C      WRITE(IFIL14,'(A)') ' 0. $ P = pressure multiplier'
+       WRITE(IFIL14,'(A)') ' 1. $ P = pressure multiplier'
+C END FEB 2012
+       WRITE(IFIL14,'(A)') ' 0. $ TEMP = temperature multiplier'
+       WRITE(IFIL14,'(A)') ' 0. $ OMEGA = spin'
+      ENDIF
+C
+      IF (INDX.NE.6) THEN
+       WRITE(IFIL14,'(A)') ' 1  $ NDIST (number of meridians)'
+       WRITE(IFIL14,'(1P,E14.6,A)') CIRCANG(JSTRUT),
+     1 '  $ THETA (circ.angle for meridional dist.output)'
+       WRITE(IFIL14,'(A)') ' 1  $ NCIRC (number of circs.)'
+       WRITE(IFIL14,'(A)') ' 2001  $ ITHETA (axial loc.of circ.)'
+       WRITE(IFIL14,'(A)') ' 91  $ NTHETA (no. of circ. nodes)'
+       WRITE(IFIL14,'(1P,E14.6,A)') CIRCANG(JSTRUT),
+     1 '  $ THETAS (circ.angle for Nx distrib.for buckling)'
+       WRITE(IFIL14,'(A)') ' 0.  $ OMEGA (spin about axis of ref.)'
+       WRITE(IFIL14,'(A)') ' 1  $ IOMEGA (spin in load set A)'
+       WRITE(IFIL14,'(A)') ' Y  $ do you want harmonic forcing?'
+       WRITE(IFIL14,'(A)') ' 0.000001  $ OMEGDR (driving frequency)'
+       WRITE(IFIL14,'(A)') ' Y  $ is harmonic forcing by base excitat.?'
+       WRITE(IFIL14,'(1PE14.6,A)') GRAV,' $ acceleration of gravity'
+       IF (INDX.NE.9) THEN
+         WRITE(IFIL14,'(1PE14.6,A)')
+     1    GLATRL(ILOADX),' $ GLATRL (lateral gees)'
+         WRITE(IFIL14,'(1PE14.6,A)')
+     1    GAXIAL(ILOADX),' $ GAXIAL (axial gees)'
+       ELSE
+         WRITE(IFIL14,'(A)') ' 0. $ GLATRL (lateral gees)' 
+         WRITE(IFIL14,'(A)') ' 1. $ GAXIAL (axial gees)' 
+       ENDIF
+       WRITE(IFIL14,'(A)') ' Y  $ is there a tank filled with fluid?'
+       WRITE(IFIL14,'(1PE14.6,A)') DENPRP,' $ DENPRP (rho propellant)'
+       WRITE(IFIL14,'(1PE14.6,A)') FLTANK,' $ AXLONG (tank length)'
+       WRITE(IFIL14,'(1PE14.6,A)') AFTDIA/2.,' $ RBIG =radius of tank'
+       WRITE(IFIL14,'(1PE14.6,A)') ZAPEX,' $ ZBEGIN (z at tank bottom)'
+       WRITE(IFIL14,'(I3,A)') NSEGS,' $ no. of segs. that feel fluid'
+       DO 550 I = 1,NSEGS
+C BEG FEB 2012
+              J = I + 5
+        WRITE(IFIL14,'(I3,A,I2,A)') J,' $ segment no, ISTANK(',I,')'
+C END FEB 2012
+        WRITE(IFIL14,'(A)') ' Y  $ is the inside of the tank on left?'
+  550  CONTINUE
+      ENDIF
+C     end of the "IF (INDX.NE.6)" condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      WRITE(IFIL14,'(A)') ' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+      IF (IZTANK.EQ.1)
+     1 WRITE(IFIL14,'(I3,A)') NSEGS + 5,' $ no. of segments in the tank'
+      IF (IZTANK.EQ.2)
+     1 WRITE(IFIL14,'(I3,A)') NSEGS +10,' $ no. of segments in the tank'
+      IRIGID = 0
+C
+      DO 600 I = 1,5
+       WRITE(IFIL14,'(A,I3)') ' H  $ CONSTRAINT CONDITIONS FOR SEG.',I
+       WRITE(IFIL14,'(A,I2)') ' 0  $ number of poles is seg.',I
+       IF (I.GT.1) THEN
+        WRITE(IFIL14,'(A,I2)') ' 0  $ how many boundary cond., seg.',I
+        WRITE(IFIL14,'(A)') ' Y  $ is it connected to previous segment?'
+        WRITE(IFIL14,'(A)') ' 1  $ how many connections to previous?'
+        WRITE(IFIL14,'(A)') ' 1  $ INODE (nodal point, current seg.)'
+        JSEG = I - 1
+        WRITE(IFIL14,'(I3,A)') JSEG, ' $ JSEG (previous seg. number)'
+        I1 = I - 1
+        JNODE = NSKMSH(I1)
+        WRITE(IFIL14,'(I3,A)') JNODE, ' $ JNODE (previous seg. node)'
+        WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ ICHI   (meridional rotation)'
+        WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+        WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+        WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+       ELSE
+        WRITE(IFIL14,'(A,I2)') ' 1  $ how many boundary cond., seg.',I
+        WRITE(IFIL14,'(A)') ' 1  $ INODE (nodal point, current seg.)'
+        WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+        WRITE(IFIL14,'(A)') ' 0  $ ICHI   (meridional rotation)'
+        WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+        WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+        WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+        WRITE(IFIL14,'(A)') ' N  $ is it connected to previous segment?'
+       ENDIF
+  600 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      DO 700 J = 1,NSEGS
+       I = J + 5
+       WRITE(IFIL14,'(A,I3)') ' H  $ CONSTRAINT CONDITIONS FOR SEG.',I
+       IF (J.EQ.1.OR.J.EQ.NSEGS) THEN
+        WRITE(IFIL14,'(A,I2)') ' 1  $ number of poles is seg.',I
+        IF (J.EQ.1)
+     1   WRITE(IFIL14,'(A,I2)') ' 1  $ IPOLE =nodal point in seg.',I
+        IF (J.EQ.NSEGS) WRITE(IFIL14,'(I4,A,I3)')
+     1  NMESH(NSEGS),' $ IPOLE =nodal point in seg.',I
+       ELSE
+        WRITE(IFIL14,'(A,I2)') ' 0  $ number of poles is seg.',I
+       ENDIF
+       WRITE(IFIL14,'(A,I2)') ' 0  $ how many boundary cond., seg.',I
+       IF (J.EQ.1) THEN
+        WRITE(IFIL14,'(A)') ' N  $ is it connected to previous segment?'
+       ELSE
+        WRITE(IFIL14,'(A)') ' Y  $ is it connected to previous segment?'
+        NCONCT = 1
+C       The two following "if" statements are special cases based on
+C       the assumption that there are two possible configurations:
+C       1. There is only one skirt and it is connected to the midlength
+C          of the cylindrical part of the tank, or
+C       2. There are two skirts connected at the aft and forward
+C          cylinder/dome junctions.
+        IF (IBEGIN.EQ.1.AND.J.EQ.NSEGDM) NCONCT = 2
+        IF (IBEGIN.EQ.0.AND.J.EQ.NSEGDM+2) NCONCT = 2
+        WRITE(IFIL14,'(I3,A)') NCONCT,
+     1                        '  $ how many connections to previous?'
+        I1 = I - 1
+        J1 = J - 1
+        JSEG = I1
+        JNODE = NMESH(J1)
+C       The following "if" statement is a special case based on
+C       the assumption that there are two possible configurations:
+C       1. There is only one skirt and it is connected to the midlength
+C          of the cylindrical part of the tank, or
+C       2. There are two skirts connected at the aft and forward
+C          cylinder/dome junctions.
+        IF ((IBEGIN.EQ.1.AND.J.EQ.NSEGDM+1).OR.
+     1      (IBEGIN.EQ.0.AND.J.EQ.NSEGDM+3)) THEN
+         JSEG = 5
+         JNODE = NSKMSH(5)
+        ENDIF 
+        WRITE(IFIL14,'(A)') ' 1  $ INODE (nodal point, current seg.)'
+        WRITE(IFIL14,'(I3,A)') JSEG, ' $ JSEG (previous seg. number)'
+        WRITE(IFIL14,'(I3,A)') JNODE, ' $ JNODE (previous seg. node)'
+        WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ ICHI   (meridional rotation)'
+        WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+        WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+        WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+        IF (NCONCT.EQ.2) THEN
+         JSEG = 5
+         JNODE = NSKMSH(5)
+         WRITE(IFIL14,'(I3,A)') NMESH(J),
+     1                        '  $ INODE (nodal point, current seg.)'
+         WRITE(IFIL14,'(I3,A)') JSEG, ' $ JSEG (previous seg. number)'
+         WRITE(IFIL14,'(I3,A)') JNODE, ' $ JNODE (previous seg. node)'
+         WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+         WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+         WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+         WRITE(IFIL14,'(A)') ' 1  $ ICHI   (meridional rotation)'
+         WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+         WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+         WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+        ENDIF
+       ENDIF
+  700 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      IF (IZTANK.EQ.1) GO TO 850
+      DO 800 J = 1,5
+       I = NSEGS + 5 + J
+       WRITE(IFIL14,'(A,I3)') ' H  $ CONSTRAINT CONDITIONS FOR SEG.',I
+       WRITE(IFIL14,'(A,I2)') ' 0  $ number of poles is seg.',I
+       IF (J.LT.5) THEN
+        WRITE(IFIL14,'(A,I2)') ' 0  $ how many boundary cond., seg.',I
+       ELSE
+        WRITE(IFIL14,'(A,I2)') ' 1  $ how many boundary cond., seg.',I
+        WRITE(IFIL14,'(I3,A)') NSKMSH(I),
+     1                        '  $ INODE (nodal point, current seg.)'
+        WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+        WRITE(IFIL14,'(A)') ' 0  $ ICHI   (meridional rotation)'
+        WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+        WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+        WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+       ENDIF
+        WRITE(IFIL14,'(A)') ' Y  $ is it connected to previous segment?'
+        WRITE(IFIL14,'(A)') ' 1  $ how many connections to previous?'
+        WRITE(IFIL14,'(A)') ' 1  $ INODE (nodal point, current seg.)'
+        IF (J.GT.1) THEN
+          JSEG = I - 1
+          JNODE = NSKMSH(JSEG)
+        ELSE
+C         The following value of JSEG is valid only for a special case
+C         when the beginning of the forward skirt is attached to the
+C         forward cylinder/dome junction.
+          JSEG = 5 + NSEGDM + 4
+          JNODE = NMESH(JSEG)
+        ENDIF
+        WRITE(IFIL14,'(I3,A)') JSEG, ' $ JSEG (previous seg. number)'
+        WRITE(IFIL14,'(I3,A)') JNODE, ' $ JNODE (previous seg. node)'
+        WRITE(IFIL14,'(A)') ' 1  $ IUSTAR (axial disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IVSTAR (circ. disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ IWSTAR (normal disp.component)'
+        WRITE(IFIL14,'(A)') ' 1  $ ICHI   (meridional rotation)'
+        WRITE(IFIL14,'(A)') ' 0. $ D1 (radial component of joint gap)'
+        WRITE(IFIL14,'(A)') ' 0. $ D2 (axial  component of joint gap)'
+        WRITE(IFIL14,'(A)') ' Y  $ is this constraint same for buck.?'
+  800 CONTINUE
+  850 CONTINUE
+C
+      WRITE(IFIL14,'(A)') ' H  $ RIGID BODY CONSTRAINT FOLLOWS...'
+      WRITE(IFIL14,'(A)') ' N  $ are rigid body motions possible?'
+C BEG FEB 2012
+C     IF (INDX.NE.6) THEN
+C      WRITE(IFIL14,'(A)') ' N  $ do you want inertial reactions to A?'
+C      WRITE(IFIL14,'(A)') ' N  $ do you want inertial reactions to B?'
+C     ENDIF
+C END FEB 2012
+      IEND = NSEGS + 5*IZTANK
+      DO 900 I = 1,IEND
+       WRITE(IFIL14,'(A,I2,A)')
+     1                    ' Y  $ do you want output from seg.(',I,')?'
+  900 CONTINUE
+      WRITE(IFIL14,'(A)') ' Y  $ do you want to list ring forces?'
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK     SUBROUTINE EQUIV
+      SUBROUTINE EQUIV(NPRINT,ifile,ainput,binput,npoint,xinput,
+     1                 x1,y1,x2,y2,x3,y3)
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+c   npoint = number of x-coordinates (including x=0 and x at equator)
+c            where a segment end is provided by the user: xinput
+c   ainput = semi-major axis of ellipse (ainput = xinput(npoint)
+c   binput = semi-minor axis of ellipse, x^2/a^2 + y^2/b^2 = 1.0
+c   nodes  = number of nodal points in each segment
+c   xinput = x-coordinates corresponding to segment ends
+c
+      double precision x,y,phi,r,rknuck,a1,a2,b1,b2,x03,y03
+      double precision x1,y1,x2,y2,x3,y3,a,b,r1,r2
+      dimension x(21),y(21),x1(21),y1(21),x2(21),y2(21),x3(21),y3(21)
+      dimension xinput(21),r1(21),r2(21)
+C
+c This version of SUBROUTINE EQUIV is for an "equivalent" ellipsoidal head.
+c The "equivalent" ellipsoidal head is constructed because BOSOR4 (bigbosor4)
+c finite elements tend to "lock up" for shells of revolution in which the
+c meridional curvature varies significantly within a single shell segment.
+c
+c The "equivalent" ellipsoidal head consists of a user-defined number of
+c toroidal segments that match as well as possible the contour of the
+c ellipsoidal head. The meridional curvature of each toroidal segment
+c is constant in that segment. Therefore, there is no problem of finite
+c element "lock up" in a segmented model of this type.
+c
+c For each toroidal segment, bigbosor4 needs three points for input:
+c (x1,y1), (x2,y2), and (x3,y3). (x1,y1) and (x2,y2) lie on the ellipsoidal
+c contour and are the (x,y) coordinates at the two ends of the toroidal
+c segment. (x3,y3) is the center of meridional curvature of the toroidal
+c segment. The trick is to obtain (x3,y3) so that to toroidal segment best
+c fits the ellipsoidal contour in that segment.
+c
+c We use the following procedure to get (x3,y3):
+c
+c 1. The equation of the ellipse is
+c
+c     x^2/a^2 + y^2/b^2 = 1.0                                     (1)
+c
+c 2. The equation for the normal to the ellipse at (x1,y1) is:
+c
+c     y - y1 = (y1/x1)(a^2/b^2)(x - x1)                           (2)
+c
+c 3. The equation for the normal to the ellipse at (x2,y2) is:
+c
+c     y - y2 = (y2/x2)(a^2/b^2)(x - x2)                           (3)
+c
+c 4. These two straight lines in (x,y) space intersect at (x03,y03),
+c    with (x03,y03) are given by:
+c    x03 = (b2 - b1)/(a1 - a2);   y03 = (a2*b1 - a1*b2)/(a2 - a1) (4)
+c    in which a1, b1 and a2, b2 are:
+c
+c     a1 = (y1/x1)(a^2/b^2);      b1 = -a1*x1 + y1                (5)
+c     a2 = (y2/x2)(a^2/b^2);      b2 = -a2*x2 + y2                (6)
+c
+c 5. For an ellipse the distance from the point (x03,y03) to (x1,y1) is
+c    different than the distance from the point (x03,y03) to (x2,y2)
+c    because the meridional curvature varies along the contour of the
+c    ellipse. We wish to find a new point (x3,y3) in the neighborhood
+c    of (x03,y03) for which the distance from (x3,y3) to (x1,y1) equals
+c    the distance from (x3,y3) to (x2,y2). For such a point the
+c    "equivalent" segment will be a toroidal segment in which the
+c    meridional curvature is constant along the segment arc.
+c
+c 6. The square of the distances from (x03,y03) to (x1,y1) and to (x2,y2)
+c    are:
+c
+c     d1sq = (x1 - x03)**2 + (y1 - y03)**2                        (7)
+c     d2sq = (x2 - x03)**2 + (y2 - y03)**2                        (8)
+c
+c    and the difference of these is:
+c
+c     delsq = d1sq - d2sq                                         (9)
+c
+c 7. We determine the location of the center of meridional curvature of
+c    the "equivalent" torioidal segment by allocating half of delsq to
+c    each (distance)**2, d1sq and d2sq. We then have two (distance)^2
+c    that are equal:
+c
+c     (x1 - x03)**2 + (y1 - y03)**2 - delsq/2                    (10)
+c     (x2 - x03)**2 + (y2 - y03)**2 + delsq/2                    (11)
+c
+c 8. Suppose we let
+c
+c     x3 = x03 + dx  ;             y3 = y03 + dy                 (12)
+c
+c    Then we have two nonlinear equations for the unknowns (dx,dy):
+c
+c    [x1 - (x03+dx)]**2 + [y1 - (y03+dy)]**2 =
+c                         (x1 - x03)**2 +(y1 - y03)**2 -delsq/2  (13)
+c
+c    [x2 - (x03+dx)]**2 + [y2 - (y03+dy)]**2 =
+c                         (x2 - x03)**2 +(y2 - y03)**2 +delsq/2  (14)
+c
+c    These two equations say that the square of the distance from
+c    (x3,y3) to (x1,y1) Eq.(13) is equal to that from (x3,y3) to (x2,y2)
+c    Eq.(14).
+c
+c 9. We use Newton's method to solve the two simultaneous nonlinear
+c    equations for (dx,dy):
+c
+c    For the ith Newton iteration, let
+c
+c     dx(i) = dx(i-1) + u                                        (15)
+c     dy(i) = dy(i-1) + v                                        (16)
+c
+c    Then we develop two linear equations for u and v for the ith
+c    Newton iteration:
+c
+c     u*2.*(x03-x1+dx(i-1)) +v*2.*(y03-y1 +dy(i-1)) = f1pp       (17)
+c     u*2.*(x03-x2+dx(i-1)) +v*2.*(y03-y2 +dy(i-1)) = f2pp       (18)
+c
+c    in which the right-hand sides, f1pp and f2pp, are rather long
+c    expressions given in SUBROUTINE x3y3, where the Newton iterations
+c    occur.
+c
+c Now find (x3,y3)...
+c
+c Get end points (x1,y1), (x2,y2), and center of curvature (x3,y3)
+c of each shell segment in the model...
+c
+c first, given x, get y...
+c the y are obtained from the equation for an ellipse: x^2/a^2 + y^2/b^2 = 1
+c
+      a = ainput
+      b = binput
+      do 10 i = 1,npoint
+         x(i) = xinput(i)
+         y(i) = -b*dsqrt(1.-x(i)**2/a**2)
+   10 continue
+c
+c the endpoints of the first segment (bottom of "ellipse") are
+c
+      r = a**2/b
+      x1(1) = 0.
+      y1(1) = -b
+      x2(1) = x(2)
+      phi = dasin(x(2)/r)
+      y2(1) = r*(1 - dcos(phi)) - b
+      x3(1) = 0.
+      y3(1) = r - b
+c
+c the endpoints of the last segment (nearest the equator) are
+c
+      nseg = npoint - 1
+      rknuck = b**2/a
+      x1(nseg) = x(npoint-1)
+      phi = dacos((x(npoint-1) - a + rknuck)/rknuck)
+      y1(nseg) = -rknuck*dsin(phi)
+      x2(nseg) = a
+      y2(nseg) = 0.
+      x3(nseg) = a -rknuck
+      y3(nseg) = 0.
+c
+c next, establish the endpoints and centers of curvature of
+c shell segments 2 - (nseg-1)
+c
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      if (NPRINT.GE.2) write(ifile,'(/,A,A,I3,A,/,A,A)')
+     1'  End points (x1,y1), (x2,y2) and center of curvature, (x3,y3)',
+     1'  for',nseg,' toroidal segments',
+     1' Seg.    x1           y1         x2         y2          x3',
+     1'         y3           r1         r2'
+      iseg = 1
+c
+      r1(iseg) = dsqrt((x1(iseg) - x3(iseg))**2
+     1                +(y1(iseg) - y3(iseg))**2)
+      r2(iseg) = dsqrt((x2(iseg) - x3(iseg))**2
+     1                +(y2(iseg) - y3(iseg))**2)
+c
+      if (NPRINT.GE.2) write(ifile,'(I3,1P,8E12.4)')
+     1 iseg,x1(iseg),y1(iseg),x2(iseg),y2(iseg),x3(iseg),y3(iseg),
+     1      r1(iseg),r2(iseg)
+c
+      do 1000 iseg = 2,nseg
+         iseg1 = iseg - 1
+         x1(iseg) = x2(iseg1)
+         y1(iseg) = y2(iseg1)
+         ipoint = iseg + 1
+         x2(iseg) = x(ipoint)
+         y2(iseg) = y(ipoint)
+c  find point, (x03,y03), where the normals to the ellipse at
+c  (x1,y1) and (x2,y2) intersect.
+         a1 = y1(iseg)*a**2/(x1(iseg)*b**2)
+         a2 = y2(iseg)*a**2/(x2(iseg)*b**2)
+         b1 = -a1*x1(iseg) + y1(iseg)
+         b2 = -a2*x2(iseg) + y2(iseg)
+         x03 = (b2 - b1)/(a1 - a2)
+         y03 = (a2*b1 - a1*b2)/(a2 - a1)
+c
+c  we wish to replace the ellipse with an "equivalent" ellipse.
+c  the "equivalent" ellipse consists of a number of torispherical
+c  segments with end  points (x1,y1) and (x2,y2) and center of
+c  curvature (x3,y3). The purpose of subroutine x3y3 is to
+c  determine (x3,y3) given (x1,y1), (x2,y2), and (x03,y03).
+c
+         call x3y3(ifile,iseg,x1(iseg),y1(iseg),x2(iseg),y2(iseg),
+     1             x03,y03, x3(iseg),y3(iseg))
+c
+         r1(iseg) = dsqrt((x1(iseg) - x3(iseg))**2
+     1                   +(y1(iseg) - y3(iseg))**2)
+         r2(iseg) = dsqrt((x2(iseg) - x3(iseg))**2
+     1                   +(y2(iseg) - y3(iseg))**2)
+c
+         if (NPRINT.GE.2) write(ifile,'(I3,1P,8E12.4)')
+     1    iseg,x1(iseg),y1(iseg),x2(iseg),y2(iseg),x3(iseg),y3(iseg),
+     1         r1(iseg),r2(iseg)
+c
+ 1000 continue
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      return
+      end
+c
+c
+c
+C=DECK      x3y3
+      SUBROUTINE x3y3(ifile,iseg,x1,y1,x2,y2,x03,y03,x3,y3)
+c  input:
+c  (x1,y1), (x2,y2) = end points that lie on the original ellipse
+c  (x03,y03) = point where normals to the ellipse at (x1,y1) and
+c              (x2,y2) intersect
+c  output:
+c  (x3,y3) center of curvature of the "equivalent" toroidal segment.
+c
+c  (x3,y3) are determined by Newton's method from two nonlinear
+c  equations in dx,dy, in which dx,dy are the distances between
+c  x03,y03 and x3,y3.
+c
+      double precision x1,y1,x2,y2,x3,y3,x03,y03
+      double precision d1sq,d2sq,delsq,a1,a2,b1,b2
+      double precision f1,f1p,f1pp, f2,f2p,f2pp
+      double precision dx,dy,u,v
+c
+c  For a toroidal segment, the two distances from (x3,y3) to the two
+c  segment end points (x1,y1) and (x2,y2) must be equal. In other
+c  words the meridional radius of curvature of the torioidal segment
+c  must be constant in that segment.
+c
+c  However, in the ellipse these two distances are different. The
+c  square of the difference is given by delta**2 (delsq):
+c
+      d1sq = (x1 - x03)**2 + (y1 - y03)**2
+      d2sq = (x2 - x03)**2 + (y2 - y03)**2
+      delsq = d1sq - d2sq
+c
+c  Here we determine the location of the center of meridional
+c  curvature of the "equivalent" torioidal segment by allocating
+c  half of delsq to each (distance)**2, d1sq and d2sq. We have two
+c  (distances)**2 that are equal:
+c
+c   (x1 - x03)**2 + (y1 - y03)**2 - delsq/2
+c   (x2 - x03)**2 + (y2 - y03)**2 + delsq/2
+c
+c  We must solve the following two nonlinear equations for (dx,dy):
+c
+c  [x1 - (x03+dx)]**2 + [y1 - (y03+dy)]**2 =
+c                       (x1 - x03)**2 +(y1 - y03)**2 -delsq/2   (1)
+c
+c  [x2 - (x03+dx)]**2 + [y2 - (y03+dy)]**2 =
+c                       (x2 - x03)**2 +(y2 - y03)**2 +delsq/2   (2)
+c
+c  We use Newton's method:
+c
+c  For the ith Newton iteration, let
+c
+c  dx(i) = dx(i-1) + u
+c  dy(i) = dy(i-1) + v
+c
+c  Then we develop two linear equations for u and v for the ith iteration:
+c
+c  u*(x03-x1+dx(i-1)) +v*(y03-y1 +dy(i-1)) = f1pp
+c  u*(x03-x2+dx(i-1)) +v*(y03-y2 +dy(i-1)) = f2pp
+c
+c  solve them, add u and v to dx(i-1) and dy(i-1), respectively, and
+c  iterate. We keep iterating until convergence is achieved.
+c
+      iter = 0
+      dx = 0.
+      dy = 0.
+c
+   10 continue
+      iter = iter + 1
+c
+      a1 = 2.*(x03 - x1 + dx)
+      a2 = 2.*(x03 - x2 + dx)
+      b1 = 2.*(y03 - y1 + dy)
+      b2 = 2.*(y03 - y2 + dy)
+c
+      f1 = (x1 - x03)**2 + (y1 - y03)**2 - delsq/2.
+      f2 = (x2 - x03)**2 + (y2 - y03)**2 + delsq/2.
+      f1p = f1 - x1**2 + 2.*x1*x03 - x03**2
+     1          -y1**2 + 2.*y1*y03 - y03**2
+      f2p = f2 - x2**2 + 2.*x2*x03 - x03**2
+     1          -y2**2 + 2.*y2*y03 - y03**2
+      f1pp = f1p - dx*2.*(x03-x1) -dy*2.*(y03-y1) -dx**2 -dy**2
+      f2pp = f2p - dx*2.*(x03-x2) -dy*2.*(y03-y2) -dx**2 -dy**2
+c
+      u = (b2*f1pp - b1*f2pp)/(b2*a1 - b1*a2)
+      v = (a2*f1pp - a1*f2pp)/(a2*b1 - a1*b2)
+      dx = dx + u
+      dy = dy + v
+c
+C23456789012345678901234567890123456789012345678901234567890123456789012
+c     if (iter.eq.1) write(ifile,'(/,A,i3,/,A,A)')
+c    1' ******** Results from Newton iterations for segment no.',iseg,
+c    1' iter     x03       dx       y03         dy         u',
+c    1'         v'
+c     write(ifile,'(i3,1p,6e12.4)')
+c    1 iter, x03, dx, y03, dy, u, v
+c
+      if (iter.gt.100) then
+         write(ifile,'(A)')' No convergence.'
+         call exit
+      endif
+c
+      if (iter.lt.3) go to 10
+      if (abs(u).gt.0.001*abs(dx)) go to 10
+      if (abs(v).gt.0.001*abs(dy)) go to 10
+c
+c  Convergence has been achieved
+c
+      x3 = x03 + dx
+      y3 = y03 + dy
+c
+      return
+      end
+c
+c
+c
+C=DECK      OUTWAL
+      SUBROUTINE OUTWAL(IFILE4,NLAYER,LTYPE,T,ANGLE,MATL,ILOOP)
+C
+C  PURPOSE IS TO LIST WALL PROPERTIES FOR SKIN AND STIFFENERS
+C
+      DIMENSION ISTIF(10),NLAYER(*),NSEG(10),LTYPE(90,3)
+      DIMENSION T(*),ANGLE(*),MATL(*),CRACK(90,10)
+      CHARACTER*4 STTYP
+      CHARACTER*3 STRRNG
+C
+   10 FORMAT(/' WALL PROPERTIES. . .'/
+     1' AFT/ TYPE TUBE   LAYER  LAYER  THICKNESS   WINDING     MATERAL
+     1  CRACKING'/
+     1' FWD        NO.    NO.   TYPE                ANGLE       TYPE
+     1   RATIO')
+C
+C
+      NSEG(ILOOP) = 1
+      ISTIF(ILOOP) = 2
+      STTYP = 'NONE'
+      IF (ISTIF(ILOOP).EQ.1) STTYP = 'STRP'
+      IF (ISTIF(ILOOP).EQ.2) STTYP = 'TUBE'
+      IF (ISTIF(ILOOP).EQ.3) STTYP = 'DCON'
+      IF (ISTIF(ILOOP).EQ.4) STTYP = 'FOLD'
+C
+      STRRNG = '   '
+      IF (ILOOP.EQ.1) STRRNG = 'AFT'
+      IF (ILOOP.EQ.2) STRRNG = 'FWD'
+C
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+      IF (ILOOP.EQ.2) ISTART = 1
+      IF (ISTART.GT.IEND) GO TO 100
+C
+      WRITE(IFILE4,10)
+C
+      DO 60 I = ISTART,IEND
+C
+      WRITE(IFILE4,*)' '
+      NLAY = NLAYER(ILOOP)
+C
+      DO 30 J = 1,NLAY
+      CRACK(J,ILOOP) = 1.0
+C
+      K = LTYPE(J,ILOOP)
+      WRITE(IFILE4,20) STRRNG,STTYP,I,J,K,T(K),ANGLE(K),MATL(K),
+     1 CRACK(J,ILOOP)
+   20 FORMAT(1X,A3,2X,A4,I4,I7,I7,1PE13.4,1PE12.4,I6,1PE18.4)
+C
+   30 CONTINUE
+   60 CONTINUE
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      GENSTB
+      SUBROUTINE GENSTB(INDX,A,B,NX,NY,NXY,NXP,NYP,MWAVE,NWAVE,TESTSH,  
+     1 CSLOPE,EIGVAL,IDESGN,C,TX,TY,G1323,IREDUC,IROLL,IFILE,
+     1 ITUTOR,RAVE,NPRT)
+C     
+C     PURPOSE IS TO FIND SHELL LOCAL AND GENERAL INSTABILITY.     
+C     
+C     
+      COMMON/NDEBUG/NPRNT
+      COMMON/WALLB/B11,B12,B22,B33
+      COMMON /CWALL/C11,C12,C22,C33,C44,C45,C55,C66   
+      COMMON/WALLC/C13,C16,C23,C26,C34,C35,C46,C56,IBAL     
+      COMMON/PARAM2X/MBAR,NBAR,NXNORM,NYNORM    
+      COMMON/PRESHR/NXY0,E0XY,NXYNRM,ISHEAR,SHEAR,CSTART,NXYSKN,CSKIN   
+      COMMON/GENLOC/NXFIX,NYFIX,NXYFIX,TEST,E0XP,E0YP 
+      COMMON/DESVAR/ISPACS(4),R     
+      DIMENSION C(6,6),G1323(*)
+      COMMON/MMAXWV/MMAX
+      COMMON/STR2/NPARTS,NSEGS(9),NENDS(9)
+      COMMON/RNG2/NPARTR,NSEGR(9),NENDR(9)
+      COMMON/C11SAV/C11SVE
+      DOUBLE PRECISION THETA,CTHETA,STHETA
+      REAL NX,NY,NXY    
+      REAL NXFIX,NYFIX,NXYFIX 
+      REAL NXP,NYP
+      REAL NXY0,NXYNRM,NXYSKN 
+      REAL NXNORM,NYNORM,NBAR,MBAR,NSAVE,MSAVE  
+      REAL NMAXM1,NMINM1
+      REAL NCYL
+      CHARACTER*70 PHRAS1,PHRAS2
+      CHARACTER*5  YESNO
+      NPRNT = 0
+C TEMPORARY CHANGE FOR MORE PRINTOUT FOR SHELL BUCKLING
+C     NPRNT = INDX
+C END TEMPORARY CHANGE FOR MORE PRINTOUT
+      IFLAT = 0
+      IPRELM = 0
+      NPARTS = 0
+      NPARTR = 0
+      IAGAIN = 0
+      ITHRU = 1
+      IFFLAT = 0
+      FFLAT = 0.
+      IKOUNT = 0
+      R = RAVE
+      IIROLL = IROLL
+      RBB = ABS(R)/B   
+      NBAR = NWAVE
+      MBAR = MWAVE
+      TEST = TESTSH     
+      PI = 3.1415927    
+C     
+      FTEST = SQRT(NX**2 + NY**2 + NXY**2)
+      EIGVAL = 10.E16
+      IF (NX.GE.0.0.AND.(ABS(NY).LT.(0.001*FTEST).OR.NY.GE.0.).AND.
+     1    ABS(NXY).LT.(0.01*FTEST)) RETURN
+      NXNORM = NX 
+      NYNORM = NY 
+      NXYNRM = NXY
+C
+      CALL FILLC(C)
+C
+      IF (NPRNT.NE.0) THEN
+         WRITE(8,*)' INDX,IROLL=',INDX,IROLL
+         WRITE(8,'(A,1P5E12.4)')' A,B,NX,NY,NXY =',A,B,NX,NY,NXY
+         WRITE(8,'(A,1P6E12.4)')' [C(I,I),I=1,6]=',
+     1   C(1,1),C(2,2),C(3,3),C(4,4),C(5,5),C(6,6)
+      ENDIF
+C
+      IF (NPRNT.EQ.INDX) THEN
+         WRITE(8,'(A,1P6E12.4)') ' C11,NX,NY,NXY,NXP,NYP=',
+     1                             C11,NX,NY,NXY,NXP,NYP
+         WRITE(8,*)' IPRELM,INDX,IROLL=',IPRELM,INDX,IROLL
+         WRITE(8,1010) R,((C(I,J),J=1,6),I=1,6)
+ 1010    FORMAT(/' GENERAL INSTAB. MODEL. RADIUS OF CURV., R=',1PE12.4/
+     1' SMEARED STIFFENER C(i,j) ='/(1P6E12.4))
+      ENDIF
+C
+      PX = NX/C11
+      PY = NY/C11
+      PXY= NXY/C11
+C
+      NXFIX = NXP/C11 
+      NYFIX = NYP/C11 
+C     
+      C11SVE = C11
+      CALL CNORM(C)
+C
+C     ESTABLISH WHETHER SKEWED BUCKLE ANALYSIS IS REQUIRED...     
+C     
+      ISHEAR = 0  
+      ANORM = SQRT(NX**2 +NY**2)    
+      IF (ABS(NXY).GT.0.05*ANORM) ISHEAR = 1    
+      IF (ABS(NXYFIX).GT.0.05*ANORM) ISHEAR = 1 
+      IF (ISHEAR.EQ.0.AND.NX.GT.0.0.AND.NY.GT.0.0) RETURN   
+C     
+      IBAL = 0    
+      IF (ABS(C13).GT.0.05*C11) IBAL = 1  
+      IF (ABS(C23).GT.0.05*C22) IBAL = 1  
+      IF (ABS(C34).GT.0.05*C44) IBAL = 1  
+      IF (ABS(C35).GT.0.05*C55) IBAL = 1  
+      IF (ABS(C16).GT.0.05*C66) IBAL = 1  
+      IF (ABS(C26).GT.0.05*C66) IBAL = 1  
+      IF (ABS(C46).GT.0.05*C66) IBAL = 1  
+      IF (ABS(C56).GT.0.05*C66) IBAL = 1  
+C     
+      IF (IDESGN.EQ.0) GO TO 7
+      IF (ITHRU.EQ.1) IARGTH = 0
+      IF (ITHRU.EQ.2) IARGTH = IAGAIN
+      CALL EIG(A,B,NBAR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGVAL,
+     1 INDX,FFLAT,IARGTH)
+      GO TO 105
+    7 CONTINUE
+C
+   81 CONTINUE
+C
+C   GET BENDING STIFFNESS COEFFICIENTS ABOUT NEUTRAL AXES..
+C
+      C44N = ABS(C44 - B11**2/C11)
+      C55N = ABS(C55 - B22**2/C22)
+C
+C   THE TEST FOR WHICH DIRECTION THE PANEL IS LONG IN MUST BE MADE
+C   WITH RESPECT TO THE NEUTRAL AXES IN THE 1 AND 2 DIRECTIONS.
+C   THE TEST FOR WHICH DIRECTION THE PANEL IS LONG IN SHOULD INCLUDE
+C   THE EFFECT OF CURVATURE OF THE PANEL.
+C
+      C44MLT = 1.0
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) RBB = 10000.
+      IF ((FFLAT.LT.0.5.OR.IAGAIN.EQ.2).AND.IFLAT.EQ.0
+     1                .AND.(ISHEAR.EQ.1.OR.IBAL.EQ.1)) THEN
+         AR     = ABS(R)
+         THETA  = B/(2.*AR)
+         STHETA = SIN(THETA)
+         CTHETA = COS(THETA)
+         DCENT  = AR*(STHETA/THETA - CTHETA)
+         FIBASE = AR**3*(THETA -3.*CTHETA*STHETA +2.*THETA*CTHETA**2)
+         FICENT = FIBASE - B*DCENT**2
+         C44MLT = 1. + C11*FICENT/(B*C44N)
+         IF (C44MLT.LT.1.0) C44MLT = 1.0
+      ENDIF
+      TEST = (A/B)*SQRT(C55N/(C44N*C44MLT))
+C
+      IF (NPRNT.EQ.INDX) THEN
+         WRITE(8,*)' IAGAIN     =',IAGAIN
+         WRITE(8,*)' A,B,RBB    =',A,B,RBB
+         WRITE(8,*)' B11,B22    =',B11,B22
+         WRITE(8,*)' C11,C22    =',C11,C22
+         WRITE(8,*)' C44,C55    =',C44,C55
+         WRITE(8,*)' C44N,C55N  =',C44N,C55N
+         WRITE(8,*)' TEST,C44MLT=',TEST,C44MLT
+      ENDIF
+C     
+      IF (RBB.LT.1.0.AND.TEST.GT.1.0) TEST = 1./TEST  
+      IF (IAGAIN.EQ.2.AND.TEST.LE.1.0) TEST = 1.1
+      IF (FFLAT.LT.0.5.AND.IAGAIN.EQ.1.AND.TEST.GT.0.9) TEST = 0.9
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' TEST,C44MLT=',TEST,C44MLT
+      NMINA = 1
+      PI = 3.14159
+      RFCYL = PI*ABS(R)/B
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) RFCYL = 10000.
+      IF (RFCYL.LT.1.5) NMINA = 2
+      FNMINA = NMINA
+C     
+C     FIRST FIND MINIMUM WITH MBAR SMALL...     
+C     
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' FIRST EXPLORE SMALL MBAR RANGE...'
+      FLX0 = PI*SQRT(SQRT(R*R*C44N/C22))   
+      FMTST1 = A/FLX0   
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) FMTST1 = 0.
+      FMTST2 = (A/B)*SQRT(SQRT(C55N/C44N))  
+      FMTST = AMAX1(FMTST1,FMTST2)  
+      MTEST = FMTST + 0.5
+C
+C  FOLLOWING STATEMENT ADDED 10TH MARCH, 1986, BECAUSE OF INADEQUATE
+C  SEARCH FOR CRITICAL BUCKLING LOAD VS. AXIAL HALF WAVENUMBER...
+C
+      MTEST = MAX(MTEST,2)
+C
+C
+      MBAR = 1.0  
+      M = 1 
+      EIGSV2 = 100000.  
+      FNTST1 = (B/A)*SQRT(SQRT(C44N/C55N))  
+      FNTST = AMAX1(FNMINA,FNTST1)
+      NBAR = FNTST
+C
+C  FOLLOWING STATEMENT ADDED 10 MARCH, 1986 TO CORRECT ERROR IN SEARCH
+C
+      NBAR = NMINA
+C
+C
+      INCR = 1. + 0.10*NBAR   
+      N = NBAR    
+      NMAX = MAX0(100,N*5)    
+      NMIN = NMINA    
+      NBAR = N    
+      NMINM1 = NBAR     
+      FINCR = INCR
+      SINCR = 1.0 
+      MSAVE = 1.  
+      ICHEK = 0   
+    9 CONTINUE    
+      CALL EIG(A,B,NBAR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGSAV,
+     1 INDX,FFLAT,IAGAIN)
+      NSAVE = NBAR
+      MSAVE = MBAR
+      CSAVE = CSLOPE    
+      FNBR = NBAR + FINCR     
+      IF (NBAR.LT.3.) CSLOPE = 0.0
+      IF (M.EQ.1) NMAXM1 = FNBR     
+      CALL EIG(A,B,FNBR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGVAL,
+     1 INDX,FFLAT,IAGAIN)
+      ESVNEW = EIGVAL
+      ES1NEW = EIGSAV
+      IF (ESVNEW.LE.ES1NEW) THEN
+         NBAR = FNBR
+         GO TO 30
+      ENDIF
+C     
+C     ES1NEW.LT.ESVNEW BRANCH...    
+C     
+      FINCR = - FINCR   
+      SINCR = -1.0
+      N = NBAR    
+      IF (N.EQ.NMINA) GO TO 40    
+      GO TO 35    
+C     
+   30 CONTINUE    
+      MSAVE = MBAR
+C     
+      NSAVE = NBAR
+      CSAVE = CSLOPE    
+      EIGSAV = EIGVAL   
+      IF (N.GT.NMAX.AND.EIGVAL.EQ.10.E16) GO TO 40    
+      IF (N.GE.NMAX.AND.ICHEK.EQ.1) GO TO 408   
+      IF (N.LE.NMIN.AND.ICHEK.EQ.1) GO TO 408   
+C     
+   35 CONTINUE    
+C     
+      NBAR = NBAR + FINCR     
+      INCR = (1. + 0.10*NBAR)*SINCR 
+      FINCR = INCR
+      N = NBAR    
+      IF (N.LT.NMINA) GO TO 40    
+      IF (M.EQ.1) NMINM1 = AMIN1(NMINM1,NBAR)   
+      IF (M.EQ.1) NMAXM1 = AMAX1(NMAXM1,NBAR)   
+C
+C     WRITE(8,*)' N,NBAR,MBAR,PX,PY,PXY=',N,NBAR,MBAR,PX,PY,PXY
+C     WRITE(8,*)' CSLOPE,IDESGN,INDX=',CSLOPE,IDESGN,INDX
+C
+      CALL EIG(A,B,NBAR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGVAL,
+     1 INDX,FFLAT,IAGAIN)
+      ESVNEW = EIGVAL
+      ES1NEW = EIGSAV
+C BEG JUNE 1990
+      IF (ESVNEW.LE.ES1NEW) THEN
+         NMOD = MOD(N,3)
+         IF (RBB.LT.1.0.AND.NMOD.EQ.0) THEN
+            IF (TEST.LT.0.99.AND.ABS(CSLOPE).GT.1.5) THEN
+C              CSLOPE = 0.0
+            ENDIF
+         ENDIF
+         GO TO 30
+      ENDIF
+C     
+   40 CONTINUE    
+C     
+      MMAX = MTEST/2    
+      IF (N.GT.4) MMAX = N*2  
+      IF (N.GT.NMAX.AND.EIGVAL.EQ.10.E16) MMAX = MAX(MTEST,10)
+      IF (EIGSV2.LT.EIGSAV.AND.M.GT.1) GO TO 405
+      MINCR = 1. + 0.1*MBAR   
+      FMINCR = MINCR    
+      MBAR = MBAR + FMINCR    
+      M = MBAR    
+      IF (M.GT.MMAX) GO TO 408
+      NBAR = NSAVE
+      IF (N.GT.NMAX.AND.EIGVAL.EQ.10.E16) NBAR = NMINA
+      SINCR = 1.0 
+      INCR = 1. + 0.10*NBAR   
+      FINCR = INCR
+      MMAXM1 = MBAR     
+      CSLOPE = CSAVE    
+      CSAVE2 = CSAVE    
+      EIGSV2 = EIGSAV   
+      MSAVE2 = MSAVE    
+      NSAVE2 = NSAVE    
+      GO TO 9     
+C     
+  405 CONTINUE    
+      EIGSAV = EIGSV2   
+      CSAVE = CSAVE2    
+      MSAVE = MSAVE2    
+      NSAVE = NSAVE2    
+C     
+  408 CONTINUE    
+      MBAR = 1.   
+      M = 1 
+      IF (ICHEK.EQ.1) GO TO 415     
+      IF (NMINM1.GE.3.0) GO TO 410  
+      BL1 = B/NMAXM1
+      BL2 = 0.2*ABS(R)
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) BL2=10000.*BL1
+      BL3 = 0.2*A
+      IF (BL1.LT.BL2.AND.BL1.LT.BL3) GO TO 420
+C     
+C      CHECK FOR HIGH-N RANGE....   
+C     
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' Now check for high NBAR range...'
+      NBAR = MAX((B/BL2),(B/BL3))
+      INCR = 1. + .10*NBAR    
+      FINCR= INCR 
+      N = NBAR    
+      NMAX = MAX0(100,N*5)    
+      NBAR = N    
+      NMIN = NMAXM1     
+      GO TO 413   
+C     
+  410 CONTINUE    
+C     
+C     CHECK FOR LOW-N RANGE....     
+C     
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' Now check for low NBAR range...'
+      NBAR = 2.0  
+      N = NBAR
+      FINCR = 1.0 
+      INCR = FINCR
+      NMAX = NMINM1     
+      NMINM1 = FNMINA
+  413 SINCR = 1.0 
+      CSLOPE = 0. 
+      NSAVE1 = NSAVE    
+      MSAVE1 = MSAVE    
+      CSAVE1 = CSAVE    
+      EIGSV1 = EIGSAV   
+      ICHEK = 1   
+      GO TO 9     
+  415 CONTINUE    
+C     
+      ESVNEW = EIGSAV
+      ES1NEW = EIGSV1
+      IF (ESVNEW.LT.ES1NEW) GO TO 420     
+      EIGSAV = EIGSV1   
+      CSAVE = CSAVE1    
+      MSAVE = MSAVE1    
+      NSAVE = NSAVE1    
+  420 CONTINUE    
+C     
+C     NOW CHECK FOR MINIMUM CRITICAL LOAD CORRESPONDING TO HIGHER M...  
+C     
+      ICHEK = 0   
+      NMIN = NMINA    
+      SINCR = 1.0 
+      NMAX = 10000
+      IF (MTEST.LE.1) GO TO 50
+C     
+C     CHECK FOR MINIMUM CRITICAL LOAD AT HI VALUES OF AXIAL WAVES, MBAR 
+C     
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' NEXT EXPLORE LARGE MBAR RANGE...'
+      MBAR = MTEST
+      MMAX = MAX0(100,MTEST*5)
+      NBAR = NMINA    
+   44 CONTINUE    
+      CALL EIG(A,B,NBAR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGVAL,
+     1 INDX,FFLAT,IAGAIN)
+      CALL MINM(A,B,PX,PY,PXY,CSLOPE,IDESGN,MBAR,NBAR,EIGVAL,     
+     1 INDX,PARX1,PARX2,FFLAT,IAGAIN)  
+      M = MBAR    
+      KOUNT = 1   
+C     
+   45 CONTINUE    
+C     
+C     CHANGE NBAR...    
+C     
+      KOUNT = KOUNT + 1 
+      CCSAV = CSLOPE    
+      EIGSSV = EIGVAL   
+      MMSAV = MBAR
+      NNSAV = NBAR
+      FNNSAV = NNSAV    
+   46 CONTINUE    
+      INCR = (1.0 + 0.1*NBAR)*SINCR
+      FINCR = INCR
+      NBAR = NBAR + FINCR     
+      IF (RBB.GT.1.0) MBAR = MBAR*NBAR/FNNSAV   
+      M = MBAR    
+      N = NBAR    
+      IF (N.LE.NMIN.AND.ICHEK.EQ.1) GO TO 455   
+      IF (N.GE.NMAX.AND.ICHEK.EQ.1) GO TO 455   
+      IF (N.GT.100.AND.EIGVAL.EQ.10.E16) GO TO 50
+      IF (N.GT.10.AND.M.GT.MMAX.AND.EIGVAL.EQ.10.E16) GO TO 50
+      IF (M.EQ.1) M = 2 
+      MBAR = M    
+      NMAXM1 = NBAR     
+      CALL EIG(A,B,NBAR,MBAR,PX,PY,PXY,CSLOPE,IDESGN,EIGVAL,
+     1 INDX,FFLAT,IAGAIN)
+      CALL MINM(A,B,PX,PY,PXY,CSLOPE,IDESGN,MBAR,NBAR,EIGVAL,     
+     1 INDX,PARX1,PARX2,FFLAT,IAGAIN)  
+      M = MBAR    
+C
+      IF (EIGVAL.LE.EIGSSV) THEN
+         NMOD = MOD(N,3)
+         IF (RBB.LT.1.0.AND.NMOD.EQ.0) THEN
+            IF (TEST.LT.0.99.AND.ABS(CSLOPE).GT.1.5) THEN
+C              CSLOPE = 0.0
+            ENDIF
+         ENDIF
+         GO TO 45
+      ENDIF
+C     
+C     
+      IF (ICHEK.EQ.0) GO TO 47
+      IF (KOUNT.GT.2.AND.SINCR.GT.0.) GO TO 455 
+      IF (SINCR.LT.0.0) GO TO 455   
+      CSLOPE = CCSAV    
+      NBAR = NNSAV
+      MBAR = MMSAV
+      SINCR = -1.0
+      GO TO 46    
+   47 CONTINUE    
+      NLARGE = NMAXM1   
+C     
+C     CHECK FOR HIGH-N RANGE...     
+C     
+      IF (NPRNT.EQ.INDX) WRITE(8,*)' Now check for high NBAR range...'
+      NBAR = B/(0.4*ABS(R))  
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) NBAR = 0.
+      N = NBAR    
+      IF (N.LE.NLARGE) GO TO 460    
+      NBAR = N    
+      MBAR = MTEST
+      NMIN = NLARGE     
+      NMAX = MAX0(100,N*5)    
+      ICHEK = 1   
+      CSLOPE = 0.0
+      NSAVE1 = NNSAV    
+      MSAVE1 = MMSAV    
+      CSAVE1 = CCSAV    
+      EIGSV1 = EIGSSV   
+      GO TO 44    
+C     
+  455 CONTINUE    
+      ESVNEW = EIGSSV
+      ES1NEW = EIGSV1
+      IF (ESVNEW.LT.ES1NEW) GO TO 460
+      EIGSSV = EIGSV1   
+      CCSAV = CSAVE1    
+      MMSAV = MSAVE1    
+      NNSAV = NSAVE1    
+  460 CONTINUE    
+      ESVNEW = EIGSSV
+      ES1NEW = EIGSAV
+      IF (ESVNEW.GE.ES1NEW) GO TO 50
+C     
+      MBAR = MMSAV
+      NBAR = NNSAV
+      EIGVAL = EIGSSV   
+      CSLOPE = CCSAV    
+C     
+      GO TO 100   
+C     
+   50 CONTINUE    
+C     
+      MBAR = MSAVE
+      NBAR = NSAVE
+      EIGVAL = EIGSAV   
+      CSLOPE = CSAVE    
+C     
+C     
+  100 CONTINUE    
+C     
+      TESTSH = TEST     
+      MWAVE = MBAR + 0.1
+      NWAVE = NBAR + 0.1
+C 
+      IARGTH = IAGAIN
+C
+  105 CONTINUE
+C
+C     WRITE(6,*)' INDX,IDESGN,IFLAT,ISHEAR,IKOUNT=',
+C    1            INDX,IDESGN,IFLAT,ISHEAR,IKOUNT
+C     WRITE(6,*)' FFLAT,EIGVAL,CSLOPE,TEST=',FFLAT,EIGVAL,CSLOPE,TEST
+C     WRITE(6,*)' MWAVE,NWAVE=',MWAVE,NWAVE
+      SLOPEP = CSLOPE
+      IF (TESTSH.LE.0.99.AND.ABS(CSLOPE).GT.0.0) SLOPEP = 1./CSLOPE
+      FCUR = 0.
+      IF ((IAGAIN.EQ.2.OR.FFLAT.LT.0.5).AND.IFLAT.EQ.0) FCUR = 1.
+      IARGTH = IAGAIN
+      EIGVLS = EIGVAL
+      CALL SHRRED(IREDUC,NX,NY,NXY,TX,TY,G1323,EIGVAL,0,1)
+C
+C     
+C NEW OUTPUT IN CASE ITUTOR.NE.0.  THIS BLOCK GOES INTO GENSTB ON
+C DECEMBER 30,1984
+C
+      IF (ITUTOR.NE.0.OR.NPRNT.EQ.INDX) THEN
+C     IF (IDESGN.EQ.0) THEN
+C
+         YESNO = '  YES'
+         IF (IREDUC.EQ.0) YESNO = '   NO'
+C
+         GO TO (2,3,4,5),INDX
+    2    PHRAS1='Local buckling (simple support along stiffener lines).'
+         GO TO 6
+    3    PHRAS1='General buckling (simple support at all boundaries).'
+         GO TO 6
+    4    PHRAS1='Smeared stringers, between rings (s.s. along rings).'
+         GO TO 6
+    5    PHRAS1=' between stringers (ss along stringers).'
+C
+    6    IROLL1 = IROLL + 1
+         GO TO (8,10),IROLL1
+    8    PHRAS2='Rolling of non-smeared stiffeners is not included.'
+         GO TO 11
+   10    PHRAS2='Rolling of non-smeared stiffeners is included.'
+C
+   11    CONTINUE
+C
+         WRITE(IFILE,12) PHRAS1,PHRAS2
+   12    FORMAT(/' We are now in SUBROUTINE GENSTB, which is called'/
+     1 ' from SUBROUTINE BUCPAN. PANDA-type "closed form" analysis.'/
+     1 ' In this particular call to SUBROUTINE GENSTB we obtain'/
+     1 ' a buckling load factor for buckling of the following type:'//
+     1 1X,A70/1X,A70)
+C
+         WRITE(IFILE,13)
+     1        ITHRU,IAGAIN,FCUR*R,A,B,TESTSH,C44MLT,NX,NY,NXY,NXP,NYP
+C
+   13    FORMAT(/' ITHRU=',I1,', IAGAIN=',I1,
+     1': DIMENSIONS AND LOADS...'//
+     1'  Radius of curvature of panel (if flat, R=0.),     R=',1PE12.4/
+     1'  Axial, circumferential lengths, this buckling model=',1P2E12.4/
+     1'  Panel length test parameters,          TEST,C44MLT =',1P2E12.4/
+     1'  Eigenvalue in-plane loads/length of edge, Nx,Ny,Nxy=',1P3E12.4/
+     1'  Fixed      in-plane loads/length of edge, Nxo, Nyo =',1P2E12.4)
+C
+         WRITE(IFILE,1301) C(1,1),C(2,2),C(3,3),
+     1                   C(4,4),C(5,5),C(6,6),TX,TY,G1323(1),G1323(2),
+     1                   YESNO
+C
+ 1301    FORMAT(/' C(i,j) AND OTHER PROPERTIES:'/
+     1'  Constitutive matrix diagonal, [C(i,i), i=1,6]      =',1P6E12.4/
+     1'  Effective thickness, x-face, transverse shearing   =',1PE12.4/
+     1'  Effective thickness, y-face, transverse shearing   =',1PE12.4/
+     1'  Transverse shear stiffness components, G13, G23    =',1P2E12.4/
+     1'  Is transverse shear deformation weakening included?=',A//
+     1'  Buckling load factors and no. of halfwaves (M = axial, N = circ
+     1umferential):')
+C
+         WRITE(IFILE,131) EIGVLS,MWAVE,NWAVE,SLOPEP
+  131    FORMAT(
+     1'    Neglecting transverse shear deformation weakening=',1PE12.4,
+     1' (M =',I3,', N =',I3,') halfwaves. Nodal line slope=',1PE12.4)
+         IF (IREDUC.EQ.1) WRITE(IFILE,14) EIGVAL,MWAVE,NWAVE,SLOPEP
+   14    FORMAT(
+     1'    Including  transverse shear deformation weakening=',1PE12.4,
+     1' (M =',I3,', N =',I3,') halfwaves. Nodal line slope=',1PE12.4)
+         WRITE(IFILE,15)
+   15    FORMAT(' ******************************************************
+     1****************************************************************')
+C
+      ENDIF
+C
+      RETURN
+      END   
+C
+C
+C
+C=DECK      FILLC 
+      SUBROUTINE FILLC(C)  
+C     
+C     PURPOSE IS TO TRANSFER C(I,J) MATRIX INTO C11,C12,...AND B11,B12..
+C     
+      DIMENSION C(6,6)
+      COMMON /CWALL/C11,C12,C22,C33,C44,C45,C55,C66   
+      COMMON/WALLB/B11,B12,B22,B33  
+      COMMON/WALLC/C13,C16,C23,C26,C34,C35,C46,C56,IBAL     
+      COMMON/PRESHR/NXY0,E0XY,NXYNRM,ISHEAR,SHEAR,CSTART,NXYSKN,CSKIN   
+      REAL NXY0,NXYNRM,NXYSKN 
+      C11 = C(1,1)
+      C12 = C(1,2)
+      C22 = C(2,2)
+      C33 = C(3,3)
+      C44 = C(4,4)
+      C45 = C(4,5)
+      C55 = C(5,5)
+      C66 = C(6,6)
+C     
+      B11 =  C(1,4)
+      B12 =  C(1,5)
+      B22 =  C(2,5)
+      B33 =  C(3,6)
+C     
+      C13 = C(1,3)
+      C16 = C(1,6)
+      C23 = C(2,3)
+      C26 = C(2,6)
+      C34 = C(3,4)
+      C35 = C(3,5)
+      C46 = C(4,6)
+      C56 = C(5,6)
+C     
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CNORM 
+      SUBROUTINE CNORM(C)  
+C     
+C     PURPOSE IS TO NORMALIZE THE C(I,J) TO PREVENT OVERFLOW.     
+C     
+      DIMENSION C(6,6)
+      COMMON/CMOD/CC(6,6)     
+      COMMON /CWALL/C11,C12,C22,C33,C44,C45,C55,C66   
+      COMMON/WALLB/B11,B12,B22,B33  
+      COMMON/WALLC/C13,C16,C23,C26,C34,C35,C46,C56,IBAL     
+      COMMON/WALLD/K1,K2,A44,A45,A55,ITRANS(4)  
+      C12 = C(1,2)/C11  
+      C22 = C(2,2)/C11  
+      C33 = C(3,3)/C11  
+      C44 = C(4,4)/C11  
+      C45 = C(4,5)/C11  
+      C55 = C(5,5)/C11  
+      C66 = C(6,6)/C11  
+C     
+      B11 = C(1,4)/C11  
+      B12 = C(1,5)/C11  
+      B22 = C(2,5)/C11  
+      B33 = C(3,6)/C11  
+C     
+      C13 = C(1,3)/C11  
+      C16 = C(1,6)/C11  
+      C23 = C(2,3)/C11  
+      C26 = C(2,6)/C11  
+      C34 = C(3,4)/C11  
+      C35 = C(3,5)/C11  
+      C46 = C(4,6)/C11  
+      C56 = C(5,6)/C11  
+      A44 = A44/C11     
+      A45 = A45/C11     
+      A55 = A55/C11     
+      DO 20 I = 2,6     
+      I1 = I - 1  
+      DO 20 J = 1,I1    
+   20 C(I,J) = C(J,I)   
+      DO 30 I = 1,6     
+      DO 30 J = 1,6     
+   30 CC(I,J) = C(I,J)/C11    
+C
+C     DO 40 I = 1,3
+C     DO 40 J = 4,6
+C  40 CC(I,J) = -CC(I,J)
+C     DO 50 I = 2,6     
+C     I1 = I - 1  
+C     DO 50 J = 1,I1    
+C  50 CC(I,J) = CC(J,I)   
+C
+      C11 = 1.0   
+C     
+      RETURN
+      END   
+C
+C
+C
+C=DECK      SHRRED
+      SUBROUTINE SHRRED(IREDUC,NX,NY,NXY,TX,TY,G,EIG,NPRT,IMOD)
+C
+C  PURPOSE IS TO CALCULATE REDUCTION FACTOR DUE TO TRANSVERSE SHEAR
+C  DEFORMATION AND TO MULTILPY EIGENVALUE EIG BY IT.
+C
+C  IT IS ASSUMED THAT THE REDUCTION FACTOR FOR A PLATE IS THE SAME
+C  AS IT IS FOR A TIMOSHENKO BEAM. THE EQUATION FOR THE REDUCTION
+C  FACTOR, GIVEN BY TIMOSHENKO AND GOODIER, 2ND ED., P. 132-135, IS:
+C
+C      REDUCTION FACTOR FOR AXIALLY COMPRESSED WIDE COLUMN =
+C            K = 1/[1 + n*N(EULER)/(Teff*Geff)]
+C
+C  IN WHICH n IS A SHAPE FACTOR (1.2 FOR HOMOGENOUS SHEET); N(EULER)
+C  IS THE CRITICAL AXIAL STRESS RESULTANT FROM KIRCHOFF THEORY; Teff
+C  IS THE EFFECTIVE WALL THICKNESS (SIMPLY THE TOTAL WALL THICKNESS
+C  IN OUR CASE); AND Geff IS THE EFFECTIVE TRANSVERSE SHEAR STIFFNESS.
+C
+C  FOR A LAYERED MEDIUM, Geff IS ASSUMED TO BE GIVEN BY:
+C
+C    Geff = Teff/SUM-OVER-i [ t(i)/G13(i) ]
+C
+C  IN WHICH t(i) IS THE THICKNESS OF THE iTH LAYER AND G13(i) IS THE
+C  TRANSVERSE SHEAR STIFFNESS OF THE iTH LAYER MEASURED IN THE AXIAL-
+C  CIRCUMFERENTIAL COORDINATE SYSTEM.
+C
+C  FOR BIAXIAL LOADING AND IN-PLANE SHEAR, THE "EFFECTIVE" KNOCKDOWN
+C  FACTOR, KSTAR, IS DERIVED ASSUMING THAT THE INTERACTION RELATION
+C  BETWEEN THE THREE IN-PLANE LOADING COMPONENTS NX, NY, NXY IS GIVEN
+C  BY
+C              (Nx/Nxcr)**2 + (Ny/Nycr)**2 + (Nxy/Nxycr)**2 = 1
+C
+C  WE ASSUME THAT THE "EFFECTIVE" KNOCKDOWN FACTOR, KSTAR, IS GIVEN BY:
+C
+C   (1-KSTAR)**2 = (1 - Kx)**2 + (1 - Ky)**2 + (1 - Kxy)**2
+C
+C  IN WHICH Kx IS THE KNOCKDOWN FACTOR FOR COMPRESSION IN THE X-DIR.;
+C  Ky THE FACTOR FOR COMPRESSION IN THE Y-DIR.; Kxy THE FACTOR FOR
+C  IN-PLANE SHEAR.
+C
+C  INPUT DATA...
+C
+C  IREDUC   0 MEANS DON'T REDUCE EIG BY THE TRANSVERSE SHEAR DEFORMATION
+C             REDUCTION FACTOR.
+C           1 MEANS YES,  REDUCE EIG
+C      NX   AXIAL RESULTANT
+C      NY   CIRC. RESULTANT
+C     NXY   IN-PLANE SHEAR RESULTANT
+C      TX   EFFECTIVE THICKNESS OF ONE OF SEGMENTS OR ASSEMBLY OF THE
+C           STRINGER-SKIN MODULE
+C      TY   EFFECTIVE THICKNESS OF ONE OF SEGMENTS OR ASSEMBLY OF THE
+C           RING-SKIN MODULE
+C       G   EFFECTIVE TRANSVERSE SHEAR STIFFNESS COMPONENTS
+C     EIG   BUCKLING EIGENVALUE FROM "EULER" (KIRCHOFF) THEORY.
+C
+C  OUTPUT DATA...
+C
+C     EIG   BUCKLING EIGENVALUE AS REDUCED TO ACCOUNT APPROXIMATELY
+C           FOR TRANSVERSE SHEAR DEFORMATION.
+C
+      COMMON/KSTARR/EIGOLD,KSTAR
+      REAL N, NX,NY,NXY, KX,KY,KXY,KSTAR
+      DIMENSION G(*)
+      KSTAR = 1.0
+      EIGOLD= EIG
+      IF (IREDUC.EQ.0) RETURN
+C
+      N = 1.2
+C
+      KX = 1./(1. + N*ABS(NX)*EIG/(TX*G(1)))
+      KY = 1./(1. + N*ABS(NY)*EIG/(TY*G(2)))
+      TGS1 = TX*G(1)
+      TGS2 = TY*G(2)
+      TGS  = MIN(TGS1,TGS2)
+      KXY= 1./(1. +N*ABS(NXY)*EIG/TGS)
+C
+      COMBO = (1. - KX)**2 + (1. - KY)**2 + (1. - KXY)**2
+      IF (COMBO.GE.0.7) COMBO = 0.7
+      KSTAR = 1. - SQRT(COMBO)
+C
+      EIG   = KSTAR*EIG
+C
+C     WRITE(8,5) EIGOLD,KSTAR,EIG
+C   5 FORMAT(' Knockdown due to transverse shear deformation: (Kirchoff 
+C    1theory value=',1PE10.2,')x(knockdown=',1PE10.2,')=(final='1PE11.3
+C    1,')')
+C
+C     WRITE(8,*)' TX,TY,G(1),G(2)=',TX,TY,G(1),G(2)
+C     WRITE(8,*)' KX,KY,TGS,KXY=', KX,KY,TGS,KXY
+C     WRITE(8,*)' N,NX,NY,NXY,EIG=',N,NX,NY,NXY,EIG
+C     WRITE(8,*)' COMBO=', COMBO
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      MINM  
+      SUBROUTINE MINM(A,B,NXEIG,NYEIG,NXYEIG,CSLOPE,IDESGN,MBAR,NBAR,   
+     1 EIGVAL,INDX,PARX1,PARX2,FFLAT,IAGAIN) 
+C     
+C     PURPOSE IS TO FIND CRITICAL NUMBER OF HALFWAVES M IN THE AXIAL    
+C     DIRECTION.  
+C     
+C        MBAR = M = NUMBER OF AXIAL HALF-WAVES  
+C      EIGVAL = CURRENT VALUE OF EIGENVALUE.    
+C     
+      COMMON/MMAXWV/MMAX
+      REAL NXEIG,NYEIG,NXYEIG,MBAR,NBAR,MBARS,MBARP,MBARM   
+      EIGVM = 2.*EIGVAL 
+      MBARS = MBAR
+      M = MBAR    
+      IPRCNT = 0.1*MBAR
+      PRCNTM = IPRCNT
+      PRCNTM = AMAX1(1.0, PRCNTM)
+      SLOPE = CSLOPE    
+      MBARP = MBAR + PRCNTM   
+      CALL EIG(A,B,NBAR,MBARP,NXEIG,NYEIG,NXYEIG,SLOPE,IDESGN,EIGVP,    
+     1 INDX,FFLAT,IAGAIN)
+      IF (EIGVP.GT.EIGVAL) GO TO 10 
+      INCR =  PRCNTM     
+      SINCR = 1.0 
+      FINCR = INCR
+      EIGVAL = EIGVP    
+      CSLOPE = SLOPE    
+C     
+      GO TO 30    
+   10 CONTINUE    
+      IF (M.EQ.1) GO TO 100
+      SLOPE = CSLOPE    
+      MBARM = MBAR - PRCNTM   
+      IF (M.GT.1) 
+     1 CALL EIG(A,B,NBAR,MBARM,NXEIG,NYEIG,NXYEIG,SLOPE,IDESGN,EIGVM,   
+     1 INDX,FFLAT,IAGAIN)
+      IF (EIGVM.GT.EIGVAL.OR.M.LE.1) GO TO 100  
+      INCR =  -PRCNTM    
+      SINCR = -1.0
+      FINCR = INCR
+      EIGVAL = EIGVM    
+      CSLOPE = SLOPE    
+C     
+C     
+   30 MBAR = MBAR + FINCR     
+   35 MBARS = MBAR
+      MBAR = MBAR + FINCR     
+      M = MBAR    
+      IF (M.LE.1) GO TO 100   
+      IF (M.GT.MMAX.AND.EIGVAL.EQ.10.E16) GO TO 100   
+C     
+      SLOPE = CSLOPE    
+      CALL EIG(A,B,NBAR,MBAR,NXEIG,NYEIG,NXYEIG,SLOPE,IDESGN,     
+     1 EIGV,INDX,FFLAT,IAGAIN) 
+      IF (EIGV.GT.EIGVAL) GO TO 100 
+      PRCNTM = 0.1*MBAR 
+      INCR =(1.0 + PRCNTM)*SINCR    
+      FINCR = INCR
+      EIGVAL = EIGV     
+      CSLOPE = SLOPE    
+      GO TO 35    
+C     
+  100 CONTINUE    
+      MBAR = MBARS
+      RETURN
+      END   
+C
+C
+C
+C=DECK      EIG  
+      SUBROUTINE EIG(A,B,NBAR,MBAR,NXEIG,NYEIG,NXYEIG,SLOPE,IDESGN,    
+     1  EIGVAL,INDX,FFLAT,IAGAIN)
+C     
+C     COMPUTE BUCKLING LOAD OF SIMPLY-SUPPORTED CYLINDRICAL PANEL 
+C     WITH BIAXIAL IN-PLANE LOADING AND IN-PLANE SHEAR.     
+C     
+C     A = PANEL HEIGHT  (AXIAL DIRECTION) 
+C     B = PANEL WIDTH (IN CIRCUMFERENTIAL DIRECTION)  
+C  NBAR = NUMBER OF HALF WAVES IN CIRCUMFERENTIAL DIRECTION IN WIDTH, B 
+C  MBAR =  UMBER OF HALF WAVES IN AXIAL DIRECTION IN HEIGHT, A    
+C EIGVAL = EIGENVALU (LAMBDA) 
+C     
+      REAL N1,M1,N2,M2,N12,N22,M12,M22,N14,N24,M14,M24,N13,N23,M13,M23  
+      REAL N1M1,N2M2,NMDIF    
+      REAL M,N,MBAR,NBAR,NUM,MSUM,NSUM,MC,ND,NCYL     
+      REAL NXPRE,NYPRE,NXYPRE 
+      REAL NXEIG,NYEIG,NXYEIG 
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/IIIROL/IROLL,IPRELM,IQUICK
+      COMMON/NDEBUG/NPRNT
+      COMMON/CMOD/CC(6,6)     
+      COMMON/NPRINT/NPRT
+      COMMON/PRESHR/NXY0,E0XY,NXYNRM,ISHEAR,SHEAR,CSTART,NXYSKN,CSKIN   
+      COMMON/GENLOC/NXFIX,NYFIX,NXYFIX,TEST,E0XP,E0YP 
+      COMMON/C11SAV/C11SVE
+      COMMON/CWALL/C11,C12,C22,C33,C44,C45,C55,C66    
+      COMMON/WALLC/C13,C16,C23,C26,C34,C35,C46,C56,IBAL     
+      COMMON/WALLD/AK1,AK2,A44,A45,A55,ITRANS(4)
+      COMMON/ENEMS/N1,N2,M1,M2,N12,N22,M12,M22,N1M1,N2M2,NSUM,MSUM
+      REAL NXFIX,NYFIX,NXYFIX 
+      COMMON/DESVAR/ISPACS(4),R     
+      REAL NXY0,NXYNRM,NXYSKN 
+      COMMON/BARRAY/B1(30),B2(30),BS1(6),BS2(6),ASH(4),K(25),
+     1              B1ALT(30),B2ALT(30)
+      COMMON/ECHECK/ICHECK
+      DIMENSION EIGALL(200),SLPALL(200)
+      REAL K
+      COMMON/TEMBUG/DIFFF,INDXX,MMMBAR,NNNBAR,DIFFF2
+      REAL MMMBAR,NNNBAR
+C BEG NOV 2011 (comment out the following statements...)
+C     COMMON/LWRUPR/VARLOW(50),VARHI(50),CLINK(50,5),VLINK(50),VBV(99)
+C     COMMON/NUMPAR/NPAR,NVAR,NALLOW,NNNCON,NDEC,NLINK,NESCAP,ITYPE
+C     COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+C     COMMON/OPTVAR/IDEC(50),ILV(50),IDLINK(50,5),ISCAPE(50),JTERMS(50)
+C     COMMON/MISCLN/NMATEL,IFLAT,DENS(10) 
+C     COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+C     CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD
+C     LOGICAL IBOOL
+C END NOV 2011
+C     
+C
+      MMMBAR = MBAR
+      NNNBAR = NBAR
+      INDXX  = INDX
+C
+      EIGVAL = 10.E16   
+      EIGSAV = EIGVAL   
+C
+C     IF (MBAR.EQ.5.0.AND.NBAR.EQ.1.0) SLOPE = 0.39
+C
+      SLOPSV = SLOPE    
+      SLOP0 = SLOPE
+      PI = 3.1415927    
+C     
+      M = MBAR*PI/A     
+      N = NBAR*PI/B     
+C     
+C     
+      KOUNT = 0   
+      KOUNT2 = 0
+      DONNEL = 1. 
+      CALL DONELL(A,B,NBAR,MBAR,NXEIG,NYEIG,NXYEIG,DONNEL,
+     1           FFLAT,IAGAIN)
+      NXPRE = NXFIX/DONNEL    
+      NYPRE = NYFIX/DONNEL    
+      NXYPRE = NXYFIX/DONNEL  
+      SUM = NXYPRE + NXYEIG   
+      SGN = 1.0   
+      IF (SUM.LT.0.0) SGN = -1.0    
+      FINCR = 0.01*SGN  
+      FPROD = 1.2 
+      ITHRU = 0
+      SLPMAX = 30.
+C     
+   10 CONTINUE    
+      KOUNT2 = KOUNT2 + 1
+      IF (KOUNT2.GT.1000) GO TO 300
+      D = SLOPE   
+      C = 0.0     
+      IF (TEST.GT.0.99) D = 0. 
+      IF (TEST.GT.0.99) C = SLOPE    
+C     
+      MC = M*C    
+      ND = N*D    
+      N1 = N+MC   
+      N2 = N-MC   
+      M1 = M+ND   
+      M2 = M-ND   
+C     
+      N12 = N1*N1 
+      N22 = N2*N2 
+      M12 = M1*M1 
+      M22 = M2*M2 
+      MSUM = M12 + M22  
+      NSUM = N12 + N22  
+      N1M1 = N1*M1
+      N2M2 = N2*M2
+      NMDIF= N2M2 -N1M1 
+C
+      IF (IFLAT.EQ.0) 
+     1         PREB = NXPRE*MSUM +NYPRE*NSUM +2.*NXYPRE*NMDIF
+      IF (IAGAIN.NE.2.AND.(IFLAT.NE.0.OR.FFLAT.GT.0.5))
+     1         PREB = NXPRE*2.*M*M + NYPRE*2.*N*N + 2.*NXYPRE*NMDIF
+C
+      IF (IFLAT.EQ.0) 
+     1          DEN = -NXEIG*MSUM -NYEIG*NSUM -2.*NXYEIG*NMDIF 
+      IF (IAGAIN.NE.2.AND.(IFLAT.NE.0.OR.FFLAT.GT.0.5))
+     1          DEN = -NXEIG*2.*M*M - NYEIG*2.*N*N -2.*NXYEIG*NMDIF 
+C
+      IF (DEN.LE.0.0) THEN
+         IF (ISHEAR.EQ.0) GO TO 300 
+         IF (ABS(SLOPE).GT.5.) GO TO 300  
+         IF (IDESGN.EQ.1) GO TO 320
+         IF (KOUNT.GT.0)  GO TO 300
+         IF (ISHEAR.NE.0) GO TO 110 
+      ENDIF
+C     
+      EIGSVV = EIGSAV   
+      EIGSAV = EIGVAL   
+      KOUNT = KOUNT + 1 
+C
+   20 CONTINUE
+C
+C      EIGENVALUE WITHOUT TRANSVERSE SHEAR DEFORMATION EFFECT...
+C
+      CALL EIGREG(EIGVAL,PREB,DEN,B,FFLAT,IAGAIN)
+      CALL DONELL(A,B,NBAR,MBAR,NXEIG,NYEIG,NXYEIG,DONNEL,
+     1           FFLAT,IAGAIN)
+      EIGVAL = DONNEL*EIGVAL
+C     
+   30 CONTINUE
+C     IF (NPRNT.EQ.INDX.AND.MBAR.EQ.1.0.AND.NBAR.EQ.1.0) THEN
+      IF (NPRNT.EQ.INDX) THEN
+         WRITE(8,7011) MBAR,NBAR,SLOPE,EIGVAL
+ 7011    FORMAT(' MBAR,NBAR,SLOPE,EIGVAL=',1P4E12.4)
+      ENDIF
+C BEG NOV 2011 (terminate for neg. eigenvalue and comment out stuff)
+      IF (EIGVAL.LT.0.0) THEN
+         WRITE(8,'(A)') ' NEGATIVE EIGENVALUE. TERMINATE.'
+         CALL ERREX
+      ENDIF
+C
+C     IF (EIGVAL.LT.0.0) THEN
+C        IF (NPRNT.EQ.INDX) WRITE(8,7010) NBAR,MBAR,SLOPE,EIGVAL,DONNEL
+C        IF (INDX.EQ.1.AND.IPRELM.EQ.2.AND.IQUICK.EQ.0) GO TO 300
+C        IIERR = 0
+C        IBOOL = (INDX.NE.1.OR.IROLL.EQ.1.OR.NBAR.GT.1.1)
+C        IF (IBOOL.OR.ISTIF(1).EQ.4) IIERR = 1
+C        IF (IIERR.EQ.1) THEN
+C           CALL OUTOPT(8,NVAR,IDEC,ISCAPE,ILV,CLINK,IDLINK,
+C    1                  VARLOW,VARHI,VAR,WORDV,
+C    1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+C    1  ',57)
+C
+C           DETTER = C11SVE**2*(C11*C22 - C12*C12)
+C           WRITE(8,15) INDX,A,B,NBAR,MBAR,SLOPE,EIGVAL,
+C    1                               IROLL,NXFIX*C11SVE,NYFIX*C11SVE,
+C    1                               NXYFIX*C11SVE,NXEIG*C11SVE,
+C    1                               NYEIG*C11SVE,NXYEIG*C11SVE
+C           WRITE(8,151) C11*C11SVE,C22*C11SVE,C33*C11SVE,C44*C11SVE,
+C    1                   C55*C11SVE,C66*C11SVE,DETTER
+C        ENDIF
+C
+C  15    FORMAT(//' ************* NEGATIVE BUCKLING LOAD(S) **********'/
+C    1' We are now in the PANDA-type (closed form) analysis branch.'/
+C    1' We are now in SUBROUTINE EIG. Relevant parameters have the'/
+C    1' the following values:'/
+C    1'   Indicator for type of buckling, INDX               =',I10/
+C    1'    (1=local; 2=general; 3=smeared stringers; 4=smeared rings)'/
+C    1'   Axial length of part of panel being evaluated, a   =',1PE12.4/
+C    1'   Circ. length of part of panel being evaluated, b   =',1PE12.4/
+C    1'   Number of circumferential halfwaves in this part, n=',1PE12.4/
+C    1'   Number of      axial      halfwaves in this part, m=',1PE12.4/
+C    1'   Slope of the buckling nodal lines, SLOPE           =',1PE12.4/
+C    1'   Buckling load factor, EIGVAL                       =',1PE12.4/
+C    1'   Index for including stiffener rolling,        IROLL=',I5//
+C    1'   Fixed axial resultant (Load Set B),         Nx(pre)=',1PE12.4/
+C    1'   Fixed hoop  resultant (Load Set B),         Ny(pre)=',1PE12.4/
+C    1'   Fixed shear resultant (Load Set B),        Nxy(pre)=',1PE12.4/
+C    1'   Eigenvalue axial resultant (Load Set A),    Nx(eig)=',1PE12.4/
+C    1'   Eigenvalue hoop  resultant (Load Set A),    Ny(eig)=',1PE12.4/
+C    1'   Eigenvalue shear resultant (Load Set A),   Nxy(eig)=',1PE12.4)
+C 151 FORMAT (/,   
+C    1' Tangent stiffness terms, CTAN...'/
+C    1'   Axial stiffness,                             C(1,1)=',1PE12.4/
+C    1'   Hoop  stiffness,                             C(2,2)=',1PE12.4/
+C    1'   In-plane shear stiffness,                    C(3,3)=',1PE12.4/
+C    1'   Axial bending  stiffness,                    C(4,4)=',1PE12.4/
+C    1'   Hoop  bending  stiffness,                    C(5,5)=',1PE12.4/
+C    1'   Torsional      stiffness,                    C(6,6)=',1PE12.4/
+C    1'   C11*C22 - C12**2 (must be positive!) C11*C22-C12**2=',1PE12.4)
+C
+C     IF (IIERR.EQ.1) WRITE(8,16)
+C  16 FORMAT(/' CHECK FOR THE FOLLOWING:'/
+C    1'   1. Are the signs of your applied loads correct?'/
+C    1'   2. Do you have a Load Set B that is more than large enough'/
+C    1'      to cause buckling by itself? (If you suspect that the'/
+C    1'      pressure is causing this trouble, rerun with the pressure'/
+C    1'      in Load Set A instead of Load Set B.)'/
+C    1'   3. Are thermal resultants large enough to cause buckling by'/
+C    1'      themselves?'/
+C    1'   4. Are any terms on the diagonal of the tangent stiffness'/
+C    1'      matrix CTAN negative? If so, there is something wrong'/
+C    1'      with the calculation of the constitutive law. (Contact'/
+C    1'      Dave Bushnell, (415) 424-3237 ).'/
+C    1'   5. Is C11*C22 - C12**2 negative? If so, there is something'/
+C    1'      wrong with the local postbuckling solution (contact Dave'/
+C    1'      Bushnell, (415) 424-3237).'//
+C    1' IF THE DIFFICULTY IS NOT ITEMS 4 OR 5, YOU MIGHT FIRST TRY TO'/
+C    1' AVOID THE PROBLEM BY INCREASING THE LOAD COMPONENTS IN'/
+C    1' LOAD SET A.'/)
+C
+C
+C        IF (IIERR.EQ.1) CALL ERREX
+C  32    CONTINUE
+C     ENDIF
+C END NOV 2011
+C
+C     IF (INDX.EQ.2.AND.KOUNT.EQ.1.AND.MBAR.LT.2.) WRITE(6,5105) 
+C     IF (NPRNT.EQ.INDX.AND.MBAR.EQ.1.)WRITE(8,5100) MBAR,NBAR,SLOPE,
+C    1 EIGVAL,TEST,DEN,C,D
+ 5100 FORMAT(' M,N,C,EIG,TEST,DEN,C,D=',1P8E11.3) 
+ 5105 FORMAT(1H0) 
+      IF (IDESGN.EQ.1) GO TO 320    
+C     
+      IF (ISHEAR.EQ.0.AND.IBAL.EQ.0) GO TO 320
+      IF (EIGVAL.GE.EIGSAV.AND.KOUNT.GT.1.AND.ITHRU.EQ.0) GO TO 200  
+      IF (ITHRU.EQ.1) THEN
+         EIGALL(KOUNT2) = EIGVAL
+         SLPALL(KOUNT2) = SLOPE
+C BEG JUNE 1990
+         IF (ICHECS.EQ.1.AND.SLOPE.GE.0.) FPROD = 1.2
+C END JUNE 1990
+      ENDIF
+      IF (ABS(SLOPE).GT.SLPMAX) GO TO 300
+      SLOPSV = SLOPE    
+C     
+C     ITERATE ON THE SLOPE OF THE BUCKLING PATTERN... 
+C     
+  110 CONTINUE
+      IF (KOUNT2.EQ.1.AND.ITHRU.EQ.1) THEN
+         EIGALL(KOUNT2) = EIGVAL
+         SLPALL(KOUNT2) = SLOPE
+      ENDIF
+      SLOPC = SLOPE     
+      IF (ABS(SLOPC).LE.0.1) SLOPE = SLOPE + FINCR    
+      IF (ABS(SLOPC).GT.0.1) SLOPE = SLOPE*FPROD
+C     
+      GO TO 10    
+C     
+  200 CONTINUE    
+      IF (EIGVAL.EQ.EIGSAV.OR.KOUNT.GT.2) GO TO 300     
+      SLOPE = SLOPSV    
+      EIGVAL = EIGSAV   
+      FINCR =  -FINCR   
+      IF (ABS(SLOPE).GT.0.1) FPROD = 1./FPROD  
+      GO TO 110   
+C     
+  300 CONTINUE    
+C     
+      SLOPE = SLOPSV    
+      EIGVAL = EIGSAV   
+C
+      IF (ITHRU.EQ.1) THEN
+         EIGALL(KOUNT2) = EIGVAL
+         SLPALL(KOUNT2) = SLOPE
+      ENDIF
+      ICHECS = ICHECK
+      IF (SLOP0.EQ.0.) ICHECS=1
+      IF (ICHECS.EQ.1.AND.ITHRU.EQ.0) THEN
+         IF (NPRNT.EQ.INDX) WRITE(8,302)
+  302    FORMAT(/' CHECK WIDE RANGE OF SLOPE FOR MINIMUM EIGENVALUE.')
+C BEG JUNE 1990
+         SLPMIN = -20.
+         SLPMAX = 20.
+         ITHRU  = 1
+         SLOP1  = SLOPE
+         EIGEV1 = EIGVAL
+         KOUNT  = 0
+         KOUNT2 = 0
+         SLOPE  = SLPMIN
+         EIGVAL = 10.E16
+         FINCR =  0.05
+         FPROD = 1./1.2 
+         GO TO 10
+C END JUNE 1990
+      ENDIF
+      IF (ICHECS.EQ.1.AND.ITHRU.EQ.1) THEN
+         EIGMIN = EIGEV1
+         DO 305 I = 1,KOUNT2
+            EIGMIN = MIN(EIGMIN,EIGALL(I))
+  305    CONTINUE
+         DIFF = ABS(EIGEV1 - EIGMIN)/ABS(EIGEV1)
+         IF (DIFF.LT.0.01) THEN
+            EIGVAL = EIGEV1
+            SLOPE  = SLOP1
+            GO TO 320
+         ELSE
+            DO 310 I = 1,KOUNT2
+             DIFF = ABS(EIGMIN - EIGALL(I))/ABS(EIGMIN)
+             IF (DIFF.LT.0.0001) THEN
+               EIGVAL = EIGALL(I)
+               SLOPE  = SLPALL(I)
+               IF (NPRNT.EQ.INDX) 
+     1            WRITE(8,308) EIGEV1,SLOP1,EIGVAL,SLOPE
+  308          FORMAT(' CRITICAL EIGENVALUE SMALLER THAN THAT FOUND'/
+     1       ' BY INITIAL SEARCH:'/
+     1       '  PREVIOUS VALUE AND SLOPE:  EIGEV1, SLOP1 =',1P2E12.4/
+     1       '  MINIMUM  VALUE AND SLOPE:  EIGVAL, SLOPE =',1P2E12.4/)
+               GO TO 320
+             ENDIF
+  310       CONTINUE
+         ENDIF
+      ENDIF
+C 
+  320 CONTINUE    
+         IF (NPRNT.EQ.INDX) WRITE(8,7010) NBAR,MBAR,SLOPE,EIGVAL,DONNEL
+ 7010    FORMAT(' NBAR,MBAR,SLOPE,EIGVAL,DONNEL=',1P5E12.4)
+C     
+      RETURN
+      END   
+C
+C
+C
+C=DECK      EIGREG
+      SUBROUTINE EIGREG(EIGVAL,PREB,DEN,B,FFLAT,IAGAIN)
+C
+C     PURPOSE IS TO CALCULATE BUCKLING EIGENVALUE WITH NEGLECT OF
+C     TRANSVERSE SHEAR DEFORMATION EFFECTS.
+C
+      COMMON/ENEMS/N1,N2,M1,M2,N12,N22,M12,M22,N1M1,N2M2,NSUM,MSUM
+      REAL N1M1,N2M2,MSUM,NSUM,NUM
+      REAL N1,M1,N2,M2,N12,N22,M12,M22,N14,N24,M14,M24,N13,N23,M13,M23
+      COMMON/CWALL/C11,C12,C22,C33,C44,C45,C55,C66    
+      COMMON/WALLB/C14,C15,C25,C36  
+      COMMON/WALLC/C13,C16,C23,C26,C34,C35,C46,C56,IBAL   
+      COMMON/DESVAR/ISPACS(4),R
+      COMMON/TEMBUG/DIFF,INDX,MMMBAR,NNNBAR,DIFFF2
+      COMMON/NDEBUG/NPRNT
+      REAL MMMBAR,NNNBAR
+C
+      C24 = C15
+C
+      N14 = N12*N12     
+      N24 = N22*N22     
+      M14 = M12*M12     
+      M24 = M22*M22     
+      N13 = N12*N1
+      N23 = N22*N2
+      M13 = M12*M1
+      M23 = M22*M2
+C     
+C     TERMS FOR BALANCED LAMINATES...     
+C     
+      RBB = ABS(R)/ABS(B)
+      FCUR = 1.0
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) THEN
+         RBB = 10000.
+         FCUR = 0.
+      ENDIF
+      IF (RBB.LT.10.) THEN
+C   ORIGINAL FORMULATION (Computers and Structures, Vol. 27, 1987,
+C                         p. 552, Eqs.(55)...)
+         A11 =C11*(N24*M14 +N14*M24) + C33*(N24*N12*M12 +N14*N22*M22)
+         A12 = -(C12+C33)*(N23*N1*M12 + N13*N2*M22)
+         A22 = 2.*C22*N12*N22 + C33*(N22*M12 +N12*M22)   
+         A13 = -C12*(N22*M12+N12*M22)*FCUR/R -C14*(N22*M14 +N12*M24)
+     1         -(C15+2.*C36)*N12*N22*MSUM    
+         A23 = N1*N2*(C22*2.*FCUR/R +(C24+2.*C36)*MSUM +C25*NSUM)
+      ENDIF
+C    ALTERNATE FORMULATION (PANDA2.NEWS ITEM 68...)
+      A11ALT =C11*(M14 +M24) + C33*(N12*M12 +N22*M22)
+      A12ALT = -(C12+C33)*(N12*M12 + N22*M22)
+      A22ALT = C22*(N14+N24) + C33*(N12*M12 +N22*M22)   
+      A13ALT = -C12*(M12+M22)*FCUR/R -C14*(M14 +M24)
+     1         -(C15+2.*C36)*(N12*M12 +N22*M22)
+      A23ALT = C22*(N12+N22)*FCUR/R +(C24+2.*C36)*(N12*M12 +N22*M22)
+     1        +C25*(N14+N24)
+      A33 = C22*2.*FCUR/R**2 + 2.*C24*MSUM*FCUR/R +2.*C25*NSUM*FCUR/R
+     1 +C44*(M14+M24) +C55*(N14+N24) +(2.*C45+4.*C66)*(N12*M12+M22*N22) 
+     1 + PREB
+C     
+C     BRANCH FOR UNBALANCED LAMINATES...  
+C
+C  IF IBAL = 0, THE CONTRIBUTION OF THE D16 AND D26 TERMS (AND OTHER TERMS
+C  TYPICAL OF ANISOTROPIC WALLS) ARE OMITTED. (NEXT STATEMENT IS COMMENTED
+C  OUT. IT WAS SET EQUAL TO ZERO ONCE TO DEMONSTRATE THE EFFECT OF THE
+C  ANISOTROPIC TERMS IN A CERTAIN CASE WHERE RESULTS FROM PANDA2 WERE BEING
+C  COMPARED WITH RESULTS FROM COMPUTER PROGRAMS WRITTEN ELSEWHERE.)
+C
+C     IBAL = 0
+C
+      IF (IBAL.EQ.0) GO TO 100
+C     
+      IF (RBB.LT.10.) THEN
+C   ORIGINAL FORMULATION (Computers and Structures, Vol. 27, 1987,
+C                         p. 552, Eqs.(55)...)
+         A11 = A11 +2.*C13*(-N24*M13*N1 +N14*M23*N2)     
+         A12 = A12 +C13*(N23*M13 -N13*M23)
+     1             +C23*(N23*N12*M1 -N13*N22*M2)
+         A22 = A22 +2.*C23*(-N1*N22*M1 +N12*N2*M2) 
+         A13 = A13 +(2.*C16+C34)*(N22*N1*M13 - N12*N2*M23)     
+     1         +C23*(N22*N1M1 -N12*N2M2)*FCUR/R
+     1         +C35*(N22*N13*M1-N12*N23*M2)    
+         A23 = A23 +(2.*C26+C35)*(-N12*N2*M1 +N22*N1*M2) 
+     1         +C23*(-N2*M1 +N1*M2)*FCUR/R +C34*(-N2*M13 +N1*M23)   
+      ENDIF
+C    ALTERNATE FORMULATION (PANDA2.NEWS ITEM 68...)
+      A11ALT = A11ALT +2.*C13*(-M13*N1 +M23*N2)     
+      A12ALT = A12ALT +C13*(N2*M13 -N1*M23) +C23*(N13*M1 -N23*M2)    
+      A22ALT = A22ALT +2.*C23*(-N13*M1 +N23*M2) 
+      A13ALT = A13ALT +(2.*C16+C34)*(N1*M13 - N2*M23)     
+     1         +C23*(N1M1 -N2M2)*FCUR/R +C35*(N13*M1-N23*M2)    
+      A23ALT = A23ALT +(2.*C26+C35)*(-N13*M1 +N23*M2) 
+     1         +C23*(-N1M1 +N2M2)*FCUR/R +C34*(-N1*M13 +N2*M23)   
+      A33 = A33 + 4.*C26*(-N1*M1 +N2*M2)*FCUR/R
+     1          + 4.*C46*(-N1*M13 +N2*M23) +4.*C56*(-N13*M1 +N23*M2)   
+C     
+C     WRITE(8,*)' MMMBAR,NNNBAR,C,D,R=',MMMBAR,NNNBAR,C,D,R
+C     WRITE(8,*)' C14,C15,C16,C24,C25,C26=',C14,C15,C16,C24,C25,C26
+C     WRITE(8,*)' C34,C35,C36,C46,C56,C66=',C34,C35,C36,C46,C56,C66
+C     WRITE(8,*)' N1,N2,M1,M2=        ',N1,N2,M1,M2
+C     WRITE(8,*)' N12,N22,M12,M22=    ',N12,N22,M12,M22
+C     WRITE(8,*)' N1M1,N2M2,NSUM,MSUM=',N1M1,N2M2,NSUM,MSUM
+C     WRITE(8,*)' N13,N23,M13,M23=    ',N13,N23,M13,M23
+C     WRITE(8,*)' N14,N24,M14,M24=    ',N14,N24,M14,M24
+C
+  100 CONTINUE    
+C     
+      A12N = A12ALT/A11ALT
+      A22N = A22ALT/A11ALT
+      A23N = A23ALT/A22ALT
+      A13N = A13ALT/A22ALT
+      A12NN= A12ALT/A22ALT
+      PROD1 = A23N*(A12N*A13ALT - A23ALT) 
+      PROD2 = A13N*(A12N*A23ALT - A13ALT*A22N)  
+      PROD3 = 1. - A12NN*A12N 
+      NUM = A33 + (PROD1 + PROD2)/PROD3   
+      EIGV2 = NUM/DEN
+      EIGV1 = EIGV2
+      IF (RBB.LT.10.) THEN
+         A12N = A12/A11    
+         A22N = A22/A11    
+         A23N = A23/A22    
+         A13N = A13/A22    
+         A12NN= A12/A22     
+         PROD1 = A23N*(A12N*A13 - A23) 
+         PROD2 = A13N*(A12N*A23 - A13*A22N)  
+         PROD3 = 1. - A12NN*A12N 
+         NUM = A33 + (PROD1 + PROD2)/PROD3   
+         EIGV1 = NUM/DEN
+      ENDIF
+      EIGVAL = MIN(EIGV1,EIGV2)
+C
+C     IF (INDX.EQ.NPRNT.AND.MMMBAR.EQ.1.0.AND.NNNBAR.EQ.1.0)
+C    1   WRITE(8,*)' IBAL,A33,PROD1,PROD2,PROD3,NUM,DEN=',
+C    1               IBAL,A33,PROD1,PROD2,PROD3,NUM,DEN
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      DONELL
+      SUBROUTINE DONELL(A,B,NBAR,MBAR,PX,PY,PXY,DONNEL,FFLAT,IAGAIN)
+C
+C  PURPOSE IS TO CALCULATE REDUCTION FACTOR TO COMPENSATE FOR
+C  INACCURACY OF DONNELL'S SHALLOW SHELL APPROXIMATION.
+C
+      COMMON/DESVAR/ISPACS(4),R     
+      REAL NBAR,MBAR,NCYL
+C
+      PI = 3.14159
+      NCYL = ABS(NBAR*PI*R/B)
+      AMBAR = A/MBAR
+      DONNEL = 1.0
+      IF (IAGAIN.NE.2.AND.FFLAT.GT.0.5) RETURN
+      PTEST = ABS(PY) - ABS(PX)
+C     IF (PTEST.LT.0.0) RETURN
+      IF (AMBAR.LT.ABS(R)) RETURN
+      IF (NBAR.LT.2.) RETURN
+      IF (NCYL.GT.1.5.AND.NCYL.LT.20.) DONNEL = (NCYL*NCYL-1.)/NCYL**2
+      ARG = 10.
+      DIN = 1./DONNEL
+      IF (ABS(PX).GT.0.) ARG = SQRT(PY**2 + PXY**2)/ABS(PX)
+      IF (ARG.GE.0.5) DFACT = 1.0
+      IF (ARG.LT.0.5) DFACT = 2.*(1.-DIN)*ARG + DIN
+      DONNEL = DFACT*DONNEL
+C     
+C     WRITE(8,*)' R,A,B,NBAR,MBAR,NCYL,PX,PY,DONNEL=',
+C    1            R,A,B,NBAR,MBAR,NCYL,PX,PY,DONNEL
+      RETURN
+      END   
+C
+C
+C
+C=DECK      GETCIJ
+      SUBROUTINE GETCIJ(IPRINT,IFILE,ISTIF,CX,THERMX,
+     1                  GTS,TEFF,ETHRMX,ICOCUR,NSEG,JSTRUT)
+C
+C BORROWED FROM "DEWAR" AND ADAPTED FOR THE "tank" GENERIC CLASS
+C
+C PURPOSE IS TO CALCULATE CONSTITTIVE MATRICES CX(i,j,k), CY(i,j,k),
+C AND  CS(i,j) FOR UNIQUE SEGMENTS IN SKIN-STRINGER MODULE (CX), UNIQUE
+C SEGMENTS IN SKIN-RING MODULE (CY), AND SKIN-SMEARED STIFFENER (CS).
+C
+C ALSO (AUGUST 1984) CALCULATE EFFECTIVE TRANSVERSE SHEAR STIFFNESSES
+C GTX(2,k), GTY(2,k), AND GTS(2), WHERE "X", "Y", AND "S" HAVE THE
+C SAME MEANING AS FOR CX, CY, AND CS.
+C
+C ALSO (SEPT. 1984) CALCULATE THERMAL RESIDUAL STRAINS AND CHANGES IN
+C CURVATURE ETHRMX(6,5), ETHRMY(6,5)ETHERM(6) WHERE "X", "Y", AND "S"
+C HAVE THE SAME MEANING AS FOR CX, CY, AND CS.
+C
+      COMMON/THICKX/TX(5),TY(5)
+      DIMENSION ISTIF(*),NSEG(*),CONDT(5,2),ALORB(2)
+      DIMENSION CX(6,6,*),THERMX(6,*)
+      DIMENSION CSINV(6,6),ETHRMX(6,*)
+      DIMENSION GTX(2,1),GTS(2),CRACK(99,5,2)
+      DIMENSION ICOCUR(*),TEFF(*)
+C
+      CALL MOVER(1.,0,CRACK,1,990)
+C
+      IPCIJ = 0
+      IF (IPRINT.GE.2) IPCIJ = 1
+C
+      CALL SEGCIJ(IPCIJ,IFILE,CX,THERMX,GTX,ETHRMX,
+     1    CSINV,CRACK,IFILE4,CONDT,ALORB,JSTRUT)
+C
+      TEFF(1) = TX(1)
+      TEFF(2) = TX(1)
+      GTS(1)  = GTX(1,1)
+      GTS(2)  = GTX(2,1)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SEGCIJ
+      SUBROUTINE SEGCIJ(IPCIJ,IFILE,CX,THERMX,GTX,
+     1      ETHRMX,CSINV,CRACK,IFILE4,CONDT,ALORB,JSTRUT)
+C
+C  PURPOSE IS TO GET THE C(i,j) FOR THE UNIQUE SEGMENTS OF A MODULE
+C  ALSO, THERM, WHICH IS THE THERMAL RESULTANTS AND MOMENTS DUE TO
+C  CURING THE COMPOSITE LAMINATE.
+C
+C  ALSO (AUG 84) GET THE TRANSVERSE SHEAR STIFFNESSES GTX(i), i=1,2
+C  AND GTY(i), I=1,2 FOR THE UNIQUE SEGMENTS OF A MODULE.
+C
+C  ALSO (SEP 84) GET THERMAL STRAINS AND CHANGES IN CURVATURE OF THE
+C  REFERENCE SURFACE, ETHRMX(6,5)(STRINGER MODULE), ETHRMY(6,5) (RING
+C  MODULE.
+C
+C  The reference surface is the middle surface for all segments .
+C  OUTPUT DATA...
+C
+C  CX(6,6,5) ARE THE C(i,j) FOR UP TO 5 UNIQUE SEGMENTS THAT COMPOSE A
+C            STRINGER-SKIN CROSS-SECTION MODULE
+C  GTX(2,5)  ARE THE TRANSVERSE SHEAR STIFFNESSES (1=AXIAL, 2=CIRC.)
+C            FOR THE SEGMENTS THAT COMPOSE A STRINGER-SKIN CROSS-SECT.
+C  THERMX(6,5) ARE THE THERMAL RESULTANTS (N1T, N2T, 0) AND THERMAL
+C              MOMENTS (M1T, M2T, 0) THAT ARISE IN THE STRINGER-SKIN
+C              CROSS-SECTION MODULE FROM CURING RESIDUAL STRESSES.
+C  ETHRMX(6,5) ARE THE THERMAL STRAINS (ETX, ETY, ETXY) AND THERMAL
+C              CHANGES IN CURVATURE (KTX, KTY, KTXY) THAT ARISE DUE TO
+C              THERMX(6,5). ANALOGOUS STATEMENT HOLDS FOR ETHRMY(6,5).
+C
+      DIMENSION CX(6,6,*),THERMX(6,*),CONDT(5,2)
+      DIMENSION ETHRMX(6,*),CSINV(6,6),CRACK(99,5,2)
+      DIMENSION GTX(2,*),GT1(99),GT2(99),ALORB(2)
+      DIMENSION E1L(99),E2L(99),GL(99),ZETL(99),U12L(99)
+      DIMENSION A1L(99),A2L(99),CON1L(99),CON2L(99)
+      DIMENSION TL(99)
+      COMMON/THICKX/TX(5),TY(5)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/GEOM28/ALDEW,DTDEW,ALRNGD(2),DTRNGD(2),ALSUP(2),DTSUP(2)
+      COMMON/LAYERX/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),COND1(20),COND2(20)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+      COMMON/MATRAN/G13(20),G23(20)
+      CHARACTER*20 PARTS(4,2)
+ 
+      PARTS(4,1) = 'AFT FOLDED TUBE NO 4'
+      PARTS(3,1) = 'AFT FOLDED TUBE NO 3'
+      PARTS(2,1) = '  AFT ORBITAL TUBE  '
+      PARTS(1,1) = '  AFT LAUNCH  TUBE  '
+ 
+      PARTS(4,2) = 'FWD FOLDED TUBE NO 4'
+      PARTS(3,2) = 'FWD FOLDED TUBE NO 3'
+      PARTS(2,2) = '  FWD ORBITAL TUBE  '
+      PARTS(1,2) = '  FWD LAUNCH  TUBE  '
+C
+      ILOOP = 1
+      INTEXT(ILOOP) = 0
+      IF (ISTIF(ILOOP).LE.1) GO TO 100
+      ISTART = 1
+      IEND   = NSEG(ILOOP)
+      IF (ISTART.GT.IEND) GO TO 100
+      FACT = 1.0
+      IF (INTEXT(ILOOP).EQ.1) FACT = -1.0
+C
+      IF (IPCIJ.EQ.1) THEN
+         WRITE(IFILE,'(/,/,A,I2)')
+     1 ' CONSTITUTIVE MATRIX C(i,j) FOR STRUT TUBE TYPE',JSTRUT
+      ENDIF
+C
+      DO 60 I = ISTART,IEND
+C
+      NLAY = NLAYER(I,ILOOP)
+C
+      GT1AVE = 0.
+      GT2AVE = 0.
+      TTOT   = 0.
+C
+      DO 30 J = 1,NLAY
+C
+      K = LTYPE(J,I,ILOOP)
+      M = MATL(K)
+C
+      ACRACK = ABS(CRACK(J,I,ILOOP))
+      BCRACK = ACRACK
+C     IF (ACRACK.LT.0.9) BCRACK = 0.9
+      CCRACK = SQRT(SQRT(ACRACK))
+      IF (CCRACK.LT.0.95) CCRACK = 0.95
+      E1L(J) = CCRACK*E1(M)
+      IF (CRACK(J,I,ILOOP).LT.0.) E1L(J) = E1(M)
+      E2L(J) = BCRACK*E2(M)
+       GL(J) =  BCRACK*G(M)
+      GT1(J) = G13(M)
+      GT2(J) = ACRACK*G23(M)
+      U12L(J)= BCRACK*FNU(M)
+      CON1L(J)= COND1(M)
+      CON2L(J)= COND2(M)
+       TL(J) =  T(K)
+C     WRITE(8,21) ILOOP,I,NLAY,J,K,M,ACRACK,G13(M),G23(M),T(K)
+C  21 FORMAT(' IN SEGCIJ..ILOOP,I,NLAY,J,K,M=',6I5/
+C    1' ACRACK, G13(M),G23(M),T(K)=',1P4E12.4)
+      ZETL(J)= ANGLE(K)
+      TEMP   = -CURETP(M) + DTSUP(ILOOP)
+C     WRITE(8,*)' ILOOP,J,M,CURETP(M),TEMP=',J,M,CURETP(M),TEMP
+      IF (ABS(TEMP).LT.1.0) TEMP = 1.0
+      A1L(J) = ALPHA1(M)*TEMP
+      A2L(J) = ALPHA2(M)*TEMP
+C
+      TTOT = TTOT + TL(J)
+      GT1AVE = GT1AVE + GT1(J)*TL(J)
+      GT2AVE = GT2AVE + GT2(J)*TL(J)
+C
+   30 CONTINUE
+C
+      GT1AVE = GT1AVE/TTOT
+      GT2AVE = GT2AVE/TTOT
+      DO 35 J = 1,NLAY
+         IF (GT1(J).LT.(.1*GT1AVE)) GT1(J) = .1*GT1AVE
+         IF (GT2(J).LT.(.1*GT2AVE)) GT2(J) = .1*GT2AVE
+   35 CONTINUE
+C
+      ZREF = 0.
+      CALL CFBX(NLAY,ZREF,E1L,E2L,GL,U12L,TL,ZETL,CX(1,1,I),
+     1  TX(I),A1L,A2L,THERMX(1,I),GT1,GT2,GTX(1,I),FACT,CONDT(I,1),
+     1  CON1L,CON2L)
+      CALL STRTHM(1,ETHRMX(1,I),CX(1,1,I),CSINV,THERMX(1,I))
+      IF (I.EQ.1) ALSUP(1) = ETHRMX(1,1)/TEMP
+      ALORB(1) = 0.
+      IF (I.EQ.2) ALORB(1) = ETHRMX(1,2)/TEMP
+C     WRITE(8,*)' AFTER ST,ILOOP,J,M,CURETP(M),TEMP=',J,M,CURETP(M),TEMP
+C     WRITE(8,*)' ETHRMX(1,1),TEMP,ALSUP(1)=',ETHRMX(1,1),TEMP,ALSUP(1)
+      IF (IPCIJ.GT.0) WRITE(IFILE,40) I,PARTS(I,JSTRUT)
+   40 FORMAT(/'           COMPOUND SUPPORT TUBE NO.',I2,': ',
+     1  A20,10X,'   THERMAL {NT}  ETHERM {ET}')
+      CALL OUTCIJ(0,IPCIJ,IFILE,CX(1,1,I),THERMX(1,I),ETHRMX(1,I))
+C
+   60 CONTINUE
+  100 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      CFBX  
+      SUBROUTINE CFBX(NLAY,ZREF,E1L,E2L,GL,U12L,TL,ZETL,CCC,TD,
+     1           A1L,A2L,THERM,GT1,GT2,GEFF,FACT,CONDT,CON1L,CON2L)
+C
+C  PURPOSE IS TO CALCULATE C(i,j) AND THERM(J) FOR ONE MULTI-LAYERED
+C  SKIN.  THERM(J) CONTAINS THERMAL RESULTANT AND MOMENT FOR UNIT
+C  UNIFORM DELTA-TEMPERATURE  (ONE DEGREE RISE ABOVE AMBIENT).
+C
+C  ALSO (AUG 1984) CALCULATE EFFECTIVE TRANSVERSE SHEAR STIFFNESSES,
+C  GEFF(1) AND GEFF(2).
+C
+      DIMENSION E1L(99),E2L(99),GL(99),ZETL(99),U12L(99)
+      DIMENSION A1L(99),A2L(99),THL(2),THERM(6),CON1L(*),CON2L(*)
+      DIMENSION GT1(99),GT2(99),GEFF(2),CT(3,3),CTP(3,3)
+      DIMENSION S(99),R(3,3),TL(99),CCC(6,6)  
+      DIMENSION CL(3,3),CP(3,3)     
+      DATA DTR,RTD,PI /.017453293, 57.29577951, 3.141592654/
+C
+      CALL MOVER(0.,0,CCC,1,36)
+      CALL MOVER(0.,0,THERM,1,6)
+      GEFF(1) = 0.
+      GEFF(2) = 0.
+      B = 1.
+      A = 1.
+      C = 0.
+C
+      TD = 0.     
+      CONDT = 0.    
+      DO 10 L=1,NLAY    
+      U21 = 0.
+      IF (E2L(L).GT.0.) U21 = U12L(L)*E1L(L)/E2L(L)   
+      UD = 1.-U12L(L)*U21     
+      S(L) = E1L(L)/UD  
+      TD = TD+TL(L)     
+   10 CONTINUE
+C
+      ECCREF = FACT*(0.5*TD - ZREF)
+      IF (ZREF.EQ.0.) ECCREF = 0.
+      BI = .5*(TD-TL(1))
+      KT = 1
+C     ------------------------------------------------------------------
+C       INTEGRATION THROUGH TOTAL THICKNESS     
+C     ------------------------------------------------------------------
+      DO 100 L=1,NLAY   
+      CALL MOVER (0,0,CL,1,9) 
+      CALL MOVER (0,0,CT,1,9)
+      CALL MOVER (0,0,R,1,9)  
+      H = - ECCREF - BI   
+      IF (E1L(L).EQ.0.) GO TO 77    
+C     ------------------------------------------------------------------
+C       LAYER CONSTITUTIVE MATRIX (W.R.T. PHI1(L),PHI2(L))  
+C     ------------------------------------------------------------------
+      CL(1,1) = S(L)    
+      CL(1,2) = U12L(L)*S(L)  
+      CL(2,1) = CL(1,2) 
+      CL(2,2) = 0.
+      IF (E1L(L).GT.0.) CL(2,2) = S(L)*E2L(L)/E1L(L)  
+      CL(3,3) = GL(L)   
+C
+C  TRANSVERSE SHEAR STIFFNESSES
+C
+      CT(1,1) = GT1(L)
+      CT(2,2) = GT2(L)
+C
+C     COMPUTE STRAIN TRANSFORMATION MATRIX FROM ELEMENT TO FIBER AXES   
+C
+      ZA = ZETL(L)*DTR  
+      CALL RTRSFX(A,B,C,ZA,R) 
+      CALL CONTRAX(R,3,3,CL,3,CP)   
+      CALL CONTRAX(R,3,3,CT,3,CTP)
+C
+C  THERMAL RESULTANTS, NT, AND MOMENTS, MT...
+C
+      ET1 = CL(1,1)*A1L(L)+CL(1,2)*A2L(L)
+      ET2 = CL(2,1)*A1L(L)+CL(2,2)*A2L(L)
+      THL(1) = R(1,1)*ET1+R(2,1)*ET2
+      THL(2) = R(1,2)*ET1+R(2,2)*ET2
+C
+C  CONDUCTIVITY..
+C
+      CONDF = R(1,1)*CON1L(L) + R(2,1)*CON2L(L)
+C
+   72 DZ = TL(L)  
+      ZDZ = H*DZ  
+      Z2DZ = DZ*(H**2+DZ**2/12.)    
+C     ------------------------------------------------------------------
+C       ACCUMULATE CONSTITUTIVE MATRIX (W.R.T. XP,YP) 
+C     ------------------------------------------------------------------
+      DO 1000 I=1,3     
+      DO 1000 J=1,3     
+      CCC(I,J) = CCC(I,J)+CP(I,J)*DZ
+      CCC(I,J+3) = CCC(I,J+3)-CP(I,J)*ZDZ 
+      CCC(I+3,J+3) = CCC(I+3,J+3)+CP(I,J)*Z2DZ  
+ 1000 CONTINUE    
+C
+C  TRANSVERSE COMPLIANCES AND THERMAL TERMS...
+C
+      DO 1100 J = 1,2
+         GEFF(J) = GEFF(J) + TL(L)/CTP(J,J)
+         THERM(J) = THERM(J) + THL(J)*DZ
+         THERM(J+3) = THERM(J+3) - THL(J)*ZDZ
+ 1100 CONTINUE
+C
+C  CONDUCTIVITY ALONG THE AXIS OF THE SUPPORT STRUT..
+C
+      CONDT = CONDT + CONDF*DZ
+C
+C     IF (TD.GT.0.1) THEN
+C        WRITE(6,*)' L,A1L(L),A2L(L)=',L,A1L(L),A2L(L)
+C        WRITE(6,*)' CL(1,1),CL(1,2),CL(2,1),CL(2,2)=',
+C    1C    C    C    CL(1,1),CL(1,2),CL(2,1),CL(2,2)
+C        WRITE(6,*)' ET1,ET2=',ET1,ET2
+C        WRITE(6,*)' R(1,1),R(1,2),R(2,1),R(2,2)=',
+C    1C    C    C    R(1,1),R(1,2),R(2,1),R(2,2)
+C        WRITE(6,*)' THL(1),THL(2),DZ,ZDZ=',THL(1),THL(2),DZ,ZDZ
+C        WRITE(6,*)' THERM(1), THERM(2)=', THERM(1),THERM(2)
+C     ENDIF
+C
+   77 IF (L.EQ.NLAY) GO TO 100
+      BI = BI-.5*(TL(L)+TL(L+1))    
+  100 CONTINUE    
+C
+C  CHANGE SIGN OF C(3,6) TO AGREE WITH BOSOR4 CONVENTION...
+C
+C     CCC(3,6) = - CCC(3,6)
+C     CCC(6,3) =   CCC(3,6)
+C
+C  COMPLETE TRANSVERSE SHEAR STIFFNESS CALCULATION...
+C
+      GEFF(1) = TD/GEFF(1)
+      GEFF(2) = TD/GEFF(2)
+C
+C  SYMMETRIZE CCC...
+C
+      DO 1200 I = 1,6
+      DO 1200 J = I,6
+ 1200 CCC(J,I) = CCC(I,J)
+C
+C BEG NOV 1989
+C  CHECK TO SEE THAT CCC(I,J) ARE LEGAL...
+C
+      CCCDIF = CCC(1,1)*CCC(2,2) - CCC(1,2)**2
+      IF (CCCDIF.LT.0.) THEN
+         WRITE(8,*)' *****************************************'
+         WRITE(8,*)' *****************************************'
+         WRITE(8,*)' *****************************************'
+         WRITE(8,*)' BAD CONSTITUTIVE MATRIX.'
+         WRITE(8,*)' (C(1,1)*C(1,2) - C(1,2)**2) MUST BE POSITIVE'
+         WRITE(8,*)' CHECK YOUR INPUT IN *.BEG FOR POISSONS RATIO.'
+         WRITE(8,*)' YOUR VALUE FOR POISSONS RATIO IS PROBABLY TOO'
+         WRITE(8,*)' LARGE.'
+         WRITE(8,*)' *****************************************'
+         WRITE(8,*)' *****************************************'
+         WRITE(8,*)' *****************************************'
+         CALL ERREX
+      ENDIF
+C
+C END NOV 1989
+      RETURN
+      END   
+C
+C
+C
+C=DECK      CONTRAX
+      SUBROUTINE CONTRAX(T,MT,NT,A,MA,C)  
+      DIMENSION T(MT,NT),A(MA,MA),C(NT,NT)
+      IF(MT.NE.MA) GO TO 99   
+      MC =NT*NT    
+      CALL MOVER (0,0,C,1,MC) 
+      DO 1 K=1,MA 
+      DO 1 L=1,MA 
+      V=A(K,L)    
+      IF (V.EQ.0.) GO TO 1    
+      DO 2 I=1,NT 
+      DO 2 J=1,NT 
+    2 C(I,J)=C(I,J)+T(K,I)*V*T(L,J) 
+    1 CONTINUE    
+      RETURN
+   99 WRITE (6,111)     
+  111 FORMAT (63H * DIMENSIONS OF T AND A ARE INCONSISTENT IN SUBROUTINE
+     1 CONTRA*)   
+      CALL EXIT   
+      END   
+C
+C
+C
+C=DECK      RTRSFX
+      SUBROUTINE RTRSFX(A,B,C,Z,R)   
+      DIMENSION R(3,3)  
+C    TRANSFORMATION MATRIX FOR STRAINS FROM NONORTHOGONAL TO ORTHOGONAL 
+C          WITH ANGLE Z 
+      D=A*A*B*B-C*C     
+      IF(D.LE.0) GO TO 100    
+      D=SQRT(D)   
+      CS=C/D
+      S=A*B/D     
+      CZ=COS(Z)   
+      SZ=SIN(Z)   
+      B11=CZ-CS*SZ
+      B12=-(CS*CZ+SZ)   
+      B21=S*SZ    
+      B22=S*CZ    
+      R(1,1)=B11*B11    
+      R(1,2)=B21*B21    
+      R(1,3)=B11*B21    
+      R(2,1)=B12*B12    
+      R(2,2)=B22*B22    
+      R(2,3)=B12*B22    
+      R(3,1)=2.*B11*B12 
+      R(3,2)=2.*B21*B22 
+      R(3,3)=B11*B22+B21*B12  
+      GO TO 101   
+  100 CONTINUE    
+      WRITE (6,200)     
+  200 FORMAT (//,66H ** IMPROPER SHELL GEOMETRY DETECTED BY RTRSF..A**2*
+     1B**2-C**2=0 **)   
+      CALL EXIT   
+  101 CONTINUE    
+      RETURN
+      END   
+C
+C
+C
+C=DECK      OUTCIJ
+      SUBROUTINE OUTCIJ(ISMEAR,IPRINT,IFILE,C,THERM,ETHERM)
+C
+C  PURPOSE IS TO SYMMETRIZE THE CONSTITUTIVE MATRIX, C(i,j)
+C  PURPOSE IS TO PRINT OUT CONSTITUTIVE MATRIX, C(i,j)
+C  AND THERMAL RESULTANTS AND MOMENTS FROM CURING PROCESS
+C
+      COMMON/NEUTRL/DNEUTX,DNEUTY,DSURF
+      DIMENSION C(6,6),THERM(6),ETHERM(6)
+C
+      IF (IPRINT.GT.0) THEN
+         ISM1 = ISMEAR + 1
+         GO TO (50,60,70,80,90),ISM1
+C
+   50    CONTINUE
+         GO TO 100
+   60    WRITE(IFILE,65)
+   65    FORMAT(//' C(i,j) with smeared stringers only...',
+     1 38X,'THERMAL {NT}  ETHERM {ET}'/
+     1' Reference surface is at the middle surface of the skin midway be
+     1tween the stringers.')
+         GO TO 100
+   70    WRITE(IFILE,75)
+   75    FORMAT(//' C(i,j) with smeared rings only...',
+     1 42X,'THERMAL {NT}  ETHERM {ET}'/
+     1' Reference surface is at the middle surface of the panel skin.')
+         GO TO 100
+   80    WRITE(IFILE,85)
+   85    FORMAT(//' C(i,j) with smeared stringers and rings...',
+     1 33X,'THERMAL {NT}  ETHERM {ET}'/
+     1' Reference surface is at the middle surface of the skin midway be
+     1tween the stringers.')
+         GO TO 100
+   90    WRITE(IFILE,95) DSURF,DNEUTX
+   95    FORMAT(//' C(i,j) with smeared stiffeners. For the following, t
+     1he reference surface is d = C14/C11 from the middle'/
+     1' surface of the thin part of the panel skin. In this case d =',
+     1  1PE12.4,'.  (Positive d corresponds to a reference surface'/
+     1' that lies below the panel skin). Note that the neutral surface i
+     1s located at DNEUTX =',1PE12.4/)
+  100    CONTINUE
+         IF (ISMEAR.LE.3)
+     1    WRITE(IFILE,420) ((C(I,J),J=1,6),THERM(I),ETHERM(I), I=1,6) 
+  420    FORMAT((1P6E12.4,4X,1P2E12.4))
+         IF (ISMEAR.GT.3)
+     1    WRITE(IFILE,430) ((C(I,J),J=1,6),I=1,6)
+  430    FORMAT((1P6E12.4))
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+C=DECK      STRTHM
+      SUBROUTINE STRTHM(INDIC,ETHERM,CS,CSINV,THERMS)
+C
+C  PURPOSE IS TO FIND THE RESIDUAL STRAINS AND CURVATURE CHANGES OF
+C  THE REFERENCE SURFACE FROM THERMAL LOADS STORED IN THERMS.
+C  THE RESIDUAL STRAINS AND CURVATURE CHANGES ARE STORED IN ETHERM.
+C
+      DIMENSION ETHERM(*),CS(6,6),CSINV(6,6),THERMS(*)
+C
+      CALL MOVER(0,0,ETHERM,1,6)
+      IF (INDIC.GT.0) THEN
+         CALL MOVER(CS,1,CSINV,1,36)
+C
+         CALL INVERT(CSINV,6,ISING)
+         IF (ISING.NE.0) THEN
+            WRITE(IFILE,*)' SINGULAR C(i,j) MATRIX.'
+            CALL ERREX
+         ENDIF
+      ENDIF
+C
+      DO 3 I = 1,6
+      DO 3 J = 1,6
+      ETHERM(I) = ETHERM(I) + CSINV(I,J)*THERMS(J)
+    3 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      INVERT
+      SUBROUTINE INVERT (A,IMAX,ISING)
+      DIMENSION A(IMAX,IMAX),IN(100),TEMP(100)
+      IF(IMAX.GT.100) CALL ERREX
+      ISING=0
+      N=IMAX
+      IMAXO=N-1
+      I1=1
+   10 I3=I1
+      IN(I1)=0
+      SUM=ABS(A(I1,I1))
+      DO 20 I=I1,N
+      IF (SUM-ABS(A(I,I1))) 15,20,20
+   15 I3=I
+      IN(I1)=I
+      SUM=ABS(A(I,I1))
+   20 CONTINUE
+      IF (I3-I1) 25,35,25
+   25 DO 30 J=1,N
+      SUM=A(I1,J)
+      A(I1,J)=A(I3,J)
+   30 A(I3,J)=SUM
+   35 I3=I1+1
+      IF (A(I1,I1)) 40,160,40
+   40 DO 45 I=I3,N
+   45 A(I,I1)=A(I,I1)/A(I1,I1)
+      J2=I1-1
+      IF (J2) 50,60,50
+   50 DO 55 J=I3,N
+      DO 55 I=1,J2
+   55 A(I1,J)=A(I1,J)-A(I1,I)*A(I,J)
+   60 J2=I1
+      I1=I1+1
+      DO 65 I=I1,N
+      DO 65 J=1,J2
+   65 A(I,I1)=A(I,I1)-A(I,J)*A(J,I1)
+      IF (I1-N) 10,70,10
+   70 IF (A(N,N)) 75,160,75
+   75 DO 90 JP=1,N
+      J=N+1-JP
+      A(J,J)=1.D0/A(J,J)
+      IF (J-1) 80,95,80
+   80 DO 90 IP=2,J
+      I=J+1-IP
+      IPO=I+1
+      SUM=0.
+      DO 85 L=IPO,J
+   85 SUM=SUM-A(I,L)*A(L,J)
+   90 A(I,J)=SUM/A(I,I)
+   95 DO 115 J=1,IMAXO
+      JPO=J+1
+      DO 115 I=JPO,N
+      SUM=0.
+      IMO=I-1
+      DO 110 L=J,IMO
+      IF (L-J) 100,105,100
+  100 SUM=SUM-A(I,L)*A(L,J)
+      GO TO 110
+  105 SUM=SUM-A(I,L)
+  110 CONTINUE
+  115 A(I,J)=SUM
+      DO 140 I=1,N
+      DO 135 J=1,N
+      TEMP(J)=0.0
+      DO 130 K=I,N
+      IF (K-J) 130,125,120
+  120 TEMP(J)=TEMP(J)+A(I,K)*A(K,J)
+      GO TO 130
+  125 TEMP(J)=TEMP(J)+A(I,K)
+  130 CONTINUE
+  135 CONTINUE
+      DO 140 J=1,N
+  140 A(I,J)=TEMP(J)
+      DO 155 I=2,N
+      M=N+1-I
+      IF (IN(M)) 145,155,145
+  145 ISS=IN(M)
+      DO 150 L=1,N
+      SUM=A(L,ISS)
+      A(L,ISS)=A(L,M)
+  150 A(L,M)=SUM
+  155 CONTINUE
+      GO TO 165
+  160 ISING=1
+  165 RETURN
+      END
+C
+C
+C
+C=DECK      STRCONX
+      SUBROUTINE STRCONX(IMOD,NPRINT,IFILE,ETOTX,ETOTY,
+     1 STRMAX,ITENCP)
+C
+C  PURPOSE IS TO FIND STRESSES 
+C
+      DIMENSION STRMAX(*),WORDB(99),IADDB(99),IPOINC(99)
+      DIMENSION EALLST(5,10),ETOTX(*),ETOTY(*),MARLEG(99)
+      DIMENSION CPLOT(99),CONSTR(99),ALLOW(99),CRACK(99,5,2)
+      DIMENSION RATSAV(90,5)
+      CHARACTER*22 PHRASE(5)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/GEOM28/ALDEW,DTDEW,ALRNGD(2),DTRNGD(2),ALSUP(2),DTSUP(2)
+      COMMON/LAYERX/MATL(90),LTYPE(99,5,2),T(90),ANGLE(90)
+      COMMON/MATER1/E1(20),E2(20),G(20),FNU(20),COND1(20),COND2(20)
+      COMMON/MATER3/STSMAX(10),EALLOW(5,10)
+      COMMON/MATER4/TAPE(20),TMINUM(20),FAILSC(100)
+      COMMON/MATER5/DEGRAD(10,5,10)
+      COMMON/MATERT/ALPHA1(20),ALPHA2(20),CURETP(20),ICOCUR(2)
+      CHARACTER*80 WORDB
+      CHARACTER*3 STRRNG
+      CHARACTER*15 MODE(6)
+      CHARACTER*12 MARLEG
+C
+      FSSTR = 1.0
+      FMAX = 10000000.
+      INUMTT = 0
+      IICHAN = 0
+      ICHANG = 0
+      ICONST = 0
+      ICAR = 0
+      CONSTR(1) = 0.
+      IF (IMOD.EQ.0.AND.NPRINT.GE.2) THEN
+         MODE(1) = ' 0 deg. tension'
+         MODE(2) = ' 0 deg. comp.  '
+         MODE(3) = '90 deg. tension'
+         MODE(4) = '90 deg. comp.  '
+         MODE(5) = ' in-plane shear'
+         MODE(6) = '  no failure   '
+C
+C        IF (ITENCP.EQ.1) THEN
+C         WRITE(IFILE,'(/,A,/,A)')
+C    1  ' STRESS COMPONENTS FROM PANDA2-TYPE STRESS ANALYSIS...',
+C    1  ' THE STRUT TUBE IS LOADED BY UNIFORM AXIAL TENSION.'
+C        ELSE
+C         WRITE(IFILE,'(/,A,/,A)')
+C    1  ' STRESS COMPONENTS FROM PANDA2-TYPE STRESS ANALYSIS...',
+C    1  ' THE STRUT TUBE IS LOADED BY UNIFORM AXIAL COMPRESSION.'
+C        ENDIF
+C 
+C        WRITE(IFILE,24)
+C  24    FORMAT(/
+C    1'    SEG. LAYER  WINDING    IN-PLANE STRESSES IN MATL COORDS.   MA
+C    1TERIAL    MODE OF   TRANSVERSE CRACKING  ALLOWABLE  MATERIAL'/
+C    1'                 ANGLE      SIG1        SIG2        SIG12       S
+C    1TATUS     FAILURE   (1.0 means inactive)  STRESS     TYPE')
+C
+      ENDIF
+C
+      ILOOP = 1
+C
+      IF (ISTIF(ILOOP).LE.1) GO TO 100
+      STRRNG = '   '
+C     IF (ILOOP.EQ.1) STRRNG = 'AFT'
+C     IF (ILOOP.EQ.2) STRRNG = 'FWD'
+C
+      ISTART = 1
+      IEND   = 1
+C
+      DO 60 I = ISTART,IEND
+C
+      NLAY = NLAYER(I,ILOOP)
+C
+      CALL MOVER(1.,0,CRACK,1,990)
+      CALL MOVER(10.E8,0,RATSAV,1,450)
+C
+      DO 30 J = 1,NLAY
+C
+      K = LTYPE(J,I,ILOOP)
+      IF (T(K).EQ.0.) GO TO 30
+      M = MATL(K)
+      TEMP = -CURETP(M) + DTSUP(ILOOP)
+      IF (ABS(TEMP).LT.1.0) TEMP = 1.0
+      A1T = ALPHA1(M)*(TEMP)
+      A2T = ALPHA2(M)*(TEMP)
+      ICRACK = 0
+      IF (TAPE(M).GT.0.) ICRACK = 1
+      IF (IMOD.EQ.0) CALL NEWMAX(M,K,T,TAPE,DEGRAD,EALLOW,EALLST(1,M))
+C
+      EX = ETOTX(ILOOP)
+      EY = ETOTY(ILOOP)
+      EXY= 0.0
+C
+      CALL STRAIN(FMAX,ILOOP,I,J,EX,EY,EXY,ANGLE(K),EALLST(1,M),ICONST,
+     1       CONSTR,WORDB,IADDB,FSSTR,A1T,A2T,E1(M),E2(M),G(M),FNU(M),
+     1       IMOD,IPOINC,INUMTT,CRACK(J,I,ILOOP),ICRACK,ICHANG,STRRNG,
+     1       IFILE,NPRINT,MODE,M,IICHAN,MARLEG,CPLOT,ICAR,ITENCP,
+     1       RATSAV,NLAY,ALLOW)
+C
+   30 CONTINUE
+   60 CONTINUE
+  100 CONTINUE
+C
+      PHRASE(1) = 'tensile fiber         '
+      PHRASE(2) = 'compressive fiber     '
+      PHRASE(3) = 'tensile transverse    '
+      PHRASE(4) = 'compressive transverse'
+      PHRASE(5) = 'in-plane shear        '
+      CALL MOVER(0.,0,STRMAX,1,5)
+      DO 105 I = 1,ICONST
+       ILET = INDEX(WORDB(I),'tensile fiber')
+       IF (ILET.NE.0) STRMAX(1) = ALLOW(I)/CONSTR(I)
+       ILET = INDEX(WORDB(I),'compressive fiber')
+       IF (ILET.NE.0) STRMAX(2) = ALLOW(I)/CONSTR(I)
+       ILET = INDEX(WORDB(I),'tensile transverse')
+       IF (ILET.NE.0) STRMAX(3) = ALLOW(I)/CONSTR(I)
+       ILET = INDEX(WORDB(I),'compressive transverse')
+       IF (ILET.NE.0) STRMAX(4) = ALLOW(I)/CONSTR(I)
+       ILET = INDEX(WORDB(I),'in-plane shear')
+       IF (ILET.NE.0) STRMAX(5) = ALLOW(I)/CONSTR(I)
+  105 CONTINUE
+C
+      IF (NPRINT.GE.2.AND.ICONST.GT.0) THEN
+       IF (ITENCP.EQ.1) THEN
+        WRITE(IFILE,'(/,A)')
+     1' STRESSES FROM PANDA THEORY FOR THE STRUT TUBE UNDER TENSION...'
+       ELSE
+        WRITE(IFILE,'(/,A)')
+     1' STRESSES FROM PANDA THEORY FOR THE STRUT TUBE UNDER COMPRESSN..'
+       ENDIF
+C
+C      DO 110 I = 1,ICONST
+C       WRITE(IFILE,'(1PE12.4,2X,A)') CONSTR(I),WORDB(I)
+C 110  CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+       WRITE(IFILE,'(A)')
+     1' Corresponding maximum stress components from PANDA-type model:'
+       DO 120 I = 1,5
+          WRITE(IFILE,'(1PE12.4,2X,A)') STRMAX(I),PHRASE(I)
+  120  CONTINUE
+       WRITE(IFILE,'(A)') '  '
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      STRAIN
+      SUBROUTINE STRAIN(FMAX,ILOOP,ISEG,ILAY,EX,EY,EXY,ANGLE,EALLOW,
+     1             ICONST,CONSTR,WORDB,IADDB,FSSTR,A1T,A2T,E1,E2,G,U12,
+     1             IMOD,IPOINC,INUMTT,CRACK,ICRACK,ICHANG,STRRNG,IFILE,
+     1             NPRINT,MODE,M,IICHAN,MARLEG,CPLOT,ICAR,ITENCP,
+     1             RATSAV,NLAY,ALLOW)
+C
+C  PURPOSE IS TO CALCULATE STRAIN MARGINS IN A SINGLE LAYER
+C
+      DIMENSION EALLOW(*),CONSTR(*),WORDB(*),IADDB(*),IPOINC(*)
+      DIMENSION ALLOW(*)
+      DIMENSION MARLEG(*),CPLOT(*),RATSAV(90,5)
+      COMMON/WORDS3/WORDBB(99),WORDOB
+      COMMON/WORDS4/IADDBB(99)
+      CHARACTER*80 WORDBB,WORDOB
+      CHARACTER*80 WORDB
+      CHARACTER*3 STRRNG
+      CHARACTER*15 MODE(6)
+      CHARACTER*2 SN, CN
+      CHARACTER*6 STATUS
+      CHARACTER*12 MARLEG
+      CHARACTER*1 TC
+C
+      DATA DTR /.017453293/
+C
+      TC = 'T'
+      IF (ITENCP.EQ.2) TC = 'C'
+      ARG = ANGLE*DTR
+      CS1 = COS(ARG)
+      CS2 = SIN(ARG)
+      CALL ROTATEX(CS1,CS2,EX,EY,EXY,EPS1,EPS2,EPS12)
+C
+      U21 = 0.
+      IF (E2.GT.0.) U21 = U12*E1/E2
+      UD = 1. - U12*U21
+      SIG1 = (    E1*(EPS1-A1T) +U12*E1*(EPS2-A2T))/UD
+      SIG2 = (U12*E1*(EPS1-A1T) +    E2*(EPS2-A2T))/UD
+      SIG12= G*EPS12
+C
+C     IF (IMOD.EQ.0) THEN
+C        WRITE(8,*)' ILAY,SIG1,SIG2=',ILAY,SIG1,SIG2
+C     ENDIF
+C
+      CRACKD = 1.0
+      RATIO  = 1.1
+      IF (SIG2.GT.0.) RATIO = EALLOW(3)/SIG2
+      REDCOM = 1.0
+      REDSHR = 1.0
+      IF (RATIO.LT.1.0.AND.ICRACK.EQ.1) THEN
+         CRACKD = RATIO
+         IF (SIG1.LT.0.) THEN
+            REDCOM = 0.5
+            REDSHR = 0.8
+         ENDIF
+      ENDIF
+C
+      ISKIP = 0
+C
+      DO 200 I = 1,5
+C
+      GO TO (30,40,10,20,50), I
+C
+   10 CONTINUE
+C
+      INDEX = 1
+      IF (SIG1.LE.0.) THEN
+         RATSAV(ILAY,I) = 10.E8
+      ELSE
+         RATSAV(ILAY,I) = ABS(EALLOW(1)/(SIG1*FSSTR))
+      ENDIF
+      RATIO = RATSAV(ILAY,I)
+      IF (ILAY.EQ.NLAY) THEN
+         INUMTT = INUMTT + 1
+         ICAR = ICAR + 1
+         DO 15 JLAY = 1,NLAY
+            RATIO = MIN(RATIO,RATSAV(JLAY,I))
+   15    CONTINUE
+C        IF (IMOD.EQ.0) THEN
+C           MARLEG(ICAR) = 'SIG1T('//STRRNG//','//TC//')'
+C           WORDBB(ICAR) = MARLEG(ICAR)(1:12)//
+C    1 ':tensile fiber margin: (allowable stress)/(stress) - 1'
+C           IADDBB(ICAR) = ILOOP + 10*ISEG
+C        ENDIF
+         IF (IMOD.EQ.0) CPLOT(ICAR) = RATIO - 1.
+         IF (IMOD.EQ.0.AND.RATIO.GT.FMAX) GO TO 100
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         ICONST = ICONST + 1
+         CONSTR(ICONST) = RATIO
+         ALLOW(ICONST) = EALLOW(1)
+         WORDB(ICONST) =
+     1 'tensile fiber constraint: (allowable stress)/(stress)'
+         IADDB(ICONST) = ILOOP + 10*ISEG
+      ENDIF
+      GO TO 100
+   20 CONTINUE
+C
+      INDEX = 2
+      IF (SIG1.GE.0.) THEN
+         RATSAV(ILAY,I) = 10.E8
+      ELSE
+         RATSAV(ILAY,I) = ABS(EALLOW(2)*REDCOM/(SIG1*FSSTR))
+      ENDIF
+      RATIO = RATSAV(ILAY,I)
+      IF (ILAY.EQ.NLAY) THEN
+         INUMTT = INUMTT + 1
+         ICAR = ICAR + 1
+         DO 25 JLAY = 1,NLAY
+            RATIO = MIN(RATIO,RATSAV(JLAY,I))
+   25    CONTINUE
+C        IF (IMOD.EQ.0) THEN
+C           MARLEG(ICAR) = 'SIG1C('//STRRNG//','//TC//')'
+C           WORDBB(ICAR) = MARLEG(ICAR)(1:12)//
+C    1 ':compressive fiber stress margin: (allowable/actual) - 1'
+C           IADDBB(ICAR) = ILOOP + 10*ISEG
+C        ENDIF
+         IF (IMOD.EQ.0) CPLOT(ICAR) = RATIO - 1.
+         IF (IMOD.EQ.0.AND.RATIO.GT.FMAX) GO TO 100
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         ICONST = ICONST + 1
+         CONSTR(ICONST) = RATIO
+         ALLOW(ICONST) = EALLOW(2)*REDCOM
+         WORDB(ICONST) =
+     1 'compressive fiber stress constraint: (allowable/actual)'
+         IADDB(ICONST) = ILOOP + 10*ISEG
+      ENDIF
+      GO TO 100
+   30 CONTINUE
+      INDEX = 3
+      IF (SIG2.LE.0.) THEN
+         RATSAV(ILAY,I) = 10.E8
+      ELSE
+         RATSAV(ILAY,I) = ABS(EALLOW(3)/(SIG2*FSSTR))
+      ENDIF
+      RATIO = RATSAV(ILAY,I)
+      IF (ILAY.EQ.NLAY) THEN
+         INUMTT = INUMTT + 1
+         ICAR = ICAR + 1
+         DO 35 JLAY = 1,NLAY
+            RATIO = MIN(RATIO,RATSAV(JLAY,I))
+   35    CONTINUE
+C        IF (IMOD.EQ.0) THEN
+C           MARLEG(ICAR) = 'SIG2T('//STRRNG//','//TC//')'
+C           WORDBB(ICAR) = MARLEG(ICAR)(1:12)//
+C    1 ':tensile transverse stress margin: (allowable/actual) - 1'
+C           IADDBB(ICAR) = ILOOP + 10*ISEG
+C        ENDIF
+         IF (IMOD.EQ.0) CPLOT(ICAR) = RATIO - 1.
+         IF (IMOD.EQ.0.AND.RATIO.GT.FMAX) GO TO 100
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         ICONST = ICONST + 1
+         CONSTR(ICONST) = RATIO
+         ALLOW(ICONST) = EALLOW(3)
+         WORDB(ICONST) =
+     1 'tensile transverse stress constraint: (allowable/actual)'
+         IADDB(ICONST) = ILOOP + 10*ISEG
+      ENDIF
+      GO TO 100
+   40 CONTINUE
+      INDEX = 4
+      IF (SIG2.GE.0.) THEN
+         RATSAV(ILAY,I) = 10.E8
+      ELSE
+         RATSAV(ILAY,I) = ABS(EALLOW(4)/(SIG2*FSSTR))
+      ENDIF
+      RATIO = RATSAV(ILAY,I)
+      IF (ILAY.EQ.NLAY) THEN
+         INUMTT = INUMTT + 1
+         ICAR = ICAR + 1
+         DO 45 JLAY = 1,NLAY
+            RATIO = MIN(RATIO,RATSAV(JLAY,I))
+   45    CONTINUE
+C        IF (IMOD.EQ.0) THEN
+C           MARLEG(ICAR) = 'SIG2C('//STRRNG//','//TC//')'
+C           WORDBB(ICAR) = MARLEG(ICAR)(1:12)//
+C    1 ':compressive transverse stress margin: (allowable/actual) - 1'
+C           IADDBB(ICAR) = ILOOP + 10*ISEG
+C        ENDIF
+         IF (IMOD.EQ.0) CPLOT(ICAR) = RATIO - 1.
+         IF (IMOD.EQ.0.AND.RATIO.GT.FMAX) GO TO 100
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         ICONST = ICONST + 1
+         CONSTR(ICONST) = RATIO
+         ALLOW(ICONST) = EALLOW(4)
+         WORDB(ICONST) =
+     1 'compressive transverse stress constraint: (allowable/actual)'
+         IADDB(ICONST) = ILOOP + 10*ISEG
+      ENDIF
+      GO TO 100
+   50 CONTINUE
+      INDEX = 5
+      IF (SIG12.EQ.0.) THEN
+         RATSAV(ILAY,I) = 10.E8
+      ELSE
+         RATSAV(ILAY,I) = ABS(EALLOW(5)*REDSHR/(SIG12*FSSTR))
+      ENDIF
+      RATIO = RATSAV(ILAY,I)
+      IF (ILAY.EQ.NLAY) THEN
+         INUMTT = INUMTT + 1
+         ICAR = ICAR + 1
+         DO 55 JLAY = 1,NLAY
+            RATIO = MIN(RATIO,RATSAV(JLAY,I))
+   55    CONTINUE
+C        IF (IMOD.EQ.0) THEN
+C           MARLEG(ICAR) = 'SIG12('//STRRNG//','//TC//')'
+C           WORDBB(ICAR) = MARLEG(ICAR)(1:12)//
+C    1 ':in-plane shear margin: (allowable stress)/(stress) - 1'
+C           IADDBB(ICAR) = ILOOP + 10*ISEG
+C        ENDIF
+         IF (IMOD.EQ.0) CPLOT(ICAR) = RATIO - 1.
+         IF (IMOD.EQ.0.AND.RATIO.GT.FMAX) GO TO 100
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         ICONST = ICONST + 1
+         CONSTR(ICONST) = RATIO
+         ALLOW(ICONST) = EALLOW(5)*REDSHR
+         WORDB(ICONST) =
+     1 'in-plane shear constraint: (allowable stress)/(stress)'
+         IADDB(ICONST) = ILOOP + 10*ISEG
+      ENDIF
+C END JUNE 1990
+  100 CONTINUE
+C
+      IF (RATIO.GT.1.0.AND.(I.LT.5.OR.ISKIP.EQ.1)) GO TO 200
+      IF (IMOD.EQ.0.AND.NPRINT.GE.2) THEN
+         IF (RATIO.LT.1.0) THEN
+            STATUS = 'FAILED'
+            ISKIP  = 1
+         ELSE
+            STATUS = '  OK  '
+            INDEX  = 6
+         ENDIF
+         IF (STATUS.EQ.'FAILED') THEN
+            EALOWR = EALLOW(INDEX)
+            IF (INDEX.EQ.2) EALOWR = EALLOW(INDEX)*REDCOM
+            IF (INDEX.EQ.5) EALOWR = EALLOW(INDEX)*REDSHR
+C        WRITE(IFILE,150) STRRNG,ISEG,ILAY,ANGLE,SIG1*FSSTR,SIG2*FSSTR,
+C    1   SIG12*FSSTR,STATUS,MODE(INDEX),CRACK,EALOWR,M
+         ELSE
+C        WRITE(IFILE,151) STRRNG,ISEG,ILAY,ANGLE,SIG1*FSSTR,SIG2*FSSTR,
+C    1   SIG12*FSSTR,STATUS,MODE(INDEX),CRACK,M
+         ENDIF
+  150    FORMAT(1X,A3,I3,I5,1P4E12.4,3X,A6,3X,A15,1PE12.4,1PE16.4,I7)
+  151    FORMAT(1X,A3,I3,I5,1P4E12.4,3X,A6,3X,A15,1PE12.4,16X,I7)
+         RATIO = 1.1
+      ENDIF
+  200 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      NEWMAX
+      SUBROUTINE NEWMAX(M,K,T,TAPE,DEGRAD,EALLOW,EMAX)
+C
+C  PURPOSE IS TO MODIFY THE MAX. ALLOWABLE stressS FOR A SINGLE LAYER
+C  OF CLOTH OR TAPE, EALLOW, TO ACCOUNT FOR MULTIPLE LAYERS OF ADJACENT
+C  UNIDIRECTIONAL MATERIAL, WHICH TESTS HAVE SHOWN IS WEAKER THAN
+C  A SINGLE LAYER OF THE SAME MATERIAL.
+C
+      DIMENSION DEGRAD(10,5,10),EALLOW(5,10),EMAX(5)
+      DIMENSION T(*),TAPE(*)
+C
+      NSAME = 1
+      IF (TAPE(M).GT.0.) THEN
+         NSAME = 0.6 + T(K)/TAPE(M)
+         IF (NSAME.LT.1) NSAME = 1
+         IF (NSAME.GT.10)NSAME = 10
+      ENDIF
+      DO 10 ITYP = 1,5
+         EMAX(ITYP) = DEGRAD(NSAME,ITYP,M)*EALLOW(ITYP,M)
+   10 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      ROTATEX
+      SUBROUTINE ROTATEX(C,S,EX,EY,EXY,E1,E2,E12)
+C
+C  PURPOSE IS TO TRANSFORM STRAINS FROM (AXIAL,TRANSVERSE = EX,EY)
+C  SYSTEM TO MATERIAL COORDINATES (E1,E2).  WINDING ANGLE = ANGLE
+C
+      C2 = C*C
+      S2 = S*S
+      SC = S*C
+C
+C  E1, E2, E12 ARE STRAIN COMPONENTS IN MATERIAL COORDINATES...
+C
+      E1 = C2*EX + S2*EY + SC*EXY
+      E2 = S2*EX + C2*EY - SC*EXY
+      E12= -2.*SC*(EX - EY) + (C2-S2)*EXY
+C
+      RETURN
+      END
+C
+C
+C

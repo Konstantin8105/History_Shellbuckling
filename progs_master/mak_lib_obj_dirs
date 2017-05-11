@@ -1,0 +1,60 @@
+# prior to running this script, one must edit the script "/bin/initialize"
+# to establish the correct "root directory" called BUSHNELL and MACHINE ID
+#
+# having done so, then  type the following commands
+#
+#    set parentdir = `pwd`
+#    source ${parentdir}/bin/initialize
+#
+# mak_lib-obj_dirs  automates the creation of needed library and
+# object file directories needed within each program main directory.
+
+# Before running this script, one should move the "progs" directory 
+# to its final location in the hierarchy.  Make sure "mak_lib-obj_dirs"
+# is at the top level of the program directories, and that you execute
+# "mak_lib-obj_dirs" from this location.
+
+set parentdir = `pwd`
+echo "new parent directory is: $parentdir"
+
+set proglist = "bigbosor4 bosor4 bosor5 dewar genopt panda2"
+
+cd $parentdir
+
+# Make directory "temp" if it doesn't exist
+if (!(-e temp)) then
+  echo "Make directory temp/"
+  mkdir temp
+endif
+
+# create the needed directories
+
+foreach program ($proglist)
+
+  cd $parentdir
+
+  if (-e $program) then
+
+    chmod 755 $program
+    echo "   inside $program"
+    cd $program
+
+    if (-e libraries.${MACHINE}) then
+      /bin/rm -f libraries.${MACHINE}/*
+    else
+      mkdir     libraries.${MACHINE}
+      chmod 755 libraries.${MACHINE}
+    endif
+
+    if (-e objects.${MACHINE}) then
+      /bin/rm -f objects.${MACHINE}/*
+    else
+      mkdir     objects.${MACHINE}
+      chmod 755 objects.${MACHINE}
+    endif
+
+  endif
+
+end # foreach
+
+cd $parentdir

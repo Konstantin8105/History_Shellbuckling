@@ -1,0 +1,2025 @@
+C=DECK      STRUCT
+C BEG FEB 2008
+      SUBROUTINE STRUCT(IMODX,CONSTX,OBJGEN,CONMAX,NCONSX,IPOINC,
+     1 PCWORD,CPLOTX,ILOADX,ISTARX,NUSERC,IBEHV,IDV,IFAST,JJJ1)
+C END FEB 2008
+C
+C  PURPOSE IS TO PERFORM THE ANALYSIS FOR A GIVEN DESIGN AND LOADING.
+C  CONSTRAINT CONDITIONS ARE ALSO GENERATED.
+C
+      COMMON/PRMFIL/IFILEX,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/INDAT/INFILE
+      COMMON/LWRUPR/VLBX(50),VUBX(50),CLINKX(50,45),VLINKX(50),VBVX(99)
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/PARAMS/PARX(99),VARX(50),ALLOWX(99),CONSXX(99),DECX(50),
+     1              ESCX(50)
+      COMMON/WORDS1/WORDPX(99),WORDVX(50),WORDAX(99),WORDCC(99),
+     1              WORDDX(50)
+      COMMON/WORDS2/WORDLX(50),WORDEX(50),WORDIQ(45)
+      COMMON/OPTVAR/IDVX(50),ILVX(50),IDLINK(50,45),IEVX(50),JTERMS(45)
+      COMMON/NUMPR2/ILARX,ICARX,IOARX,IFLATX,NCASES,NPRINX
+      COMMON/PARAM2/FLARX(50),CARX(99),OARX(50),FSAFEX(99),CPWRX(50,45)
+      COMMON/PARAM3/CINEQX(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQX,JINEQX(45),IEQTYP(45)
+      COMMON/WORDS3/WORDFX(50),WORDBX(99),WORDOB(50),WORDSX(99)
+      COMMON/WORDS4/WORDMX(99)
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      COMMON/ISKIPX/ISKIP(30)
+      DIMENSION IBEHV(99)
+C
+C==========================================================================
+C  Start of first part of STRUCT written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+      CHARACTER*80 PHRASE,CODPHR,PCWORD
+      CHARACTER*80 WORDPX,WORDVX,WORDAX,WORDCX,WORDDX,WORDLX,WORDEX
+      CHARACTER*80 WORDFX,WORDBX,WORDOB,WORDSX,WORDMX,WORDCC,WORDIQ
+c     CHARACTER*4 ANSOUT,CHARAC,ANSWER
+      CHARACTER*2 CIX
+c     character*2 CJX
+      CHARACTER*13 CODNAM
+c     DIMENSION ISUBX(100)
+c     LOGICAL ANSL1
+C
+      DIMENSION CONSTX(*),IPOINC(*),PCWORD(*),CPLOTX(*)
+C  End of first part of STRUCT written by "GENTEXT"
+C==========================================================================
+C
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE PERSUING.  MAKE SURE THAT YOU DO NOT
+C  INTRODUCE NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS
+C  LISTED ABOVE.
+C
+C  Please note that you do not have to modify STRUCT.NEW if you would
+C  rather provide all of your algorithms via the BEHAVIOR.NEW library.
+C  (See instructions in BEHAVIOR.NEW).
+C
+C  If you are using a lot of software previously written either by
+C  yourself or others, or if there are a lot of behavioral constraints
+C  that are best generated by looping over array indices (such as
+C  occurs, for example, with stress constraints in laminates of
+C  composite materials), then it may be best to insert your common
+C  blocks and dimension statements here, your subroutine calls
+C  below (where indicated), and your subroutines in any of the libraries
+C  called ADDCODEn.NEW, n = 1,2,...,5.  Please note that you will
+C  probably also have to add statements to SUBROUTINE TRANFR, the
+C  purpose of which is described below (in TRANFR).
+C
+C  The two test cases provided with GENOPT demonstrate both methods:
+C
+C  PLATE (Test Case 1): leave STRUCT.NEW unchanged and modify BEHAVIOR.NEW
+C  PANEL (Test Case 2): leave BEHAVIOR.NEW unchanged except for the objective
+C                       function (SUBROUTINE OBJECT), modify STRUCT.NEW,
+C                       add a subroutine library called ADDCODE1.NEW, and
+C                       augment the LINKMAIN.COM file to collect object
+C                       libraries from other directories (PANDA2, in this
+C                       example.)
+C BEG OCT 1999
+      COMMON/INSTAB/INDIC
+      COMMON/TOTMAX/TOTMAS
+      COMMON/CWWALL/CW11,CW12,CW14,CW15,CW22,CW24,CW25,
+     1              CW44,CW45,CW55,CW33,CW36,CW66,SMPAW
+      COMMON/CWEFFX/C11EFF,C12EFF,C14EFF,C15EFF,C22EFF,C24EFF,C25EFF,
+     1              C44EFF,C45EFF,C55EFF,C33EFF,C36EFF,C66EFF,SMAEFF
+      COMMON/ENDUVX/ENDUV,STRMXX,ARCLEN
+      COMMON/WAVALL/NWAV3,NWAV4,NWAV7,NWAV8,NWAV9,NWAV10,NWAV13,IVIB13,
+     1 NWAV15,NWAV16
+      COMMON/SYMALL/ISYM3,ISYM4,ISYM7,ISYM8,ISYM9,ISYM10,ISYM13,
+     1 ISYM15,ISYM16
+      COMMON/WHRNON/ANGSTR,ANGBUC
+      COMMON/MAXNON/WWWNON(2),STRNON(2)
+      COMMON/MAXLOC/LOCATW(2),LOCATS(2)
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/LAMSTR/STRRAT(99)
+      COMMON/WRDSTR/STRWRD(99)
+      COMMON/BUCKN/ N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/EIGNO/NVECX,EGVX(50),AXBX
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/DISSTR/STR0X,WWW0X,STR18X,WWW18X
+      CHARACTER*80 STRWRD
+      COMMON/MWAVAL/MWAV7
+      COMMON/NDOF3X/NDOF2,NDOF3,IREDUC
+      COMMON/MORFNX/FNXADD
+      COMMON/NWVAXL/NWAVEX(100)
+      COMMON/RHOEFX/RHOEFF,DENSHL
+      COMMON/FN2ADX/FN2ADD(2),NWAVAD,NWAVLC
+C END OCT 1999
+C BEG FEB 2008
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+C END FEB 2008
+C
+C  THE FOLLOWING CODE WAS WRITTEN BY "GENTEXT":
+C
+C================================================================
+C  Start the second portion of STRUCT written by "GENTEXT":
+C
+      ICARX   = ISTARX
+      INUMTT = 0
+      ICONSX = 0
+      KCONX   = 0
+      IF (IMODX.EQ.0) THEN
+         CALL MOVERX(0.,0,CONSTX,1,99)
+         CALL MOVERX(0, 0,IPOINC,1,1500)
+      ENDIF
+C
+      IF (ILOADX.EQ.1) THEN
+C
+C  ESTABLISH FIRST ANY CONSTRAINTS THAT ARE INEQUALITY RELATIONSHIPS
+C  AMONG THE VARIABLES IN THE ARRAY VARX(*) (THAT IS, VARIABLES THAT
+C  ARE EITHER DECISION VARIABLES, LINKED VARIABLES, ESCAPE VARIABLES,
+C  OR CANDIDATES FOR ANY OF THESE TYPES OF VARIABLES.
+C
+         IF (NINEQX.GT.0)
+     1        CALL VARCON(WORDIQ,WORDMX,CINEQX,DPWREQ,IDINEQ,
+     1        NINEQX,JINEQX,IEQTYP,INUMTT,IMODX,CONMAX,IPOINC,
+     1        ICONSX,CONSTX,VARX,PCWORD,CPLOTX,ICARX)
+C
+C  NEXT, ESTABLISH USER-WRITTEN CONSTRAINTS. AT PRESENT, THE PROGRAM
+C  ALLOWS ONLY ONE USER-WRITTEN CONSTRAINT. HOWEVER, THE USER CAN
+C  EASILY EXPAND THIS CAPABILITY SIMPLY BY ADDING SUBROUTINES THAT
+C  ARE ANALOGOUS TO USRCON (WITH NAMES SUCH AS USRCN2, USRCN3, ETC.
+C  TO THE  BEHAVIOR.NEW LIBRARY, AND ADD CALLS TO THESE ADDITIONAL
+C  SUBROUTINES FOLLOWING THE CALL TO USRCON IMMEDIATELY BELOW.
+C
+         CALL USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1            WORDMX,PCWORD,CPLOTX,ICARX,IFILE8)
+C
+         NUSERC = ICARX - NINEQX
+      ENDIF
+C
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A,I2,A)')
+     1 ' BEHAVIOR FOR ',ILOADX,' ENVIRONMENT (LOAD SET)'
+         WRITE(IFILE8,'(A)')'  '
+         WRITE(IFILE8,'(A)')
+     1 ' CONSTRAINT  BEHAVIOR              DEFINITION'
+         WRITE(IFILE8,'(A)')
+     1 '   NUMBER     VALUE'
+      ENDIF
+C
+      CALL CONVR2(ILOADX,CIX)
+      IF (NPRINX.GT.0) THEN
+         WRITE(IFILE8,'(1X,A)')'  '
+         WRITE(IFILE8,'(1X,A,I2)')
+     1 ' BEHAVIOR FOR LOAD SET NUMBER, ILOADX=',ILOADX
+      ENDIF
+C
+C  End of the second portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C  USER: YOU MAY WANT TO INSERT SUBROUTINE CALLS FROM SOFTWARE DEVELOPED
+C        ELSEWHERE FOR ANY CALCULATIONS PERTAINING TO THIS LOAD SET.
+C
+C  There are numbered comments inserted in the following. For more
+C  information, please see the paper, AUTOMATED OPTIMIZATION OF SHELLS
+C  OF REVOLUTION or the file wavycyl.news
+C
+C  1. Open and rewind files.
+      CALL OPNGEN
+      CALL RWDGEN
+C
+      IF (IMODX.EQ.0) THEN
+         WRITE(IFILE8,'(/,A,/,A,/,A,I2)')
+     1' *************** UNPERTURBED DESIGN: IMODX = 0 ***************',
+     1'  BEGIN COMPUTATIONS FOR THE UNPERTURBED (CURRENT) DESIGN',
+     1'   LOAD SET NO. ',ILOADX
+      ELSE
+         WRITE(IFILE8,'(/,A,/,A,/,A,I2)')
+     1' ***************** PERTURBED DESIGN: IMODX = 1 ***************',
+     1'  BEGIN COMPUTATIONS FOR THE PERTURBED DESIGN (FOR GRADIENT)',
+     1'   LOAD SET NO. ',ILOADX
+      ENDIF
+C BEG FEB 2008
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2,A,I2,/,A)')
+     1' =============================================================',
+     1' BEGINNING OF COMPUTATIONS IN SUBROUTINE STRUCT.',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX,'; ITERATION NO. ',JJJ1,
+     1' ============================================================='
+C END FEB 2008
+C
+      IF (IMODX.EQ.0) IVIB13 = 1
+      IF (IWAVE.EQ.2.AND.AMPLIT.GT.WAVLEN) AMPLIT = 0.99*WAVLEN
+C  3. initialize behaviors:
+      STRMAX(ILOADX) = 0.
+      BUCFAC(ILOADX) = 0.
+      BUCHIW(ILOADX) = 0.
+      STR0(ILOADX)   = 0.
+      STR180(ILOADX) = 0.
+      BUC0(ILOADX)   = 0.
+      B0ANTI(ILOADX) = 0.
+      BUC0MD(ILOADX) = 0.
+      BUC0HI(ILOADX) = 0.
+      BUC180(ILOADX) = 0.
+      B180HI(ILOADX) = 0.
+      WWW0(ILOADX)   = 0.
+      WWW180(ILOADX) = 0.
+      FREQ(ILOADX)   = 0.
+      STRRAN(ILOADX) = 0.
+      BUCRAN(ILOADX) = 0.
+      BRANHI(ILOADX) = 0.
+      WWWRAN(ILOADX) = 0.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  4. Adjust number of halfwaves in "wavy" part of model
+C
+      IF (IMODX.EQ.0.AND.NWAVES.LE.0) CALL MOVERX(0,0,NWAVEX,1,100)
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWVOLD = NWAVES
+         IF (NWAVES.EQ.1) NWAVES = 2
+         IMOD = MOD(NWAVES,2)
+         IF (IMOD.NE.0) NWAVES = NWAVES + 1
+         IMOD = MOD(NWAVES-2,4)
+         IF (IMOD.NE.0)  NWAVES = NWAVES + 2
+         IF (NWAVES*WAVLEN.GT.0.9*AXIAL) THEN
+            NWAVES = 0.9*AXIAL/WAVLEN
+            IMOD = MOD(NWAVES,2)
+            IF (IMOD.NE.0) NWAVES = NWAVES - 1
+            IMOD = MOD(NWAVES-2,4)
+            IF (IMOD.NE.0)  NWAVES = NWAVES - 2
+         ENDIF
+C
+C  5. Compute number of degrees of freedom in BOSOR4 model 2 and
+C     possibly adjust the number of halfwaves NWAVES in "wavy" part
+C     of model.
+C
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1 ' In SUBROUTINE STRUCT:',
+     1 ' Use BOSOR4 MODEL 2 to compute the number of d.o.f.'
+    5    CONTINUE
+         NWAVXS = NWAVES
+         CALL PUTWAV(2,0,ILOADX,IMODX,NWAVES,NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVES =',
+     1   NWAVES,
+     1 ' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1 ' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1 ' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+         IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+            NWAVES = 0.9*FLOAT(NWAVES)
+         IF (NWAVXS.NE.NWAVES) THEN
+            GO TO 5
+         ELSE
+            NWAVES = NWAVES - 4
+            IF (NWAVES.EQ.0) NWAVES = 2
+            GO TO 5
+         ENDIF
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (NWVOLD.NE.NWAVES) THEN
+            IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/,A,I3,/,A,I3)')
+     1   ' Number of axial halfwaves in bosor4 model has been changed:',
+     1   '  Old value of NWAVES, NWVOLD =',NWVOLD,
+     1   '  New value of NWAVES, NWAVES =',NWAVES
+         ENDIF
+         CALL MOVERX(NWAVES,0,NWAVEX,1,100)
+      ENDIF
+C
+      FNXADD = 0.
+      IF (NWAVES.EQ.0) THEN
+C
+C  6. Compute constitutive coefficients, CW11, CW12, ... and SMPAW
+C     for case when there is no waviness (NWAVES=0)
+C
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1 ' In SUBROUTINE STRUCT:',
+     1 ' Use BOSOR4 MODEL 1 to compute constitutive coeff. CW11, etc'
+         NWAVZ = 6
+         IRINGS = IRING
+         BRNGSV = BRINGS
+         IRING = 0
+         BRINGS = 0
+         INDIC = 0
+         CALL PUTWAV(1,0,ILOADX,IMODX,NWAVZ,NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVES =',
+     1   NWAVES,
+     1 ' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1 ' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1 ' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+         CALL B4READ
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE8,'(/,A,/,A,/,A,A,/,1P,7E10.2)')
+     1 ' NWAVES = 0 (no waviness)...',
+     1 ' Constitutive coefficients CWij for the cylindrical shell wall',
+     1 '   CW11      CW12      CW22      CW33      CW44      CW45',
+     1 '      CW55', CW11,CW12,CW22,CW33,CW44,CW45,CW55
+         WRITE(IFILE8,'(A,1P,E12.4)')
+     1 ' Shell wall density per unit area, SMPAW =',SMPAW
+         IRING = IRINGS
+         BRINGS= BRNGSV
+         GO TO 25
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  7. GET THE MAXIMUM STRESS IN THE WAVY PORTION FROM NONLINEAR
+C     THEORY. USE MODEL NO. 1, THAT IS, WAVY PORTION ONLY.
+C
+      IRINGS = IRING
+      BRNGSV = BRINGS
+      IRING = 0
+      BRINGS = 0
+      INDIC = 0
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 1 to compute max. stress from nonlin. theory'
+   10 CONTINUE
+      NWAVXS = NWAVEX(1)
+      CALL PUTWAV(1,0,ILOADX,IMODX,NWAVEX(1),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(1) =',
+     1  NWAVEX(1),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(1) = 0.9*FLOAT(NWAVEX(1))
+         IF (NWAVXS.NE.NWAVEX(1)) THEN
+            GO TO 10
+         ELSE
+            NWAVEX(1) = NWAVEX(1) - 4
+            GO TO 10
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX1 file for input for BIGBOSOR4...
+C      CASE.BEHX1 is an input file for BIGBOSOR4 for behavior no. 1:
+C      maximum stress in wavy wall from nonlinear theory..
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX1'
+         ELSE
+            CASA=CASE//'.BEHX1'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for',
+     1 ' maximum stress in wavy wall from nonlinear theory=',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IWALL.EQ.2) THEN
+         ICRIT = 0
+         STRALW(ILOADX) = 1.0
+         STRMXX = 0.
+         STRMIN = 10.E+26
+         DO 14 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 14
+            STRMIN = MIN(STRRAT(I),STRMIN)
+   14    CONTINUE
+         IF (STRMIN.LE.0.) GO TO 16
+         DO 15 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 15
+            DIFF = ABS(STRMIN-STRRAT(I))/STRMIN
+            IF (DIFF.LT.0.0001) THEN
+               ICRIT = I
+               GO TO 16
+            ENDIF
+   15    CONTINUE
+   16    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICRIT.GT.0) THEN
+            WRITE(IFILE8,'(/,A,/,A)')
+     1    ' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********',
+     1    ' Nonlinear BOSOR4 MODEL 1: Only wavy section, no rings'
+            DO 17 I = 1,20
+               IF (STRRAT(I).LT.0.000001) GO TO 17
+               WRITE(IFILE8,'(I3,1P,E12.4,1X,A)')
+     1                      I,STRRAT(I),STRWRD(I)(1:60)
+   17       CONTINUE
+            WRITE(IFILE8,'(A)')
+     1    ' ****************************************************'
+            WRITE(IFILE8,'(/,A,A,/,1P,E12.4,1X,A)')
+     1    ' Composite matl: Most critical stress ratio,',
+     1    ' allowable/actual, and definition',
+     1      STRMIN,STRWRD(ICRIT)(1:60)
+         ENDIF
+         IF (STRMIN.GT.0.) STRMXX = 1./STRMIN
+      ENDIF
+      STRMXS = STRMXX
+      ARCLNS = ARCLEN
+C
+C  8. NEXT, DO STIFFNESS ANALYSIS WITH WAVY PORTION ONLY. PRESSURE IS
+C     SET EQUAL TO ZERO AND AXIAL LOAD IS SET EQUAL TO MINUS UNITY.
+C
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 1 to compute axial stiffness of wavy wall'
+      PRESSS = PRESS(ILOADX)
+      FNXS   = FNX(ILOADX)
+      PRESS(ILOADX) = 0.
+      FNX(ILOADX) = -1.
+      CALL PUTWAV(1,0,ILOADX,IMODX,NWAVEX(1),NPRINX)
+      CALL BOSDEC(24)
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      ENDUVS = ENDUV
+C
+C 9. NEXT, DO LINEAR VIBRATION ANALYSIS WITH WAVY PORTION ONLY. PURPOSE
+C    IS TO GET FREQ2, WHICH CAN THEN BE USED TO DERIVE EFFECTIVE HOOP
+C    BENDING STIFFNESS OF THE WAVY PORTION WITH WAVINESS "SMEARED". USE
+C    NOV = NMAXV = 2 CIRC. WAVES ONLY.
+C
+      PRESS(ILOADX) = 0.
+      FNX(ILOADX) = 0.
+      INDIC = 2
+      N0VS = N0V
+      NMAXVS = NMAXV
+      IF (IMODX.EQ.0) NWAVEX(3) = NWAVEX(1)
+      N0V = 2
+      NMAXV = 2
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 1 to compute natural frequency for n=2'
+   20 CONTINUE
+      NWAVXS = NWAVEX(3)
+      CALL PUTWAV(1,2,ILOADX,IMODX,NWAVEX(3),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(3) =',
+     1  NWAVEX(3),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(3) = 0.9*FLOAT(NWAVEX(3))
+         IF (NWAVXS.NE.NWAVEX(3)) THEN
+            GO TO 20
+         ELSE
+            NWAVEX(3) = NWAVEX(3) - 4
+            GO TO 20
+         ENDIF
+      ENDIF
+      CALL B4READ
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      FREQ2 = EIGCRT
+      N0V = N0VS
+      NMAXV = NMAXVS
+C
+      ENDUV = ENDUVS
+      PRESS(ILOADX) = PRESSS
+      FNX(ILOADX) = FNXS
+      STRMXX = STRMXS
+      ARCLEN = ARCLNS
+C
+C  10. NEXT, DERIVE EFFECTIVE STIFFNESSES, C11EFF, etc., FOR THE PORTION
+C      OF MODEL 2 IN WHICH THE WAVINESS IS "SMEARED" (SEGMENT 1 OF MODEL 2).
+C      THE FORMULA FOR MODAL VIBRATION OF A RING IS:
+C 
+C            omega**2 = C55EFF*(36/5)(1/R**4)(1/m)
+C
+C  WHERE omega = frequency in rad/sec, R = nominal radius of ring, and
+C  m = mass/(projected area) of wall, and C55EFF = effective hoop
+C  bending stiffness of the straight wall with "smeared" waviness.
+C
+      FL4 = WAVLEN/2.
+      ARCRAT = 1.0
+      IF (IWAVE.EQ.2) THEN
+         RMERID = AMPLIT/(1.-(FL4**2-AMPLIT**2)/(FL4**2+AMPLIT**2))
+         SPHI = FL4/RMERID
+         PHI = ASIN(SPHI)
+         ARCRAT = RMERID*PHI/FL4
+      ELSE
+         ARCRAT = ARCLEN/(FLOAT(NWAVEX(1))*WAVLEN/2.)
+      ENDIF
+      ARCRT2 = ARCLEN/(FLOAT(NWAVEX(1))*WAVLEN/2.)
+C     EPSX = 1./(ESTIFF*THICK)  (OLD STATEMENT)
+      EPSX = 1./(CW11 - CW12**2/CW22)
+      ENDNOM = EPSX*FLOAT(NWAVEX(1))*WAVLEN/2.
+      C11RAT = ABS(ENDNOM/ENDUV)
+      C11EFF = C11RAT*CW11
+      C12EFF = C11RAT*CW12
+      C14EFF = 0.
+      C15EFF = 0.
+      C22EFF = ARCRAT*CW22
+      C24EFF = 0.
+      C25EFF = 0.
+      C44EFF = CW44/ARCRAT
+      C45EFF = 0.
+      C55EFF = ARCRAT*SMPAW*(5./36.)*RADIUS**4*(2.*3.141593*FREQ2)**2
+      C33EFF = CW33/ARCRAT
+      C36EFF = 0.
+      C66EFF = CW66/ARCRAT
+      SMAEFF = ARCRAT*SMPAW
+      AXLONG = (AXIAL - FLOAT(NWAVEX(1))*WAVLEN)/2.
+      C55RAT = C55EFF/CW55
+      AREAR  = TWEB*HWEB + TFLANG*HFLANG
+      AREAS  = THICK*BRNGSV
+      DENSHL = SMPAW/THICK
+      RHOEFF = DENSHL
+      IF (IRINGS.NE.0.AND.BRNGSV.NE.0.)
+     1   RHOEFF = DENSHL + DENRNG*AREAR/AREAS
+C
+      IRING = IRINGS
+      BRINGS= BRNGSV
+   25 CONTINUE
+      IF (NWAVES.EQ.0) THEN
+C
+C  11. Get C11EFF, etc and RHOEFF for ring-stiffened cylindrical shell
+C      without waviness (NWAVES=0)
+C
+         ARCRAT = 1.
+         ARCRT2 = 1.
+         C11RAT = 1.
+         STRMXX = 0.
+         ENDUV  = 0.
+         FREQ2  = 0.
+         C55RAT = 1.
+         C11EFF = C11RAT*CW11
+         C12EFF = C11RAT*CW12
+         C14EFF = CW14
+         C15EFF = CW15
+         C22EFF = ARCRAT*CW22
+         C24EFF = CW24
+         C25EFF = CW25
+         C44EFF = CW44/ARCRAT
+         C45EFF = CW45
+         C55EFF = CW55*C55RAT
+         C33EFF = CW33/ARCRAT
+         C36EFF = CW36
+         C66EFF = CW66/ARCRAT
+         SMAEFF = ARCRAT*SMPAW
+         DENSHL = SMPAW/THICK
+         AREAR  = TWEB*HWEB + TFLANG*HFLANG
+         AREAS  = THICK*BRNGSV
+         RHOEFF = DENSHL
+         IF (IRINGS.NE.0.AND.BRNGSV.NE.0.)
+     1   RHOEFF = DENSHL + DENRNG*AREAR/AREAS
+      ENDIF
+C     call exit
+C
+C  12a and 12b: Discussion and computation of effects of initial
+C               general buckling modal imperfection.
+C
+C  NEXT, DERIVE THE ADDED HOOP RESULTANT, FN2ADD, IN THE CYLINDRICAL
+C  SKIN CAUSED BY AMPLIFICATION OF A GENERAL BUCKLING MODAL INITIAL
+C  IMPERFECTION WITH n = 2 CIRCUMFERENTIAL WAVES AND AN AMPLITUDE
+C  W0 CORRESPONDING TO THE "ASME ONE PER CENT RULE", THAT IS: 
+C     (maximum diameter) - (minimum diameter) = 0.01*(diameter).
+C  For an initial imperfection given by w(imp) = W0*sin(n*theta),
+C  the "ASME one per cent rule" leads to amplitude W0 = 0.005*RADIUS.
+C  It can be shown from Refs. [6,7,9] that the absolute value of FN2ADD
+C  is approximately equal to:
+C
+C  FN2ADD = (C22 - C12**2/C11)*(Cs25/Cs22)*(n/R)**2*W0/(lambda-1)      (a)
+C
+C  in which the Cij are elements from the 6 x 6 integrated constitutive
+C  coefficients for the wavy cylindrical shell wall between rings and
+C  the Csij are for the wavy cylindrical shell wall with "smeared" rings.
+C  Both the Cij and the Csij are for the wall of the cylindrical shell
+C  with "smeared" waviness. n = number of circumferential waves in the
+C  general instability buckling mode (assumed to be n=2 in this analysis),
+C  R is the "nominal" (average) radius of the wavy cylindrical shell,
+C  and lambda is the buckling load factor corresponding to buckling with
+C  n = 2 circumferential waves (assumed to be general buckling in this
+C  analysis). Equation (a) for FN2ADD is derived in the paper, AUTOMATED
+C  OPTIMIZATION OF SHELLS OF REVOLUTION, D. Bushnell, Presented at
+C  41st AIAA SDM Meeting, Atlanta, April 2000.
+C
+C  Two values of FN2ADD must be computed:
+C    FN2ADD(1) = Additional hoop resultant Ny from model in which the
+C                rings are smeared out. This is used for analysis of
+C                inter-ring buckling.
+C
+C    FN2ADD(2) = Additional Ny from model in which the rings are
+C                treated as discrete. FN2ADD(2) is used in the linear
+C                non-axisymmetric stress analysis to determine the
+C                value of additional external pressure,
+C                p(add) = FN2ADD(2)/RADIUS, to apply to compensate for
+C                additional hoop compression in the skin near each
+C                ring induced by growth of the initial general
+C                buckling modal imperfection (hoop bending of skin and
+C                rings together) during loading.
+C
+C  See the paper just cited for more details as to why this is done.
+C
+      AWEB   = TWEB*HWEB
+      AFLANG = TFLANG*HFLANG
+      ARING  = AWEB + AFLANG
+      ECCWEB = 0.5*HWEB
+      ECCFLG = 1.0*HWEB
+      ECCRNG = 0.   
+      IF (ARING.GT.0.) ECCRNG = (AWEB*ECCWEB + AFLANG*ECCFLG)/ARING
+      ECCRNG = ECCRNG + 0.5*THICK
+      C22SMR = C22EFF
+      C25SMR = C25EFF
+      C55SMR = C55EFF
+      FN2ADD(1) = 0.
+      FN2ADD(2) = 0.
+      AMPMLT = 0.
+      W0 = 0.
+      IF (IMODX.EQ.0) NWAVLC = 10000000
+      IF (BRINGS.GT.0.0) THEN
+         IRINGS = IRING
+         BRNGSV = BRINGS
+         IRING = 0
+         BRINGS = 0
+         FIRING = TWEB*HWEB**3/12. + AWEB*(HWEB/2.+THICK/2.)**2
+     1           +HFLANG*TFLANG**3/12. +AFLANG*(HWEB+THICK/2.)**2
+         C22SMR = C22EFF + ERING*ARING/BRNGSV
+         C25SMR = C25EFF + ECCRNG*ERING*ARING/BRNGSV
+         COEF = (C22EFF - C12EFF**2/C11EFF)*C25SMR/C22SMR
+         C55SMR = C55EFF + ERING*FIRING/BRNGSV
+         C22EFF = C22SMR
+         C25EFF = C25SMR
+         C55EFS = C55EFF
+         C55EFF = C55SMR
+         NWAVGN = 0
+         NMSHSV = NMESH1
+         NMESH1 = 97
+         INDIC = 4
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/A,/,A,/,A,/,A,/,A)')
+     1   ' In SUBROUTINE STRUCT:',
+     1   ' Use BOSOR4 MODEL 2 with smeared waviness and smeared',
+     1   ' rings and NWAVES=0 to compute general instability.',
+     1   ' Purpose is to compute added hoop resultant, Ny(add1),',
+     1   ' to be used later in the various analyses of inter-ring',
+     1   ' buckling...'
+C
+C  FIRST, DO THE GENERAL BUCKLING ANALYSIS WITH SMEARED RINGS...
+C
+         CALL PUTWAV(2,0,ILOADX,IMODX,NWAVGN,NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVGN =',
+     1   NWAVGN,
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+         CALL B4READ
+         IF (IMODX.EQ.0) THEN
+            N0BX   = N0B
+            NMINBX = N0B
+            NMAXBX = NMAXB/2
+         ELSE
+            N0BX   = NWAVAD
+            NMINBX = NWAVAD
+            NMAXBX = NWAVAD
+         ENDIF            
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+C        IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE8,
+     1 '(/,A,/,A,/,A,1P,E12.4,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' *** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 ' The entire length (',AXIAL/2.,') of the cyl. has smeared',
+     1 ' waviness and smeared rings. The purpose of this analysis is',
+     1 ' to obtain a general buckling eigenvalue to be used in the',
+     1 ' formula for FN2ADD(1) = added hoop compression from the',
+     1 ' growth of the initial general buckling modal imperfection',
+     1 ' during loading. FN2ADD(1) is used for inter-ring buckling.',
+     1 '    eigenvalue(circ. waves)'
+         DO 27 I = 1,IWAVEB
+           WRITE(IFILE8,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   27    CONTINUE
+         WRITE(IFILE8,'(A)')
+     1   ' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE8,'(A,A,1P,E12.4)')
+     1 ' Crit. buckling factor, BUCSMR(smeared waviness,',
+     1 ' SMEARED rings)=',EIGCRT
+         WRITE(IFILE8,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         AMPMLT = 100.
+         IF ((EIGCRT-1.).NE.0.) AMPMLT = 1./(EIGCRT -1.)
+         IF (AMPMLT.LT.0.) AMPMLT = 100.
+         W0 = 0.005*RADIUS
+         FN2ADD(1)= -AMPMLT*COEF*(FLOAT(NWVCRT)**2/RADIUS**2)*W0/ARCRAT
+         NWAVAD = NWVCRT
+         EIG1 = EIGCRT
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  NEXT, DO THE SAME WITH DISCRETE RINGS IN THE MODEL...
+C
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/A,/,A,/,A,/,A)')
+     1   ' In SUBROUTINE STRUCT:',
+     1   ' Use BOSOR4 MODEL 2 with smeared waviness and discrete',
+     1   ' rings and NWAVES=0 to compute general instability.',
+     1   ' Purpose is to compute added hoop resultant, Ny(add2),',
+     1   ' to be used soon in the linear nonsymmetric stress analysis.'
+C
+         IRING = IRINGS
+         BRINGS= BRNGSV
+         C22EFF = ARCRAT*CW22
+         C25EFF = CW25
+         C55EFF = C55EFS
+         CALL PUTWAV(2,0,ILOADX,IMODX,NWAVGN,NPRINX)
+         CALL BOSDEC(24)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1 ' Number axial halfwaves in discrete wavy part, NWAVGN =',
+     1   NWAVGN,
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+         CALL B4READ
+         N0BX   = NWAVAD
+         NMINBX = NWAVAD
+         NMAXBX = NWAVAD
+         REWIND IFILE9
+         CALL STOCM1(IFILE9)
+         CALL STOCM2(IFILE9)
+         CALL B4MAIN
+C        IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+         CALL GASP(DUM1,DUM2,-2,DUM3)
+         WRITE(IFILE8,
+     1 '(/,A,/,A,/,A,1P,E12.4,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' *** SYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' LINEAR BUCKLING LOAD FACTOR, 0 DEGREES, MODEL 2 (CIRC. WAVES)',
+     1 ' The entire length (',AXIAL/2.,') of the cyl. has smeared',
+     1 ' waviness and DISCRETE rings. The purpose of this analysis is',
+     1 ' to obtain a general buckling eigenvalue to be used in the',
+     1 ' formula for FN2ADD(2) = added hoop compression from the',
+     1 ' growth of the initial general buckling modal imperfection',
+     1 ' during loading. FN2ADD(2) is used in the stress analysis.',
+     1 '    eigenvalue(circ. waves)'
+         DO 37 I = 1,IWAVEB
+           WRITE(IFILE8,'(A,1P,E12.4,A,I4,A)')
+     1    '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   37    CONTINUE
+         WRITE(IFILE8,'(A)')
+     1   ' ===== BUCKLING MODAL SYMMETRY AT SYMMETRY PLANE ====='
+         WRITE(IFILE8,'(A,A,1P,E12.4)')
+     1 ' Crit. buckling factor, BUCDIS(smeared waviness,',
+     1 ' discrete rings)=', EIGCRT
+         WRITE(IFILE8,'(A,I5)')
+     1 ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+C
+         EIG2 = EIGCRT
+         AMPMLT = 100.
+         IF ((EIGCRT-1.).NE.0.) AMPMLT = 1./(EIGCRT -1.)
+         IF (AMPMLT.LT.0.) AMPMLT = 100.
+         W0 = 0.005*RADIUS
+         RSPEFF = BRNGSV*(EIG2/EIG1)**2
+         IF (RSPEFF.LT.HWEB) RSPEFF = HWEB
+         C25SMR = C25EFF + ECCRNG*ERING*ARING/RSPEFF
+         COEF = (C22EFF - C12EFF**2/C11EFF)*C25SMR/C22SMR
+         FN2ADD(2)= -AMPMLT*COEF*(FLOAT(NWVCRT)**2/RADIUS**2)*W0/ARCRAT
+         NMESH1 = NMSHSV
+C
+C  13. NEXT, DETERMINE THE EIGENVALUES CORRESPONDING TO A SEGMENT OF CYL.
+C      TUBE BETWEEN ADJACENT RINGS. THE B.C.'S ARE ANTISYMMETRY AT BOTH
+C      ENDS OF THE CYLINDRICAL SEGMENT.
+C
+         IF (IMODX.EQ.0) THEN
+            IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/A,/,A,/,A,/,A,/,A)')
+     1    ' In SUBROUTINE STRUCT:',
+     1    ' Use BOSOR4 MODEL 2 with smeared waviness and discrete',
+     1    ' end rings and NWAVES=0 to compute inter-ring instability.',
+     1    ' Purpose is to obtain the lowest circ. wavenumber, NWAVLC,',
+     1    ' for which Ny(add1) is to be included in the various',
+     1    ' buckling analyses to be conducted later in Sub. BEHXi.'
+           NMSHSV = NMESH1
+           NMESH1 = 31
+           AXIALS = AXIAL
+           AXIAL = 2.*BRINGS
+           INDIC = 1
+           CALL PUTWAV(2,1,ILOADX,IMODX,NWAVGN,NPRINX)
+           CALL BOSDEC(24)
+           IF (NPRINX.GT.0)
+     1      WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1   ' Number axial halfwaves in discrete wavy part, NWAVGN =',
+     1     NWAVGN,
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+           CALL B4READ
+           N0BX   = 2
+           NMINBX = 2
+           NMAXBX = 2*NMAXB
+           REWIND IFILE9
+           CALL STOCM1(IFILE9)
+           CALL STOCM2(IFILE9)
+           CALL B4MAIN
+C          IF (IMODX.EQ.0.AND.ILOADX.EQ.1.AND.ITYPEX.EQ.2) CALL B4POST
+           CALL GASP(DUM1,DUM2,-2,DUM3)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFILE8,
+     1 '(/,A,/,A,/,A,1P,E12.4,A,/,A,/,A,/,A,/,A,/,A)')
+     1 ' *** ANTISYMMETRIC BUCKLING LOAD FACTORS AND MODE SHAPES ***',
+     1 ' BUCKLING LOAD FACTOR FROM INDIC=1, MODEL 2 (CIRC. WAVES).',
+     1 ' The inter-ring length (',BRINGS,') of the cyl. has smeared',
+     1 ' waviness and discrete end rings. The purpose of this analysis',
+     1 ' is to obtain inter-ring buckling eigenvalues to be used to',
+     1 ' determine the minimum circ. wavnumber, NWAVLC, that corres-',
+     1 ' ponds to inter-ring buckling in the larger models used later.',
+     1 '    eigenvalue(circ. waves)'
+           DO 39 I = 1,IWAVEB
+             WRITE(IFILE8,'(A,1P,E12.4,A,I4,A)')
+     1      '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   39      CONTINUE
+           WRITE(IFILE8,'(A)')
+     1     ' ===== BUCKLING MODAL ANTISYMMETRY AT SYMMETRY PLANE ====='
+           WRITE(IFILE8,'(A,A,1P,E12.4)')
+     1   ' Crit. buckling factor, BUCLOC(smeared waviness,',
+     1   ' DISCRETE end rings)=',EIGCRT
+           WRITE(IFILE8,'(A,I5)')
+     1   ' Critical number of circumferential waves, NWVCRT=',NWVCRT
+           NWAVLC = 0.7*FLOAT(NWVCRT) + 0.5
+           IF (NWAVLC.LE.NWAVAD) NWAVLC = NWAVAD + 1
+           AXIAL = AXIALS
+           NMESH1 = NMSHSV
+         ENDIF
+      ENDIF
+C
+C  14. NEXT, GET TOTAL MASS, TOTMAS. (WEIGHT=TOTMAS*GRAVTY) USE MODEL 2,
+C      THAT IS, WAVY PORTION PLUS "SMEARED WAVY" SEGMENT NO. 1.
+C
+      INDIC = 0
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 2 to compute total mass, TOTMAS'
+   30 CONTINUE
+      NWAVXS = NWAVEX(4)
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(4),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(4) =',
+     1  NWAVEX(4),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(4) = 0.9*FLOAT(NWAVEX(4))
+         IF (NWAVXS.NE.NWAVEX(4)) THEN
+            GO TO 30
+         ELSE
+            NWAVEX(4) = NWAVEX(4) - 4
+            GO TO 30
+         ENDIF
+      ENDIF
+      CALL B4READ
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      WEIGHT = TOTMAS*GRAVTY
+C
+C  15. Get the added axial compression caused by greater axial interval
+C      between restraints against axial motion than exists between
+C      axial intervals between restraints against lateral motion.
+C
+      FNXADD = -WEIGHT*GAXIAL(ILOADX)*(LGAXL/AXIAL)/(2.*3.141593*RADIUS)
+C      end of Item. 15.
+C  Next, print out some stuff...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (NPRINX.GT.0.OR.IMODX.EQ.0) THEN
+        WRITE(IFILE8,'(/,A,/,A,1P,E12.4,/,A,1P,E12.4,/,A,1P,E12.4)')
+     1' Output from STRUCT:',
+     1' Maximum stress from nonlinear theory (no rings),STRMXX=',STRMXX,
+     1' End shortening under unit axial compression,     ENDUV=',ENDUV,
+     1' Modal frequency correspnding to 2 circ. waves,   FREQ2=',FREQ2
+        WRITE(IFILE8,'(A,1P,E12.4,/,A,1P,E12.4,/,A,1P,E12.4)')
+     1' Ratio of wavy arclength to straight length,     ARCRAT=',ARCRAT,
+     1' Reduction factor for axial stiffness,           C11RAT=',C11RAT,
+     1' Hoop bending stiffness ratio,C55RAT=C55(eff)/C55(wall)=',C55RAT
+        WRITE(IFILE8,'(A,1P,E12.4,/,A,1P,E12.4,/,A,1P,E12.4)')
+     1' 2nd ratio of wavy arclength to straight length, ARCRT2=',ARCRT2,
+     1' Weight of the entire Model No. 2,               WEIGHT=',WEIGHT,
+     1' Nx from axial g-loading and unsupported tube,   FNXADD=',FNXADD
+        WRITE(IFILE8,'(A,1P,E12.4,/,A,1P,E12.4,/,A,1P,E12.4)')
+     1' Effective mass density of shell wall material,  DENSHL=',DENSHL,
+     1' Mass density of ring material,                  DENRNG=',DENRNG,
+     1' Effective density of shell with smeared rings,  RHOEFF=',RHOEFF
+        WRITE(IFILE8,
+     1 '(A,1P,E12.4,/,A,1P,E12.4,/,A,1P,E12.4)')
+     1' Amplitude of initial general buckling imperfection, W0=',W0,
+     1' (C22-C12**2/C11)*(C25/C22)*(n/R)**2*W0/(EIG1-1)=FN2ADD(1)=',
+     1  FN2ADD(1),
+     1' (C22-C12**2/C11)*(C25/C22)*(n/R)**2*W0/(EIG2-1)=FN2ADD(2)=',
+     1  FN2ADD(2)
+        WRITE(IFILE8,'(A,/,A,A,1P,E12.4,/,A,/,A,A,1P,E12.4)')
+     1' in which',' EIG1 = buckling load factor, smeared waviness and',
+     1' SMEARED  rings=',EIG1,
+     1' and',' EIG2 = buckling load factor, smeared waviness and',
+     1' DISCRETE rings=',EIG2
+        WRITE(IFILE8,'(A,A,1P,E12.4,/,A,A,I8)')
+     1' Smallest buckling circumferential wavenumber for which',
+     1' FN2ADD(1)=',FN2ADD(1),
+     1' is added to the hoop load from pressure in buckling analyses',
+     1' NWAVLC =',NWAVLC
+      ENDIF
+C     call exit
+C
+C  16. NEXT, OBTAIN MAXIMUM NORMAL DISPLACEMENT, WWWNON, AND MAXIMUM
+C      STRESS, STRNON, FROM LINEAR NONSYMMETRIC (INDIC=3)
+C      STRESS ANALYSIS WITH USE OF MODEL NO. 2 (WAVY PORTION + STRAIGHT
+C      PORTION WITH "SMEARED" WAVINESS).
+C
+      INDIC = 3
+      FNXS   = FNX(ILOADX)
+      FNXBS  = FNXB(ILOADX)
+      PRESSS = PRESS(ILOADX)
+      PRSSBS = PRESSB(ILOADX)
+      FNX(ILOADX)   = FNX(ILOADX) + FNXB(ILOADX)
+      FNXB(ILOADX)  = 0.
+      PRESS(ILOADX) = PRESS(ILOADX) + PRESSB(ILOADX) + FN2ADD(2)/RADIUS
+      PRESSB(ILOADX)= 0.
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+      IF (IMODX.EQ.0.AND.NWAVES.GT.0) THEN
+         NWAVEX(5) = 0.9*AXIAL/WAVLEN
+      ENDIF
+C
+C  16a. FIRST, FOR MERIDIAN AT ZERO DEGREES, ANGSTR = 0.
+C
+      ANGSTR = 0.
+      ANGBUC = 0.
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 2 to compute max.stress at 0 deg, lin. theory'
+   40 CONTINUE
+      NWAVXS = NWAVEX(5)
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(5),NPRINX)
+      CALL BOSDEC(24)
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,I3,/,A,I5,/,A,I5,/,A,I2)')
+     1' Number axial halfwaves in discrete wavy part, NWAVEX(5) =',
+     1  NWAVEX(5),
+     1' d.o.f. in axisymmetric prestress problem,       NDOF2 =',NDOF2,
+     1' d.o.f. in nonsymmetric modal vibration problem, NDOF3 =',NDOF3,
+     1' Is "d.o.f." too big (IREDUC=1)?                IREDUC =',IREDUC
+      IF (IMODX.EQ.0.AND.IREDUC.EQ.1) THEN
+         NWAVEX(5) = 0.9*FLOAT(NWAVEX(5))
+         IF (NWAVXS.NE.NWAVEX(5)) THEN
+            GO TO 40
+         ELSE
+            NWAVEX(5) = NWAVEX(5) - 4
+            GO TO 40
+         ENDIF
+      ENDIF
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX4 file for input for BIGBOSOR4...
+C      CASE.BEHX4 is an input file for BIGBOSOR4 for behavior no. 4:
+C      maximum stress at 0 deg. from linear theory. This file can
+C      also be used to obtain behavior no. 12 (BEHX12):
+C      maximum normal displacement at 0 deg. from linear theory.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX4'
+         ELSE
+            CASA=CASE//'.BEHX4'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' maximum stress at 0 deg. from linear theory and',
+     1 ' maximum normal displacement at 0 deg. from linear theory.',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IWALL.EQ.2) THEN
+         ICRIT = 0
+         STR0A(ILOADX) = 1.0
+         STRNON(1) = 0.
+         STRNON(2) = 0.
+         STRMIN = 10.E+26
+         DO 44 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 44
+            STRMIN = MIN(STRRAT(I),STRMIN)
+   44    CONTINUE
+         IF (STRMIN.LE.0.) GO TO 46
+         DO 45 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 45
+            DIFF = ABS(STRMIN-STRRAT(I))/STRMIN
+            IF (DIFF.LT.0.0001) THEN
+               ICRIT = I
+               GO TO 46
+            ENDIF
+   45    CONTINUE
+   46    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICRIT.GT.0) THEN
+            WRITE(IFILE8,'(/,A,/,A)')
+     1    ' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********',
+     1    ' Linear BOSOR4 MODEL 2: Entire length + rings; theta=0 deg.'
+            DO 47 I = 1,20
+               IF (STRRAT(I).LT.0.000001) GO TO 47
+               WRITE(IFILE8,'(I3,1P,E12.4,1X,A)')
+     1                      I,STRRAT(I),STRWRD(I)(1:60)
+   47       CONTINUE
+            WRITE(IFILE8,'(A)')
+     1    ' ****************************************************'
+            WRITE(IFILE8,'(/,A,A,/,1P,E12.4,1X,A)')
+     1    ' Composite matl: Most critical stress ratio,',
+     1    ' allowable/actual, and definition',
+     1      STRMIN,STRWRD(ICRIT)(1:60)
+         ENDIF
+         IF (STRMIN.GT.0.) STRNON(1) = 1./STRMIN
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (NPRINX.GT.0.OR.IMODX.EQ.0) THEN
+        WRITE(IFILE8,'(/,A,/,A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Output from STRUCT for linear nonsymmetric stress analysis:',
+     1' Max. critical stress,  theta=0, load set A,  STRNON(1)=',
+     1   STRNON(1),',',LOCATS(1),'=1000*ISEG+I',
+     1' Max. critical stress,  theta=0, load set B,  STRNON(2)=',
+     1   STRNON(2),',',LOCATS(2),'=1000*ISEG+I'
+        WRITE(IFILE8,'(A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Max. normal displace., theta=0, load set A,  WWWNON(1)=',
+     1   WWWNON(1),',',LOCATW(1),'=1000*ISEG+I',
+     1' Max. normal displace., theta=0, load set B,  WWWNON(2)=',
+     1   WWWNON(2),',',LOCATW(2),'=1000*ISEG+I'
+C BEG FEB 2008
+C      IF (JJJ1.EQ.2.AND.IMODX.EQ.0) THEN
+C         WRITE(IFILE8,'(/,A,2I5)')' JJJ1,IMODX=',JJJ1,IMODX
+C         CALL EXIT
+C      ENDIF
+C END FEB 2008
+      ENDIF
+C
+      STR0X = STRNON(1) + STRNON(2)
+      WWW0X = ABS(WWWNON(1)) + ABS(WWWNON(2))
+C
+C  16b. NEXT, FOR MERIDIAN AT 180 DEGREES, ANGSTR = 180.
+C
+      ANGSTR = 180.
+      ANGBUC = 180.
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,A)')
+     1' In SUBROUTINE STRUCT:',
+     1' Use BOSOR4 MODEL 2 to compute max.stress at 180 degrees'
+      CALL PUTWAV(2,0,ILOADX,IMODX,NWAVEX(5),NPRINX)
+      CALL BOSDEC(24)
+C BEG FEB 2008
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX5 file for input for BIGBOSOR4...
+C      CASE.BEHX5 is an input file for BIGBOSOR4 for behavior no. 5:
+C      maximum stress at 180 deg. from linear theory. This file can
+C      also be used to obtain behavior no. 13 (BEHX13):
+C      maximum normal displacement at 180 deg. from linear theory.
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX5'
+         ELSE
+            CASA=CASE//'.BEHX5'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(61)
+         CLOSE(UNIT=61)
+         WRITE(IFILE8,'(/,/,A,/,A,/,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' maximum stress at 180 deg. from linear theory and',
+     1 ' maximum normal displacement at 180 deg. from linear theory.',
+     1   CASA
+      ENDIF
+C
+C END FEB 2008
+      CALL B4READ
+      CALL B4MAIN
+      CALL B4POST
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IWALL.EQ.2) THEN
+         ICRIT = 0
+         ST180A(ILOADX) = 1.0
+         STRNON(1) = 0.
+         STRNON(2) = 0.
+         STRMIN = 10.E+26
+         DO 54 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 54
+            STRMIN = MIN(STRRAT(I),STRMIN)
+   54    CONTINUE
+         IF (STRMIN.LE.0.) GO TO 56
+         DO 55 I = 1,99
+            IF (STRRAT(I).LT.0.000001) GO TO 55
+            DIFF = ABS(STRMIN-STRRAT(I))/STRMIN
+            IF (DIFF.LT.0.0001) THEN
+               ICRIT = I
+               GO TO 56
+            ENDIF
+   55    CONTINUE
+   56    CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ICRIT.GT.0) THEN
+            WRITE(IFILE8,'(/,A,/,A)')
+     1    ' ****** (ALLOWABLE STRESS)/(ACTUAL STRESS) ********',
+     1    ' Linear BOSOR4 MODEL 2: Entire length +rings; theta=180 deg.'
+            DO 57 I = 1,20
+               IF (STRRAT(I).LT.0.000001) GO TO 57
+               WRITE(IFILE8,'(I3,1P,E12.4,1X,A)')
+     1                      I,STRRAT(I),STRWRD(I)(1:60)
+   57       CONTINUE
+            WRITE(IFILE8,'(A)')
+     1    ' ****************************************************'
+            WRITE(IFILE8,'(/,A,A,/,1P,E12.4,1X,A)')
+     1    ' Composite matl: Most critical stress ratio,',
+     1    ' allowable/actual, and definition',
+     1      STRMIN,STRWRD(ICRIT)(1:60)
+         ENDIF
+         IF (STRMIN.GT.0.) STRNON(1) = 1./STRMIN
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (NPRINX.GT.0.OR.IMODX.EQ.0) THEN
+        WRITE(IFILE8,'(A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Max. critical stress,  theta=180,load set A, STRNON(1)=',
+     1   STRNON(1),',',LOCATS(1),'=1000*ISEG+I',
+     1' Max. critical stress,  theta=180,load set B, STRNON(2)=',
+     1   STRNON(2),',',LOCATS(2),'=1000*ISEG+I'
+        WRITE(IFILE8,'(A,1P,E12.4,A,I6,A/,A,1P,E12.4,A,I6,A)')
+     1' Max. normal displace., theta=180,load set A, WWWNON(1)=',
+     1   WWWNON(1),',',LOCATW(1),'=1000*ISEG+I',
+     1' Max. normal displace., theta=180,load set B, WWWNON(2)=',
+     1   WWWNON(2),',',LOCATW(2),'=1000*ISEG+I'
+      ENDIF
+C
+      STR18X = STRNON(1) + STRNON(2)
+      WWW18X = ABS(WWWNON(1)) + ABS(WWWNON(2))
+C
+      FNX(ILOADX)   = FNXS
+      FNXB(ILOADX)  = FNXBS
+      PRESS(ILOADX) = PRESSS
+      PRESSB(ILOADX)= PRSSBS
+C
+      IF (NPRINX.GT.0) WRITE(IFILE8,'(/,A,/,A,/,A,I2,A,I2,A,I2,/,A)')
+     1' =============================================================',
+     1' END OF COMPUTATIONS IN SUBROUTINE STRUCT.',
+     1' IMODX=',IMODX,'; LOAD SET NO. ',ILOADX,' ITERATION NO. ',JJJ1,
+     1' ============================================================='
+C     call exit
+C
+C 17. Start the calls to the 18 "behavior" subroutines..
+C
+C=======================================================================
+C  Start of the final portion of STRUCT written by "GENTEXT"
+C
+C  INSERT THE PROGRAM FILE HERE:
+C
+C  Behavior and constraints generated next for STRMAX:
+C  STRMAX = maximum stress in wall from nonlinear theory
+C
+      PHRASE =
+     1 'maximum stress in wall from nonlinear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(1  ).EQ.0) CALL BEHX1
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'maximum stress in wall from nonlinear theory')
+      IF (STRMAX(ILOADX  ).EQ.0.)  STRMAX(ILOADX  ) = 1.E-10
+      IF (STRALW(ILOADX  ).EQ.0.)  STRALW(ILOADX  ) = 1.0
+      IF (STRFS(ILOADX  ).EQ.0.)  STRFS(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRMAX(ILOADX  )
+      WORDCX= '(STRMAX('//CIX//')/STRALW('//CIX//
+     1  ')) X STRFS('//CIX//')'
+      CALL CONX(STRMAX(ILOADX  ),STRALW(ILOADX  ),STRFS(ILOADX  )
+     1,'maximum stress in wall from nonlinear theory',
+     1 'maximum allowable stress, nonlinear theory',
+     1 'factor of safety stress, nonlinear theory',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress in wall from nonlinear theory: '
+         IENDP4 =48
+         CODNAM ='STRMAX('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  425 CONTINUE
+  426 CONTINUE
+C
+C  Behavior and constraints generated next for BUCFAC:
+C  BUCFAC = buckling load factor from nonlinear theory
+C
+      PHRASE =
+     1 'buckling load factor from nonlinear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(2  ).EQ.0) CALL BEHX2
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'buckling load factor from nonlinear theory')
+      IF (BUCFAC(ILOADX  ).EQ.0.)  BUCFAC(ILOADX  ) = 1.E+10
+      IF (BUCALW(ILOADX  ).EQ.0.)  BUCALW(ILOADX  ) = 1.0
+      IF (BUCFS(ILOADX  ).EQ.0.)  BUCFS(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUCFAC(ILOADX  )
+      WORDCX= '(BUCFAC('//CIX//')/BUCALW('//CIX//
+     1  ')) / BUCFS('//CIX//')'
+      CALL CONX(BUCFAC(ILOADX  ),BUCALW(ILOADX  ),BUCFS(ILOADX  )
+     1,'buckling load factor from nonlinear theory',
+     1 'allowable buckling factor (use 1.0), nonlin.theory',
+     1 'factor of safety buckling, nonlinear theory',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling load factor from nonlinear theory: '
+         IENDP4 =46
+         CODNAM ='BUCFAC('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  440 CONTINUE
+  441 CONTINUE
+C
+C  Behavior and constraints generated next for BUCHIW:
+C  BUCHIW = hi-wave buckling load factor, nonlinear theory
+C
+      PHRASE =
+     1 'hi-wave buckling load factor, nonlinear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(3  ).EQ.0) CALL BEHX3
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'hi-wave buckling load factor, nonlinear theory')
+      IF (BUCHIW(ILOADX  ).EQ.0.)  BUCHIW(ILOADX  ) = 1.E+10
+      IF (BUCHIA(ILOADX  ).EQ.0.)  BUCHIA(ILOADX  ) = 1.0
+      IF (BUCHIF(ILOADX  ).EQ.0.)  BUCHIF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUCHIW(ILOADX  )
+      WORDCX= '(BUCHIW('//CIX//')/BUCHIA('//CIX//
+     1  ')) / BUCHIF('//CIX//')'
+      CALL CONX(BUCHIW(ILOADX  ),BUCHIA(ILOADX  ),BUCHIF(ILOADX  )
+     1,'hi-wave buckling load factor, nonlinear theory',
+     1 'allowable hi-wave bucklng factor (use 1), nonlin.theory',
+     1 'factor of safety hi-wave buckling',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  hi-wave buckling load factor, nonlinear theory: '
+         IENDP4 =50
+         CODNAM ='BUCHIW('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  455 CONTINUE
+  456 CONTINUE
+C
+C  Behavior and constraints generated next for STR0:
+C  STR0 = max. stress at 0 deg., linear theory
+C
+      PHRASE =
+     1 'max. stress at 0 deg., linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(4  ).EQ.0) CALL BEHX4
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'max. stress at 0 deg., linear theory')
+      IF (STR0(ILOADX  ).EQ.0.)  STR0(ILOADX  ) = 1.E-10
+      IF (STR0A(ILOADX  ).EQ.0.)  STR0A(ILOADX  ) = 1.0
+      IF (STR0F(ILOADX  ).EQ.0.)  STR0F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STR0(ILOADX  )
+      WORDCX= '(STR0('//CIX//')/STR0A('//CIX//
+     1  ')) X STR0F('//CIX//')'
+      CALL CONX(STR0(ILOADX  ),STR0A(ILOADX  ),STR0F(ILOADX  )
+     1,'max. stress at 0 deg., linear theory',
+     1 'max. allowable stress, linear theory',
+     1 'factor of safety stress, linear theory',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  max. stress at 0 deg., linear theory: '
+         IENDP4 =40
+         CODNAM ='STR0('//CIX//')'
+         MLET4 =4 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  470 CONTINUE
+  471 CONTINUE
+C
+C  Behavior and constraints generated next for STR180:
+C  STR180 = max. stress at 180 deg., linear theory
+C
+      PHRASE =
+     1 'max. stress at 180 deg., linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(5  ).EQ.0) CALL BEHX5
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'max. stress at 180 deg., linear theory')
+      IF (STR180(ILOADX  ).EQ.0.)  STR180(ILOADX  ) = 1.E-10
+      IF (ST180A(ILOADX  ).EQ.0.)  ST180A(ILOADX  ) = 1.0
+      IF (ST180F(ILOADX  ).EQ.0.)  ST180F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STR180(ILOADX  )
+      WORDCX= '(STR180('//CIX//')/ST180A('//CIX//
+     1  ')) X ST180F('//CIX//')'
+      CALL CONX(STR180(ILOADX  ),ST180A(ILOADX  ),ST180F(ILOADX  )
+     1,'max. stress at 180 deg., linear theory',
+     1 'max. allowable stress, linear theory',
+     1 'factor of safety stress, linear theory',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  max. stress at 180 deg., linear theory: '
+         IENDP4 =42
+         CODNAM ='STR180('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  485 CONTINUE
+  486 CONTINUE
+C
+C  Behavior and constraints generated next for BUC0:
+C  BUC0 = buckling load factor at 0 deg., linear theory
+C
+      PHRASE =
+     1 'buckling load factor at 0 deg., linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(6  ).EQ.0) CALL BEHX6
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'buckling load factor at 0 deg., linear theory')
+      IF (BUC0(ILOADX  ).EQ.0.)  BUC0(ILOADX  ) = 1.E+10
+      IF (BUC0A(ILOADX  ).EQ.0.)  BUC0A(ILOADX  ) = 1.0
+      IF (BUC0F(ILOADX  ).EQ.0.)  BUC0F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUC0(ILOADX  )
+      WORDCX= '(BUC0('//CIX//')/BUC0A('//CIX//
+     1  ')) / BUC0F('//CIX//')'
+      CALL CONX(BUC0(ILOADX  ),BUC0A(ILOADX  ),BUC0F(ILOADX  )
+     1,'buckling load factor at 0 deg., linear theory',
+     1 'allowable buckling factor (use 1), linear theory',
+     1 'factor of safety buckling factor, linear theory',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling load factor at 0 deg., linear theory: '
+         IENDP4 =49
+         CODNAM ='BUC0('//CIX//')'
+         MLET4 =4 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  500 CONTINUE
+  501 CONTINUE
+C
+C  Behavior and constraints generated next for B0ANTI:
+C  B0ANTI = load factor for antisymmetric buckling at 0 deg
+C
+      PHRASE =
+     1 'load factor for antisymmetric buckling at 0 deg'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(7  ).EQ.0) CALL BEHX7
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'load factor for antisymmetric buckling at 0 deg')
+      IF (B0ANTI(ILOADX  ).EQ.0.)  B0ANTI(ILOADX  ) = 1.E+10
+      IF (B0ANTA(ILOADX  ).EQ.0.)  B0ANTA(ILOADX  ) = 1.0
+      IF (B0ANTF(ILOADX  ).EQ.0.)  B0ANTF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =B0ANTI(ILOADX  )
+      WORDCX= '(B0ANTI('//CIX//')/B0ANTA('//CIX//
+     1  ')) / B0ANTF('//CIX//')'
+      CALL CONX(B0ANTI(ILOADX  ),B0ANTA(ILOADX  ),B0ANTF(ILOADX  )
+     1,'load factor for antisymmetric buckling at 0 deg',
+     1 'allowable (use 1), antisymmetric buckling, 0 deg.',
+     1 'factor of safety antisymmetric buckling, 0 deg',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  load factor for antisymmetric buckling at 0 deg: '
+         IENDP4 =51
+         CODNAM ='B0ANTI('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  515 CONTINUE
+  516 CONTINUE
+C
+C  Behavior and constraints generated next for BUC0MD:
+C  BUC0MD = load factor for mid-wave-range buckling at 0 deg
+C
+      PHRASE =
+     1 'load factor for mid-wave-range buckling at 0 deg'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(8  ).EQ.0) CALL BEHX8
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'load factor for mid-wave-range buckling at 0 deg')
+      IF (BUC0MD(ILOADX  ).EQ.0.)  BUC0MD(ILOADX  ) = 1.E+10
+      IF (BUC0MA(ILOADX  ).EQ.0.)  BUC0MA(ILOADX  ) = 1.0
+      IF (BUC0MF(ILOADX  ).EQ.0.)  BUC0MF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUC0MD(ILOADX  )
+      WORDCX= '(BUC0MD('//CIX//')/BUC0MA('//CIX//
+     1  ')) / BUC0MF('//CIX//')'
+      CALL CONX(BUC0MD(ILOADX  ),BUC0MA(ILOADX  ),BUC0MF(ILOADX  )
+     1,'load factor for mid-wave-range buckling at 0 deg',
+     1 'allowable (use 1), mid-wave-range buckling, 0 deg',
+     1 'factor of safety mid-wave-range buckling, 0 deg',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  load factor for mid-wave-range buckling at 0 deg: '
+         IENDP4 =52
+         CODNAM ='BUC0MD('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  530 CONTINUE
+  531 CONTINUE
+C
+C  Behavior and constraints generated next for BUC0HI:
+C  BUC0HI = hi-wave buckling load factor, 0 deg,linear theory
+C
+      PHRASE =
+     1 'hi-wave buckling load factor, 0 deg,linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(9  ).EQ.0) CALL BEHX9
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'hi-wave buckling load factor, 0 deg,linear theory')
+      IF (BUC0HI(ILOADX  ).EQ.0.)  BUC0HI(ILOADX  ) = 1.E+10
+      IF (BUC0HA(ILOADX  ).EQ.0.)  BUC0HA(ILOADX  ) = 1.0
+      IF (BUC0HF(ILOADX  ).EQ.0.)  BUC0HF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUC0HI(ILOADX  )
+      WORDCX= '(BUC0HI('//CIX//')/BUC0HA('//CIX//
+     1  ')) / BUC0HF('//CIX//')'
+      CALL CONX(BUC0HI(ILOADX  ),BUC0HA(ILOADX  ),BUC0HF(ILOADX  )
+     1,'hi-wave buckling load factor, 0 deg,linear theory',
+     1 'allowable for hi-wave buckling (use 1) at 0 deg.',
+     1 'factor of safety hi-wave buckling, linear theory',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  hi-wave buckling load factor, 0 deg,linear theory: '
+         IENDP4 =53
+         CODNAM ='BUC0HI('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  545 CONTINUE
+  546 CONTINUE
+C
+C  Behavior and constraints generated next for BUC180:
+C  BUC180 = buckling load factor at 180 deg, linear theory
+C
+      PHRASE =
+     1 'buckling load factor at 180 deg, linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(10 ).EQ.0) CALL BEHX10
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'buckling load factor at 180 deg, linear theory')
+      IF (BUC180(ILOADX  ).EQ.0.)  BUC180(ILOADX  ) = 1.E+10
+      IF (BU180A(ILOADX  ).EQ.0.)  BU180A(ILOADX  ) = 1.0
+      IF (BU180F(ILOADX  ).EQ.0.)  BU180F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUC180(ILOADX  )
+      WORDCX= '(BUC180('//CIX//')/BU180A('//CIX//
+     1  ')) / BU180F('//CIX//')'
+      CALL CONX(BUC180(ILOADX  ),BU180A(ILOADX  ),BU180F(ILOADX  )
+     1,'buckling load factor at 180 deg, linear theory',
+     1 'allowable buckling factor at 180 deg., linear theory',
+     1 'factor of safety buckling at 180 deg, linear theory',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling load factor at 180 deg, linear theory: '
+         IENDP4 =50
+         CODNAM ='BUC180('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  560 CONTINUE
+  561 CONTINUE
+C
+C  Behavior and constraints generated next for B180HI:
+C  B180HI = hi-wave buckling load factor 180 deg, lin.theory
+C
+      PHRASE =
+     1 'hi-wave buckling load factor 180 deg, lin.theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(11 ).EQ.0) CALL BEHX11
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'hi-wave buckling load factor 180 deg, lin.theory')
+      IF (B180HI(ILOADX  ).EQ.0.)  B180HI(ILOADX  ) = 1.E+10
+      IF (B180HA(ILOADX  ).EQ.0.)  B180HA(ILOADX  ) = 1.0
+      IF (B180HF(ILOADX  ).EQ.0.)  B180HF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =B180HI(ILOADX  )
+      WORDCX= '(B180HI('//CIX//')/B180HA('//CIX//
+     1  ')) / B180HF('//CIX//')'
+      CALL CONX(B180HI(ILOADX  ),B180HA(ILOADX  ),B180HF(ILOADX  )
+     1,'hi-wave buckling load factor 180 deg, lin.theory',
+     1 'allowable (use 1), hi-wave buckling at 180 deg',
+     1 'factor of safety hi-wave buckling at 180 deg.',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  hi-wave buckling load factor 180 deg, lin.theory: '
+         IENDP4 =52
+         CODNAM ='B180HI('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  575 CONTINUE
+  576 CONTINUE
+C
+C  Behavior and constraints generated next for WWW0:
+C  WWW0 = maximum normal displacement, 0 deg., linear theory
+C
+      PHRASE =
+     1 'maximum normal displacement, 0 deg., linear theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(12 ).EQ.0) CALL BEHX12
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'maximum normal displacement, 0 deg., linear theory')
+      IF (WWW0(ILOADX  ).EQ.0.)  WWW0(ILOADX  ) = 1.E-10
+      IF (WWW0A(ILOADX  ).EQ.0.)  WWW0A(ILOADX  ) = 1.0
+      IF (WWW0F(ILOADX  ).EQ.0.)  WWW0F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =WWW0(ILOADX  )
+      WORDCX= '(WWW0('//CIX//')/WWW0A('//CIX//
+     1  ')) X WWW0F('//CIX//')'
+      CALL CONX(WWW0(ILOADX  ),WWW0A(ILOADX  ),WWW0F(ILOADX  )
+     1,'maximum normal displacement, 0 deg., linear theory',
+     1 'maximum allowable normal displacement, linear theory',
+     1 'factor of safety max. normal displacement',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum normal displacement, 0 deg., linear theory: '
+         IENDP4 =54
+         CODNAM ='WWW0('//CIX//')'
+         MLET4 =4 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  590 CONTINUE
+  591 CONTINUE
+C
+C  Behavior and constraints generated next for WWW180:
+C  WWW180 = maximum normal displacement, 180 deg., lin.theory
+C
+      PHRASE =
+     1 'maximum normal displacement, 180 deg., lin.theory'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(13 ).EQ.0) CALL BEHX13
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'maximum normal displacement, 180 deg., lin.theory')
+      IF (WWW180(ILOADX  ).EQ.0.)  WWW180(ILOADX  ) = 1.E-10
+      IF (WW180A(ILOADX  ).EQ.0.)  WW180A(ILOADX  ) = 1.0
+      IF (WW180F(ILOADX  ).EQ.0.)  WW180F(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =WWW180(ILOADX  )
+      WORDCX= '(WWW180('//CIX//')/WW180A('//CIX//
+     1  ')) X WW180F('//CIX//')'
+      CALL CONX(WWW180(ILOADX  ),WW180A(ILOADX  ),WW180F(ILOADX  )
+     1,'maximum normal displacement, 180 deg., lin.theory',
+     1 'max. allowable normal displacment, linear theory',
+     1 'factor of safety normal displacment',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum normal displacement, 180 deg., lin.theory: '
+         IENDP4 =53
+         CODNAM ='WWW180('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  605 CONTINUE
+  606 CONTINUE
+C
+C  Behavior and constraints generated next for FREQ:
+C  FREQ = modal frequency (hertz)
+C
+      PHRASE =
+     1 'modal frequency (hertz)'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(14 ).EQ.0) CALL BEHX14
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'modal frequency (hertz)')
+      IF (FREQ(ILOADX  ).EQ.0.)  FREQ(ILOADX  ) = 1.E+10
+      IF (VIBALW(ILOADX  ).EQ.0.)  VIBALW(ILOADX  ) = 1.0
+      IF (VIBFS(ILOADX  ).EQ.0.)  VIBFS(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =FREQ(ILOADX  )
+      WORDCX= '(FREQ('//CIX//')/VIBALW('//CIX//
+     1  ')) / VIBFS('//CIX//')'
+      CALL CONX(FREQ(ILOADX  ),VIBALW(ILOADX  ),VIBFS(ILOADX  )
+     1,'modal frequency (hertz)',
+     1 'minimum allowable modal frequency',
+     1 'factor of safety modal frequency',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  modal frequency (hertz): '
+         IENDP4 =27
+         CODNAM ='FREQ('//CIX//')'
+         MLET4 =4 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  620 CONTINUE
+  621 CONTINUE
+C
+C  Behavior and constraints generated next for STRRAN:
+C  STRRAN = maximum stress from random excitation
+C
+      PHRASE =
+     1 'maximum stress from random excitation'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(15 ).EQ.0) CALL BEHX15
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'maximum stress from random excitation')
+      IF (STRRAN(ILOADX  ).EQ.0.)  STRRAN(ILOADX  ) = 1.E-10
+      IF (STRRNA(ILOADX  ).EQ.0.)  STRRNA(ILOADX  ) = 1.0
+      IF (STRRNF(ILOADX  ).EQ.0.)  STRRNF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =STRRAN(ILOADX  )
+      WORDCX= '(STRRAN('//CIX//')/STRRNA('//CIX//
+     1  ')) X STRRNF('//CIX//')'
+      CALL CONX(STRRAN(ILOADX  ),STRRNA(ILOADX  ),STRRNF(ILOADX  )
+     1,'maximum stress from random excitation',
+     1 'max. allowable stress from random excitation',
+     1 'factor of safety stress from random excitation',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  maximum stress from random excitation: '
+         IENDP4 =41
+         CODNAM ='STRRAN('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  635 CONTINUE
+  636 CONTINUE
+C
+C  Behavior and constraints generated next for BUCRAN:
+C  BUCRAN = buckling load factor from random excitation
+C
+      PHRASE =
+     1 'buckling load factor from random excitation'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(16 ).EQ.0) CALL BEHX16
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'buckling load factor from random excitation')
+      IF (BUCRAN(ILOADX  ).EQ.0.)  BUCRAN(ILOADX  ) = 1.E+10
+      IF (BUCRNA(ILOADX  ).EQ.0.)  BUCRNA(ILOADX  ) = 1.0
+      IF (BUCRNF(ILOADX  ).EQ.0.)  BUCRNF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BUCRAN(ILOADX  )
+      WORDCX= '(BUCRAN('//CIX//')/BUCRNA('//CIX//
+     1  ')) / BUCRNF('//CIX//')'
+      CALL CONX(BUCRAN(ILOADX  ),BUCRNA(ILOADX  ),BUCRNF(ILOADX  )
+     1,'buckling load factor from random excitation',
+     1 'allowable buckling load factor (use 1), random excit.',
+     1 'factor of safety, buckling from random excitation',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  buckling load factor from random excitation: '
+         IENDP4 =47
+         CODNAM ='BUCRAN('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  650 CONTINUE
+  651 CONTINUE
+C
+C  Behavior and constraints generated next for BRANHI:
+C  BRANHI = hi-wave buckling factor from random excitation
+C
+      PHRASE =
+     1 'hi-wave buckling factor from random excitation'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(17 ).EQ.0) CALL BEHX17
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'hi-wave buckling factor from random excitation')
+      IF (BRANHI(ILOADX  ).EQ.0.)  BRANHI(ILOADX  ) = 1.E+10
+      IF (BRANHA(ILOADX  ).EQ.0.)  BRANHA(ILOADX  ) = 1.0
+      IF (BRANHF(ILOADX  ).EQ.0.)  BRANHF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =BRANHI(ILOADX  )
+      WORDCX= '(BRANHI('//CIX//')/BRANHA('//CIX//
+     1  ')) / BRANHF('//CIX//')'
+      CALL CONX(BRANHI(ILOADX  ),BRANHA(ILOADX  ),BRANHF(ILOADX  )
+     1,'hi-wave buckling factor from random excitation',
+     1 'allowable (use 1), buckling factor, random excit.',
+     1 'factor of safety hi-wave buckling, random excit.',
+     1 2,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  hi-wave buckling factor from random excitation: '
+         IENDP4 =50
+         CODNAM ='BRANHI('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  665 CONTINUE
+  666 CONTINUE
+C
+C  Behavior and constraints generated next for WWWRAN:
+C  WWWRAN = max. normal displacement from random excitation
+C
+      PHRASE =
+     1 'max. normal displacement from random excitation'
+      CALL BLANKX(PHRASE,IENDP4)
+      IF (IBEHV(18 ).EQ.0) CALL BEHX18
+     1 (IFILE8,NPRINX,IMODX,IFAST,ILOADX  ,
+     1 'max. normal displacement from random excitation')
+      IF (WWWRAN(ILOADX  ).EQ.0.)  WWWRAN(ILOADX  ) = 1.E-10
+      IF (WWWRNA(ILOADX  ).EQ.0.)  WWWRNA(ILOADX  ) = 1.0
+      IF (WWWRNF(ILOADX  ).EQ.0.)  WWWRNF(ILOADX  ) = 1.0
+      KCONX = KCONX + 1
+      CARX(KCONX) =WWWRAN(ILOADX  )
+      WORDCX= '(WWWRAN('//CIX//')/WWWRNA('//CIX//
+     1  ')) X WWWRNF('//CIX//')'
+      CALL CONX(WWWRAN(ILOADX  ),WWWRNA(ILOADX  ),WWWRNF(ILOADX  )
+     1,'max. normal displacement from random excitation',
+     1 'max. allowable normal displ., random excitation',
+     1 'factor of safety max. normal displ., random excit.',
+     1 1,INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,WORDCX,
+     1 WORDMX,PCWORD,CPLOTX,ICARX)
+      IF (IMODX.EQ.0) THEN
+         CODPHR =
+     1 '  max. normal displacement from random excitation: '
+         IENDP4 =51
+         CODNAM ='WWWRAN('//CIX//')'
+         MLET4 =6 + 4
+         WORDBX(KCONX)= CODPHR(1:IENDP4)//CODNAM(1:MLET4)
+         IF (NPRINX.GT.0) WRITE(IFILE8,'(I5,6X,G14.7,A,A)')
+     1    KCONX,CARX(KCONX),CODPHR(1:IENDP4),CODNAM(1:MLET4)
+      ENDIF
+  680 CONTINUE
+  681 CONTINUE
+C
+C  NEXT, EVALUATE THE OBJECTIVE, OBJGEN:
+      IF (ILOADX.EQ.1) THEN
+         PHRASE ='weight of the cylindrical shell'
+         CALL BLANKX(PHRASE,IENDP4)
+         CALL OBJECT(IFILE8,NPRINX,IMODX,OBJGEN,
+     1    'weight of the cylindrical shell')
+      ENDIF
+      NCONSX = ICONSX
+C
+      CALL CLSGEN
+C
+      RETURN
+      END
+C
+C
+C
+C
+C
+C  End of the final portion of STRUCT written by "GENTEXT"
+C=======================================================================
+C
+C=DECK      TRANFR
+      SUBROUTINE TRANFR(ARG1,ARG2,ARG3,ARG4,ARG5)
+C
+C  USER:  DO NOT FORGET TO MODIFY THE ARGUMENT LIST OF TRANFR AS
+C         APPROPRIATE FOR YOUR CASE!
+C
+C  PURPOSE IS TO TRANSFER DATA FROM THE LABELLED COMMON BLOCKS
+C  SET UP BY THE GENOPT CODE TO LABELLED COMMON OR ARGUMENTS IN
+C  THE SUBROUTINE ARGUMENT LIST THAT MATCH PREVIOUSLY WRITTEN CODE
+C  BY YOURSELF OR OTHER PROGRAM DEVELOPERS.  THE USER SHOULD ESTABLISH
+C  THE ARGUMENT LIST AND/OR LABELLED COMMON BLOCKS THAT MATCH VARIABLES
+C  IN THE PREVIOUSLY WRITTEN CODE.  FOR AN EXAMPLE, SEE THE DISCUSSION
+C  OF THE CASE CALLED "PANEL".
+C
+C==========================================================================
+C  Start of part of TRANFR written by "GENTEXT"
+C  INSERT ADDITIONAL COMMON BLOCKS HERE: (THESE ARE "GENTEXT" VARIABLES)
+      COMMON/FV01/AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      REAL AXIAL,RADIUS,THICK,BRINGS,TWEB,HWEB,TFLANG,HFLANG
+      COMMON/FV09/ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      REAL ERING,FNURNG,DENRNG,GRAVTY,LGAXL,WAVLEN,AMPLIT,RADSML
+      COMMON/IV01/IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      INTEGER IRING,NMESHR,NWAVES,IWAVE,NMESHS,NMESHC,NMESH1,MAXDOF
+      COMMON/IV12/LTYPE(90),ILTYPE
+      INTEGER LTYPE
+      COMMON/IV13/NEWLAY(90)
+      INTEGER NEWLAY
+      COMMON/FV20/TLAYER(20),ITLAYE
+      REAL TLAYER
+      COMMON/IV14/MTYPE(20)
+      INTEGER MTYPE
+      COMMON/IV15/NEWMAT(20)
+      INTEGER NEWMAT
+      COMMON/FV21/ANGLE(20)
+      REAL ANGLE
+      COMMON/FV22/E1(10),IE1
+      REAL E1
+      COMMON/FV23/E2(10),G(10),NU(10),A1(10),A2(10),CURETP(10)
+      REAL E2,G,NU,A1,A2,CURETP
+      COMMON/FV29/RHO(10),S1TEN(10),S1COMP(10),S2TEN(10),S2COMP(10)
+      REAL RHO,S1TEN,S1COMP,S2TEN,S2COMP
+      COMMON/FV34/TAU12(10)
+      REAL TAU12
+      COMMON/FV35/BDAMP(20),IBDAMP
+      REAL BDAMP
+      COMMON/FV36/BFREQ(20)
+      REAL BFREQ
+      COMMON/FV37/SPTDEN(20),ISPTDE
+      REAL SPTDEN
+      COMMON/IV09/IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      INTEGER IBOUND,IWALL,NLAYER,NRS,NDAMP,NSPECT,N0B,NMAXB,INCRB
+      COMMON/FV38/SFREQ(20)
+      REAL SFREQ
+      COMMON/FV39/FNX(20)
+      REAL FNX
+      COMMON/FV40/FNXB(20),GAXIAL(20),GLATRL(20),PRESS(20),PRESSB(20)
+      REAL FNXB,GAXIAL,GLATRL,PRESS,PRESSB
+      COMMON/FV47/STRMAX(20),STRALW(20),STRFS(20)
+      REAL STRMAX,STRALW,STRFS
+      COMMON/FV50/BUCFAC(20),BUCALW(20),BUCFS(20)
+      REAL BUCFAC,BUCALW,BUCFS
+      COMMON/FV53/BUCHIW(20),BUCHIA(20),BUCHIF(20)
+      REAL BUCHIW,BUCHIA,BUCHIF
+      COMMON/FV56/STR0(20),STR0A(20),STR0F(20)
+      REAL STR0,STR0A,STR0F
+      COMMON/FV59/STR180(20),ST180A(20),ST180F(20)
+      REAL STR180,ST180A,ST180F
+      COMMON/FV62/BUC0(20),BUC0A(20),BUC0F(20)
+      REAL BUC0,BUC0A,BUC0F
+      COMMON/FV65/B0ANTI(20),B0ANTA(20),B0ANTF(20)
+      REAL B0ANTI,B0ANTA,B0ANTF
+      COMMON/FV68/BUC0MD(20),BUC0MA(20),BUC0MF(20)
+      REAL BUC0MD,BUC0MA,BUC0MF
+      COMMON/FV71/BUC0HI(20),BUC0HA(20),BUC0HF(20)
+      REAL BUC0HI,BUC0HA,BUC0HF
+      COMMON/FV74/BUC180(20),BU180A(20),BU180F(20)
+      REAL BUC180,BU180A,BU180F
+      COMMON/FV77/B180HI(20),B180HA(20),B180HF(20)
+      REAL B180HI,B180HA,B180HF
+      COMMON/FV80/WWW0(20),WWW0A(20),WWW0F(20)
+      REAL WWW0,WWW0A,WWW0F
+      COMMON/FV83/WWW180(20),WW180A(20),WW180F(20)
+      REAL WWW180,WW180A,WW180F
+      COMMON/FV86/FREQ(20),VIBALW(20),VIBFS(20)
+      REAL FREQ,VIBALW,VIBFS
+      COMMON/FV89/STRRAN(20),STRRNA(20),STRRNF(20)
+      REAL STRRAN,STRRNA,STRRNF
+      COMMON/FV92/BUCRAN(20),BUCRNA(20),BUCRNF(20)
+      REAL BUCRAN,BUCRNA,BUCRNF
+      COMMON/FV95/BRANHI(20),BRANHA(20),BRANHF(20)
+      REAL BRANHI,BRANHA,BRANHF
+      COMMON/FV98/WWWRAN(20),WWWRNA(20),WWWRNF(20)
+      REAL WWWRAN,WWWRNA,WWWRNF
+      COMMON/IV22/N0V,NMAXV,INCRV,NVEC
+      INTEGER N0V,NMAXV,INCRV,NVEC
+      COMMON/FV17/ESTIFF,FNU,DENS,WEIGHT
+      REAL ESTIFF,FNU,DENS,WEIGHT
+C
+C
+C  End of part of TRANFR written by "GENTEXT"
+C==========================================================================
+C  INSERT ADDITIONAL DIMENSION AND/OR LABELLED COMMON BLOCKS HERE,
+C  IF NECESSARY. THESE WOULD BE STATEMENTS THAT ARE CONSISTENT WITH
+C  SUBROUTINES THAT YOU OR OTHERS MAY HAVE WRITTEN THAT ARE REQUIRED
+C  FOR WHATEVER ANALYSIS YOU ARE NOW PERSUING.  MAKE SURE THERE ARE
+C  NO NAME CONFLICTS WITH THE "GENTEXT" LABELLED COMMON BLOCKS.
+C
+C
+C  INSERT APPROPRIATE FORTRAN STATEMENTS HERE (DON'T FORGET TO CORRECT
+C  THE ARGUMENT LIST OF SUBROUTINE TRANFR!)
+C  PROGRAM FILE:
+C
+C
+      RETURN
+      END
+C
+C
+C

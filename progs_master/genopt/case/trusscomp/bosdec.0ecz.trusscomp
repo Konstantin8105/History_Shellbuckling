@@ -1,0 +1,5095 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "trusscomp"
+C
+C  NOTE: BIGBOSOR4 was modified by allowing the user to read
+C        in "fixed" preloads with the INDIC=4, IPRE=0 option,
+C        as well as "eigenvalue" loads. Previously, only
+C        "eigenvalue" loads were allowed. This change means
+C        that the bosdec.weldland, bosdec.cylwavy, and bosdec.span9
+C        files will have to be updated to be consistent with
+C        the new input asked for by BIGBOSOR4.
+C
+C  Figure numbers refer to the trusscomp 2011 paper unless otherwise
+C  noted.
+C
+      SUBROUTINE BOSDEC(INDX,IFIL14,ILOADX,INDIC)
+C  Insert labelled common blocks: trusscomp.COM
+      COMMON/FV01/LENGTH,FACLEN,RADIUS,PITCH,BCROWN,HEIGHT,RACUTE,ROBTUS
+      REAL LENGTH,FACLEN,RADIUS,PITCH,BCROWN,HEIGHT,RACUTE,ROBTUS
+      COMMON/FV14/EMOD1(10),IEMOD1 
+      REAL EMOD1
+      COMMON/FV15/EMOD2(10),G12(10),G13(10),G23(10),NU(10),ALPHA1(10)
+      REAL EMOD2,G12,G13,G23,NU,ALPHA1
+      COMMON/FV21/ALPHA2(10),TEMCUR(10),DENSTY(10)
+      REAL ALPHA2,TEMCUR,DENSTY
+      COMMON/FV24/THICK(30),ITHICK 
+      REAL THICK
+      COMMON/IV02/MATTYP(30)
+      INTEGER MATTYP
+      COMMON/IV03/LAYTYP(90,50),ILAYTYP,JLAYTYP
+      INTEGER LAYTYP
+      COMMON/IV01/IWRAP,NLAYRF,NLAYRC,INTEXT,ILINKS,ICLAMP,IELMNT,NROWSL
+      INTEGER IWRAP,NLAYRF,NLAYRC,INTEXT,ILINKS,ICLAMP,IELMNT,NROWSL
+      COMMON/FV25/ANGLE(30)
+      REAL ANGLE
+      COMMON/FV26/PX(20)
+      REAL PX
+      COMMON/FV32/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV35/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV38/STRM1(20,6 ),JSTRM1 ,STRM1A(20,6 ),STRM1F(20,6 )
+      REAL STRM1,STRM1A,STRM1F
+      COMMON/FV41/STRM2(20,6 ),STRM2A(20,6 ),STRM2F(20,6 )
+      REAL STRM2,STRM2A,STRM2F
+      COMMON/IV11/NROWSG,NCOLSG,NMODULL,MLOWG,MHIGHG,MLOWL,MHIGHL
+      INTEGER NROWSG,NCOLSG,NMODULL,MLOWG,MHIGHG,MLOWL,MHIGHL
+      COMMON/FV09/ENOODL,GNOODL,DNOODL,EFOUND,EFNOOD,WEIGHT
+      REAL ENOODL,GNOODL,DNOODL,EFOUND,EFNOOD,WEIGHT
+      COMMON/FV27/PRESS(20),PX0(20),PRESS0(20)
+      REAL PRESS,PX0,PRESS0
+C  end of trusscomp.COM
+      COMMON/MODULX/MODULL,MODULG
+C BEG JUL 2010
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      COMMON/CSKINY/CSKIN1(6,6,295),THERM1(4,295)
+      COMMON/CMODIF/C111MD,C113MD,C115MD,ETHERM(4,50)
+      COMMON/PRESTR/FN10(50),FN20(50)
+C BEG SEP 2010
+      COMMON/NUMSEG/NSEGSM,NSEGS
+C END SEP 2010
+      COMMON/THERML/EPSAVE,EPSNET(50),FNXRES(50),FN20T(50),FCESHL
+      COMMON/THRML2/FNOOD1,FNOOD2,FNOODL,FNOOD1T,FNOOD2T,FNOODLT
+      DIMENSION R1J(295),Z1J(295),R2J(295),Z2J(295),RSTAGS(50)
+      DIMENSION RCJ(295),ZCJ(295),SRJ(295),ZVLJ(295),SUBTND(295)
+      DIMENSION NODJ(295),NSHPJ(295),IBEAM(295),IWALL(295),NCOLS(295)
+      DIMENSION UPDNAL(295),LUNIT(295),IEND(500),IUNIT(295),IGLOBL(295)
+      DIMENSION MBOUND(500),NBOUND(500),MUNIT(500),NUNIT(500)
+      DIMENSION XGC1(295),XGC2(295),XGC3(295)
+      DIMENSION YGC1(295),YGC2(295),YGC3(295)
+      DIMENSION ZGC1(295),ZGC2(295),ZGC3(295)
+      DIMENSION PROP1(295),PROP2(295),PROP3(295)
+      DIMENSION PROP4(295),PROP5(295)
+      DIMENSION THK(50),ANG(50),MAT(50),NLAYR(4),INTSHL(50)
+      DIMENSION FNHOOP(295),ANGSML(50),ECYR(295)
+      DIMENSION ECZR(295),ECZSKN(295),ANGDIF(295),RCAVE(295)
+C BEG AUG 2010 
+C BEG SEP 2010
+      COMMON/LAYMAT/LAYTYPB(90,50),MATTYPB(30)
+C END SEP 2010
+      DIMENSION D1(6,2,50),D2(6,2,50)
+      COMMON/SOMDIM/CWIDTH,DWIDTH,SWIDTH,CTWOPH,STWOPH,DENOM
+      COMMON/MORDIM/RATIO3,RATIO5,FNX1,FNX3,FNX5
+C     above stuff printed out in behavior.new library
+C END AUG 2010
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA2,CASA3
+      INTEGER UPDNAL
+      CHARACTER*10 CN
+C END JUL 2010
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      COMMON/NLAYRX/NLAYER(50)
+      COMMON/STRANX/EPSX,EPSY1,EPSY3,EPSY5
+      COMMON/GEOM1X/RADACU,RADOBT,PHI,ALPHA,AREA1,AREA2
+      COMMON/GEOM2X/RL1(50),RL2(50),ZL1(50),ZL2(50),RLC(50),ZLC(50)
+C BEG SEP 2010
+      COMMON/GEOM3X/R01(50),R02(50),Z01(50),Z02(50),R0C(50),Z0C(50)
+C END SEP 2010
+C BEG DEC 2009
+C BEG MAY 2010
+      COMMON/ISIMPL/ISIMP,IBEHX
+C END MAY 2010
+C END DEC 2009
+      DIMENSION RP1(50),RP2(50),ZP1(50),ZP2(50),RPC(50),ZPC(50)
+      DIMENSION R1(50),R2(50),Z1(50),Z2(50),RC(50),ZC(50),SROT(50)
+      DIMENSION FOUND(50),PRESUR(50),ZVAL(50),ZRING(50),ZNORM(50)
+      DIMENSION NSHAPE(50),NNODES(50),NRING(50),IRING(300),NSUR(50)
+C BEG JUL 2010
+      DIMENSION DRADIA(50),DAXIAL(50),RGAREA(50)
+C END JUL 2010
+      DIMENSION IDISP(50,4),JPREV(50,2),JNODPV(50,2)
+      DIMENSION NPREV(50),NODPRV(50,2),NGRND(50),NODGRD(50,2)
+      DIMENSION NTYPE(50),IPTRNG(50)
+      DIMENSION RCURV1(50),RCURV2(50),ZCURV1(50),ZCURV2(50)
+      DIMENSION RCURVC(50),ZCURVC(50)
+      DIMENSION NLAYR2(10),LAYTP2(90,10)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a cylindrical shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+C BEG MAY 2010
+      IF (IWRAP.EQ.0) THEN
+         RACUTE = 0.
+         ROBTUS = 0.
+C BEG AUG 2010
+         ILINKS = 0
+C END AUG 2010
+      ENDIF
+C END MAY 2010
+      NSEGS = 22
+      NMODULG = 13
+      PI = 3.1415927
+      IF (INDX.EQ.0) THEN
+         NMODUL = 1
+         RBEG = RBIG0
+      ENDIF
+      IF (INDX.EQ.1) THEN
+         NMODUL = NMODULL
+         RBEG = RBIGL
+      ENDIF
+      IF (INDX.EQ.2) THEN
+         NMODUL = NMODULG 
+         RBEG = RBIGL
+C BEG DEC 2009
+         IF (ISIMP.EQ.1) THEN
+            NMODUL = NMODULL
+            RBEG = RBIGL
+         ENDIF
+C END DEC 2009
+      ENDIF
+C
+      IF (INDX.EQ.0.OR.INDX.EQ.1.OR.INDX.EQ.2) THEN
+C
+         CALL MOVER(0.,0,SROT,1,50)
+         CALL MOVER(0.,0,ZRING,1,50)
+         CALL MOVER(0.,0,ZNORM,1,50)
+         CALL MOVER(0.,0,DRADIA,1,50)
+         CALL MOVER(0.,0,DAXIAL,1,50)
+         CALL MOVER(0.,0,RGAREA,1,50)
+C BEG JUL 2010
+         CALL MOVER(0.,0,RSTAGS,1,50)
+         CALL MOVER(0.,0,ANGSML,1,50)
+         CALL MOVER(0,0,IUNIT,1,295)
+C BEG AUG 2010
+         CALL MOVER(1,0,UPDNAL,1,295)
+         CALL MOVER(1,0,IGLOBL,1,295)
+         CALL MOVER(LAYTYP,1,LAYTYPB,1,4500)
+         CALL MOVER(MATTYP,1,MATTYPB,1,30)
+C END AUG 2010
+C BEG SEP 2010
+         IF (INDX.EQ.0) CALL MOVER(0.,0,R01,1,300)
+C END SEP 2010
+C END JUL 2010
+C BEG AUG 2010
+         CALL MOVER(0.,0,D1,1,600)
+         CALL MOVER(0.,0,D2,1,600)
+C END AUG 2010
+         CALL MOVER(0.,0,PRESUR,1,50)
+         CALL MOVER(0.,0,FOUND,1,50)
+         CALL MOVER(0.,0,FN10,1,50)
+         CALL MOVER(0.,0,FN20,1,50)
+         CALL MOVER(0, 0,IPTRNG,1,50)
+         CALL MOVER(1, 0,IDISP,1,200)
+         CALL MOVER(0, 0,JPREV,1,100)
+         CALL MOVER(0, 0,JNODPV,1,100)
+         CALL MOVER(0, 0,NPREV,1,50)
+         CALL MOVER(0, 0,NODPRV,1,100)
+         CALL MOVER(0, 0,NGRND,1,50)
+         CALL MOVER(0, 0,NODGRD,1,100)
+         FNOOD1 = 0.
+         FNOOD2 = 0.
+         FNOODL  = 0.
+         PRESS1 = PRESS(ILOADX)
+C
+C  Single truss-core sandwich 22 segment module model...
+C
+         SWIDTH = 0.5*PITCH - BCROWN
+C BEG DEC 2009
+         IF (IMODX.EQ.0.AND.SWIDTH.LT.0.0) THEN
+C END DEC 2009
+            WRITE(IFILE4,'(/,A,/,A,/,A,1P,E12.4,/,A,1P,E12.4,/,A)')
+     1    ' ************ CONFIGURATION MODIFICATION ************',
+     1    ' 0.5*PITCH -BCROWN is negative. Illegal configuration',
+     1    ' Single module width,       PITCH =',PITCH,
+     1    ' Width of truss core crown, BCROWN=',BCROWN,
+     1    ' ****************************************************'
+C BEG DEC 2009
+            PITCH = 2.22*BCROWN
+            WRITE(IFILE4,'(/,A,1P,E14.4,A)')
+     1    ' **** New value for PITCH =',PITCH,' ****'
+            SWIDTH = 0.5*PITCH - BCROWN
+C           CALL ERREX
+C END DEC 2009
+         ENDIF
+         TWOPHI = ATAN(HEIGHT/SWIDTH)
+         PHI = TWOPHI/2.
+         SPHI = SIN(PHI)
+         CPHI = COS(PHI)
+C BEG AUG 2010
+         THKTOTL = 0.
+         ITOTL = NLAYRC + NLAYRF
+         IF (IWRAP.EQ.0) ITOTL = NLAYRC + NLAYRF + 1
+         DO 5 I = 1,ITOTL
+            LINDEX = LAYTYP(I,1)
+            THKTOTL = THKTOTL + THICK(LINDEX)
+    5    CONTINUE
+C END AUG 2010
+         ZVAL(1) = 0.
+         DO 51 I = 1,NLAYRC
+            LINDEX = LAYTYP(I,1)
+            ZVAL(1) = ZVAL(1) + THICK(LINDEX)
+   51    CONTINUE
+C BEG AUG 2010
+         THKCOR = ZVAL(1)
+C END AUG 2010
+C BEG JUL 2010
+C BEG OCT 2010
+C        ECCZ = ZVAL(1)/2.
+         ECCZ = 0.
+C END OCT 2010
+C END JUL 2010
+         RADACU = RACUTE +ZVAL(1)
+         RADOBT = ROBTUS +ZVAL(1)
+C BEG AUG 2010
+         IF (IWRAP.EQ.0) THEN
+            IBEGL = NLAYRC + 1
+            IENDL = NLAYRC + NLAYRF + 1
+            THICKF = 0.0
+            DO 606 I = IBEGL,IENDL
+               LINDEX = LAYTYP(I,1)
+               THICKF = THICKF + THICK(LINDEX)
+  606       CONTINUE
+            THICKC = ZVAL(1)
+            THKTOT = THICKC + THICKF
+            ECCZ = 0.
+            RADACU = RACUTE +0.01*THICKC
+            RADOBT = ROBTUS +0.01*THICKC
+         ENDIF
+C END AUG 2010
+C BEG JUL 2010
+         RADAVE = (RADACU + RADOBT)/2.
+C END JUL 2010
+         DWIDTH = RADACU/TAN(PHI)
+         TWOALP = PI - TWOPHI
+         ALPHA  = TWOALP/2.
+         CWIDTH = RADOBT/TAN(ALPHA)
+         GAMMA  = PI/2. - TWOPHI
+         CTWOPH = COS(TWOPHI)
+         STWOPH = SIN(TWOPHI)
+         CGAMMA = COS(GAMMA)
+         SGAMMA = SIN(GAMMA)
+         AREA1  = DWIDTH*RADACU -ALPHA*RADACU**2
+         AREA2  = CWIDTH*RADOBT -PHI*RADOBT**2
+C
+C        IMODEL = 1 is the elaborate model used for local buckling
+         IMODEL = 1
+         NSEGSM = 22
+         IF (IMODX.EQ.0) MODULL = NMODUL
+         MODULS = MODULL
+C
+         IF (INDX.EQ.2) THEN
+C        IMODEL = 2 is the simpler model used for general buckling
+            IMODEL = 2
+            NSEGSM = 6
+C        The number of modules, "MODULG" should be such that the
+C        model for general buckling subtends close to 90 degrees
+C        of circumference...
+C BEG DEC 2009
+C           IF (IMODX.EQ.0) MODULG = (PI/1.89)*RADIUS/PITCH
+            IF (IMODX.EQ.0.AND.ISIMP.EQ.0)
+     1                      MODULG = (PI/1.89)*RADIUS/PITCH
+            IF (IMODX.EQ.0.AND.ISIMP.EQ.1)
+     1                      MODULG = NMODULL 
+            MODULS = MODULG
+            IF (IMODX.EQ.0.AND.NSEGSM*MODULS.GT.288) THEN
+               WRITE(IFILE4,'(/,A,/,A,2I5,/,A,/,A,/,A,)')
+     1       ' ************** TOO MANY MODULES **********************',
+     1       ' MODULS, MSEGS = NSEGSM*MODULS = ',MODULS, NSEGSM*MODULS,
+     1       ' MSEGS = Too many segments. Maximum number is 288.',
+     1       ' Now reducing the number of modules in the model.',
+     1       ' ******************************************************'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+               RATIOM = FLOAT(280)/FLOAT(NSEGSM*MODULS)
+               MODULG = RATIOM*MODULG
+               MODULS = MODULG
+C              CALL ERREX
+C END DEC 2009
+            ENDIF
+         ENDIF
+C        End of (INDX.EQ.2) condition
+C
+         IF (IMODEL.EQ.1.AND.NMODUL.GT.13) THEN
+           WRITE(IFILE4,'(/,A,/,A,I10,/,A,/,A)')
+     1   ' *************** RUN ABORT ****************************',
+     1   ' NMODUL = ',NMODUL,
+     1   ' Too many modules. Maximum number of modules is 13.',
+     1   ' ******************************************************'
+           CALL ERREX
+         ENDIF
+C
+         IF (INDX.EQ.1.OR.INDX.EQ.2) THEN
+           C111MD = CSKIN1(2,2,1) - CSKIN1(1,2,1)**2/CSKIN1(1,1,1)
+           C113MD = CSKIN1(2,2,3) - CSKIN1(1,2,3)**2/CSKIN1(1,1,3)
+           C115MD = CSKIN1(2,2,5) - CSKIN1(1,2,5)**2/CSKIN1(1,1,5)
+C BEG JUL 2010 (the radius to the middle surface of the truss-core
+C               sandwich wall should be used: RADIUS + HEIGHT/2.)
+C          TOTLNG = 2.*PI*RADIUS/PITCH
+           TOTLNG = 2.*PI*(RADIUS + HEIGHT/2.)/PITCH
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           DEN = CSKIN1(1,1,1)*CSKIN1(2,2,1) - CSKIN1(1,2,1)**2
+           ETHERM(2,1) =
+     1      -(THERM1(1,1)*CSKIN1(2,2,1) -THERM1(2,1)*CSKIN1(1,2,1))/DEN
+           ETHERM(1,1) =
+     1      -(THERM1(2,1)*CSKIN1(1,1,1) -THERM1(1,1)*CSKIN1(1,2,1))/DEN
+           DEN = CSKIN1(1,1,3)*CSKIN1(2,2,3) - CSKIN1(1,2,3)**2
+           ETHERM(2,3) =
+     1      -(THERM1(1,3)*CSKIN1(2,2,3) -THERM1(2,3)*CSKIN1(1,2,3))/DEN
+           ETHERM(1,3) =
+     1      -(THERM1(2,3)*CSKIN1(1,1,3) -THERM1(1,3)*CSKIN1(1,2,3))/DEN
+           DEN = CSKIN1(1,1,5)*CSKIN1(2,2,5) - CSKIN1(1,2,5)**2
+           ETHERM(2,5) =
+     1      -(THERM1(1,5)*CSKIN1(2,2,5) -THERM1(2,5)*CSKIN1(1,2,5))/DEN
+           ETHERM(1,5) =
+     1      -(THERM1(2,5)*CSKIN1(1,1,5) -THERM1(1,5)*CSKIN1(1,2,5))/DEN
+C
+C          ARC2 = 4.*RADOBT*2.*PHI
+C          ARC5 = 4.*RADACU*2.*ALPHA
+           ARC2 =    RADOBT*2.*PHI
+           ARC5 =    RADACU*2.*ALPHA
+C END JUL 2010
+C BEG MAY 2010
+           IF (IWRAP.EQ.0) THEN
+C BEG JUL 2010
+C            ARC2 = 4.*RADOBT*PHI
+C            ARC5 = 4.*RADACU*ALPHA
+             ARC2 =    RADOBT*PHI
+             ARC5 =    RADACU*ALPHA
+C END JUL 2010
+           ENDIF
+           RATIO3 = C113MD/C111MD
+C END MAY 2010
+           RATIO5 = C115MD/C111MD
+           IF (IMODEL.EQ.1) THEN
+             RATIO3 = C113MD/C111MD
+             EANOOD = ENOODL*(AREA1 + AREA2)
+           ELSE
+             FL4 = DWIDTH - CWIDTH
+             FL3 = DWIDTH + CWIDTH
+C BEG DEC 2009
+             FMULT = 1.0
+             IF (RACUTE.EQ.0.0.OR.ROBTUS.EQ.0.0.OR.ILINKS.EQ.1)
+     1       FMULT = 0.
+             EANOOD = ENOODL*(AREA1 + AREA2)
+C BEG JUL 2010  (next line is commented out for comparison
+C                with Andrew Lovejoy's finite element model.
+C                The line is incorrect anyway, since ARC1 is
+C                not initialized .)
+C
+C    1            +FMULT*C115MD*(ARC1 + ARC2 + FL4 - FL3 -2.*DWIDTH)
+C END JUL 2010
+C END DEC 2009
+             AREA = AREA1 + AREA2 
+           ENDIF
+         ENDIF
+C        End of (INDX.EQ.1.OR.INDX.EQ.2) condition
+C
+C   INDX   = 1 means SUBROUTINE BOSDEC generates LOCAL   buckling model
+C   INDX   = 2 means SUBROUTINE BOSDEC generates GENERAL buckling model
+C              or, if ISIMP=1, LOCAL buckling.
+C
+C   IMODEL = model index used for buckling:
+C            IMODEL = 1 means LOCAL   buckling
+C            IMODEL = 2 means GENERAL buckling, or, if ISIMP=1,
+C                               LOCAL buckling.
+C
+C   IMODUL = the module number in a multi-module model
+C   MODULS = number of modules in the model
+C   RBEG   = horizontal radius to the beginning of the first module
+C            in the multi-module model, where
+C            1. for the LOCAL buckling model:
+C               RBEG = RBIGL = RAVE -FLOAT(NMODULL)*PITCH/2.
+C               in which RAVE = 100.*LENGTH*FACLEN/PI
+C            2. for the GENERAL buckling model:
+C               RBEG = RBIGG = RAVE -0.707*RADIUS
+C               in which RAVE = 100.*LENGTH/PI
+C            where
+C            NMODULL = number of modules in the local buckling model
+C            PITCH   = the module width, b, shown in Fig. 4
+C            LENGTH  = the total length of the cylindrical shell
+C            FACLEN  = fraction of LENGTH used for local buckling model
+C            RADIUS  = radius of the cylindrical shell measured to
+C                      the innermost face sheet.
+C
+C   BETA   = angle shown in Fig. 9 of original trusscomp report
+C   ISEGST = number of shell segments in all the previous modules
+C   IRGST  = number of discrete rings in all the previous modules
+C   NLAYRC = number of layers in the truss-core wrap,   Fig.8
+C   NLAYRF = number of layers in each added face sheet, Fig.8
+C   ZVAL   = distance from the leftmost shell segment surface
+C            to the shell segment reference surface as we
+C            "travel" along the shell segment
+C   NSHAPE = BIGBOSOR4 index for shape of shell segment:
+C            NSHAPE = 1 means cone, cylinder, flat plate
+C            NSHAPE = 2 means toroidal, spherical
+C   SROT   = BIGBOSOR4 index for direction of travel along
+C            a spherical or toroidal shell segment:
+C            SROT = 1 means clockwise travel
+C            SROT =-1 means anticlockwise travel
+C   NSUR   = BIGBOSOR4 index for location of reference surface
+C            in a shell segment:
+C            NSUR = 0 means middle surface is the ref. surf.
+C            NSUR = 1 means rightmost surface is the ref. surf.
+C            NSUR = -1 means reference surface is the inner surface
+C                      or is at an arbitrary location relative
+C                      to the shell wall material in the shell seg.
+C   NLAYER(i) = number of layers in the ith shell segment
+C               in the model for local buckling (IMODEL=1)
+C   LAYTYP(i,j) = layer type (layer index) for layer i, segment j
+C                 for IMODEL=1 (local buckling model)
+C   NLAYR2(i) = number of layers in the ith shell segment
+C               in the model for general buckling (IMODEL=2)
+C   LAYTP2(i,j) = layer type (layer index) for layer i, segment j
+C                 for IMODEL=2 (general buckling model)
+C
+C   IWRAP = index for fabrication method
+C           IWRAP = 0 corrugated truss core is stamped and
+C                   truss core and face sheets are layed up
+C                   and cured separately, then bonded together.
+C           IWRAP = 1 truss core is formed by wrapping layers
+C                   around trapesoidal mandrels, then cured
+C                   together with the face sheets.
+C
+C   R1(i),R2(i),Z1(i),Z2(i),RC(i),ZC(i) =
+C                 (r,z) end points and center of curvature (rc,zc)
+C                 for the ith shell segment as if the module were
+C                 flat, as is shown in Fig.4 and in Figs. 10 - 13
+C                 of the original trusscomp report.
+C   RCURV1(i),RCURV2(i),ZCURV1(i),ZCURV2(i),RCURVC(i),ZCURVC(i) =
+C                 (r,z) end points and center of curvature (rc,zc)
+C                 for the ith shell segment as if the module were
+C                 curved, as is shown in Fig. 2 of the original
+C                 trusscomp report.
+C   RP1(i),RP2(i),ZP1(i),ZP2(i),RPC(i),ZPC(i) =
+C                 (r,z) end points and center of curvature (rc,zc)
+C                 for the ith shell segment as if the module were
+C                 curved, as is shown in Fig.2 of the original
+C                 trusscomp report, for module number
+C                 IMODUL. (See Fig. 9 of the original trusscomp
+C                 report.)
+C
+C   IRING  = global discrete ring number
+C   NTYPE  = type of callout used for the location of ring
+C            attachment point to the ith shell segment.
+C            NOTE: NTYPE(i) = 1 is always used in this project.
+C            NTYPE(i) = 1 means that the location of the ring
+C            attachment point to the shell segment is identified
+C            by its nodal point number within that shell segment.
+C            BIGBOSOR4 had to be modified to do this. Until now
+C            BIGBOSOR4 only permitted callout locations to be
+C            identified by either radial (r) or axial (z) numbers.
+C            The modification to BIGBOSOR4 was needed to avoid input
+C            errors in BIGBOSOR4 caused by lack of monotonicity
+C            of r-values or z-values within a single shell segment.
+C             
+C   IPTRNG = nodal point number of the attachment point of the
+C            discrete ring to the ith shell segment
+C   ZNORM  = distance from the ring attachment point to the ring
+C            centroid, measured normal to the ith shell segment.
+C            Fig. 2 of the original trusscomp report
+C            shows locations of the centroids of the
+C            eight discrete rings used in each module of the
+C            local buckling model. A detailed view of the
+C            relationship of the ring attachment point and the
+C            ring centroid is given at the top of Fig. 7.
+C
+C   AREA1  = cross section area shown at the top of Fig. 7
+C   AREA2  = cross section area shown at the bottom of Fig. 7
+C
+C            The total cross section area of a "noodle" is
+C            AREA1 + AREA2. In the local buckling model there
+C            are two discrete rings for each noodle, one
+C            attached to curved shell segments such as
+C            that shown at the top of Fig. 7 and the other
+C            attached to curved shell segments such as
+C            that shown at the bottom of Fig. 7. In the general
+C            buckling model there is only one discrete ring
+C            for each noodle, modeled as displayed in Fig. 6.
+C
+C   C111MD = axial stiffness of shell segments such as Segment 1
+C            in Fig. 4. In the "huge torus" model this becomes
+C            the circumferential stiffness, as follows:
+C            C111MD = CSKIN1(2,2,1) - CSKIN1(1,2,1)**2/CSKIN1(1,1,1)
+C
+C   C113MD = axial stiffness of shell segments such as Segment 3
+C            in Fig. 4. In the "huge torus" model this becomes
+C            the circumferential stiffness, as follows:
+C            C113MD = CSKIN1(2,2,3) - CSKIN1(1,2,3)**2/CSKIN1(1,1,3)
+C
+C   C115MD = axial stiffness of shell segments such as Segment 5
+C            in Fig. 4. In the "huge torus" model this becomes
+C            the circumferential stiffness, as follows:
+C            C115MD = CSKIN1(2,2,5) - CSKIN1(1,2,5)**2/CSKIN1(1,1,5)
+C
+C           The "axial" stiffness of each of the 22 shell segments
+C           in the elaborate local buckling module model consist of
+C           various combinations of C111MD, C113MD, and C115MD. Once
+C           the "axial" stiffness of each segment is determined,
+C           the "axial" resultant in that segment can be computed
+C           with use of the assumption that each segment of the
+C           module and each discrete ring carries its share of
+C           "axial load in proportion to its "axial" stiffness.
+C           This model presumes that the cylindrical shell is
+C           subjected to uniform end shortening, and that the
+C           prebuckled state of the shell is a membrane state.
+C
+C BEG JUL 2010
+C The following several initializations have to do with STAGS
+C models:
+C IELMNT = type of shell element used in STAGS model
+C IELMNB = type of discrete beam element used in STAGS model
+C JSEG = segment number in multi-module STAGS model
+C KSEG = index for counting the number of junction conditions
+C MSTFS= index for counting the number of shell units which
+C        have discrete stringers
+C JEND = 1 means uniform end shortening is used as loading
+C JEND = 0 means NUSS > 0 is used (user-prescribed pre-buckling)
+         IELMNB = 210
+         IF (IELMNT.EQ.480) IELMNB = 928
+         JSEG = 0
+         KSEG = 0
+         MSTFS = 0
+         JEND = 1
+C END JUL 2010
+C BEG AUG 2010
+         THKSTF = 0.
+         IF (ILINKS.EQ.2) THEN
+C
+C The purpose of the following logic is to simulate
+C the support that the noodle gives the little shell
+C segments that enclose it by making these little shell
+C segments very stiff in bending in the meridional dirction
+C of the huge torus model (hoop direction in the prismatic
+C shell model).
+C
+            NLAY = NLAYRC + NLAYRF
+            MAXTYP = 0
+            MAXMAT = 0
+            DO 10 J = 1,22
+               DO 8  I = 1,NLAY
+                 MAXTYP = MAX(LAYTYP(I,J),MAXTYP)
+                 M = LAYTYP(I,J)
+                 IF (M.GT.0) MAXMAT = MAX(MATTYP(M),MAXMAT)
+    8          CONTINUE
+   10       CONTINUE
+C
+            MAXMAT1 = MAXMAT + 1
+            EMOD1(MAXMAT1) = 10.*EMOD1(1)
+            THKSTF =  5.*THICK(1)
+            EMOD2(MAXMAT1) = 0.00001 
+            G12(MAXMAT1) = 0.00001
+            G13(MAXMAT1) = EMOD1(MAXMAT1)/2.
+            G23(MAXMAT1) = G13(MAXMAT1)
+            NU(MAXMAT1) = 0.
+            ALPHA1(MAXMAT1) = 0.
+            ALPHA2(MAXMAT1) = 0.
+            TEMCUR(MAXMAT1) = 0.
+            DENSTY(MAXMAT1) = 0.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            DO 16 ISEG = 1,22
+              IF (ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.5.OR.ISEG.EQ.9
+     1        .OR.ISEG.EQ.10.OR.ISEG.EQ.11.OR.ISEG.EQ.13.OR.ISEG.EQ.14
+     1        .OR.ISEG.EQ.16.OR.ISEG.EQ.19.OR.ISEG.EQ.20.OR.ISEG.EQ.21
+     1        .OR.ISEG.EQ.3.OR.ISEG.EQ.8.OR.ISEG.EQ.17.OR.ISEG.EQ.22)
+     1         THEN
+                 NLAY = NLAYRC
+                 IF (ISEG.EQ.3.OR.ISEG.EQ.8.OR.ISEG.EQ.17.OR.ISEG.EQ.22)
+     1           NLAY = NLAYRF
+                 NLAY1 = NLAY + 1
+                 NLAY2 = NLAY + 2
+                 MAXTYP1 = MAXTYP + 1
+                 LAYTYPB(1,ISEG) = MAXTYP1
+                 LAYTYPB(NLAY2,ISEG) = MAXTYP1
+                 THICK(MAXTYP1) = THKSTF
+                 ANGLE(MAXTYP1) = 90.
+                 MATTYPB(MAXTYP1) = MAXMAT1
+                 DO 13 I = 2,NLAY1
+                    I1 = I - 1
+                    LAYTYPB(I,ISEG) = LAYTYP(I1,ISEG)
+   13            CONTINUE
+               ENDIF
+   16       CONTINUE
+         ENDIF
+C        End of ILINKS.EQ.2 condition
+C
+C END AUG 2010 
+C
+         DO 125 IMODUL = 1,MODULS
+C
+         FMODUL = IMODUL - 1
+         BETA = FMODUL*ASIN(PITCH/RADIUS)
+         SBETA = SIN(BETA)
+         CBETA = COS(BETA)
+         RSTART = RBEG
+         IF (IMODEL.EQ.1) THEN
+            ISEGST = 22*(IMODUL - 1)
+            IRGST = 8*(IMODUL - 1)
+         ELSE
+            ISEGST =  6*(IMODUL - 1)
+            IRGST = 4*(IMODUL - 1)
+         ENDIF
+C
+         IF (IMODEL.EQ.1) THEN
+C
+C      begin elaborate 22-segment model used for local buckling:
+C      IMODEL = 1
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(1) = 2
+            SROT(1) = 1.
+            NSUR(1) = -1
+            NRING(1) = 0
+            IF (INDX.EQ.1) FOUND(1) = EFOUND
+            IF (INTEXT.EQ.1) PRESUR(1) = PRESS1
+            FN10(1) = PRESS1*RADIUS/2.
+C BEG JUL 2010
+C           NNODES(1) = 11
+            NNODES(1) = 21
+C END JUL 2010
+            NLAYER(1) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(1) = NLAYRC + NLAYRF + 1
+C END MAY 2010
+            ZVAL(1) = 0.
+            DO 1 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,1)
+               ZVAL(1) = ZVAL(1) + THICK(LINDEX)
+    1       CONTINUE
+C BEG AUG 2010
+            ZVAL(1) = THKTOTL/2.
+C ENG AUG 2010
+            ZRING(1) = 0.
+            IRING(1+ISEGST) = 0
+            NTYPE(1) = 1
+C BEG JUL 2010
+            R1(1) = RSTART
+            Z1(1) = 0.
+            R2(1) = RSTART +BCROWN -2.*CWIDTH
+C END JUL 2010
+            Z2(1) = 0.
+            RC(1) = RSTART
+            ZC(1) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(1)
+            RAD2 = RADIUS + Z2(1)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(1)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(1)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(1) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(1) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(1) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(1) = RC(1)
+            ZCURV1(1) = Z1(1) -RAD1*(1. -COS(BETA1))
+            ZCURV2(1) = Z2(1) -RAD2*(1. -COS(BETA2))
+            ZCURVC(1) = ZC(1)
+C BEG JUL 2010
+C           RAD0 = RCURV1(1)
+C           ZED0 = ZCURV1(1)
+            RAD0 = R1(1)
+            ZED0 = Z1(1)
+C END JUL 2010
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(1) - RAD0
+         DZED1 = ZCURV1(1) - ZED0
+         DRAD2 = RCURV2(1) - RAD0
+         DZED2 = ZCURV2(1) - ZED0
+         DRADC = RCURVC(1) - RAD0
+         DZEDC = ZCURVC(1) - ZED0
+         RP1(1) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(1) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(1) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(1) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(1) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(1) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(1) = RP1(1)
+            ZL1(1) = ZP1(1)
+            RL2(1) = RP2(1)
+            ZL2(1) = ZP2(1)
+            RLC(1) = RPC(1)
+            ZLC(1) = ZPC(1)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(2) = 2
+            SROT(2) = -1.
+            NSUR(2) = 1
+            NRING(2) = 1
+            RGAREA(2) = AREA2
+            IF (INDX.EQ.1) FOUND(2) = EFNOOD + EFOUND
+            PRESUR(2) = 0. 
+            NNODES(2) = 11
+            NLAYER(2) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(2) = NLAYRC + 2
+            ZVAL(2) = THKSTF 
+            DO 2 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,2)
+               ZVAL(2) = ZVAL(2) + THICK(LINDEX)
+    2       CONTINUE
+            ZREF = THKSTF 
+            ZRING(2) = RADOBT*(1. -  CPHI)
+            RREF = CWIDTH 
+            RRING =RADOBT*SPHI
+            ZNORM(2) = SQRT((ZRING(2) -ZREF)**2 +(RRING -RREF)**2)/3.
+            IRING(2+ISEGST) = 1 +IRGST
+            NTYPE(2) = 1
+            IPTRNG(2) = NNODES(2)/2 + 1
+            R1(2) = R2(1)
+            Z1(2) = Z2(1)
+            R2(2) = R1(2) +CWIDTH*(1.+CTWOPH)
+            Z2(2) = Z1(2) +CWIDTH*STWOPH
+            RC(2) = R2(1)
+            ZC(2) = RADOBT
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(2)
+            RAD2 = RADIUS + Z2(2)
+            RADC = RADIUS + ZC(2)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(2)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(2)-RSTART)/RAD2)
+            BETAC = ASIN((RC(2)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(2) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(2) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(2) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(2) = Z1(2) -RAD1*(1. -COS(BETA1))
+            ZCURV2(2) = Z2(2) -RAD2*(1. -COS(BETA2))
+            ZCURVC(2) = ZC(2) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(2) - RAD0
+         DZED1 = ZCURV1(2) - ZED0
+         DRAD2 = RCURV2(2) - RAD0
+         DZED2 = ZCURV2(2) - ZED0
+         DRADC = RCURVC(2) - RAD0
+         DZEDC = ZCURVC(2) - ZED0
+         RP1(2) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(2) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(2) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(2) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(2) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(2) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(2) = RP1(2)
+            ZL1(2) = ZP1(2)
+            RL2(2) = RP2(2)
+            ZL2(2) = ZP2(2)
+            RLC(2) = RPC(2)
+            ZLC(2) = ZPC(2)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(3) = 2
+            SROT(3) = 1.
+            NSUR(3) = -1
+            NRING(3) = 0
+            IF (INDX.EQ.1) FOUND(3) = EFNOOD
+            IF (INTEXT.EQ.1) PRESUR(3) = PRESS1
+            FN10(3) = PRESS1*RADIUS/2.
+            NNODES(3) = 11
+            NLAYER(3) = NLAYRF
+            IF (ILINKS.EQ.2) NLAYER(3) = NLAYRF + 2
+            ZVAL(3) = THKSTF 
+C BEG AUG 2010
+            ZVAL(3) = THKSTF + (THKTOTL - THKCOR)/2.
+C END AUG 2010
+            ZRING(3) = 0.
+C BEG JUL 2010
+            RSTAGS(3) = AREA1 + AREA2
+C END JUL 2010
+            IRING(3+ISEGST) = 0
+            NTYPE(3) = 1
+            R1(3) = R2(1)
+            Z1(3) = Z2(1)
+            R2(3) = R1(3) +DWIDTH +CWIDTH
+            Z2(3) = 0.
+            RC(3) = RSTART
+            ZC(3) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(3)
+            RAD2 = RADIUS + Z2(3)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(3)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(3)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(3) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(3) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(3) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(3) = RC(3)
+            ZCURV1(3) = Z1(3) -RAD1*(1. -COS(BETA1))
+            ZCURV2(3) = Z2(3) -RAD2*(1. -COS(BETA2))
+            ZCURVC(3) = ZC(3)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(3) - RAD0
+         DZED1 = ZCURV1(3) - ZED0
+         DRAD2 = RCURV2(3) - RAD0
+         DZED2 = ZCURV2(3) - ZED0
+         DRADC = RCURVC(3) - RAD0
+         DZEDC = ZCURVC(3) - ZED0
+         RP1(3) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(3) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(3) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(3) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(3) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(3) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(3) = RP1(3)
+            ZL1(3) = ZP1(3)
+            RL2(3) = RP2(3)
+            ZL2(3) = ZP2(3)
+            RLC(3) = RPC(3)
+            ZLC(3) = ZPC(3)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(4) = 1
+            NSUR(4) = 1
+            NRING(4) = 0
+            IF (INDX.EQ.1) FOUND(4) = EFNOOD + EFOUND
+            PRESUR(4) = 0.
+            NNODES(4) = 11
+            NLAYER(4) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(4) = NLAYRC + 2
+            ZVAL(4) = THKSTF 
+            DO 4 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,4)
+               ZVAL(4) = ZVAL(4) + THICK(LINDEX)
+    4       CONTINUE
+C           ZVAL(4) = 2.*THICK(1) +2.*THICK(2) +THICK(3)
+            ZRING(4) = 0.
+            IRING(4+ISEGST) = 0
+            NTYPE(4) = 1
+            R1(4) = R2(2)
+            Z1(4) = Z2(2)
+            R2(4) = R2(3) -RADACU*CGAMMA
+            Z2(4) = RADACU*(1. + SGAMMA)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(4)
+            RAD2 = RADIUS + Z2(4)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(4)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(4)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(4) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(4) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(4) = Z1(4) -RAD1*(1. -COS(BETA1))
+            ZCURV2(4) = Z2(4) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(4) - RAD0
+         DZED1 = ZCURV1(4) - ZED0
+         DRAD2 = RCURV2(4) - RAD0
+         DZED2 = ZCURV2(4) - ZED0
+         RP1(4) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(4) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(4) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(4) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(4) = RP1(4)
+            ZL1(4) = ZP1(4)
+            RL2(4) = RP2(4)
+            ZL2(4) = ZP2(4)
+         ENDIF
+
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(5) = 2
+            SROT(5) = 1.
+            NSUR(5) = -1
+            NRING(5) = 1
+            RGAREA(5) = AREA1
+            IF (INDX.EQ.1) FOUND(5) = EFNOOD + EFOUND
+            PRESUR(5) = 0.
+            NNODES(5) = 21
+            NLAYER(5) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(5) = NLAYRC + 2
+            ZVAL(5) = THKSTF
+            ZREF = THKSTF 
+            ZRING(5) = RADACU*(1. - SPHI) 
+            RREF = 0. 
+            RRING =DWIDTH -RADACU*CPHI
+            ZNORM(5) = -SQRT((ZRING(5) -ZREF)**2 +(RRING -RREF)**2)/3.
+            IRING(5+ISEGST) = 2 + IRGST
+            NTYPE(5) = 1
+            IPTRNG(5) = NNODES(5)/2 + 1
+            R1(5) = R2(3)
+            Z1(5) = Z2(3)
+            R2(5) = R2(4)
+            Z2(5) = Z2(4)
+            RC(5) = R2(3)
+            ZC(5) = RADACU
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(5)
+            RAD2 = RADIUS + Z2(5)
+            RADC = RADIUS + ZC(5)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(5)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(5)-RSTART)/RAD2)
+            BETAC = ASIN((RC(5)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(5) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(5) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(5) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(5) = Z1(5) -RAD1*(1. -COS(BETA1))
+            ZCURV2(5) = Z2(5) -RAD2*(1. -COS(BETA2))
+            ZCURVC(5) = ZC(5) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(5) - RAD0
+         DZED1 = ZCURV1(5) - ZED0
+         DRAD2 = RCURV2(5) - RAD0
+         DZED2 = ZCURV2(5) - ZED0
+         DRADC = RCURVC(5) - RAD0
+         DZEDC = ZCURVC(5) - ZED0
+         RP1(5) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(5) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(5) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(5) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(5) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(5) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(5) = RP1(5)
+            ZL1(5) = ZP1(5)
+            RL2(5) = RP2(5)
+            ZL2(5) = ZP2(5)
+            RLC(5) = RPC(5)
+            ZLC(5) = ZPC(5)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(6) = 2
+            SROT(6) = 1.
+            NSUR(6)  = -1
+            NRING(6) = 0
+            IF (INDX.EQ.1) FOUND(6) = EFOUND
+            IF (INTEXT.EQ.1) PRESUR(6) = PRESS1
+            FN10(6) = PRESS1*RADIUS/2.
+            NNODES(6) = 21
+            NLAYER(6) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(6) = NLAYRF
+C END MAY 2010
+            ZVAL(6) = 0.
+C BEG MAY 2010
+            IF (IWRAP.NE.0) THEN
+              DO 6 I = 1,NLAYRC
+                 LINDEX = LAYTYP(I,6)
+                 ZVAL(6) = ZVAL(6) + THICK(LINDEX)
+    6         CONTINUE
+            ENDIF
+C BEG AUG 2010
+            IF (IWRAP.EQ.1) ZVAL(6) = THKTOTL/2.
+            IF (IWRAP.EQ.0) ZVAL(6) = (THKTOTL - THKCOR)/2.
+C END AUG 2010
+C END MAY 2010
+            ZRING(6) = 0.
+            IRING(6+ISEGST) = 0
+            NTYPE(6) = 1
+            R1(6) = R2(3)
+            Z1(6) = Z2(3)
+C BEG JUL 2010
+            R2(6) = RSTART -CWIDTH + PITCH -DWIDTH
+C END JUL 2010 
+            Z2(6) = 0.
+            RC(6) = RSTART
+            ZC(6) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(6)
+            RAD2 = RADIUS + Z2(6)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(6)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(6)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(6) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(6) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(6) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(6) = RC(6)
+            ZCURV1(6) = Z1(6) -RAD1*(1. -COS(BETA1))
+            ZCURV2(6) = Z2(6) -RAD2*(1. -COS(BETA2))
+            ZCURVC(6) = ZC(6)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(6) - RAD0
+         DZED1 = ZCURV1(6) - ZED0
+         DRAD2 = RCURV2(6) - RAD0
+         DZED2 = ZCURV2(6) - ZED0
+         DRADC = RCURVC(6) - RAD0
+         DZEDC = ZCURVC(6) - ZED0
+         RP1(6) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(6) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(6) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(6) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(6) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(6) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(6) = RP1(6)
+            ZL1(6) = ZP1(6)
+            RL2(6) = RP2(6)
+            ZL2(6) = ZP2(6)
+            RLC(6) = RPC(6)
+            ZLC(6) = ZPC(6)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(8) = 2
+            SROT(8) = 1.
+            NSUR(8) = -1
+            NRING(8) = 0
+            IF (INDX.EQ.1) FOUND(8) = EFNOOD
+            IF (INTEXT.EQ.1) PRESUR(8) = PRESS1
+            FN10(8) = PRESS1*RADIUS/2.
+            NNODES(8) = 11
+            NLAYER(8) = NLAYRF
+            IF (ILINKS.EQ.2) NLAYER(8) = NLAYRF + 2
+            ZVAL(8) = THKSTF 
+C BEG AUG 2010
+            ZVAL(8) = THKSTF + (THKTOTL - THKCOR)/2.
+C END AUG 2010
+            ZRING(8) = 0.
+C BEG JUL 2010
+            RSTAGS(8) = AREA1 + AREA2
+C END JUL 2010
+            IRING(8+ISEGST) = 0
+            NTYPE(8) = 1
+            R1(8) = R2(6)
+            Z1(8) = Z2(6)
+C BEG JUL 2010
+            R2(8) = RSTART -CWIDTH + PITCH + CWIDTH 
+C END JUL 2010
+            Z2(8) = 0.
+            RC(8) = RSTART
+            ZC(8) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(8)
+            RAD2 = RADIUS + Z2(8)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(8)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(8)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(8) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(8) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(8) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(8) = RC(8)
+            ZCURV1(8) = Z1(8) -RAD1*(1. -COS(BETA1))
+            ZCURV2(8) = Z2(8) -RAD2*(1. -COS(BETA2))
+            ZCURVC(8) = ZC(8)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(8) - RAD0
+         DZED1 = ZCURV1(8) - ZED0
+         DRAD2 = RCURV2(8) - RAD0
+         DZED2 = ZCURV2(8) - ZED0
+         DRADC = RCURVC(8) - RAD0
+         DZEDC = ZCURVC(8) - ZED0
+         RP1(8) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(8) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(8) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(8) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(8) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(8) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(8) = RP1(8)
+            ZL1(8) = ZP1(8)
+            RL2(8) = RP2(8)
+            ZL2(8) = ZP2(8)
+            RLC(8) = RPC(8)
+            ZLC(8) = ZPC(8)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(9) = 2
+            SROT(9) = -1.
+            NSUR(9) = 1
+            NRING(9) = 1
+            RGAREA(9) = AREA1
+            IF (INDX.EQ.1) FOUND(9) = EFNOOD + EFOUND
+            PRESUR(9) = 0.
+            NNODES(9) = 21
+            NLAYER(9) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(9) = NLAYRC + 2
+            ZVAL(9) = THKSTF 
+            DO 9 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,9)
+               ZVAL(9) = ZVAL(9) + THICK(LINDEX)
+    9       CONTINUE
+            ZRING(9) = RADACU*(1. - SPHI)
+            ZNORM(9) = -ZNORM(5)
+            IRING(9+ISEGST) = 3 + IRGST
+C           NTYPE(9) = 1
+            NTYPE(9) = 1
+            IPTRNG(9) = NNODES(9)/2 + 1
+            R1(9) = R2(6)
+            Z1(9) = Z2(6)
+            R2(9) = R1(9) +RADACU*CGAMMA
+            Z2(9) = Z2(4)
+            RC(9) = R1(9)
+            ZC(9) = RADACU
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(9)
+            RAD2 = RADIUS + Z2(9)
+            RADC = RADIUS + ZC(9)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(9)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(9)-RSTART)/RAD2)
+            BETAC = ASIN((RC(9)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(9) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(9) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(9) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(9) = Z1(9) -RAD1*(1. -COS(BETA1))
+            ZCURV2(9) = Z2(9) -RAD2*(1. -COS(BETA2))
+            ZCURVC(9) = ZC(9) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(9) - RAD0
+         DZED1 = ZCURV1(9) - ZED0
+         DRAD2 = RCURV2(9) - RAD0
+         DZED2 = ZCURV2(9) - ZED0
+         DRADC = RCURVC(9) - RAD0
+         DZEDC = ZCURVC(9) - ZED0
+         RP1(9) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(9) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(9) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(9) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(9) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(9) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(9) = RP1(9)
+            ZL1(9) = ZP1(9)
+            RL2(9) = RP2(9)
+            ZL2(9) = ZP2(9)
+            RLC(9) = RPC(9)
+            ZLC(9) = ZPC(9)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(10) = 2
+            SROT(10) = 1.
+            NSUR(10) = -1
+            NRING(10) = 1
+            RGAREA(10) = AREA2
+            IF (INDX.EQ.1) FOUND(10) = EFNOOD + EFOUND
+            PRESUR(10) = 0.
+            NNODES(10) = 11
+            NLAYER(10) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(10) = NLAYRC + 2
+            ZVAL(10) = THKSTF 
+            ZRING(10) = RADOBT*(1. -  CPHI) 
+            ZNORM(10) = -ZNORM(2)
+            IRING(10+ISEGST) = 4 +IRGST
+            NTYPE(10) = 1
+            IPTRNG(10) = NNODES(10)/2 + 1
+            R1(10) = R2(8)
+            Z1(10) = Z2(8)
+            R2(10) = R1(10) -CWIDTH*(1. +CTWOPH)
+            Z2(10) = Z1(10) +CWIDTH*STWOPH
+            RC(10) = R1(10)
+            ZC(10) = RADOBT
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(10)
+            RAD2 = RADIUS + Z2(10)
+            RADC = RADIUS + ZC(10)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(10)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(10)-RSTART)/RAD2)
+            BETAC = ASIN((RC(10)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(10) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(10) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(10) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(10) = Z1(10) -RAD1*(1. -COS(BETA1))
+            ZCURV2(10) = Z2(10) -RAD2*(1. -COS(BETA2))
+            ZCURVC(10) = ZC(10) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(10) - RAD0
+         DZED1 = ZCURV1(10) - ZED0
+         DRAD2 = RCURV2(10) - RAD0
+         DZED2 = ZCURV2(10) - ZED0
+         DRADC = RCURVC(10) - RAD0
+         DZEDC = ZCURVC(10) - ZED0
+         RP1(10) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(10) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(10) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(10) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(10) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(10) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(10) = RP1(10)
+            ZL1(10) = ZP1(10)
+            RL2(10) = RP2(10)
+            ZL2(10) = ZP2(10)
+            RLC(10) = RPC(10)
+            ZLC(10) = ZPC(10)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(11) = 1
+            NSUR(11) = -1
+            NRING(11) = 0
+            IF (INDX.EQ.1) FOUND(11) = EFNOOD + EFOUND
+            PRESUR(11) = 0.
+            NNODES(11) = 11
+            NLAYER(11) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(11) = NLAYRC + 2
+            ZVAL(11) = THKSTF 
+            ZRING(11) = 0.
+            IRING(11+ISEGST) = 0
+            NTYPE(11) = 1
+            R1(11) = R2(10)
+            Z1(11) = Z2(10)
+            R2(11) = R2(9)
+            Z2(11) = Z2(9)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(11)
+            RAD2 = RADIUS + Z2(11)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(11)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(11)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(11) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(11) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(11) = Z1(11) -RAD1*(1. -COS(BETA1))
+            ZCURV2(11) = Z2(11) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(11) - RAD0
+         DZED1 = ZCURV1(11) - ZED0
+         DRAD2 = RCURV2(11) - RAD0
+         DZED2 = ZCURV2(11) - ZED0
+         RP1(11) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(11) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(11) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(11) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(11) = RP1(11)
+            ZL1(11) = ZP1(11)
+            RL2(11) = RP2(11)
+            ZL2(11) = ZP2(11)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(15) = 2
+            SROT(15) = -1.
+            NSUR(15) = -1
+            NRING(15) = 0
+            IF (INDX.EQ.1) FOUND(15) = EFOUND
+            IF (INTEXT.EQ.0) PRESUR(15) = PRESS1
+            FN10(15) = PRESS1*RADIUS/2.
+            NNODES(15) = 21
+            NLAYER(15) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(15) = NLAYRF
+C END MAY 2010
+            ZVAL(15) = 0.
+C BEG MAY 2010
+            IF (IWRAP.NE.0) THEN
+              DO 15 I = 1,NLAYRC
+                 LINDEX = LAYTYP(I,15)
+                 ZVAL(15) = ZVAL(15) + THICK(LINDEX)
+   15         CONTINUE
+            ENDIF
+C END MAY 2010
+C BEG AUG 2010
+            IF (IWRAP.EQ.1) ZVAL(15) = THKTOTL/2.
+            IF (IWRAP.EQ.0) ZVAL(15) = (THKTOTL - THKCOR)/2.
+C END AUG 2010
+            ZRING(15) = 0.
+            IRING(15+ISEGST) = 0
+            NTYPE(15) = 1
+C BEG JUL 2010
+            R1(15) = RSTART-CWIDTH+PITCH-SWIDTH-BCROWN-DWIDTH 
+C END JUL 2010
+            Z1(15) = HEIGHT
+C BEG JUL 2010
+            R2(15) = RSTART -CWIDTH -SWIDTH +DWIDTH
+C END JUL 2010 
+            Z2(15) = HEIGHT
+            RC(15) = RSTART
+            ZC(15) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(15)
+            RAD2 = RADIUS + Z2(15)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(15)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(15)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(15) = -(BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(15) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(15) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(15) = RC(15)
+            ZCURV1(15) = Z1(15) -RAD1*(1. -COS(BETA1))
+            ZCURV2(15) = Z2(15) -RAD2*(1. -COS(BETA2))
+            ZCURVC(15) = ZC(15)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(15) - RAD0
+         DZED1 = ZCURV1(15) - ZED0
+         DRAD2 = RCURV2(15) - RAD0
+         DZED2 = ZCURV2(15) - ZED0
+         DRADC = RCURVC(15) - RAD0
+         DZEDC = ZCURVC(15) - ZED0
+         RP1(15) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(15) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(15) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(15) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(15) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(15) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(15) = RP1(15)
+            ZL1(15) = ZP1(15)
+            RL2(15) = RP2(15)
+            ZL2(15) = ZP2(15)
+            RLC(15) = RPC(15)
+            ZLC(15) = ZPC(15)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(17) = 2
+            SROT(17) = 1.
+            NSUR(17) = -1
+            NRING(17) = 0
+            IF (INDX.EQ.1) FOUND(17) = EFNOOD
+            IF (INTEXT.EQ.0) PRESUR(17) = PRESS1
+            FN10(17) = PRESS1*RADIUS/2.
+            NNODES(17) = 11
+            NLAYER(17) = NLAYRF
+            IF (ILINKS.EQ.2) NLAYER(17) = NLAYRF + 2
+            ZVAL(17) = THKSTF 
+            DO 17 I = 1,NLAYRF
+               LINDEX = LAYTYP(I,17)
+               ZVAL(17) = ZVAL(17) + THICK(LINDEX)
+   17       CONTINUE
+C BEG AUG 2010
+            ZVAL(17) = THKSTF + (THKTOTL - THKCOR)/2.
+C END AUG 2010
+            ZRING(17) = 0.
+C BEG JUL 2010
+            RSTAGS(17) = AREA1 + AREA2
+C END JUL 2010
+            IRING(17+ISEGST) = 0
+            NTYPE(17) = 1
+            R1(17) = R1(15)
+            Z1(17) = HEIGHT
+C BEG JUL 2010
+            R2(17) = R1(15) + DWIDTH + CWIDTH
+C END JUL 2010 
+            Z2(17) = HEIGHT
+            RC(17) = RSTART
+            ZC(17) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(17)
+            RAD2 = RADIUS + Z2(17)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(17)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(17)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(17) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(17) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(17) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(17) = RC(17)
+            ZCURV1(17) = Z1(17) -RAD1*(1. -COS(BETA1))
+            ZCURV2(17) = Z2(17) -RAD2*(1. -COS(BETA2))
+            ZCURVC(17) = ZC(17)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(17) - RAD0
+         DZED1 = ZCURV1(17) - ZED0
+         DRAD2 = RCURV2(17) - RAD0
+         DZED2 = ZCURV2(17) - ZED0
+         DRADC = RCURVC(17) - RAD0
+         DZEDC = ZCURVC(17) - ZED0
+         RP1(17) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(17) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(17) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(17) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(17) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(17) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(17) = RP1(17)
+            ZL1(17) = ZP1(17)
+            RL2(17) = RP2(17)
+            ZL2(17) = ZP2(17)
+            RLC(17) = RPC(17)
+            ZLC(17) = ZPC(17)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(18) = 2
+            SROT(18) = 1.
+            NSUR(18) = -1
+            NRING(18) = 0
+            IF (INDX.EQ.1) FOUND(18) = EFOUND
+            IF (INTEXT.EQ.0) PRESUR(18) = PRESS1
+            FN10(18) = PRESS1*RADIUS/2.
+            NNODES(18) = 21
+            NLAYER(18) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(18) = NLAYRC + NLAYRF + 1
+C END MAY 2010
+            ZVAL(18) = 0.
+            DO 18 I = 1,NLAYRF
+               LINDEX = LAYTYP(I,18)
+               ZVAL(18) = ZVAL(18) + THICK(LINDEX)
+   18       CONTINUE
+C BEG AUG 2010
+            ZVAL(18) = THKTOTL/2.
+C END AUG 2010
+            ZRING(18) = 0.
+            IRING(18+ISEGST) = 0
+            NTYPE(18) = 1
+            R1(18) = R2(17)
+            Z1(18) = HEIGHT
+C BEG JUL 2010
+            R2(18) = R1(18) -CWIDTH +BCROWN -CWIDTH
+C END JUL 2010 
+            Z2(18) = HEIGHT
+            RC(18) = RSTART
+            ZC(18) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(18)
+            RAD2 = RADIUS + Z2(18)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(18)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(18)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(18) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(18) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(18) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(18) = RC(18)
+            ZCURV1(18) = Z1(18) -RAD1*(1. -COS(BETA1))
+            ZCURV2(18) = Z2(18) -RAD2*(1. -COS(BETA2))
+            ZCURVC(18) = ZC(18)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(18) - RAD0
+         DZED1 = ZCURV1(18) - ZED0
+         DRAD2 = RCURV2(18) - RAD0
+         DZED2 = ZCURV2(18) - ZED0
+         DRADC = RCURVC(18) - RAD0
+         DZEDC = ZCURVC(18) - ZED0
+         RP1(18) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(18) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(18) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(18) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(18) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(18) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(18) = RP1(18)
+            ZL1(18) = ZP1(18)
+            RL2(18) = RP2(18)
+            ZL2(18) = ZP2(18)
+            RLC(18) = RPC(18)
+            ZLC(18) = ZPC(18)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(22) = 2
+            SROT(22) = 1.
+            NSUR(22) = -1
+            NRING(22) = 0
+            IF (INDX.EQ.1) FOUND(22) = EFNOOD
+            IF (INTEXT.EQ.0) PRESUR(22) = PRESS1
+            FN10(22) = PRESS1*RADIUS/2.
+            NNODES(22) = 11
+            NLAYER(22) = NLAYRF
+            IF (ILINKS.EQ.2) NLAYER(22) = NLAYRF + 2
+            ZVAL(22) = THKSTF 
+            DO 22 I = 1,NLAYRF
+               LINDEX = LAYTYP(I,22)
+               ZVAL(22) = ZVAL(22) + THICK(LINDEX)
+   22       CONTINUE
+C BEG AUG 2010
+            ZVAL(22) = THKSTF + (THKTOTL - THKCOR)/2.
+C END AUG 2010
+            ZRING(22) = 0.
+C BEG JUL 2010
+            RSTAGS(22) = AREA1 + AREA2
+C END JUL 2010
+            IRING(22+ISEGST) = 0
+            NTYPE(22) = 1
+            R1(22) = R2(18)
+            Z1(22) = HEIGHT
+            R2(22) = R1(22) +CWIDTH +DWIDTH
+            Z2(22) = HEIGHT
+            RC(22) = RSTART
+            ZC(22) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(22)
+            RAD2 = RADIUS + Z2(22)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(22)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(22)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(22) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(22) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(22) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(22) = RC(22)
+            ZCURV1(22) = Z1(22) -RAD1*(1. -COS(BETA1))
+            ZCURV2(22) = Z2(22) -RAD2*(1. -COS(BETA2))
+            ZCURVC(22) = ZC(22)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(22) - RAD0
+         DZED1 = ZCURV1(22) - ZED0
+         DRAD2 = RCURV2(22) - RAD0
+         DZED2 = ZCURV2(22) - ZED0
+         DRADC = RCURVC(22) - RAD0
+         DZEDC = ZCURVC(22) - ZED0
+         RP1(22) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(22) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(22) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(22) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(22) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(22) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(22) = RP1(22)
+            ZL1(22) = ZP1(22)
+            RL2(22) = RP2(22)
+            ZL2(22) = ZP2(22)
+            RLC(22) = RPC(22)
+            ZLC(22) = ZPC(22)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(16) = 2
+            SROT(16) = 1.
+            NSUR(16) = -1 
+            NRING(16) = 1
+            RGAREA(16) = AREA2
+            IF (INDX.EQ.1) FOUND(16) = EFNOOD + EFOUND
+            PRESUR(16) = 0.
+            NNODES(16) = 11
+            NLAYER(16) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(16) = NLAYRC + 2
+            ZVAL(16) = THKSTF 
+            ZRING(16) = HEIGHT -RADOBT*(1. -  CPHI) 
+            ZNORM(16) = -ZNORM(2)
+            IRING(16+ISEGST) = 6 + IRGST
+            NTYPE(16) = 1
+            IPTRNG(16) = NNODES(16)/2 + 1
+            R2(16) = R1(18)
+            Z2(16) = HEIGHT
+            R1(16) = R2(16) -CWIDTH*(1. +CTWOPH)
+            Z1(16) = HEIGHT -CWIDTH*STWOPH
+            RC(16) = R2(16)
+C BEG JUL 2010
+C           ZC(16) = HEIGHT - RADACU
+            ZC(16) = HEIGHT - RADOBT
+C END JUL 2010
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(16)
+            RAD2 = RADIUS + Z2(16)
+            RADC = RADIUS + ZC(16)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(16)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(16)-RSTART)/RAD2)
+            BETAC = ASIN((RC(16)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(16) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(16) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(16) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(16) = Z1(16) -RAD1*(1. -COS(BETA1))
+            ZCURV2(16) = Z2(16) -RAD2*(1. -COS(BETA2))
+            ZCURVC(16) = ZC(16) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(16) - RAD0
+         DZED1 = ZCURV1(16) - ZED0
+         DRAD2 = RCURV2(16) - RAD0
+         DZED2 = ZCURV2(16) - ZED0
+         DRADC = RCURVC(16) - RAD0
+         DZEDC = ZCURVC(16) - ZED0
+         RP1(16) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(16) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(16) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(16) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(16) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(16) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(16) = RP1(16)
+            ZL1(16) = ZP1(16)
+            RL2(16) = RP2(16)
+            ZL2(16) = ZP2(16)
+            RLC(16) = RPC(16)
+            ZLC(16) = ZPC(16)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(14) = 2
+            SROT(14) = -1.
+            NSUR(14) = 1
+            NRING(14) = 1
+            RGAREA(14) = AREA1
+            IF (INDX.EQ.1) FOUND(14) = EFNOOD + EFOUND
+            PRESUR(14) = 0.
+            NNODES(14) = 21
+            NLAYER(14) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(14) = NLAYRC + 2
+            ZVAL(14) = THKSTF 
+            ZNORM(14) = -ZNORM(5)
+            DO 14 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,14)
+               ZVAL(14) = ZVAL(14) + THICK(LINDEX)
+   14       CONTINUE
+            ZRING(14) = HEIGHT -RADACU*(1. - SPHI) 
+            IRING(14+ISEGST) = 5 +IRGST
+            NTYPE(14) = 1
+            IPTRNG(14) = NNODES(14)/2 + 1
+            R2(14) = R1(15)
+            Z2(14) = HEIGHT
+            R1(14) = R2(14) +RADACU*CGAMMA
+            Z1(14) = HEIGHT -RADACU*(1. + SGAMMA)
+            RC(14) = R2(14)
+            ZC(14) = HEIGHT - RADACU
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(14)
+            RAD2 = RADIUS + Z2(14)
+            RADC = RADIUS + ZC(14)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(14)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(14)-RSTART)/RAD2)
+            BETAC = ASIN((RC(14)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(14) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(14) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(14) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(14) = Z1(14) -RAD1*(1. -COS(BETA1))
+            ZCURV2(14) = Z2(14) -RAD2*(1. -COS(BETA2))
+            ZCURVC(14) = ZC(14) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(14) - RAD0
+         DZED1 = ZCURV1(14) - ZED0
+         DRAD2 = RCURV2(14) - RAD0
+         DZED2 = ZCURV2(14) - ZED0
+         DRADC = RCURVC(14) - RAD0
+         DZEDC = ZCURVC(14) - ZED0
+         RP1(14) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(14) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(14) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(14) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(14) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(14) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(14) = RP1(14)
+            ZL1(14) = ZP1(14)
+            RL2(14) = RP2(14)
+            ZL2(14) = ZP2(14)
+            RLC(14) = RPC(14)
+            ZLC(14) = ZPC(14)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(13) = 1
+            NSUR(13) = -1
+            NRING(13) = 0
+            IF (INDX.EQ.1) FOUND(13) = EFNOOD + EFOUND
+            PRESUR(13) = 0.
+            NNODES(13) = 11
+            NLAYER(13) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(13) = NLAYRC + 2
+            ZVAL(13) = THKSTF 
+            ZRING(13) = 0.
+            IRING(13+ISEGST) = 0
+            NTYPE(13) = 1
+            R1(13) = R1(14)
+            Z1(13) = Z1(14)
+            R2(13) = R1(16)
+            Z2(13) = Z1(16)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(13)
+            RAD2 = RADIUS + Z2(13)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(13)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(13)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(13) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(13) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(13) = Z1(13) -RAD1*(1. -COS(BETA1))
+            ZCURV2(13) = Z2(13) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(13) - RAD0
+         DZED1 = ZCURV1(13) - ZED0
+         DRAD2 = RCURV2(13) - RAD0
+         DZED2 = ZCURV2(13) - ZED0
+         RP1(13) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(13) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(13) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(13) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(13) = RP1(13)
+            ZL1(13) = ZP1(13)
+            RL2(13) = RP2(13)
+            ZL2(13) = ZP2(13)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(7) = 1
+            NSUR(7) = 0
+            NRING(7) = 0
+            IF (INDX.EQ.1) FOUND(7) = 2.*EFOUND
+            PRESUR(7) = 0.
+            NNODES(7) = 11
+            NLAYER(7) = NLAYRC + NLAYRC
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(7) = NLAYRC
+C END MAY 2010
+            ZVAL(7) = 0.
+            DO 7 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,7)
+               ZVAL(7) = ZVAL(7) + THICK(LINDEX)
+    7       CONTINUE
+            ZRING(7) = 0.
+            IRING(7+ISEGST) = 0
+            NTYPE(7) = 1
+            R1(7) = R2(4)
+            Z1(7) = Z2(4)
+            R2(7) = R1(13)
+            Z2(7) = Z1(13)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(7)
+            RAD2 = RADIUS + Z2(7)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(7)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(7)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(7) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(7) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(7) = Z1(7) -RAD1*(1. -COS(BETA1))
+            ZCURV2(7) = Z2(7) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(7) - RAD0
+         DZED1 = ZCURV1(7) - ZED0
+         DRAD2 = RCURV2(7) - RAD0
+         DZED2 = ZCURV2(7) - ZED0
+         RP1(7) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(7) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(7) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(7) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(7) = RP1(7)
+            ZL1(7) = ZP1(7)
+            RL2(7) = RP2(7)
+            ZL2(7) = ZP2(7)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(20) = 2
+            SROT(20) = -1.
+            NSUR(20) = 1
+            NRING(20) = 1
+            RGAREA(20) = AREA2
+            IF (INDX.EQ.1) FOUND(20) = EFNOOD + EFOUND
+            PRESUR(20) = 0.
+            NNODES(20) = 11
+            NLAYER(20) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(20) = NLAYRC + 2
+            ZVAL(20) = THKSTF 
+            DO 20 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,20)
+               ZVAL(20) = ZVAL(20) + THICK(LINDEX)
+   20       CONTINUE
+            ZRING(20) = HEIGHT -RADOBT*(1. -  CPHI) 
+            ZNORM(20) = ZNORM(2)
+            IRING(20+ISEGST) = 7 + IRGST
+            NTYPE(20) = 1
+            IPTRNG(20) = NNODES(20)/2 + 1
+            R2(20) = R2(18)
+            Z2(20) = HEIGHT
+            R1(20) = R2(20) +CWIDTH*(1. + CTWOPH)
+            Z1(20) = HEIGHT -CWIDTH*STWOPH
+            RC(20) = R2(20)
+            ZC(20) = HEIGHT - RADOBT
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(20)
+            RAD2 = RADIUS + Z2(20)
+            RADC = RADIUS + ZC(20)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(20)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(20)-RSTART)/RAD2)
+            BETAC = ASIN((RC(20)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(20) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(20) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(20) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(20) = Z1(20) -RAD1*(1. -COS(BETA1))
+            ZCURV2(20) = Z2(20) -RAD2*(1. -COS(BETA2))
+            ZCURVC(20) = ZC(20) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(20) - RAD0
+         DZED1 = ZCURV1(20) - ZED0
+         DRAD2 = RCURV2(20) - RAD0
+         DZED2 = ZCURV2(20) - ZED0
+         DRADC = RCURVC(20) - RAD0
+         DZEDC = ZCURVC(20) - ZED0
+         RP1(20) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(20) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(20) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(20) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(20) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(20) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(20) = RP1(20)
+            ZL1(20) = ZP1(20)
+            RL2(20) = RP2(20)
+            ZL2(20) = ZP2(20)
+            RLC(20) = RPC(20)
+            ZLC(20) = ZPC(20)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(21) = 2
+            SROT(21) = 1.
+            NSUR(21) = -1.
+            NRING(21) = 1
+            RGAREA(21) = AREA1
+            IF (INDX.EQ.1) FOUND(21) = EFNOOD + EFOUND
+            PRESUR(21) = 0.
+            NNODES(21) = 21
+            NLAYER(21) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(21) = NLAYRC + 2
+            ZVAL(21) = THKSTF 
+            ZRING(21) = HEIGHT - RADACU*(1. - SPHI) 
+            ZNORM(21) = ZNORM(5)
+            IRING(21+ISEGST) = 8 + IRGST
+            NTYPE(21) = 1
+            IPTRNG(21) = NNODES(21)/2 + 1
+            R2(21) = R2(22)
+            Z2(21) = HEIGHT
+            R1(21) = R2(21) - RADACU*CGAMMA
+            Z1(21) = HEIGHT - RADACU*(1. + SGAMMA)
+            RC(21) = R2(21)
+            ZC(21) = HEIGHT - RADACU
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(21)
+            RAD2 = RADIUS + Z2(21)
+            RADC = RADIUS + ZC(21)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(21)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(21)-RSTART)/RAD2)
+            BETAC = ASIN((RC(21)-RSTART)/RADC)
+C END JUL 2010
+            RCURV1(21) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(21) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(21) = RSTART +RADC*SIN(BETAC)
+            ZCURV1(21) = Z1(21) -RAD1*(1. -COS(BETA1))
+            ZCURV2(21) = Z2(21) -RAD2*(1. -COS(BETA2))
+            ZCURVC(21) = ZC(21) -RADC*(1. -COS(BETAC))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(21) - RAD0
+         DZED1 = ZCURV1(21) - ZED0
+         DRAD2 = RCURV2(21) - RAD0
+         DZED2 = ZCURV2(21) - ZED0
+         DRADC = RCURVC(21) - RAD0
+         DZEDC = ZCURVC(21) - ZED0
+         RP1(21) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(21) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(21) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(21) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(21) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(21) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(21) = RP1(21)
+            ZL1(21) = ZP1(21)
+            RL2(21) = RP2(21)
+            ZL2(21) = ZP2(21)
+            RLC(21) = RPC(21)
+            ZLC(21) = ZPC(21)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(19) = 1
+            NSUR(19) = 1
+            NRING(19) = 0
+            IF (INDX.EQ.1) FOUND(19) = EFNOOD + EFOUND
+            PRESUR(19) = 0.
+            NNODES(19) = 11
+            NLAYER(19) = NLAYRC
+            IF (ILINKS.EQ.2) NLAYER(19) = NLAYRC + 2
+            ZVAL(19) = THKSTF 
+            DO 19 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,19)
+               ZVAL(19) = ZVAL(19) + THICK(LINDEX)
+   19       CONTINUE
+            ZRING(19) = 0.
+            IRING(19+ISEGST) = 0
+            NTYPE(19) = 1
+            R1(19) = R1(21)
+            Z1(19) = Z1(21)
+            R2(19) = R1(20)
+            Z2(19) = Z1(20)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(19)
+            RAD2 = RADIUS + Z2(19)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(19)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(19)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(19) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(19) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(19) = Z1(19) -RAD1*(1. -COS(BETA1))
+            ZCURV2(19) = Z2(19) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(19) - RAD0
+         DZED1 = ZCURV1(19) - ZED0
+         DRAD2 = RCURV2(19) - RAD0
+         DZED2 = ZCURV2(19) - ZED0
+         RP1(19) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(19) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(19) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(19) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(19) = RP1(19)
+            ZL1(19) = ZP1(19)
+            RL2(19) = RP2(19)
+            ZL2(19) = ZP2(19)
+         ENDIF
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(12) = 1
+            NSUR(12) = 0
+            NRING(12) = 0
+            IF (INDX.EQ.1) FOUND(12) = 2.*EFOUND
+            PRESUR(12) = 0.
+            NNODES(12) = 11
+            NLAYER(12) = NLAYRC + NLAYRC
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYER(12) = NLAYRC
+C END MAY 2010
+            ZVAL(12) = 0.
+            DO 12 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,12)
+               ZVAL(12) = ZVAL(12) + THICK(LINDEX)
+   12       CONTINUE
+            ZRING(12) = 0.
+            IRING(12+ISEGST) = 0
+            NTYPE(12) = 1
+            R1(12) = R2(9)
+            Z1(12) = Z2(9)
+            R2(12) = R1(19)
+            Z2(12) = Z1(19)
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(12)
+            RAD2 = RADIUS + Z2(12)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(12)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(12)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(12) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(12) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(12) = Z1(12) -RAD1*(1. -COS(BETA1))
+            ZCURV2(12) = Z2(12) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         DRAD1 = RCURV1(12) - RAD0
+         DZED1 = ZCURV1(12) - ZED0
+         DRAD2 = RCURV2(12) - RAD0
+         DZED2 = ZCURV2(12) - ZED0
+         RP1(12) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(12) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(12) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(12) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         IF (INDX.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(12) = RP1(12)
+            ZL1(12) = ZP1(12)
+            RL2(12) = RP2(12)
+            ZL2(12) = ZP2(12)
+         ENDIF
+C
+C BEG SEP 2010
+         IF (INDX.EQ.0) THEN
+            CALL MOVER(RP1,1,R01,1,50)
+            CALL MOVER(RP2,1,R02,1,50)
+            CALL MOVER(ZP1,1,Z01,1,50)
+            CALL MOVER(ZP2,1,Z02,1,50)
+         ENDIF
+C        IF (INDX.EQ.0) THEN
+C           WRITE(IFILE4, '(/,A,1P,4E12.4)')
+C    1    ' RP1(1),RP2(1),ZP1(1),ZP2(1)=',RP1(1),RP2(1),ZP1(1),ZP2(1)
+C           WRITE(IFILE4, '(/,A,1P,4E12.4)')
+C    1    ' R01(1),R02(1),Z01(1),Z02(1)=',R01(1),R02(1),Z01(1),Z02(1) 
+C           CALL EXIT
+C        ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END SEP 2010
+C
+C      end of elaborate 22-segment model used for local buckling,
+C      IMODEL = 1
+C
+         ELSE
+C
+C begin simplified model used for general buckling, IMODEL = 2:
+C The following is the IMODEL = 2 section.
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(1) = 2
+            SROT(1) = 1.
+            NSUR(1) = -1
+            NRING(1) = 1
+            RGAREA(1) = AREA
+C BEG JUL 2010
+            RSTAGS(1) = AREA
+C END JUL 2010
+            IF (INDX.EQ.1) FOUND(1) = EFOUND
+            IF (INTEXT.EQ.1) PRESUR(1) = PRESS1
+            FN10(1) = PRESS1*RADIUS/2.
+            NNODES(1) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(1) = 21
+C END JUL 2010
+            NLAYR2(1) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(1) = NLAYRC + NLAYRF + 1
+C END MAY 2010
+            LAYR21 = NLAYR2(1)
+            DO 26 I = 1,LAYR21
+               LAYTP2(I,1) = LAYTYP(I,1)
+   26       CONTINUE
+            ZVAL(1) = 0.
+            DO 28 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,1)
+               ZVAL(1) = ZVAL(1) + THICK(LINDEX)
+   28       CONTINUE
+C BEG AUG 2010
+            ZVAL(1) = THKTOTL/2.
+C           IF (IWRAP.EQ.0) ZVAL(1) = 0.5*(THICKC + THICKF)
+C END AUG 2010
+            ZRING(1) = 0.
+            NTYPE(1) = 1
+            IPTRNG(1) = NNODES(1)
+C BEG JUL 2010
+            R1(1) = RSTART
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R1(1) = RSTART + CWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R1(1) = RSTART + CWIDTH
+C END AUG 2010
+            Z1(1) = 0.
+            R2(1) = RSTART + BCROWN
+C END JUL 2010
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R2(1) = RSTART + BCROWN - CWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R2(1) = RSTART + BCROWN - CWIDTH
+C END AUG 2010
+            Z2(1) = 0.
+            RC(1) = RSTART
+            ZC(1) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(1)
+            RAD2 = RADIUS + Z2(1)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(1)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(1)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(1) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(1) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(1) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(1) = RC(1)
+            ZCURV1(1) = Z1(1) -RAD1*(1. -COS(BETA1))
+            ZCURV2(1) = Z2(1) -RAD2*(1. -COS(BETA2))
+            ZCURVC(1) = ZC(1)
+C BEG JUL 2010
+C           RAD0 = RCURV1(1)
+C           ZED0 = ZCURV1(1)
+            RAD0 = R1(1)
+            ZED0 = Z1(1)
+C END JUL 2010
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         IRING(1+ISEGST) = 1 + IRGST
+         DRAD1 = RCURV1(1) - RAD0
+         DZED1 = ZCURV1(1) - ZED0
+         DRAD2 = RCURV2(1) - RAD0
+         DZED2 = ZCURV2(1) - ZED0
+         DRADC = RCURVC(1) - RAD0
+         DZEDC = ZCURVC(1) - ZED0
+         RP1(1) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(1) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(1) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(1) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(1) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(1) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(1) = RP1(1)
+            ZL1(1) = ZP1(1)
+            RL2(1) = RP2(1)
+            ZL2(1) = ZP2(1)
+            RLC(1) = RPC(1)
+            ZLC(1) = ZPC(1)
+         ENDIF
+C END DEC 2009
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(2) = 2
+            SROT(2) = 1.
+            NSUR(2)  = -1
+            NRING(2) = 1
+            RGAREA(2) = AREA
+C BEG JUL 2010
+            RSTAGS(2) = AREA
+C END JUL 2010
+            IF (INDX.EQ.1) FOUND(2) = EFOUND
+            IF (INTEXT.EQ.1) PRESUR(2) = PRESS1
+            FN10(2) = PRESS1*RADIUS/2.
+            NNODES(2) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(2) = 21
+C END JUL 2010
+            NLAYR2(2) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(2) = NLAYRF
+C END MAY 2010
+            LAYR21 = NLAYR2(2)
+            DO 36 I = 1,LAYR21
+               LAYTP2(I,2) = LAYTYP(I,6)
+   36       CONTINUE
+            ZVAL(2) = 0.
+C BEG MAY 2010
+            IF (IWRAP.NE.0) THEN
+              DO 38 I = 1,NLAYRC
+                 LINDEX = LAYTYP(I,6)
+                 ZVAL(2) = ZVAL(2) + THICK(LINDEX)
+   38         CONTINUE
+            ENDIF
+C END MAY 2010
+C BEG AUG 2010
+C BEG AUG 2010
+            IF (IWRAP.EQ.1) ZVAL(2) = THKTOTL/2.
+            IF (IWRAP.EQ.0) ZVAL(2) = (THKTOTL - THKCOR)/2.
+C           IF (IWRAP.EQ.0) ZVAL(2) = 0.5*THICKF
+C END AUG 2010
+            ZRING(2) = 0.
+            NTYPE(2) = 1
+            IPTRNG(2) = NNODES(2)
+            R1(2) = R2(1)
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R1(2) = R2(1) + CWIDTH +DWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R1(2) = R2(1) + CWIDTH +DWIDTH 
+C END AUG 2010
+            Z1(2) = Z2(1)
+C BEG JUL 2010
+            R2(2) = RSTART +PITCH
+C END JUL 2010
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R2(2) = R2(2) - DWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R2(2) = R2(2) - DWIDTH
+C END AUG 2010
+            Z2(2) = 0.
+            RC(2) = RSTART
+            ZC(2) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(2)
+            RAD2 = RADIUS + Z2(2)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(2)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(2)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(2) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(2) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(2) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(2) = RC(2)
+            ZCURV1(2) = Z1(2) -RAD1*(1. -COS(BETA1))
+            ZCURV2(2) = Z2(2) -RAD2*(1. -COS(BETA2))
+            ZCURVC(2) = ZC(2)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+         IRING(2+ISEGST) = 2 + IRGST
+         DRAD1 = RCURV1(2) - RAD0
+         DZED1 = ZCURV1(2) - ZED0
+         DRAD2 = RCURV2(2) - RAD0
+         DZED2 = ZCURV2(2) - ZED0
+         DRADC = RCURVC(2) - RAD0
+         DZEDC = ZCURVC(2) - ZED0
+         RP1(2) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(2) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(2) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(2) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(2) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(2) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(2) = RP1(2)
+            ZL1(2) = ZP1(2)
+            RL2(2) = RP2(2)
+            ZL2(2) = ZP2(2)
+            RLC(2) = RPC(2)
+            ZLC(2) = ZPC(2)
+         ENDIF
+C END DEC 2009
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(5) = 2
+            SROT(5) = -1.
+            NSUR(5) = -1
+C BEG AUG 2010
+            NRING(5) = 1
+            RGAREA(5) = AREA
+            RSTAGS(5) = AREA
+C END AUG 2010
+            IF (INDX.EQ.1) FOUND(5) = EFOUND
+            IF (INTEXT.EQ.0) PRESUR(5) = PRESS1
+            FN10(5) = PRESS1*RADIUS/2.
+            NNODES(5) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(5) = 21
+C END JUL 2010
+            NLAYR2(5) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(5) = NLAYRF
+C END MAY 2010
+            LAYR21 = NLAYR2(5)
+            DO 46 I = 1,LAYR21
+               LAYTP2(I,5) = LAYTYP(I,15)
+   46       CONTINUE
+            ZVAL(5) = 0.
+C BEG MAY 2010
+            IF (IWRAP.NE.0) THEN
+              DO 48 I = 1,NLAYRC
+                 LINDEX = LAYTYP(I,15)
+                 ZVAL(5) = ZVAL(5) + THICK(LINDEX)
+   48         CONTINUE
+            ENDIF
+C END MAY 2010
+C BEG AUG 2010
+            IF (IWRAP.EQ.1) ZVAL(5) = THKTOTL/2.
+            IF (IWRAP.EQ.0) ZVAL(5) = (THKTOTL - THKCOR)/2.
+C           IF (IWRAP.EQ.0) ZVAL(5) = 0.5*THICKF
+            ZRING(5) = HEIGHT 
+            NTYPE(5) = 1
+            IPTRNG(5) = 1 
+C END AUG 2010
+C BEG JUL 2010
+            R1(5) = RSTART +PITCH -SWIDTH -BCROWN
+C END JUL 2010
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1)
+C    1         R1(5) = RSTART +PITCH -SWIDTH -BCROWN -DWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1         R1(5) = RSTART +PITCH -SWIDTH -BCROWN -DWIDTH 
+C END AUG 2010
+            Z1(5) = HEIGHT
+C BEG JUL 2010
+            R2(5) = RSTART - SWIDTH 
+C END JUL 2010
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R2(5) = R2(5) + DWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R2(5) = R2(5) + DWIDTH
+C END AUG 2010
+            Z2(5) = HEIGHT
+            RC(5) = RSTART
+            ZC(5) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(5)
+            RAD2 = RADIUS + Z2(5)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(5)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(5)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(5) = -(BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(5) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(5) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(5) = RC(5)
+            ZCURV1(5) = Z1(5) -RAD1*(1. -COS(BETA1))
+            ZCURV2(5) = Z2(5) -RAD2*(1. -COS(BETA2))
+            ZCURVC(5) = ZC(5)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+C BEG AUG 2010
+         IRING(3+ISEGST) = 3 + IRGST
+C END AUG 2010
+         DRAD1 = RCURV1(5) - RAD0
+         DZED1 = ZCURV1(5) - ZED0
+         DRAD2 = RCURV2(5) - RAD0
+         DZED2 = ZCURV2(5) - ZED0
+         DRADC = RCURVC(5) - RAD0
+         DZEDC = ZCURVC(5) - ZED0
+         RP1(5) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(5) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(5) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(5) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(5) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(5) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(5) = RP1(5)
+            ZL1(5) = ZP1(5)
+            RL2(5) = RP2(5)
+            ZL2(5) = ZP2(5)
+            RLC(5) = RPC(5)
+            ZLC(5) = ZPC(5)
+         ENDIF
+C END DEC 2009
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(6) = 2
+            SROT(6) = 1.
+            NSUR(6) = -1
+C BEG AUG 2010
+            NRING(6) = 1
+            RGAREA(6) = AREA
+            RSTAGS(6) = AREA
+C END AUG 2010
+            IF (INDX.EQ.1) FOUND(6) = EFOUND
+            IF (INTEXT.EQ.0) PRESUR(6) = PRESS1
+            FN10(6) = PRESS1*RADIUS/2.
+            NNODES(6) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(6) = 21
+C END JUL 2010
+            NLAYR2(6) = NLAYRC + NLAYRF
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(6) = NLAYRC + NLAYRF + 1
+C END MAY 2010
+            LAYR21 = NLAYR2(6)
+            DO 56 I = 1,LAYR21
+               LAYTP2(I,6) = LAYTYP(I,18)
+   56       CONTINUE
+            ZVAL(6) = 0.
+            DO 58 I = 1,NLAYRF
+               LINDEX = LAYTYP(I,18)
+               ZVAL(6) = ZVAL(6) + THICK(LINDEX)
+   58       CONTINUE
+C BEG AUG 2010
+            ZVAL(6) = THKTOTL/2.
+C           IF (IWRAP.EQ.0) ZVAL(6) = 0.5*(THICKC + THICKF)
+            ZRING(6) = HEIGHT 
+            NTYPE(6) = 1
+            IPTRNG(6) = NNODES(6)
+C END AUG 2010
+            R1(6) = R1(5)
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R1(6) = R1(5) +CWIDTH +DWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R1(6) = R1(5) +CWIDTH +DWIDTH
+C END AUG 2010
+            Z1(6) = HEIGHT
+C BEG JUL 2010
+            R2(6) = RSTART +PITCH -SWIDTH
+C END JUL 2010
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) R2(6) = R2(6) -CWIDTH
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1)
+     1      R2(6) = R2(6) -CWIDTH
+C END AUG 2010
+            Z2(6) = HEIGHT
+            RC(6) = RSTART
+            ZC(6) = -RADIUS
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(6)
+            RAD2 = RADIUS + Z2(6)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(6)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(6)-RSTART)/RAD2)
+C END JUL 2010
+C BEG JUL 2010
+            ANGSML(6) = (BETA2 - BETA1)*180/PI
+C END JUL 2010
+            RCURV1(6) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(6) = RSTART +RAD2*SIN(BETA2)
+            RCURVC(6) = RC(6)
+            ZCURV1(6) = Z1(6) -RAD1*(1. -COS(BETA1))
+            ZCURV2(6) = Z2(6) -RAD2*(1. -COS(BETA2))
+            ZCURVC(6) = ZC(6)
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+C BEG AUG 2010
+         IRING(4+ISEGST) = 4 + IRGST
+C END AUG 2010
+         DRAD1 = RCURV1(6) - RAD0
+         DZED1 = ZCURV1(6) - ZED0
+         DRAD2 = RCURV2(6) - RAD0
+         DZED2 = ZCURV2(6) - ZED0
+         DRADC = RCURVC(6) - RAD0
+         DZEDC = ZCURVC(6) - ZED0
+         RP1(6) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(6) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(6) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(6) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+         RPC(6) = RAD0 +RADIUS*SBETA +DRADC*CBETA +DZEDC*SBETA
+         ZPC(6) = ZED0 -RADIUS*(1.-CBETA) -DRADC*SBETA +DZEDC*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(6) = RP1(6)
+            ZL1(6) = ZP1(6)
+            RL2(6) = RP2(6)
+            ZL2(6) = ZP2(6)
+            RLC(6) = RPC(6)
+            ZLC(6) = ZPC(6)
+         ENDIF
+C END DEC 2009
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(3) = 1
+            NSUR(3) = 0
+C BEG AUG 2010 (ring moved to nodal pt. 1 of seg.5)
+            NRING(3) = 0
+            RGAREA(3) = 0. 
+C END AUG 2010
+            IF (INDX.EQ.1) FOUND(3) = 2.*EFOUND
+            PRESUR(3) = 0.
+            NNODES(3) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(3) = 21
+C END JUL 2010
+            NLAYR2(3) = NLAYRC + NLAYRC
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(3) = NLAYRC
+C END MAY 2010
+            LAYR21 = NLAYR2(3)
+            DO 66 I = 1,LAYR21
+               LAYTP2(I,3) = LAYTYP(I,7)
+   66       CONTINUE
+            ZVAL(3) = 0.
+            DO 68 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,7)
+               ZVAL(3) = ZVAL(3) + THICK(LINDEX)
+   68       CONTINUE
+C BEG AUG 2010
+            IF (IWRAP.EQ.0) ZVAL(3) = 0.5*THICKC
+            ZRING(3) = 0. 
+            NTYPE(3) = 1
+C END AUG 2010
+            R1(3) = R2(1)
+            Z1(3) = Z2(1)
+            R2(3) = R1(5)
+            Z2(3) = Z1(5)
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) THEN
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+               R1(3) = R2(1) +CWIDTH +DWIDTH*CTWOPH
+               Z1(3) = Z1(3) + DWIDTH*STWOPH
+               R2(3) = R1(5) +DWIDTH -DWIDTH*CTWOPH
+               Z2(3) = Z1(5) - DWIDTH*STWOPH
+            ENDIF
+C END AUG 2010
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(3)
+            RAD2 = RADIUS + Z2(3)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(3)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(3)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(3) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(3) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(3) = Z1(3) -RAD1*(1. -COS(BETA1))
+            ZCURV2(3) = Z2(3) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+C BEG AUG 2010 (ring moved to nodal pt. 1 of seg.5)
+C        IRING(3+ISEGST) = 3 + IRGST
+C END AUG 2010
+         DRAD1 = RCURV1(3) - RAD0
+         DZED1 = ZCURV1(3) - ZED0
+         DRAD2 = RCURV2(3) - RAD0
+         DZED2 = ZCURV2(3) - ZED0
+         RP1(3) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(3) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(3) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(3) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(3) = RP1(3)
+            ZL1(3) = ZP1(3)
+            RL2(3) = RP2(3)
+            ZL2(3) = ZP2(3)
+         ENDIF
+C END DEC 2009
+C
+         IF (IMODUL.EQ.1) THEN
+            NSHAPE(4) = 1
+            NSUR(4) = 0
+C BEG AUG 2010 (ring moved to nodal pt. NNODES(6) of seg.6)
+            NRING(4) = 0
+            RGAREA(4) = 0. 
+C END AUG 2010
+            IF (INDX.EQ.1) FOUND(4) = 2.*EFOUND
+            PRESUR(4) = 0.
+            NNODES(4) = 11
+C BEG JUL 2010
+            IF (ISIMP.EQ.1) NNODES(4) = 21
+C END JUL 2010
+            NLAYR2(4) = NLAYRC + NLAYRC
+C BEG MAY 2010
+            IF (IWRAP.EQ.0) NLAYR2(4) = NLAYRC
+C END MAY 2010
+            LAYR21 = NLAYR2(4)
+            DO 76 I = 1,LAYR21
+               LAYTP2(I,4) = LAYTYP(I,12)
+   76       CONTINUE
+            ZVAL(4) = 0.
+            DO 78 I = 1,NLAYRC
+               LINDEX = LAYTYP(I,12)
+               ZVAL(4) = ZVAL(4) + THICK(LINDEX)
+   78       CONTINUE
+C BEG AUG 2010
+            IF (IWRAP.EQ.0) ZVAL(4) = 0.5*THICKC
+            ZRING(4) = 0. 
+            NTYPE(4) = 1
+C END AUG 2010
+            R1(4) = R2(2)
+            Z1(4) = Z2(2)
+            R2(4) = R2(6)
+            Z2(4) = Z2(6)
+C BEG AUG 2010
+C           IF (ILINKS.EQ.1) THEN
+            IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+               R1(4) = R2(2) +DWIDTH -DWIDTH*CTWOPH
+               Z1(4) = Z2(2) + DWIDTH*STWOPH
+               R2(4) = R2(6) +CWIDTH +DWIDTH*CTWOPH
+               Z2(4) = Z2(6) - DWIDTH*STWOPH
+            ENDIF
+C END AUG 2010
+C new "CURVED MODULE" section:
+            RAD1 = RADIUS + Z1(4)
+            RAD2 = RADIUS + Z2(4)
+C BEG JUL 2010
+            BETA1 = ASIN((R1(4)-RSTART)/RAD1)
+            BETA2 = ASIN((R2(4)-RSTART)/RAD2)
+C END JUL 2010
+            RCURV1(4) = RSTART +RAD1*SIN(BETA1)
+            RCURV2(4) = RSTART +RAD2*SIN(BETA2)
+            ZCURV1(4) = Z1(4) -RAD1*(1. -COS(BETA1))
+            ZCURV2(4) = Z2(4) -RAD2*(1. -COS(BETA2))
+C end "CURVED MODULE" section
+         ENDIF
+C       End of "IMODUL.EQ.1" condition
+C
+C BEG AUG 2010 (ring moved to nodal pt. NNODES(6) of seg.6)
+C        IRING(4 +ISEGST) = 4 + IRGST
+C END AUG 2010
+         DRAD1 = RCURV1(4) - RAD0
+         DZED1 = ZCURV1(4) - ZED0
+         DRAD2 = RCURV2(4) - RAD0
+         DZED2 = ZCURV2(4) - ZED0
+         RP1(4) = RAD0 +RADIUS*SBETA +DRAD1*CBETA +DZED1*SBETA
+         ZP1(4) = ZED0 -RADIUS*(1.-CBETA) -DRAD1*SBETA +DZED1*CBETA
+         RP2(4) = RAD0 +RADIUS*SBETA +DRAD2*CBETA +DZED2*SBETA
+         ZP2(4) = ZED0 -RADIUS*(1.-CBETA) -DRAD2*SBETA +DZED2*CBETA
+C BEG DEC 2009
+         IF (ISIMP.EQ.1.AND.IMODUL.EQ.1) THEN
+            RL1(4) = RP1(4)
+            ZL1(4) = ZP1(4)
+            RL2(4) = RP2(4)
+            ZL2(4) = ZP2(4)
+         ENDIF
+C END DEC 2009
+C
+C BEG AUG 2010
+         IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+C      See p. 52 of Ref.[22] of ..genopt/case/trusscomp/trusscomp.paper
+C      for comment on the unconservative effect especially of D2
+C      on BOSOR4's prediction of buckling load factors. 
+            D1(1,1,IMODUL) =  (CWIDTH +DWIDTH)*CBETA
+            D2(1,1,IMODUL) = -(CWIDTH +DWIDTH)*SBETA 
+            D1(2,1,IMODUL) = RP1(2) - RP2(1)
+            D2(2,1,IMODUL) = ZP1(2) - ZP2(1)
+            D1(3,1,IMODUL) = RP1(3) - RP2(1)
+            D2(3,1,IMODUL) = ZP1(3) - ZP2(1)
+            D1(4,1,IMODUL) = RP1(4) - RP2(2)
+            D2(4,1,IMODUL) = ZP1(4) - ZP2(2)
+            D1(5,1,IMODUL) = RP1(5) - RP2(3)
+            D2(5,1,IMODUL) = ZP1(5) - ZP2(3)
+            IF (IMODUL.GT.1) THEN
+             D1(5,2,IMODUL) = DWIDTH*(1.-CTWOPH)*CBETA
+     1                       +DWIDTH*STWOPH*SBETA 
+             D2(5,2,IMODUL) = DWIDTH*STWOPH*CBETA
+     1                       -DWIDTH*(1.-CTWOPH)*SBETA  
+            ENDIF
+            D1(6,1,IMODUL) = RP1(6) - RP2(3)
+            D2(6,1,IMODUL) = ZP1(6) - ZP2(3)
+            D1(6,2,IMODUL) = RP2(6) - RP2(4)
+            D2(6,2,IMODUL) = ZP2(6) - ZP2(4)
+         ENDIF
+C END AUG 2010
+C end of simplified model used for general buckling, IMODEL = 2
+C
+         ENDIF
+C       End of "IF (IMODEL.EQ.1)....ELSE ...ENDIF" condition
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  Next, the "axial" resultant carried by each shell segment
+C  and by each discrete ring is computed from the assumption
+C  that the cylindrical shell is subjected to uniform end
+C  shortening, from the assumption that the prebuckled state
+C  is a membrane state, and from the knowledge of the "axial"
+C  stiffness of each shell segment and of each discrete ring ("noodle").
+C  The "axial" resultants in the cylindrical shell become the
+C  hoop (circumferential) resultants in the "huge torus" model
+C  of the cylindrical shell. In the BIGBOSOR4 model these hoop
+C  resultants are called "FN20".
+C
+         IF (IMODUL.EQ.1.AND.(INDX.EQ.1.OR.INDX.EQ.2)) THEN
+C  Get huge torus hoop resultants carried by each segment
+           IF (IMODEL.EQ.1) THEN
+             SLANT7 = SQRT((R2(7) - R1(7))**2 +(Z2(7) - Z1(7))**2)
+             SLANT4 = SQRT((R2(4) - R1(4))**2 +(Z2(4) - Z1(4))**2)
+             DR18 = R2(18) - R1(18)
+             DR6  = R2(6)  - R1(6)
+             DR3  = R2(3)  - R1(3)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG JUL 2010
+C            DENOM=(RATIO5*(ARC2 +ARC5) +2.*DR18 +2.*DR6 +4.*DR3*RATIO3
+C    1             +RATIO5*4.*(SLANT7 +SLANT4) +4.*EANOOD/C111MD)*TOTLNG
+             DENOM=(4.*RATIO5*(ARC2+ARC5)+2.*DR18 +2.*DR6 +4.*DR3*RATIO3
+     1             +RATIO5*4.*(SLANT7 +SLANT4) +4.*EANOOD/C111MD)*TOTLNG
+C
+             THRSUM =(4.*RATIO5*(ARC2+ARC5)*ETHERM(1,5)
+     1               +2.*(DR18 +DR6)*ETHERM(1,1)
+     1               +4.*DR3*RATIO3*ETHERM(1,3)
+     1               +4.*RATIO5*(SLANT7 +SLANT4)*ETHERM(1,5)
+     1               -4.*ALPHA1(1)*TEMCUR(1)*EANOOD/C111MD)*TOTLNG
+C END JUL 2010
+C BEG MAY 2010
+             IF (IWRAP.EQ.0) THEN
+C BEG JUL 2010
+C             DENOM=(RATIO5*(ARC2 +ARC5) +2.*DR18 +2.*DR6*RATIO3
+C    1             +4.*DR3*RATIO3
+C    1             +RATIO5*2.*(SLANT7 +SLANT4) +4.*EANOOD/C111MD)*TOTLNG
+              DENOM=(4.*RATIO5*(ARC2 +ARC5) +2.*DR18 +2.*DR6*RATIO3
+     1             +4.*DR3*RATIO3
+     1             +RATIO5*2.*(SLANT7 +SLANT4) +4.*EANOOD/C111MD)*TOTLNG
+C
+              THRSUM =(4.*RATIO5*(ARC2+ARC5)*ETHERM(1,5)
+     1                +2.*(DR18 +DR6*RATIO3)*ETHERM(1,1)
+     1                +4.*DR3*RATIO3*ETHERM(1,3)
+     1                +2.*RATIO5*(SLANT7 +SLANT4)*ETHERM(1,5)
+     1                -4.*ALPHA1(1)*TEMCUR(1)*EANOOD/C111MD)*TOTLNG
+C END JUL 2010
+             ENDIF
+C END MAY 2010
+           ELSE
+C BEG AUG 2010
+             R21 = RSTART + BCROWN
+             R15 = RSTART +PITCH -SWIDTH -BCROWN
+             SLANT  = SQRT((R15 - R21)**2 +(HEIGHT)**2)
+C END AUG 2010
+             DR1 = BCROWN
+             DR2 = PITCH - BCROWN
+             DENOM=(2.*DR1 +2.*DR2 
+     1             +RATIO5*4.*SLANT +4.*EANOOD/C111MD)*TOTLNG
+C BEG JUL 2010
+             THRSUM =(2.*(DR1 +DR2)*ETHERM(1,1) 
+     1               +4.*RATIO5*SLANT*ETHERM(1,5)
+     1               -4.*ALPHA1(1)*TEMCUR(1)*EANOOD/C111MD)*TOTLNG
+C END JUL 2010
+C BEG MAY 2010
+             IF (IWRAP.EQ.0) THEN
+              DENOM=(2.*DR1 +2.*DR2*RATIO3
+     1             +RATIO5*2.*SLANT +4.*EANOOD/C111MD)*TOTLNG
+C BEG JUL 2010
+              THRSUM =(2.*(DR1 +DR2*RATIO3)*ETHERM(1,1)
+     1                +2.*RATIO5*SLANT*ETHERM(1,5)
+     1                -4.*ALPHA1(1)*TEMCUR(1)*EANOOD/C111MD)*TOTLNG
+C END JUL 2010
+             ENDIF
+C END MAY 2010
+C BEG AUG 2010
+             IF (ILINKS.EQ.1.AND.IWRAP.EQ.1.AND.ISIMP.EQ.1) THEN
+                DR1 = BCROWN - 2.*CWIDTH
+                DR2 = PITCH - BCROWN -2.*DWIDTH
+                DR3 = CWIDTH + DWIDTH
+                DR4 = DWIDTH - CWIDTH
+                SLANTM = SLANT - 2.*DWIDTH
+                DENOM = (2.*(DR1 +DR2) +RATIO5*4.*(ARC2 +ARC5)
+     1                  +4.*DR3*RATIO3 +4.*DR4*RATIO5 +4.*RATIO5*SLANTM
+     1                  +4.*EANOOD/C111MD)*TOTLNG
+             ENDIF
+C END AUG 2010
+C BEG JUL 2010
+           ENDIF
+C         End of (IF (IMODEL.EQ.1) THEN - ELSE - ENDIF condition
+C BEG JUL 2010
+C   Thermal residual strains...
+           EPSAVE = THRSUM/DENOM
+           EPSNET(1) = EPSAVE -ETHERM(1,1)
+           EPSNET(3) = EPSAVE -ETHERM(1,3)
+           EPSNET(5) = EPSAVE -ETHERM(1,5)
+C   Thermal residual axial resultants...
+           FNXRES(1) = EPSNET(1)*C111MD
+           FNXRES(3) = EPSNET(3)*C113MD
+           FNXRES(5) = EPSNET(5)*C115MD
+C END JUL 2010
+C
+C   FNX1 = "axial" resultant in Segment 1 of the model shown in Fig. 4
+C   FNX1 = "axial" resultant in Segment 3 of the model shown in Fig. 4
+C   FNX5 = "axial" resultant in Segment 5 of the model shown in Fig. 4
+C
+           FNX1 = PX(ILOADX)/DENOM
+C BEG MAY 2010
+           FNX3 = RATIO3*FNX1
+C END MAY 2010
+           FNX5 = RATIO5*FNX1
+C
+           IF (IMODEL.EQ.1) THEN
+C
+C       This branch is for the elaborate 22-segment module model.
+C       See Fig. 4 for the arrangement of each of the 22 segments
+C       in the elaborate module model used for local buckling.
+C
+              FNX3 = RATIO3*FNX1
+              FNOOD1 = ENOODL*AREA1*FNX1/C111MD
+              FNOOD2 = ENOODL*AREA2*FNX1/C111MD
+C             IF (ILINKS.EQ.2) THEN
+C                FNOOD1 = 0.
+C                FNOOD2 = 0
+C             ENDIF
+              FN20(1) = FNX1
+              FN20(2) = FNX5
+              FN20(3) = FNX3
+              FN20(4) = FNX5
+              FN20(5) = FNX5
+              FN20(6) = FNX1
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) FN20(6) = FNX3
+C END MAY 2010
+              FN20(7) = 2.*FNX5
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) FN20(7) = FNX5
+C END MAY 2010
+              FN20(8) = FNX3
+              FN20(9) = FNX5
+              FN20(10) = FNX5
+              FN20(11) = FNX5
+              FN20(12) = 2.*FNX5
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) FN20(12) = FNX5
+C END MAY 2010
+              FN20(13) = FNX5
+              FN20(14) = FNX5
+              FN20(15) = FNX1
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) FN20(15) = FNX3
+C END MAY 2010
+              FN20(16) = FNX5
+              FN20(17) = FNX3
+              FN20(18) = FNX1
+              FN20(19) = FNX5
+              FN20(20) = FNX5
+              FN20(21) = FNX5
+              FN20(22) = FNX3
+C
+C BEG JUL 2010
+C   Axial residual resultants, FN20T(i), from curing...
+              FNOOD1T = ENOODL*AREA1*(EPSAVE+ALPHA1(1)*TEMCUR(1))
+              FNOOD2T = ENOODL*AREA2*(EPSAVE+ALPHA1(1)*TEMCUR(1))
+              FN20T(1) = FNXRES(1)
+              FN20T(2) = FNXRES(5)
+              FN20T(3) = FNXRES(3)
+              FN20T(4) = FNXRES(5)
+              FN20T(5) = FNXRES(5)
+              FN20T(6) = FNXRES(1)
+              IF (IWRAP.EQ.0) FN20T(6) = FNXRES(3)
+              FN20T(7) = 2.*FNXRES(5)
+              IF (IWRAP.EQ.0) FN20T(7) = FNXRES(5)
+              FN20T(8) = FNXRES(3)
+              FN20T(9) = FNXRES(5)
+              FN20T(10) = FNXRES(5)
+              FN20T(11) = FNXRES(5)
+              FN20T(12) = 2.*FNXRES(5)
+              IF (IWRAP.EQ.0) FN20T(12) = FNXRES(5)
+              FN20T(13) = FNXRES(5)
+              FN20T(14) = FNXRES(5)
+              FN20T(15) = FNXRES(1)
+              IF (IWRAP.EQ.0) FN20T(15) = FNXRES(3)
+              FN20T(16) = FNXRES(5)
+              FN20T(17) = FNXRES(3)
+              FN20T(18) = FNXRES(1)
+              FN20T(19) = FNXRES(5)
+              FN20T(20) = FNXRES(5)
+              FN20T(21) = FNXRES(5)
+              FN20T(22) = FNXRES(3)
+C  Thermal equilibrium check...
+              FCESHL = FNXRES(5)*4.*(ARC2+ARC5) +FNXRES(1)*2.*(DR18+DR6)
+     1                +FNXRES(3)*4.*DR3 +FNXRES(5)*4.*(SLANT7 +SLANT4)
+     1                +4.*(FNOOD1T+FNOOD2T)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IF (IWRAP.EQ.0) FCESHL =
+     1         FNXRES(5)*4.*(ARC2+ARC5) +FNXRES(1)*2.*(DR18+DR6*RATIO3)
+     1        +FNXRES(3)*4.*DR3*RATIO3 +FNXRES(5)*2.*(SLANT7 +SLANT4)
+     1        +4.*(FNOOD1T+FNOOD2T)
+C END JUL 2010
+C             IF (ILINKS.EQ.2) THEN
+C                FNOOD1T = 0.
+C                FNOOD2T = 0.
+C             ENDIF
+C
+C  The strain components, EPSX, EPSY1, EPSY3, EPSY5 are used to
+C  compute the stresses in each layer of each shell segment. The
+C  following definitions apply:
+C
+C   FNX1   = "axial" resultant in shell segment 1 in Fig. 4
+C   C111MD = "axial" stiffness of shell segment 1 in Fig. 4
+C   FN10   = "circumferential" resultant in each face sheet.
+C   EPSX   = "axial" strain (assumed to be the same for all shell
+C            segments)
+C   EPSY1  = "circumferential" strain in "segment 1 type"
+C            shell segments
+C   EPSY3  = "circumferential" strain in "segment 3 type"
+C            shell segments
+C   EPSY5  = "circumferential" strain in "segment 5 type"
+C            shell segments
+C
+C          Remember, in the "huge torus" model of the cylindrical
+C          shell "axial" is actually the circumferential component,
+C          and "circumferential" is actually the meridional component.
+C
+C BEG JUL 2010
+C             EPSX = FNX1/C111MD
+              EPSLOD = (FNX1+FNXRES(1))/C111MD
+C END JUL 2010
+C BEG JUL 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              EPSY1 = (FN10(1) -EPSLOD*CSKIN1(1,2,1))/CSKIN1(1,1,1)
+     1               +ETHERM(2,1)
+              EPSY3 = (FN10(3) -EPSLOD*CSKIN1(1,2,3))/CSKIN1(1,1,3)
+     1               +ETHERM(2,3)
+              EPSY5 = -EPSLOD*CSKIN1(1,2,5)/CSKIN1(1,1,5) +ETHERM(2,5)
+              EPSX = EPSLOD + EPSAVE
+C END JUL 2010
+C
+C       End of branch for elaborate 22-segment module model.
+C
+           ELSE
+C
+C       This branch is for the simplified 6-segment module model.
+C       See Fig. 6, top, for the arrangement of each of the 6 segments
+C       in the module model for general buckling.
+C
+              FN20(1) = FNX1
+              FN20(2) = FNX1
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) FN20(2) = FNX3
+C END MAY 2010
+              FN20(3) = 2.*FNX5
+              FN20(4) = 2.*FNX5
+              FN20(5) = FNX1
+C BEG MAY 2010
+              IF (IWRAP.EQ.0) THEN
+                FN20(3) = FNX5
+                FN20(4) = FNX5
+                FN20(5) = FNX3
+              ENDIF
+C END MAY 2010
+              FN20(6) = FNX1
+              FNOODL = EANOOD*FNX1/C111MD
+C             IF (ILINKS.EQ.2) FNOODL = 0.
+C BEG JUL 2010
+C   Residual axial thermal resultants from curing...
+              FN20T(1) = FNXRES(1)
+              FN20T(2) = FNXRES(1)
+              IF (IWRAP.EQ.0) FN20T(2) = FNXRES(3)
+              FN20T(3) = 2.*FNXRES(5)
+              FN20T(4) = 2.*FNXRES(5)
+              FN20T(5) = FNXRES(1)
+              IF (IWRAP.EQ.0) THEN
+                FN20T(3) = FNXRES(5)
+                FN20T(4) = FNXRES(5)
+                FN20T(5) = FNXRES(3)
+              ENDIF
+              FN20T(6) = FNXRES(1)
+              FNOODLT = EANOOD*(EPSAVE+ALPHA1(1)*TEMCUR(1))
+C  Thermal equilibrium check...
+              FCESHL = FNXRES(1)*2.*(DR1+DR2) +FNXRES(5)*4.*SLANT
+     1                +FNOODLT*4.
+C23456789012345678901234567890123456789012345678901234567890123456789012
+              IF (IWRAP.EQ.0)
+     1        FCESHL = FNXRES(1)*2.*(DR1+DR2*RATIO3) +FNXRES(5)*2.*SLANT
+     1                +FNOODLT*4.
+C END JUL 2010
+C             IF (ILINKS.EQ.2) FNOODLT = 0.0
+C BEG DEC 2009
+C BEG AUG 2010
+C             IF (RACUTE.EQ.0.0.OR.ROBTUS.EQ.0.0) THEN
+              IF (RACUTE.EQ.0.0.OR.ROBTUS.EQ.0.0.OR.
+     1           (ILINKS.EQ.1.AND.ISIMP.EQ.1)) THEN
+C END AUG 2010
+                 FN10(3) = PRESS1*RADIUS/2.
+C BEG JUL 2010
+C                EPSX = FNX1/C111MD
+                 EPSLOD = (FNX1+FNXRES(1))/C111MD
+C END JUL 2010
+C BEG JUL 2010
+                 EPSY1 = (FN10(1) -EPSLOD*CSKIN1(1,2,1))/CSKIN1(1,1,1)
+     1                  +ETHERM(2,1)
+                 EPSY3 = (FN10(3) -EPSLOD*CSKIN1(1,2,3))/CSKIN1(1,1,3)
+     1                  +ETHERM(2,3)
+                 EPSY5 =-EPSLOD*CSKIN1(1,2,5)/CSKIN1(1,1,5) +ETHERM(2,5)
+                 EPSX = EPSLOD + EPSAVE
+C END JUL 2010
+              ENDIF
+C END DEC 2009
+           ENDIF 
+C          End of (IMODEL.EQ.1 ..ELSE...) condition.
+         ENDIF
+C        End of (IMODUL.EQ.1.AND.(INDX.EQ.1.OR.INDX.EQ.2)) condition.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  Next, we generate a valid input data file, *.ALL, for BIGBOSOR4
+C
+C  Global input before segment data...
+         IF (IMODUL.EQ.1) THEN
+           MSEGS = MODULS*NSEGSM
+C BEG FEB 2010
+C BEG MAY 2010
+C BEG AUG 2010
+           IF (INDX.EQ.0.OR.INDX.EQ.1.OR.IBEHX.EQ.1)
+     1     WRITE(IFIL14,'(A,I3,A)')
+     1   ' local buckling, ',MODULS,'-module model (INDIC=4) ixprism'
+           IF (INDX.EQ.2.AND.IBEHX.EQ.2)
+     1     WRITE(IFIL14,'(A,I3,A)')
+     1   ' general buckling, ',MODULS,'-module model (INDIC=4) ixprism'
+C END AUG 2010
+           IF (INDX.EQ.0.OR.INDX.EQ.1.OR.IBEHX.EQ.1)
+     1                    WRITE(IFIL14,'(1P,E14.6,A)') LENGTH*FACLEN,
+     1   ' $ AXIALL = reduced axial length, LENGTH x FACLEN, local buck'
+           IF (INDX.EQ.2.AND.IBEHX.EQ.2)
+     1                    WRITE(IFIL14,'(1P,E14.6,A)') LENGTH,
+     1   ' $ AXIALL = axial length of cyl.'
+C END MAY 2010
+C END FEB 2010
+           WRITE(IFIL14,'(A,I3,A)')
+     1   ' 4, 1, 0, 0, ',MSEGS,' $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+         ENDIF
+C
+C  Segment data...
+         MAXTYP = 0
+         MAXMAT = 0
+C
+C  First, provide the input for each of the NSEGSM shell segments
+C  in the next module...
+C
+         DO 100 ISEG = 1,NSEGSM
+         I = ISEG 
+C BEG JUL 2010
+C  The following stuff is to help generate a STAGS model:
+C        IF (IFIL14.EQ.24.AND.ITYPEX.EQ.2.AND.INDX.NE.0) THEN
+          JSEG = JSEG + 1
+          KSEG = KSEG + 1
+          R1J(JSEG) = RP1(I)
+          Z1J(JSEG) = ZP1(I)
+          R2J(JSEG) = RP2(I)
+          Z2J(JSEG) = ZP2(I)
+          RCJ(JSEG) = RPC(I)
+          ZCJ(JSEG) = ZPC(I)
+          SRJ(JSEG) = SROT(I)
+          ECYR(JSEG) = 0.
+          ECZR(JSEG) = 0.
+          ECZSKN(JSEG) = 0.
+          ANGDIF(JSEG) = 0.
+          RCAVE(JSEG) = 0.
+          NODJ(JSEG) = NNODES(I)
+C BEG AUG 2010
+C         IF (IMODEL.EQ.2.AND.ISIMP.EQ.0) NODJ(JSEG) = 3
+          IF (IMODEL.EQ.2.AND.ISIMP.EQ.0) NODJ(JSEG) = NCOLSG 
+C END AUG 2010
+          NSHPJ(JSEG) = NSHAPE(I)
+          ZVLJ(JSEG) = ZVAL(I)
+          IF (IMODEL.EQ.1.AND.IMODUL.GT.1) THEN
+             IF (ISEG.EQ.1) THEN
+                ZDIFF = Z1J(JSEG) - Z2J(JSEG-15)
+                RDIFF = R1J(JSEG) - R2J(JSEG-15)
+                ANGDIF(JSEG) =
+     1            (180/PI)*SQRT(ZDIFF**2 + RDIFF**2)/(RADIUS)
+                R1J(JSEG) = R2J(JSEG-15)
+                Z1J(JSEG) = Z2J(JSEG-15)
+             ENDIF
+             IF (ISEG.EQ.15) THEN
+                ZDIFF = Z2J(JSEG) - Z2J(JSEG-15)
+                RDIFF = R2J(JSEG) - R2J(JSEG-15)
+                ANGDIF(JSEG) =
+     1            (180/PI)*SQRT(ZDIFF**2 + RDIFF**2)/(RADIUS+HEIGHT)
+                R2J(JSEG) = R2J(JSEG-15)
+                Z2J(JSEG) = Z2J(JSEG-15)
+             ENDIF
+          ENDIF
+C BEG AUG 2010
+          IF (IMODEL.EQ.2.AND.IMODUL.GT.1.AND.
+     1      ((ILINKS.NE.0.AND.ISIMP.EQ.0).OR.
+     1       (ILINKS.EQ.0.AND.ISIMP.EQ.1).OR.
+     1       (ILINKS.EQ.0.AND.ISIMP.EQ.0))) THEN
+C END AUG 2010
+             IF (ISEG.EQ.1) THEN
+                ZDIFF = Z1J(JSEG) - Z2J(JSEG-5)
+                RDIFF = R1J(JSEG) - R2J(JSEG-5)
+                ANGDIF(JSEG) =
+     1            (180/PI)*SQRT(ZDIFF**2 +RDIFF**2)/(RADIUS)
+                R1J(JSEG) = R2J(JSEG-5)
+                Z1J(JSEG) = Z2J(JSEG-5)
+             ENDIF
+             IF (ISEG.EQ.5) THEN
+                ZDIFF = Z2J(JSEG) - Z2J(JSEG-5)
+                RDIFF = R2J(JSEG) - R2J(JSEG-5)
+                ANGDIF(JSEG) =
+     1            (180/PI)*SQRT(ZDIFF**2 +RDIFF**2)/(RADIUS+HEIGHT)
+                R2J(JSEG) = R2J(JSEG-7)
+                Z2J(JSEG) = Z2J(JSEG-7)
+             ENDIF
+          ENDIF
+          IBEAM(JSEG) = 0
+          IEND(KSEG) = 0
+          FNHOOP(JSEG) = FN20(I)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          SUBTND(JSEG) = ANGSML(I) +ANGDIF(JSEG)
+C BEG JUL 2010
+C         IF (INDX.EQ.1.AND.IMODUL.EQ.2.AND.ISEG.EQ.15) THEN
+C            WRITE(IFILE4,'(A,2I5,1P,2E12.4)')
+C    1     ' I,JSEG,ANGSML(I),ANGDIF(JSEG)=',
+C    1       I,JSEG,ANGSML(I),ANGDIF(JSEG)
+C            CALL EXIT
+C         ENDIF
+C END JUL 2010
+          IF (IMODEL.EQ.1) THEN
+            IF (ISEG.EQ.1.OR.ISEG.EQ.6.OR.ISEG.EQ.15.OR.ISEG.EQ.18)
+     1      IWALL(JSEG) = 1
+            IF (ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.5.OR.ISEG.EQ.9
+     1      .OR.ISEG.EQ.10.OR.ISEG.EQ.11.OR.ISEG.EQ.13.OR.ISEG.EQ.14
+     1      .OR.ISEG.EQ.16.OR.ISEG.EQ.19.OR.ISEG.EQ.20.OR.ISEG.EQ.21)
+     1      IWALL(JSEG) = 2
+            IF (ISEG.EQ.3.OR.ISEG.EQ.8.OR.ISEG.EQ.17.OR.ISEG.EQ.22)
+     1      IWALL(JSEG) = 3
+            IF (ISEG.EQ.7.OR.ISEG.EQ.12)
+     1      IWALL(JSEG) = 4
+            IF (ISEG.EQ.2.OR.ISEG.EQ.5.OR.ISEG.EQ.9
+     1      .OR.ISEG.EQ.10.OR.ISEG.EQ.11.OR.ISEG.EQ.13.OR.ISEG.EQ.14
+     1      .OR.ISEG.EQ.16.OR.ISEG.EQ.20.OR.ISEG.EQ.21)
+     1       ECZSKN(JSEG) = -ECCZ
+            IF (ISEG.EQ.4.OR.ISEG.EQ.19) ECZSKN(JSEG) = ECCZ
+C           IF (ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.14.OR.ISEG.EQ.9
+C    1      .OR.ISEG.EQ.19.OR.ISEG.EQ.20) ECZSKN(JSEG) = -ECCZ
+C           IF (ISEG.EQ.5.OR.ISEG.EQ.13.OR.ISEG.EQ.16.OR.ISEG.EQ.10
+C    1      .OR.ISEG.EQ.11.OR.ISEG.EQ.21) ECZSKN(JSEG) =  ECCZ
+            IF (ISEG.EQ.3.OR.ISEG.EQ.8) ECZR(JSEG) = RADAVE/2.
+            IF (ISEG.EQ.17.OR.ISEG.EQ.22) ECZR(JSEG) = -RADAVE/2.
+C BEG AUG 2010 (several lines commented out for convergence reasons)
+C BEG AUG 2010 (several lines re-activated after checking convergence)
+            IF (ISEG.EQ.2.OR.ISEG.EQ.4.OR.ISEG.EQ.5.OR.ISEG.EQ.9
+     1      .OR.ISEG.EQ.10.OR.ISEG.EQ.11.OR.ISEG.EQ.13.OR.ISEG.EQ.14
+     1      .OR.ISEG.EQ.16.OR.ISEG.EQ.19.OR.ISEG.EQ.20.OR.ISEG.EQ.21)
+     1      NODJ(JSEG) = NNODES(ISEG)/2. + 1 
+C23456789012345678901234567890123456789012345678901234567890123456789012
+            IF (ISEG.EQ.1.OR.ISEG.EQ.18) THEN
+               RATPB = BCROWN/(PITCH-BCROWN)
+               NODJ(JSEG) = NNODES(ISEG)*RATPB
+            ENDIF
+            IF (ISEG.EQ.3.OR.ISEG.EQ.8.OR.ISEG.EQ.17.OR.ISEG.EQ.22)
+     1      NODJ(JSEG) = NNODES(ISEG)/2. + 1
+C END AUG 2010
+            IF (MOD(NODJ(JSEG),2).EQ.0) NODJ(JSEG) = NODJ(JSEG) + 1
+            IF (NODJ(JSEG).LT.3) NODJ(JSEG) = 3
+            IROT = SROT(I)
+            IGLOBL(JSEG) = 1
+            IF (IROT.EQ.-1) IGLOBL(JSEG) = 2
+            IF (ISEG.EQ.15) IGLOBL(JSEG) = 2
+C           IF (ISEG.EQ.2.OR.ISEG.EQ.10.OR.ISEG.EQ.16.OR.ISEG.EQ.20)
+C    1      SUBTND(JSEG) = 2.*PHI*180./PI
+C           IF (ISEG.EQ.5.OR.ISEG.EQ.9.OR.ISEG.EQ.14.OR.ISEG.EQ.21)
+C    1      SUBTND(JSEG) = 2.*ALPHA*180./PI
+            IF (IMODUL.EQ.1) THEN
+             IF (ISEG.EQ.1) THEN
+               DIFF = ABS(R2J(JSEG) - R1J(JSEG))
+               R1J(JSEG) = R2J(JSEG) - 0.1*DIFF
+               RCJ(JSEG) = R1J(JSEG)
+               NODJ(JSEG) = 3
+               SUBTND(JSEG) = 0.1*SUBTND(JSEG)
+             ENDIF
+             IF (ISEG.EQ.15) THEN
+               DIFF = ABS(R2J(JSEG) - R1J(JSEG))
+               R2J(JSEG) = R1J(JSEG) - 0.1*DIFF
+               RCJ(JSEG) = R2J(JSEG)
+               NODJ(JSEG) = 3
+               SUBTND(JSEG) = 0.1*SUBTND(JSEG)
+             ENDIF
+            ENDIF
+            IF (NSHPJ(JSEG).EQ.2) THEN
+               RDIFF = RCJ(JSEG) - R2J(JSEG)
+               ZDIFF = ZCJ(JSEG) - Z2J(JSEG)
+               DIST1 = SQRT(RDIFF**2 +ZDIFF**2)
+               RDIFF = RCJ(JSEG) - R1J(JSEG)
+               ZDIFF = ZCJ(JSEG) - Z1J(JSEG)
+               DIST2 = SQRT(RDIFF**2 +ZDIFF**2)
+               RCAVE(JSEG) = 0.5*(DIST1 + DIST2)
+               RDIFF = R1J(JSEG) - R2J(JSEG)
+               ZDIFF = Z1J(JSEG) - Z2J(JSEG)
+               DIST1 = 0.5*SQRT(RDIFF**2 +ZDIFF**2)
+               SUBANG = 2.*ASIN(DIST1/RCAVE(JSEG))*180./PI
+               SUBTND(JSEG) = SUBANG
+            ENDIF
+            IF (RSTAGS(I).NE.0.) THEN
+             IBEAM(JSEG) = NODJ(JSEG)/2
+C BEG SEP 2010
+             IF (IELMNT.EQ.410.OR.IELMNT.EQ.940)
+     1       IBEAM(JSEG) = NODJ(JSEG)/2 + 1
+C END SEP 2010
+             MSTFS = MSTFS + 1
+             IUNIT(JSEG) = JSEG
+            ENDIF
+            IF (ISEG.EQ.1) THEN
+             IF (IMODUL.GT.1) THEN
+               LUNIT(JSEG) = JSEG - 22 + 7 
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+             ELSE
+               KSEG = KSEG - 1
+             ENDIF
+            ENDIF
+            IF (ISEG.EQ.2)  LUNIT(JSEG) = JSEG - 1
+            IF (ISEG.EQ.3)  LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.4)  LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.5)  LUNIT(JSEG) = JSEG - 2
+            IF (KSEG.GT.0) THEN
+             IF (ISEG.GE.2.AND.ISEG.LE.5) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.2) NBOUND(KSEG) = 2
+               IF (ISEG.EQ.4) MBOUND(KSEG) = 4
+             ENDIF
+            ENDIF
+            IF (ISEG.EQ.5) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 1
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 2
+            ENDIF
+            IF (ISEG.EQ.6)  LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.EQ.7)  LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.EQ.8)  LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.9)  LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.EQ.10) LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.11) LUNIT(JSEG) = JSEG - 1
+            IF (ISEG.GE.6.AND.ISEG.LE.11) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.9) NBOUND(KSEG) = 2
+            ENDIF
+            IF (ISEG.EQ.11) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 2
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 4
+               NBOUND(KSEG) = 2
+            ENDIF
+            IF (ISEG.EQ.12) LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.EQ.13) LUNIT(JSEG) = JSEG - 6
+            IF (ISEG.EQ.14) LUNIT(JSEG) = JSEG - 7
+            IF (ISEG.EQ.15) LUNIT(JSEG) = JSEG - 1
+            IF (ISEG.GE.12.AND.ISEG.LE.15) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.12) MBOUND(KSEG) = 4
+               IF (ISEG.EQ.14) NBOUND(KSEG) = 2
+               IF (ISEG.EQ.14) MBOUND(KSEG) = 2
+               IF (ISEG.EQ.15) NBOUND(KSEG) = 2
+               IF (ISEG.EQ.15) MBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.15.AND.IMODUL.GT.1) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 22 + 6
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.16) LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.EQ.17) LUNIT(JSEG) = JSEG - 3
+            IF (ISEG.GE.16.AND.ISEG.LE.17) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.17) MBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.17) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 1
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 2
+            ENDIF
+            IF (ISEG.EQ.18) LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.19) LUNIT(JSEG) = JSEG - 7
+            IF (ISEG.EQ.20) LUNIT(JSEG) = JSEG - 1
+            IF (ISEG.GE.18.AND.ISEG.LE.20) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.20) NBOUND(KSEG) = 2
+            ENDIF
+            IF (ISEG.EQ.20) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 2
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.21) LUNIT(JSEG) = JSEG - 9
+            IF (ISEG.EQ.22) LUNIT(JSEG) = JSEG - 4
+            IF (ISEG.GE.21.AND.ISEG.LE.22) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.22) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 1
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 2
+            ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          ELSE
+C IMODEL = 2 section
+            IF (IWRAP.EQ.1) THEN
+             IF (ISEG.EQ.1.OR.ISEG.EQ.2.OR.ISEG.EQ.5.OR.ISEG.EQ.6)
+     1       IWALL(JSEG) = 1
+             IF (ISEG.EQ.3.OR.ISEG.EQ.4)
+     1       IWALL(JSEG) = 4
+            ENDIF
+            IF (IWRAP.EQ.0) THEN
+             IF (ISEG.EQ.1.OR.ISEG.EQ.6) IWALL(JSEG) = 1
+             IF (ISEG.EQ.2.OR.ISEG.EQ.5) IWALL(JSEG) = 3
+             IF (ISEG.EQ.3.OR.ISEG.EQ.4) IWALL(JSEG) = 4
+            ENDIF
+            IGLOBL(JSEG) = 1
+            IF (ISEG.EQ.5) IGLOBL(JSEG) = 2
+            IF (IMODUL.EQ.1) THEN
+             IF (ISEG.EQ.1) THEN
+               DIFF = ABS(R2J(JSEG) - R1J(JSEG))
+               R1J(JSEG) = R2J(JSEG) - 0.1*DIFF
+               RCJ(JSEG) = R1J(JSEG)
+               NODJ(JSEG) = 3
+               SUBTND(JSEG) = 0.1*SUBTND(JSEG)
+             ENDIF
+             IF (ISEG.EQ.5) THEN
+               DIFF = ABS(R2J(JSEG) - R1J(JSEG))
+               R2J(JSEG) = R1J(JSEG) - 0.1*DIFF
+               RCJ(JSEG) = R2J(JSEG)
+               NODJ(JSEG) = 3
+               SUBTND(JSEG) = 0.1*SUBTND(JSEG)
+             ENDIF
+            ENDIF
+            IF (NSHPJ(JSEG).EQ.2) THEN
+               RDIFF = RCJ(JSEG) - R2J(JSEG)
+               ZDIFF = ZCJ(JSEG) - Z2J(JSEG)
+               DIST1 = SQRT(RDIFF**2 +ZDIFF**2)
+               RDIFF = RCJ(JSEG) - R1J(JSEG)
+               ZDIFF = ZCJ(JSEG) - Z1J(JSEG)
+               DIST2 = SQRT(RDIFF**2 +ZDIFF**2)
+               RCAVE(JSEG) = 0.5*(DIST1 + DIST2)
+               RDIFF = R1J(JSEG) - R2J(JSEG)
+               ZDIFF = Z1J(JSEG) - Z2J(JSEG)
+               DIST1 = 0.5*SQRT(RDIFF**2 +ZDIFF**2)
+               SUBANG = 2.*ASIN(DIST1/RCAVE(JSEG))*180./PI
+               SUBTND(JSEG) = SUBANG
+            ENDIF
+            IF (RSTAGS(I).NE.0.) THEN
+             IBEAM(JSEG) = NODJ(JSEG)
+C BEG SEP 2010
+C BEG OCT 2010 (following two lines are commented out)
+C            IF (IELMNT.EQ.410.OR.IELMNT.EQ.940)
+C    1       IBEAM(JSEG) = NODJ(JSEG)/2 + 1
+C END OCT 2010
+C END SEP 2010
+             MSTFS = MSTFS + 1
+             IUNIT(JSEG) = JSEG
+C BEG AUG 2010
+             IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+              IF (ISEG.EQ.1.OR.ISEG.EQ.2.OR.ISEG.EQ.5.OR.ISEG.EQ.6)
+     1                        ECYR(JSEG) = 0.5*(CWIDTH +DWIDTH)
+             ELSE
+              IF (ISEG.EQ.1.OR.ISEG.EQ.6)
+     1                        ECYR(JSEG) =  DWIDTH*CTWOPH
+              IF (ISEG.EQ.2.OR.ISEG.EQ.5)
+     1                        ECYR(JSEG) = -DWIDTH*CTWOPH
+             ENDIF
+             IF (ISEG.EQ.1.OR.ISEG.EQ.2) ECZR(JSEG) = RADAVE/2.
+             IF (ISEG.EQ.5.OR.ISEG.EQ.6) ECZR(JSEG) =-RADAVE/2.
+C END AUG 2010
+            ENDIF
+            IF (ISEG.EQ.1) THEN
+             IF (IMODUL.GT.1) THEN
+               LUNIT(JSEG) = JSEG - 6 + 1
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+             ELSE
+               KSEG = KSEG - 1
+             ENDIF
+            ENDIF
+            IF (ISEG.EQ.2)  LUNIT(JSEG) = JSEG - 1
+            IF (ISEG.EQ.3)  LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.4)  LUNIT(JSEG) = JSEG - 2
+            IF (ISEG.EQ.5)  LUNIT(JSEG) = JSEG - 2
+            IF (KSEG.GT.0) THEN
+             IF (ISEG.GE.2.AND.ISEG.LE.5) THEN
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+               IF (ISEG.EQ.5) NBOUND(KSEG) = 2
+             ENDIF
+            ENDIF
+            IF (ISEG.EQ.5.AND.IMODUL.GT.1) THEN
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 6 - 1
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+            ENDIF
+            IF (ISEG.EQ.6) THEN
+               LUNIT(JSEG) = JSEG - 3
+               MUNIT(KSEG) = LUNIT(JSEG)
+               NUNIT(KSEG) = JSEG
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 4
+C
+               KSEG = KSEG + 1
+               MUNIT(KSEG) = JSEG - 2
+               NUNIT(KSEG) = JSEG
+               IEND(KSEG) = 2
+               MBOUND(KSEG) = 2
+               NBOUND(KSEG) = 2
+            ENDIF
+          ENDIF
+C        ENDIF
+C       End of some STAGS stuff
+C       Begin some BIGBOSOR4 stuff
+C END JUL 2010
+C
+         WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+         WRITE(IFIL14,'(I4,A,I3,A)') NNODES(ISEG),', 3, ',NSHAPE(ISEG),
+     1 ' $ NMESH,NTYPEH,NSHAPE'
+C BEG JUL 2010
+C        WRITE(IFIL14,'(1P,4E14.6,A)') RP1(I),ZP1(I),RP2(I),ZP2(I),
+C    1 ' $ R1,Z1,R2,Z2'
+         WRITE(IFIL14,'(1P,4E14.6,A)')
+     1   R1J(JSEG),Z1J(JSEG),R2J(JSEG),Z2J(JSEG),' $ R1,Z1,R2,Z2'
+C END JUL 2010
+         IF (NSHAPE(ISEG).EQ.2) THEN
+          WRITE(IFIL14,'(1P,3E14.6,A)') RPC(ISEG),ZPC(ISEG),SROT(ISEG),
+     1  ' $ RC,ZC,SROT'
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A,1P,E14.6,A)')' 0, 3, ',ZVAL(ISEG),
+     1 ' $ IMP,NTYPEZ,ZVAL'
+         WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+         IF (IMODEL.EQ.1) THEN
+            NRLOAD = 8*MODULS
+         ELSE
+            NRLOAD = 4*MODULS
+         ENDIF
+         IF (NRING(ISEG).EQ.0) THEN
+           WRITE(IFIL14,'(I5,1PE14.6,A,2I4,A)') NRING(ISEG),FOUND(ISEG),
+     1    ', 2, ',NRLOAD,NTYPE(ISEG),' $ NRINGS,K,NSTRES,NRLOAD,NTYPE'
+         ELSE
+           WRITE(IFIL14,'(3I5,A)') NRING(ISEG),NTYPE(ISEG),
+     1     IPTRNG(ISEG),', 2 $ NRINGS,NTYPE,IPOINT,NTYPER'
+C
+           RAREA = RGAREA(ISEG)
+C
+C    You may want to modify the values for discrete ring bending
+C    moments of inertia, FMOMTS, FMOMTN, FMOMSN, and the torsional
+C    stiffness, GJ. I just assumed these formulas without much thought.
+C
+           FMOMTS = RAREA**2/12.
+           FMOMTN = RAREA**2/12.
+           FMOMSN = 0.
+           GJ = 4.*FMOMTS*GNOODL
+           RGWGT  = DNOODL
+C          IF (ILINKS.EQ.2) THEN
+C             RAREA = 0.00001*RGAREA(ISEG)
+C             FMOMTS = RAREA**2/12.
+C             FMOMTN = RAREA**2/12.
+C             RGWGT = 0.
+C          ENDIF
+           WRITE(IFIL14,'(1P,3E14.6,A)') ENOODL,RAREA,FMOMTS,
+     1 ' $ ERING,AREA,Is'
+C BEG AUG 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (IMODEL.EQ.1) THEN
+              WRITE(IFIL14,'(1P,3E14.6,A)') FMOMTN,FMOMSN,ZNORM(ISEG),
+     1    ' $ In,Isn,ZNORM'
+              ZMERID = 0.
+              WRITE(IFIL14,'(1P,3E14.6,A)') ZMERID,GJ,RGWGT,
+     1    ' $ ZMERID,GJ,RWGT'
+           ELSE
+C      See p. 70 of Ref.[22] of ..genopt/case/trusscomp/trusscomp.paper
+C      for the sign convention for normal and meridional eccentricities.
+              ZMERID = ECYR(JSEG)
+              ZNORML = -ECZR(JSEG) 
+              IF (ISEG.EQ.5) THEN
+                 ZMERID = -ECYR(JSEG) 
+                 ZNORML =  ECZR(JSEG)
+              ENDIF
+              WRITE(IFIL14,'(1P,3E14.6,A)') FMOMTN,FMOMSN,ZNORML,
+     1    ' $ In,Isn,ZNORM'
+              WRITE(IFIL14,'(1P,3E14.6,A)') ZMERID,GJ,RGWGT,
+     1    ' $ ZMERID,GJ,RWGT'
+           ENDIF
+C END AUG 2010
+           WRITE(IFIL14,'(1P,E14.6,A,2I4,A)') FOUND(ISEG),
+     1    ', 2, ',NRLOAD,NTYPE(ISEG),' $ K,NSTRES,NRLOAD,NTYPE'
+         ENDIF
+C        End of IF (NRING(ISEG).EQ.00... ELSE ... condition.
+C
+         IF (NTYPE(ISEG).EQ.1)
+     1   WRITE(IFIL14,'(A,I4,A)')' 1, ',NNODES(ISEG),
+     1 ' $ IPOINT(1),IPOINT(2)'
+         IF (NTYPE(ISEG).EQ.2)
+     1   WRITE(IFIL14,'(1P,2E14.6,A)') ZP1(ISEG),ZP2(ISEG),
+     1 ' $ Z1(ISEG),Z2(ISEG)'
+         IF (NTYPE(ISEG).EQ.3)
+     1   WRITE(IFIL14,'(1P,2E14.6,A)') RP1(ISEG),RP2(ISEG),
+     1 ' $ R1(ISEG),R2(ISEG)'
+         WRITE(IFIL14,'(1P,4E14.6,A)') FN10(I),FN10(I),FN20(I),FN20(I),
+     1 ' $ FN10,FN10,FN20,FN20'
+C BEG JUL 2010
+         WRITE(IFIL14,'(A,1P,2E14.6,A)') ' 0.  0. ',FN20T(I),FN20T(I),
+     1 ' $ FN10T,FN10T,FN20T,FN20T'
+C END JUL 2010
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         IF (ISEG.EQ.1.AND.IMODUL.EQ.1) THEN
+C
+C  Note that in the BIGBOSOR4 INDIC = 4 branch the prebuckling forces
+C  in ALL the rings in the multi-segment model are read in with the
+C  data for the first shell segment.
+C
+           WRITE(IFIL14,'((4I5))') (I,I=1,NRLOAD)
+C
+           IF (IMODEL.EQ.1) THEN
+C
+C   Elaborate 22-segment local buckling module model:
+C   FNOOD1 and FNOOD2 are the prebuckling forces in the discrete rings
+C   ("noodles") with cross section areas, AREA1 and AREA2, respectively.
+C   (Fig. 7)
+C
+             DO 90 KMODUL = 1,MODULS
+               WRITE(IFIL14,'(1P4E14.6,A)') FNOOD2,FNOOD1,FNOOD1,FNOOD2,
+     1     ' $ FNOOD2,FNOOD1,FNOOD1,FNOOD2'
+               WRITE(IFIL14,'(1P4E14.6,A)') FNOOD1,FNOOD2,FNOOD2,FNOOD1,
+     1     ' $ FNOOD1,FNOOD2,FNOOD2,FNOOD1'
+   90        CONTINUE
+C BEG JUL 2010
+C23456789012345678901234567890123456789012345678901234567890123456789012
+             DO 91 KMODUL = 1,MODULS
+               WRITE(IFIL14,'(1P4E14.6,A)')
+     1         FNOOD2T,FNOOD1T,FNOOD1T,FNOOD2T,
+     1     ' $ FNOOD2T,FNOOD1T,FNOOD1T,FNOOD2T'
+               WRITE(IFIL14,'(1P4E14.6,A)')
+     1         FNOOD1T,FNOOD2T,FNOOD2T,FNOOD1T,
+     1     ' $ FNOOD1T,FNOOD2T,FNOOD2T,FNOOD1T'
+   91        CONTINUE
+C END JUL 2010
+           ELSE 
+C
+C   Simplified 6-segment general buckling module model:
+C   FNOODL is the prebuckling force in the discrete ring ("noodle")
+C   with cross section area, AREA1 + AREA2. (Fig. 6)
+C
+             DO 92 KMODUL = 1,MODULS
+               WRITE(IFIL14,'(1P4E14.6,A)') FNOODL,FNOODL,FNOODL,FNOODL,
+     1     ' $ FNOODL,FNOODL,FNOODL,FNOODL'
+   92        CONTINUE
+C BEG JUL 2010
+             DO 93 KMODUL = 1,MODULS
+               WRITE(IFIL14,'(1P4E14.6,A)')
+     1         FNOODLT,FNOODLT,FNOODLT,FNOODLT,
+     1     ' $ FNOODLT,FNOODLT,FNOODLT,FNOODLT'
+   93        CONTINUE
+C END JUL 2010
+           ENDIF
+         ENDIF 
+C      End of (ISEG.EQ.1.AND.IMODUL.EQ.1) condition
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' N  $ do not print prestresses'
+C
+         IF (IMODEL.EQ.1) THEN
+            NLAY = NLAYER(ISEG)
+         ELSE
+            NLAY = NLAYR2(ISEG)
+         ENDIF
+         WRITE(IFIL14,'(A,I3,A)')' 4, ',NLAY,' $ NWALL,NLAYER'
+         MAXMT1 = MAXMAT
+         MAXTP1 = MAXTYP
+         DO 95 ILAYER = 1,NLAY
+            IF (IMODEL.EQ.1) THEN
+               LTYPE = LAYTYPB(ILAYER,ISEG)
+C BEG SEP 2010
+C              IF (INDX.EQ.0) THEN
+C                WRITE(IFILE4,'(/,A,4I5)')
+C    1         ' INDX,ISEG,ILAYER,LAYTYPB(ILAYER,ISEG)=',
+C    1           INDX,ISEG,ILAYER,LAYTYPB(ILAYER,ISEG)
+C                IF (ISEG.EQ.18.AND.ILAYER.EQ.4) CALL EXIT
+C              ENDIF
+C END SEP 2010
+            ELSE
+               LTYPE = LAYTP2(ILAYER,ISEG)
+            ENDIF
+            WRITE(IFIL14,'(I3,A)') LTYPE,' $ layer index'
+            IF (LTYPE.GT.MAXTYP) THEN
+               WRITE(IFIL14,'(A)')' Y  $ is this a new layer type?'
+               IF (ANGLE(LTYPE).GT.90.0.OR.ANGLE(LTYPE).LT.-90.0) THEN
+                 WRITE(IFILE4,'(/,A,/,A,/,A,/,A)')
+     1         ' ******************* RUN ABORT ***********************',
+     1         ' Layup angle out of range. Layup angle must be in the',
+     1         ' range, -90.0 .LE. (layup angle) .LE. +90.0 degrees.',
+     1         ' *****************************************************'
+                CALL ERREX
+               ENDIF
+               IF (ANGLE(LTYPE).GT.0.0) ANGLE2 = -(90.0 -ANGLE(LTYPE))
+               IF (ANGLE(LTYPE).LT.0.0) ANGLE2 = 90.0 + ANGLE(LTYPE)
+               IF (ANGLE(LTYPE).EQ.0.0) ANGLE2 = 90.0
+               IF (ANGLE(LTYPE).EQ.90.0) ANGLE2 = 0.0
+               WRITE(IFIL14,'(1P2E14.6,I3,A)') THICK(LTYPE),
+     1         ANGLE2,MATTYPB(LTYPE),' $ thickness,angle,material'
+               MAXTYP = MAX(MAXTYP,LTYPE)
+               MAXMAT = MAX(MAXMAT,MATTYPB(LTYPE))
+            ELSE
+               WRITE(IFIL14,'(A)')' N  $ is this a new layer type?'
+            ENDIF
+   95    CONTINUE
+C
+         IF (MAXTP1.LT.MAXTYP.AND.MAXMAT.LE.MAXMT1) THEN
+            WRITE(IFIL14,'(A)')' N  $ Is this material new?'
+         ENDIF 
+         IF (MAXMAT.GT.MAXMT1) THEN
+            MAXMTP = MAXMT1 + 1
+            DO 97 IMATL = MAXMTP,MAXMAT
+               WRITE(IFIL14,'(A)')' Y  $ Is this material new?'
+               WRITE(IFIL14,'(1P4E14.6,A)') EMOD1(IMATL),EMOD2(IMATL),
+     1         G12(IMATL),NU(IMATL),' $ E1,E2,G12,NU'
+               WRITE(IFIL14,'(1P4E14.6,A)') ALPHA1(IMATL),ALPHA2(IMATL),
+     1         TEMCUR(IMATL),DENSTY(IMATL),' $ A1,A2,TEMPTUR,DENS'
+               IF (IMATL.EQ.1) THEN
+                 WRITE(IFIL14,'(1P3E14.6,A)') STRM1A(ILOADX,1),
+     1           STRM1A(ILOADX,2),STRM1A(ILOADX,3),' $ S(1),S(2),S(3)'
+                 WRITE(IFIL14,'(1P2E14.6,A)') STRM1A(ILOADX,4),
+     1           STRM1A(ILOADX,5),' $ S(4),S(5)'
+                 GO TO 96 
+               ENDIF
+               IF (IMATL.EQ.2) THEN
+                 WRITE(IFIL14,'(1P3E14.6,A)') STRM2A(ILOADX,1),
+     1           STRM2A(ILOADX,2),STRM2A(ILOADX,3),' $ S(1),S(2),S(3)'
+                 WRITE(IFIL14,'(1P2E14.6,A)') STRM2A(ILOADX,4),
+     1           STRM2A(ILOADX,5),' $ S(4),S(5)'
+                 GO TO 96 
+               ENDIF
+               WRITE(IFILE4,'(/,A,/,A,/,A,/,A)')
+     1       ' ******************* RUN ABORT ***********************',
+     1       ' Material type out of range. Only 2 material types are',
+     1       ' permitted in this model.',
+     1       ' *****************************************************'
+               CALL ERREX
+   96       CONTINUE
+   97       CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         ENDIF
+         WRITE(IFIL14,'(A)')' 0  $ no additional smeared stiffeners'
+         WRITE(IFIL14,'(A)')' Y  $ do you want output for all nodes?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out Cij?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out loads?'
+C
+  100    CONTINUE
+C
+  125    CONTINUE
+C BEG JUL 2010
+C      End of some BIGBOSOR4 and STAGS stuff
+C      Begin more STAGS stuff...
+         IF (IFIL14.EQ.24.AND.ITYPEX.EQ.2.AND.INDX.NE.0) THEN
+          MSTAGS = JSEG
+          NINTS = KSEG
+C BEG AUG 2010
+C         IF (ILINKS.EQ.1) NINTS = 0
+          IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) NINTS = 0
+C END AUG 2010
+          WRITE(IFILE4,'(/,A)')
+     1  ' STAGS INPUT DATA GENERATED FOR THE CYLINDRICAL SHELL UNITS'
+C BEG AUG 2010
+          NUNITS = MSTAGS
+          IF (NINTS.GT.0) THEN
+           WRITE(IFILE4,'(/,A,I3,A)')
+     1   ' STAGS Unit Junctions for ',NUNITS,' Shell Units'
+           DO 127 I = 1,NINTS
+            J1 = MUNIT(I)
+            J  = NUNIT(I)
+            WRITE(IFILE4,'(A,I3,A,I1,A,I3,A,I1,A,I3)')
+     1    ' I=',I,' Edge ',NBOUND(I),' of shell unit ',J,
+     1    ' is joined to Edge ',MBOUND(I),' of shell unit ',J1
+  127      CONTINUE
+          ENDIF
+C END AUG 2010
+C         CALL EXIT
+          DO 130 I = 1,MSTAGS
+           IF (IGLOBL(I).EQ.1) THEN
+              XGC1(I) = R1J(I)
+              YGC1(I) = Z1J(I)
+              ZGC1(I) = 0.
+              XGC2(I) = R2J(I)
+              YGC2(I) = Z2J(I)
+              ZGC2(I) = 0.
+              XGC3(I) = R2J(I)
+              YGC3(I) = Z2J(I)
+           ELSE
+              XGC1(I) = R2J(I)
+              YGC1(I) = Z2J(I)
+              ZGC1(I) = 0.
+              XGC2(I) = R1J(I)
+              YGC2(I) = Z1J(I)
+              ZGC2(I) = 0.
+              XGC3(I) = R1J(I)
+              YGC3(I) = Z1J(I)
+           ENDIF
+           ZGC3(I) = LENGTH
+           IF (INDX.EQ.1.OR.ISIMP.EQ.1) ZGC3(I) = FACLEN*LENGTH
+C
+           NCOLS(I) = NODJ(I)
+           IF (MOD(NCOLS(I),2).EQ.0) NCOLS(I) = NCOLS(I) + 1
+           IF (NCOLS(I).LT.3) NCOLS(I) = 3
+           IF (NSHPJ(I).EQ.2) THEN
+              PROP1(I) = 0.
+              PROP2(I) = ZGC3(I) 
+              PROP3(I) = 0.0
+              PROP4(I) = SUBTND(I)
+              PROP5(I) = RCAVE(I) 
+           ELSE
+              PROP1(I) = 0.
+              PROP2(I) = ZGC3(I)
+              PROP3(I) = 0.0
+              PROP4(I) = SQRT((R1J(I)-R2J(I))**2 +(Z1J(I)-Z2J(I))**2)
+           ENDIF
+  130     CONTINUE
+C         CALL EXIT
+         ENDIF
+C        End of more STAGS stuff
+C        Begin more BIGBOSOR4 stuff
+C END JUL 2010
+C
+         WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+         WRITE(IFIL14,'(A)')' 0  $ NLAST'
+         WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+         NMINB = N0B
+C BEG FEB 2010
+C        INCRB = 100
+         INCRB = 1
+C END FEB 2010
+         NVEC  = 1
+         WRITE(IFIL14,'(5I7,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+         WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+         WRITE(IFIL14,'(I6,A)') MSEGS,'  $ how many segments?'
+C
+C   Next, generate the BIGBOSOR4 input for all the constraint
+C   conditions (connections to ground and segment junctions)
+C   in the multi-module model.
+C
+C   The connections to ground (NGRND(i) > 0), where
+C   i = the shell segment number, are governed by the
+C   array, IDISP(i,j), where j is an index for which displacement
+C   component is constrained or not constrained.
+C
+C   IDISP(i,j) = 1 means that the jth displacement component is
+C                  constrained to be zero or a displacement
+C                  compatability is forced at a shell seg. junction.
+C   IDISP(i,j) = 0 means that the jth displacement component is
+C                  free
+C
+C   In BIGBOSOR4 [10] there are 4 displacement components:
+C
+C   IDISP(i,1) refers to USTAR, the radial (horizontal) displacement
+C   IDISP(i,2) refers to VSTAR, the circumferential displacement
+C   IDISP(i,3) refers to WSTAR, the axial (vertical) displacement
+C   IDISP(i,4) refers to CHI, the meridional rotation
+C
+C   The entire array, IDISP(i,j), i = 1,NSEGS, j = 1,4,
+C   is initially set equal to unity when SUBROUTINE BOSDEC is
+C   called from SUBROUTINE BEHX1 (local buckling:   INDX = 1) and
+C   called from SUBROUTINE BEHX2 (general buckling: INDX = 2). In
+C   the following code IDISP(i,j) is reset to zero in certain of
+C   the shell segments:
+C
+C   For LOCAL   buckling (IMODEL = 1) in Segments 1, 8, 15, and 21
+C   For GENERAL buckling (IMODEL = 2) in Segments 1 and 2 and 5
+C
+         DO 400 IMODUL = 1,MODULS
+C
+         IF (IMODEL.EQ.1) THEN
+C
+C Do the input for the elaborate 22-segment local buckling
+C model in this branch.
+C
+C Begin IMODEL = 1 logic for connections to ground, junctions
+C
+         NGRND(1) = 0
+         IF (IMODUL.EQ.1) THEN
+           NGRND(1) = 1
+           NODGRD(1,1) = 1 
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0) THEN
+              IDISP(1,1) = 0
+              IDISP(1,3) = 0
+              IDISP(1,4) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(1,2) = 0
+         ELSE
+           NPREV(1) = 1
+           NODPRV(1,1) = 1
+           JPREV(1,1) = 8 + NSEGSM*(IMODUL - 2)
+           JNODPV(1,1) = NNODES(8)
+         ENDIF
+C
+         NPREV(2) = 1
+         NODPRV(2,1) = 1
+         JPREV(2,1) = 1 + NSEGSM*(IMODUL - 1)
+         JNODPV(2,1) = NNODES(1)
+C
+         NPREV(3) = 1
+         NODPRV(3,1) = 1
+         JPREV(3,1) = 1 + NSEGSM*(IMODUL - 1)
+         JNODPV(3,1) = NNODES(1)
+C
+         NPREV(4) = 1
+         NODPRV(4,1) = 1
+         JPREV(4,1) = 2 + NSEGSM*(IMODUL - 1)
+         JNODPV(4,1) = NNODES(2)
+C
+         NPREV(5) = 2
+         NODPRV(5,1) = 1
+         JPREV(5,1) = 3 + NSEGSM*(IMODUL - 1)
+         JNODPV(5,1) = NNODES(3)
+         NODPRV(5,2) = NNODES(5)
+         JPREV(5,2) = 4 + NSEGSM*(IMODUL - 1)
+         JNODPV(5,2) = NNODES(4)
+C
+         NPREV(6) = 1
+         NODPRV(6,1) = 1
+         JPREV(6,1) = 3 + NSEGSM*(IMODUL - 1)
+         JNODPV(6,1) = NNODES(3)
+C
+         NGRND(8) = 0
+         IF (IMODUL.EQ.MODULS) THEN
+           NGRND(8) = 1
+           NODGRD(8,1) = NNODES(8) 
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0) THEN
+              IDISP(8,1) = 0
+              IDISP(8,2) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(8,3) = 0
+           IDISP(8,4) = 0
+         ENDIF
+         NPREV(8) = 1
+         NODPRV(8,1) = 1
+         JPREV(8,1) = 6 + NSEGSM*(IMODUL - 1)
+         JNODPV(8,1) = NNODES(6)
+C
+         NPREV(9) = 1
+         NODPRV(9,1) = 1
+         JPREV(9,1) = 6 + NSEGSM*(IMODUL - 1)
+         JNODPV(9,1) = NNODES(6)
+C
+         NPREV(10) = 1
+         NODPRV(10,1) = 1
+         JPREV(10,1) = 8 + NSEGSM*(IMODUL - 1)
+         JNODPV(10,1) = NNODES(8)
+C
+         NPREV(11) = 2
+         NODPRV(11,1) = 1
+         JPREV(11,1) = 10 + NSEGSM*(IMODUL - 1)
+         JNODPV(11,1) = NNODES(10)
+         NODPRV(11,2) = NNODES(11)
+         JPREV(11,2) = 9 + NSEGSM*(IMODUL - 1)
+         JNODPV(11,2) = NNODES(9)
+C
+         NGRND(15) = 0
+         IF (IMODUL.EQ.1) THEN 
+           NGRND(15) = 1
+           NODGRD(15,1) = NNODES(15)
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0) THEN
+              IDISP(15,1) = 0
+              IDISP(15,3) = 0
+              IDISP(15,4) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(15,2) = 0
+           NPREV(15) = 1
+         ELSE
+           NPREV(15) = 2
+           NODPRV(15,2) = NNODES(15)
+           JPREV(15,2) = 21 +NSEGSM*(IMODUL - 2)
+           JNODPV(15,2) = NNODES(21)
+         ENDIF
+         NODPRV(15,1) = 1
+         JPREV(15,1) = 14 + NSEGSM*(IMODUL - 1)
+         JNODPV(15,1) = NNODES(14)
+C
+         NPREV(17) = 2
+         NODPRV(17,1) = 1
+         JPREV(17,1) = 14 + NSEGSM*(IMODUL - 1)
+         JNODPV(17,1) = NNODES(14)
+         NODPRV(17,2) = NNODES(17)
+         JPREV(17,2) = 16 + NSEGSM*(IMODUL - 1)
+         JNODPV(17,2) = NNODES(16)
+C
+         NPREV(18) = 1
+         NODPRV(18,1) = 1
+         JPREV(18,1) = 16 + NSEGSM*(IMODUL - 1)
+         JNODPV(18,1) = NNODES(16)
+C
+         NPREV(22) = 2
+         NODPRV(22,1) = 1
+         JPREV(22,1) = 18 + NSEGSM*(IMODUL - 1)
+         JNODPV(22,1) = NNODES(18)
+         NODPRV(22,2) = NNODES(22) 
+         JPREV(22,2) = 21 + NSEGSM*(IMODUL - 1)
+         JNODPV(22,2) = NNODES(21)
+C
+         NPREV(16) = 1
+         NODPRV(16,1) = 1
+         JPREV(16,1) = 13 + NSEGSM*(IMODUL - 1)
+         JNODPV(16,1) = NNODES(13)
+C
+         NPREV(14) = 1
+         NODPRV(14,1) = 1
+         JPREV(14,1) =  7 + NSEGSM*(IMODUL - 1)
+         JNODPV(14,1) = NNODES(7)
+C
+         NPREV(13) = 1
+         NODPRV(13,1) = 1
+         JPREV(13,1) = 7 + NSEGSM*(IMODUL - 1)
+         JNODPV(13,1) = NNODES(7)
+C
+         NPREV(7) = 1
+         NODPRV(7,1) = 1
+         JPREV(7,1) = 4 + NSEGSM*(IMODUL - 1)
+         JNODPV(7,1) = NNODES(4)
+C
+         NPREV(20) = 2
+         NODPRV(20,1) = 1
+         JPREV(20,1) = 19 + NSEGSM*(IMODUL - 1)
+         JNODPV(20,1) = NNODES(19)
+         NODPRV(20,2) = NNODES(20)
+         JPREV(20,2) = 18 + NSEGSM*(IMODUL - 1)
+         JNODPV(20,2) = NNODES(18)
+C
+         NGRND(21) = 0
+         IF (IMODUL.EQ.MODULS) THEN
+           NGRND(21) = 1
+           NODGRD(21,1) = NNODES(21)
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0) THEN
+              IDISP(21,1) = 0
+              IDISP(21,2) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(21,3) = 0
+           IDISP(21,4) = 0
+         ENDIF
+         NPREV(21) = 1
+         NODPRV(21,1) = 1
+         JPREV(21,1) = 12 + NSEGSM*(IMODUL - 1)
+         JNODPV(21,1) = NNODES(12)
+C
+         NPREV(19) = 1
+         NODPRV(19,1) = 1
+         JPREV(19,1) = 12 + NSEGSM*(IMODUL - 1)
+         JNODPV(19,1) = NNODES(12)
+C
+         NPREV(12) = 1
+         NODPRV(12,1) = 1
+         JPREV(12,1) = 9 + NSEGSM*(IMODUL - 1)
+         JNODPV(12,1) = NNODES(9)
+C
+C End   IMODEL = 1 logic for connections to ground, junctions
+C
+         ELSE
+C
+C Do the input for the simpler 6-segment buckling
+C model in this branch.
+C
+C Begin IMODEL = 2 logic for connections to ground, junctions
+C
+         NGRND(1) = 0
+         IF (IMODUL.EQ.1) THEN
+           NGRND(1) = 1
+           NODGRD(1,1) = 1 
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0.AND.ISIMP.EQ.1) THEN
+             IDISP(1,1) = 0
+             IDISP(1,2) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(1,3) = 0
+           IDISP(1,4) = 0
+C BEG DEC 2009
+           IF (ISIMP.EQ.1) IDISP(1,4) = 1
+C END DEC 2009
+         ELSE
+           NPREV(1) = 1
+           NODPRV(1,1) = 1
+           JPREV(1,1) = 2 + NSEGSM*(IMODUL - 2)
+           JNODPV(1,1) = NNODES(2)
+         ENDIF
+C
+         NGRND(2) = 0
+         IF (IMODUL.EQ.MODULS) THEN
+           NGRND(2) = 1
+           NODGRD(2,1) = NNODES(2) 
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0.AND.ISIMP.EQ.1) THEN
+             IDISP(2,2) = 0
+             IDISP(2,3) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(2,1) = 0
+           IDISP(2,4) = 0
+C BEG DEC 2009
+C BEG AUG 2010 
+           IF (ICLAMP.EQ.1.AND.ISIMP.EQ.1) IDISP(2,4) = 1
+C END AUG 2010
+C END DEC 2009
+         ENDIF
+         NPREV(2) = 1
+         NODPRV(2,1) = 1
+         JPREV(2,1) = 1 + NSEGSM*(IMODUL - 1)
+         JNODPV(2,1) = NNODES(1)
+C
+         NGRND(5) = 0
+         IF (IMODUL.EQ.1) THEN 
+           NGRND(5) = 1
+           NODGRD(5,1) = NNODES(5)
+C BEG AUG 2010
+           IF (ICLAMP.EQ.0.AND.ISIMP.EQ.1) THEN
+             IDISP(5,1) = 0
+             IDISP(5,2) = 0
+           ENDIF
+C END AUG 2010
+           IDISP(5,3) = 0
+           IDISP(5,4) = 0
+C BEG DEC 2009
+C BEG AUG 2010
+           IF (ICLAMP.EQ.1.AND.ISIMP.EQ.1) IDISP(5,4) = 1
+C END AUG 2010
+C END DEC 2009
+           NPREV(5) = 1
+         ELSE
+           NPREV(5) = 2
+           NODPRV(5,2) = NNODES(5)
+           JPREV(5,2) = 4 +NSEGSM*(IMODUL - 2)
+           JNODPV(5,2) = NNODES(4)
+         ENDIF
+         NODPRV(5,1) = 1
+         JPREV(5,1) = 3 + NSEGSM*(IMODUL - 1)
+         JNODPV(5,1) = NNODES(3)
+C
+         NPREV(3) = 1
+         NODPRV(3,1) = 1
+         JPREV(3,1) = 1 + NSEGSM*(IMODUL - 1)
+         JNODPV(3,1) = NNODES(1)
+C
+         NPREV(6) = 2
+         NODPRV(6,1) = 1
+         JPREV(6,1) = 3 + NSEGSM*(IMODUL - 1)
+         JNODPV(6,1) = NNODES(3)
+         NODPRV(6,2) = NNODES(6) 
+         JPREV(6,2) = 4 + NSEGSM*(IMODUL - 1)
+         JNODPV(6,2) = NNODES(4)
+C
+         NPREV(4) = 1
+         NODPRV(4,1) = 1
+         JPREV(4,1) = 2 + NSEGSM*(IMODUL - 1)
+         JNODPV(4,1) = NNODES(2)
+C
+C End IMODEL = 2 logic for connections to ground, junctions
+C
+         ENDIF
+C
+C End of IMODEL = 1 and IMODEL = 2 logic for ground,junctions
+C
+         DO 300 I = 1,NSEGSM
+C
+         WRITE(IFIL14,'(A,4I6)')
+     1 ' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+         WRITE(IFIL14,'(A)')' 0  $ number of poles'
+         WRITE(IFIL14,'(I3,A)') NGRND(I),' $ connect to ground'
+         IF (NGRND(I).GT.0) THEN
+            NGRNDI = NGRND(I)
+            DO 150 J = 1,NGRNDI
+               WRITE(IFIL14,'(I3,A)') NODGRD(I,J),' $ node to ground'
+               WRITE(IFIL14,'(4I3,A)')
+     1          IDISP(I,1),IDISP(I,2),IDISP(I,3),IDISP(I,4),
+     1        ' $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+C BEG AUG 2010
+               IF (IMODEL.EQ.1.OR.ILINKS.EQ.0.OR.
+     1            (IMODUL.EQ.1.AND.ILINKS.EQ.1
+     1                        .AND.(I.EQ.1.OR.I.EQ.5)).OR.
+     1            (IMODUL.EQ.MODULS.AND.ILINKS.EQ.1
+     1                        .AND.I.EQ.2)) THEN
+                  WRITE(IFIL14,'(A)')' 0.,  0.  $ D1,D2'
+               ELSE
+                  WRITE(IFIL14,'(1P,2E14.6,A)')
+     1                       D1(I,J,IMODUL),D2(I,J,IMODUL),'  $ D1,D2'
+               ENDIF
+C END AUG 2010
+               WRITE(IFIL14,'(A)')' Y  $ is constraint same for buck.?'
+  150       CONTINUE
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (I.LE.1.AND.IMODUL.EQ.1) THEN
+             WRITE(IFIL14,'(A)')' N  $ joined to previous segments?'
+         ELSE
+             WRITE(IFIL14,'(A)')' Y  $ joined to previous segments?'
+             WRITE(IFIL14,'(I3,A)') NPREV(I),' $ connects to prev.segs'
+             NPREVI = NPREV(I)
+             DO 200 J = 1,NPREVI
+               WRITE(IFIL14,'(I3,A)') NODPRV(I,J),' $ node current seg'
+               WRITE(IFIL14,'(I3,A)') JPREV(I,J),' $ prev.segment no.'
+               WRITE(IFIL14,'(I3,A)') JNODPV(I,J),' $ node in prev.seg.'
+               WRITE(IFIL14,'(A)')' 1, 1, 1, 1 $ IU,IV,IW,ICHI'
+C BEG AUG 2010
+               IF (IMODEL.EQ.1.OR.ILINKS.EQ.0) THEN
+                  WRITE(IFIL14,'(A)')' 0.,  0.  $ D1,D2'
+               ELSE
+                  WRITE(IFIL14,'(1P,2E14.6,A)')
+     1                       D1(I,J,IMODUL),D2(I,J,IMODUL),'  $ D1,D2'
+               ENDIF
+C END AUG 2010
+               WRITE(IFIL14,'(A)')' Y  $ is constraint same for buck.?'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  200        CONTINUE
+         ENDIF
+C
+  300    CONTINUE
+C
+  400    CONTINUE
+C
+         WRITE(IFIL14,'(A)')' N  $ are rigid body motions possible?'
+C
+         DO 410 ISEG = 1,MSEGS
+            WRITE(IFIL14,'(A)')' Y  $ do you want to list seg. output?'
+  410    CONTINUE
+         WRITE(IFIL14,'(A)')' Y  $ do you want to list ring forces?'
+C
+      ENDIF
+C   End of "INDX.EQ.0.OR.INDX.EQ.1.OR.INDX.EQ.2" condition
+C
+C BEG JUL 2010
+C   Begin STAGS stuff...
+      IF (IFIL14.EQ.24.AND.INDX.NE.0.AND.ITYPEX.EQ.2) THEN
+C  Generate input data for STAGS...
+          IF (INDX.EQ.1.OR.(INDX.EQ.2.AND.ISIMP.EQ.1)) THEN
+C          Local buckling STAGS model
+C          Generate CASE.inp file for input for STAGS...
+C          CASE.inp is an input file for STAGS:
+           I=INDEX(CASE,' ')
+           IF(I.NE.0) THEN
+            CASA2=CASE(:I-1)//'.inp'
+           ELSE
+            CASA2=CASE//'.inp'
+           ENDIF
+           OPEN(UNIT=62,FILE=CASA2,STATUS='UNKNOWN')
+          ELSE
+C          General buckling STAGS model
+C          Generate CASE.inp2 file for input for STAGS...
+C          CASE.inp2 is an input file for STAGS:
+           I=INDEX(CASE,' ')
+           IF(I.NE.0) THEN
+            CASA3=CASE(:I-1)//'.inp2'
+           ELSE
+            CASA3=CASE//'.inp2'
+           ENDIF
+           OPEN(UNIT=62,FILE=CASA3,STATUS='UNKNOWN')
+          ENDIF
+          IFIL62 = 62
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          WRITE(IFIL62,'(A,I3,A)')
+     1  ' STAGS model with ',MSTAGS,' shell units'
+          WRITE(IFIL62,'(A)')
+     1  ' 0  0  0  0  0  0  0  $B-1 IGRAV,ICHECK,ILIST,INCBC,NRUNIT,etc'
+          NSTFS = MSTFS
+          IF (JEND.EQ.1) NSTFS = MSTAGS
+C BEG AUG 2010
+          NUNITE = 0
+C         IF (ILINKS.EQ.1) NUNITE = 6 + 8*(MODULS - 1)
+          IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) NUNITE = 6 + 8*(MODULS - 1)
+          WRITE(IFIL62,'(4I4,A)') NUNITS,NUNITE,NSTFS,NINTS,
+     1  '  0,  $B-2 NUNITS,NUNITE,NSTFS,NINTS,NPATS,'
+C END AUG 2010
+          WRITE(IFIL62,'(A)')
+     1 '  0  0  0  0  0  0  $B-2 NCONST,NIMPFS,INERT,NINSR,NPATX,NSTIFS'
+C BEG AUG 2010
+          NTAMT = 2
+          WRITE(IFIL62,'(A,I2,A)')
+     1 '  1  1  0  0 ',NTAMT,'  1  $B-3 NTAM,NTAB,NTAW,NTAP,NTAMT,NGCP'
+C END AUG 2010
+          DO 450 I = 1,MSTAGS
+C BEG AUG 2010
+C            NROWS = 51
+             NROWS = NROWSL
+C            IF (INDX.EQ.2.AND.ISIMP.EQ.0) NROWS = 101
+             IF (INDX.EQ.2.AND.ISIMP.EQ.0) NROWS = NROWSG 
+C END AUG 2010
+             IF (I.LT.MSTAGS) WRITE(IFIL62,'(2I4,A,I3,A,I3,A)')
+     1       NROWS,NCOLS(I),',   $F-1 NROWS(',I,'),NCOLS(',I,')'
+             IF (I.EQ.MSTAGS) WRITE(IFIL62,'(2I4,A,I3,A,I3,A)')
+     1       NROWS,NCOLS(I),'    $F-1 NROWS(',I,'),NCOLS(',I,')'
+  450     CONTINUE
+          NRGS = 0
+          IF (JEND.EQ.1) NRGS = 1
+          NSTR = 1
+          DO 455 I = 1,MSTAGS
+            IF (I.EQ.IUNIT(I))
+     1      WRITE(IFIL62,'(3I4,A)') IUNIT(I),NRGS,NSTR,
+     1    ' $ F-2 IUNIT,NRGS,NSTR discrete beam'
+  455     CONTINUE
+C         
+          IF (JEND.EQ.1) THEN
+             NRGS = 1
+             NSTR = 0
+             DO 456 I = 1,MSTAGS
+              IF (I.NE.IUNIT(I)) THEN
+                 WRITE(IFIL62,'(3I4,A)') I,NRGS,NSTR,
+     1         ' $ F-2 IUNIT,NRGS,NSTR discrete beam'
+              ENDIF
+  456        CONTINUE
+          ENDIF
+C
+C BEG AUG 2010
+          IF (NINTS.GT.0) THEN
+           DO 460 I = 1,NINTS
+             WRITE(IFIL62,'(4I4,A,I3,A,I3,A,I3,A,I3,A)')
+     1       MUNIT(I),MBOUND(I),NUNIT(I),NBOUND(I),
+     1    '  $G-1 MUNIT(',I,'),MBOUND(',I,'),NUNIT(',I,'),NBOUND(',I,')'
+  460      CONTINUE
+          ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C         IF (ILINKS.EQ.1) THEN
+          IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+C  Provide h-1 records for fasteners
+            NUPT = 2*NROWS
+            NSPRI =  NROWS
+            WRITE(IFIL62,'(A)') 'C '
+            WRITE(IFIL62,'(A)') 'C Fasteners to link gaps...'
+            DO 370 IMODUL = 1,MODULS
+            WRITE(IFIL62,'(A)') 'C '
+            WRITE(IFIL62,'(A,I3)')
+     1     'C  fasteners for 6 units, module no. ',IMODUL
+            DO 360 ISEG = 1,6
+             IENDUP = 1
+             IF (ISEG.EQ.6) IENDUP = 2
+             IF (ISEG.EQ.5.AND.IMODUL.GT.1) IENDUP = 2
+             DO 350 IENDS = 1,IENDUP
+               KUNIT = 6*(IMODUL-1) + ISEG
+               IF (KUNIT.EQ.1) GO TO 350
+               WRITE(IFIL62,'(2I4,A,I3,A,I2)') NUPT,NSPRI,
+     1       ' $ h-1 NUPT,NSPRI fasteners for module ',IMODUL,
+     1       ' segment no. ',ISEG
+  350        CONTINUE
+  360       CONTINUE
+  370      CONTINUE
+          ENDIF
+C END AUG 2010
+C
+C   Material input outside of GCP required when beams (NTAB) are present
+          WRITE(IFIL62,'(A)') 'C '
+          WRITE(IFIL62,'(A)')
+     1   'C Matl in one or more stiffeners (NTAB > 0)'
+          ITAM = 1
+          IMAT = 1
+          RATMAT = ENOODL/EMOD1(IMAT)
+          WRITE(IFIL62,'(I2,A)') IMAT,
+     1  ', $ ITAM = material number.                  BEGIN I-1 rec.'
+          WRITE(IFIL62,'(A)')
+     1  ' 0, $ NESP = 0 means zero points on stress-strain curve'
+          WRITE(IFIL62,'(A)')
+     1  ' 0, $ IPLST =0 means no plasticity in this material type'
+          WRITE(IFIL62,'(A)')
+     1  ' 0  $ ITANST=0 means Initial Strain method used. END I-1 rec.'
+          ESTAGS = EMOD1(IMAT)*RATMAT
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') ESTAGS,', $ Matl', IMAT,
+     1   ': E1=Modulus along fibers.         BEGIN I-2 rec.'
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') NU(IMAT),', $ Matl', IMAT,
+     1   ': U12=Poisson ratio NU12 (NU12*E1 = NU21*E2)'
+C BEG OCT 2010
+C         GSTAGS = G12(IMAT)*RATMAT
+          GSTAGS = GNOODL 
+C END OCT 2010
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)')  GSTAGS,', $ Matl', IMAT,
+     1   ': G  = In-plane shear modulus'
+          RHO = DENSTY(IMAT)*RATMAT
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') RHO,', $ Matl', IMAT,
+     1   ': RHO=weight density'
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') ALPHA1(IMAT),', $ Matl',IMAT,
+     1   ': A1 =thermal expansion coefficient along fibers'
+          ESTAGS = EMOD2(IMAT)*RATMAT
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') ESTAGS,', $ Matl', IMAT,
+     1   ': E2 =Modulus normal to fibers (normal to PHI1)'
+          WRITE(IFIL62,'(1PE10.3,A,I2,A)') ALPHA2(IMAT),' $ Matl',IMAT,
+     1   ': A2 =thermal expansion coef. normal to fibers. END I-2 rec.'
+C
+C BEG AUG 2010
+C  TWO FASTENER ELEMENT TABLES...
+C   FIRST TABLE (FOR ALL SPRING CONSTANTS EXCEPT rw (drilling freedom)):
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+          SPRING = 3.0*C111MD
+          WRITE(IFIL62,'(A)') 'C '
+          WRITE(IFIL62,'(A)')
+     1    'C  Fastener property table 1 (five springs: u,v,w,ru,rv)...'
+          WRITE(IFIL62,'(A)')
+     1' 1 2 1 $ i-4a IMNT,NRD,NRV(table no., no.rel.disp., no.rel. vel)'
+          WRITE(IFIL62,'(A)')
+     1' -1.0  1.0  $ i-4b DISP(i),1=1,NRD(relative displacement vector)'
+          WRITE(IFIL62,'(A)')
+     1'  0.0       $ i-4c RVEL(i),i=1,NRV (relative velocity vector)'
+          WRITE(IFIL62,'(1P,2E12.4,A)') -SPRING,SPRING,
+     1' $ i-4d FORCE(j),j=1,NRD (spring forces for unit neg.,pos.disp.)'
+C
+C   2nd TABLE (FOR rw (drilling freedom)):
+C         SPRING = 0.00001*SPRING
+          WRITE(IFIL62,'(A)') 'C '
+          WRITE(IFIL62,'(A)')
+     1   'C  Fastener property table 2 (weak spring governing rw)...'
+          WRITE(IFIL62,'(A)')
+     1' 2 2 1 $ i-4a IMNT,NRD,NRV(table no., no.rel.disp., no.rel. vel)'
+          WRITE(IFIL62,'(A)')
+     1' -1.0  1.0  $ i-4b DISP(i),1=1,NRD(relative displacement vector)'
+          WRITE(IFIL62,'(A)')
+     1'  0.0       $ i-4c RVEL(i),i=1,NRV (relative velocity vector)'
+          WRITE(IFIL62,'(1P,2E12.4,A)') -SPRING,SPRING,
+     1' $ i-4d FORCE(j),j=1,NRD (spring forces for unit neg.,pos.disp.)'
+C
+C END AUG 2010
+C
+          WRITE(IFIL62,'(A)') 'C '
+          IENDUP = IEMOD1
+          IF (ILINKS.EQ.2) IENDUP = IEMOD1 + 1 
+          DO 462 MATID = 1,IENDUP
+          WRITE(IFIL62,'(A,I3,/,A,I3,A)')
+     1   'C GCP Material in shell unit walls for material ',MATID,
+     1   'ORTHOELAST_MATERIAL ',MATID,
+     1   ' 1 1 0 0 $ I-5a MATID,ngroups,nstates..'
+          WRITE(IFIL62,'(1P,E12.4,A)') EMOD1(MATID),
+     1    ', $I-7a E1=modulus along fibers.        BEGIN I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') EMOD2(MATID),
+     1    ', $I-7a E2=modulus normal to fibers.          I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') EMOD1(MATID),
+     1    ', $I-7a E3=modulus normal to fibers.          I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') G12(MATID),
+     1    ', $I-7a G12=x-y in-plane shear modulus.       I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') G13(MATID),
+     1    ', $I-7a G13=x-z out-of-plane shear modulus.   I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') G23(MATID),
+     1    ', $I-7a G23=y-z out-of-plane shear modulus.   I-7a rec.'
+          FNUBIG = NU(MATID)*EMOD1(MATID)/EMOD2(MATID)
+          WRITE(IFIL62,'(1P,E12.4,A)') FNUBIG,
+     1    ', $I-7a NU12=large in-plane Poisson ratio.    I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') FNUBIG,
+     1    ', $I-7a NU13=x-z out-of-plane Poisson ratio.  I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') FNUBIG,
+     1    ', $I-7a NU23=y-z out-of-plane Poisson ratio.  I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') DENSTY(MATID),
+     1    ', $I-7a material weight density.              I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') ALPHA1(MATID),
+     1    ', $I-7a A1=thermal coef. along fibers.        I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') ALPHA2(MATID),
+     1    ', $I-7a A2=thermal coef. normal to fibers.    I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') ALPHA2(MATID),
+     1    ', $I-7a A3=thermal coef. normal to fibers.    I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B1=hydroscopic coef. along fibers.      I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B2=hydroscopic coef. normal to fibers.  I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0., $I-7a B3=hydroscopic coef. normal to fibers.  I-7a rec.'
+          WRITE(IFIL62,'(1P,E12.4,A)') TEMCUR(MATID),
+     1    ', $I-7a T=material cure temperature.          I-7a rec.'
+          WRITE(IFIL62,'(A)')
+     1    ' 0.  $I-7a M=reference moisture content.      END  I-7a rec.'
+C
+  462     CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+          WRITE(IFIL62,'(A)') 'C '
+          WRITE(IFIL62,'(A)') 'C GCP Shell unit wall props'
+C
+          IF (IMODEL.EQ.1) THEN
+             NLAYR(1) = NLAYER(1)
+             NLAYR(2) = NLAYER(2)
+             NLAYR(3) = NLAYER(3)
+             NLAYR(4) = NLAYER(7)
+          ELSE
+             NLAYR(1) = NLAYR2(1)
+             NLAYR(2) = NLAYRC
+             NLAYR(3) = NLAYRC
+             NLAYR(4) = NLAYR2(4)
+          ENDIF
+C
+          DO 468 IWALLT = 1,4
+C
+            NLAY = NLAYR(IWALLT)
+            IF (IWALLT.LT.4) ISEGMT = IWALLT
+            IF (IWALLT.EQ.4) ISEGMT = 7
+            DO 464 I = 1,NLAY
+               IF (IMODEL.EQ.1) LINDEX = LAYTYPB(I,ISEGMT)
+               IF (IMODEL.EQ.2) LINDEX = LAYTYP(I,ISEGMT)
+               THK(I) = THICK(LINDEX)
+               ANG(I) = ANGLE(LINDEX)
+               IF (IMODEL.EQ.1) MAT(I) = MATTYPB(LINDEX)
+               IF (IMODEL.EQ.2) MAT(I) = MATTYP(LINDEX)
+               INTSHL(I) = 2
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C              IF (IWALLT.EQ.2.AND.INDX.EQ.2) WRITE(IFILE4,'(A,4I5)')
+C    1       ' I,IMODEL,LINDEX,MATTYP(LINDEX)=',
+C    1         I,IMODEL,LINDEX,MATTYP(LINDEX)
+C              CALL EXIT
+  464       CONTINUE
+            WRITE(IFIL62,'(A)') 'C '
+            WRITE(IFIL62,'(A,2I4,A,A)')
+     1     'SHELL_FABRICATION ',IWALLT,NLAY,' 1 0 0',
+     1    ' $I-5a fabid,nlayer,ipts,ishr,isym'
+            DO 4641 I = 1,NLAY
+              IF (I.LT.NLAY) WRITE(IFIL62,'(I5,A)')
+     1        MAT(I),',  $I-21a MATID(j),j=1,nlayer' 
+              IF (I.EQ.NLAY) WRITE(IFIL62,'(I5,A)')
+     1        MAT(I),'   $I-21a MATID(j),j=1,nlayer'
+ 4641       CONTINUE
+            DO 4642 I = 1,NLAY
+              IF (I.LT.NLAY) WRITE(IFIL62,'(I5,A)')
+     1        INTSHL(I),',  $I-21a INTSHL(j),j=1,nlayer'
+              IF (I.EQ.NLAY) WRITE(IFIL62,'(I5,A)')
+     1        INTSHL(I),'   $I-21a INTSHL(j),j=1,nlayer'
+ 4642       CONTINUE
+            DO 4643 I = 1,NLAY
+              IF (I.LT.NLAY) WRITE(IFIL62,'(1P,E14.6,A)')
+     1        THK(I),',  $I-21a THK(j),j=1,nlayer'
+              IF (I.EQ.NLAY) WRITE(IFIL62,'(1P,E14.6,A)')
+     1        THK(I),'   $I-21a THK(j),j=1,nlayer'
+ 4643       CONTINUE
+            DO 4644 I = 1,NLAY
+              IF (I.LT.NLAY) WRITE(IFIL62,'(1P,E14.6,A)')
+     1        ANG(I),',  $I-21a ANG(j),j=1,nlayer'
+              IF (I.EQ.NLAY) WRITE(IFIL62,'(1P,E14.6,A)')
+     1        ANG(I),'   $I-21a ANG(j),j=1,nlayer'
+ 4644       CONTINUE
+  468     CONTINUE
+C
+          WRITE(IFIL62,'(A)')
+     1   'END    $I-5a cease (end of GCP input data)'
+C
+C  STAGS input for discrete beam:
+          WRITE(IFIL62,'(A)') 'C '
+          ITAB = 1
+          MATB = 1 
+          WRITE(IFIL62,'(I3,A)') ITAB,
+     1  ', $ ITAB is beam cross-section number.               BEGIN J-1'
+          WRITE(IFIL62,'(A)')
+     1  ' 1, $ KCROSS=1 means cross-section is general'
+          WRITE(IFIL62,'(I3,A)') MATB,
+     1  ', $ MATB = material number of beam'
+          WRITE(IFIL62,'(A)')
+     1  ' 1, $ NSUB = means number of rectangular subelements'
+          TORJ = GJ/GNOODL 
+          WRITE(IFIL62,'(1PE10.3,A)') TORJ,
+     1  ', $ TORJ = torsional constant, h*t**3/3 J'
+          WRITE(IFIL62,'(A)')
+     1  ' 0., $ SCY = local ybar coordinate of beam shear center.'
+          WRITE(IFIL62,'(A)')
+     1  ' 0., $ SCZ = local zbar coordinate of beam shear center.'
+          WRITE(IFIL62,'(A)')
+     1  ' 0,  $ NSOYZ =0 means no stress output.'
+          WRITE(IFIL62,'(A)')
+     1  ' 0., $ KAPY = transverse shear shape factor, bend about zbar'
+          WRITE(IFIL62,'(A)')
+     1  ' 0.8333 $ KAPZ=trans. shear factor, bend about ybar.   END J-1'
+C
+          WRITE(IFIL62,'(1PE10.3,A)') RAREA,
+     1  ', $ BA = beam cross-section area.           BEGIN J-2a'
+          WRITE(IFIL62,'(1PE10.3,A)') FMOMTS,
+     1  ', $ BIY= beam moment of inertia about y-axis'
+          WRITE(IFIL62,'(1PE10.3,A)') FMOMTN,
+     1  ', $ BIZ= beam moment of inertia about z-axis'
+          WRITE(IFIL62,'(A)')
+     1  ' 0.  $ BIYZ = product of inertia.      END J-2a'
+C
+C  special STAGS input for the 940 finite element:
+          IF (IELMNT.EQ.940) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL62,'(A)') 'C '
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $ User Element Definitions -----------'
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $'
+           WRITE(IFIL62,'(A,/)')
+     1'*userElement  name="Uniform Plate Element"  type=940  nodes=4'
+           WRITE(IFIL62,'(A,/)') '*dofOrdering'
+           WRITE(IFIL62,'(A)') ' $  Node DOF...'
+           WRITE(IFIL62,'(A)') ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     1     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     2     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     3     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '     4     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '*nodeSequence'
+           WRITE(IFIL62,'(A)') ' $  Nodes...'
+           WRITE(IFIL62,'(A)') ' $  --------'
+           WRITE(IFIL62,'(A)') '    1 2 3 4'
+           WRITE(IFIL62,'(A,/)') '*floatVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ---------------------'
+           WRITE(IFIL62,'(A)')   '     UniformPressure  2'
+           WRITE(IFIL62,'(A,/)') '     Drilling         1'
+           WRITE(IFIL62,'(A,/)') '*integerVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     IntegOrder          1'
+           WRITE(IFIL62,'(A,/)') '     LoadType            1'
+           WRITE(IFIL62,'(A,/)') '*end userElement'
+           WRITE(IFIL62,'(A,A,/)')
+     1'*userProperty  name="Standard Data -- Uniform Plate Element"',
+     1'  id=940'
+           WRITE(IFIL62,'(A,/)') '*integerProps'
+           WRITE(IFIL62,'(A)')   ' $  Required Standard Data'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     ActiveNodes    4'
+           WRITE(IFIL62,'(A)')   '     SamplingCount  1'
+           WRITE(IFIL62,'(A)')   '     StrainCount    8'
+           WRITE(IFIL62,'(A,/)') '     StressCount    8'
+           WRITE(IFIL62,'(A)')   ' $  Data for GCP Interface'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     Class           2'
+           WRITE(IFIL62,'(A,/)') '     Kintype         1'
+           WRITE(IFIL62,'(A)')   '*end userProperty'
+          ENDIF
+C       End of IELMNT.EQ.940 condition.
+C BEG JUL 2010
+C  special STAGS input for the 928 beam finite element (goes with E480):
+          IF (IELMNB.EQ.928) THEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           WRITE(IFIL62,'(A)') 'C '
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $ User Element Definitions -----------'
+           WRITE(IFIL62,'(A)') ' $====================================='
+           WRITE(IFIL62,'(A)') ' $'
+           WRITE(IFIL62,'(A,/)')
+     1'*userElement  name="Uniform Beam Element"  type=928  nodes=4'
+           WRITE(IFIL62,'(A,/)') '*dofOrdering'
+           WRITE(IFIL62,'(A)') ' $  Node DOF...'
+           WRITE(IFIL62,'(A)') ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     1     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     2     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A)')   '     3     1 2 3 4 5 6'
+           WRITE(IFIL62,'(A,/)') '     4     0'
+           WRITE(IFIL62,'(A,/)') '*nodeSequence'
+           WRITE(IFIL62,'(A)') ' $  Nodes...'
+           WRITE(IFIL62,'(A)') ' $  --------'
+           WRITE(IFIL62,'(A,/)') '    1 2 3 4'
+           WRITE(IFIL62,'(A,/)') '*floatVariables'
+           WRITE(IFIL62,'(A)')   ' $  Name             Size'
+           WRITE(IFIL62,'(A)')   ' $  ---------------------'
+           WRITE(IFIL62,'(A)')   '     Area             1'
+           WRITE(IFIL62,'(A)')   '     Iy               1'
+           WRITE(IFIL62,'(A)')   '     Iz               1'
+           WRITE(IFIL62,'(A)')   '     J                1'
+           WRITE(IFIL62,'(A)')   '     Material         1'
+           WRITE(IFIL62,'(A)')   '     ShearFactorY     1'
+           WRITE(IFIL62,'(A)')   '     ShearFactorZ     1'
+           WRITE(IFIL62,'(A)')   '     Ecc              2'
+           WRITE(IFIL62,'(A,/)') '     Scc              2'
+           WRITE(IFIL62,'(A,/)') '*end userElement'
+           WRITE(IFIL62,'(A,A,/)')
+     1'*userProperty  name="Standard Data -- Uniform Beam Element"',
+     1'  id=928'
+           WRITE(IFIL62,'(A,/)') '*integerProps'
+           WRITE(IFIL62,'(A)')   ' $  Required Standard Data'
+           WRITE(IFIL62,'(A)')   ' $  ----------------------'
+           WRITE(IFIL62,'(A)')   '     ActiveNodes    3'
+           WRITE(IFIL62,'(A)')   '     SamplingCount  2'
+           WRITE(IFIL62,'(A)')   '     StrainCount    6'
+           WRITE(IFIL62,'(A)')   '     StressCount    6'
+           WRITE(IFIL62,'(A,/)') '     Beam           1'
+           WRITE(IFIL62,'(A,/)') '*floatProps'
+           WRITE(IFIL62,'(A,A)')   ' $  Nodal Stress/Strain Sampling',
+     1   ' Points'
+           WRITE(IFIL62,'(A,A)')   ' $  ----------------------------',
+     1   ' ------'
+           WRITE(IFIL62,'(A)')   '     y1             0.0'
+           WRITE(IFIL62,'(A,/)') '     z1             0.0'
+           WRITE(IFIL62,'(A,/)') '*end userProperty'
+           WRITE(IFIL62,'(A,A,/)')
+     1'*userProperty  name="aluminum 6061-T6"',
+     1'  id=6061'
+           WRITE(IFIL62,'(A,/)') '*floatProps'
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' E                        ',ENOODL
+C BEG OCT 2010
+C          WRITE(IFIL62,'(A,1PE12.4)')
+C    1   ' G                        ',G13(1)
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' G                        ',GNOODL
+C END OCT 2010
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' MassDensity              ',DNOODL
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' PoissonRatio             ',NU(1)
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' TensileUltimateStrength  ',STRM1A(ILOADX,1)
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' TensileYieldStrength     ',STRM1A(ILOADX,1)
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' CompressiveYieldStrength ',STRM1A(ILOADX,2)
+           WRITE(IFIL62,'(A,1PE12.4)')
+     1   ' ShearYieldStrength       ',STRM1A(ILOADX,5)
+           WRITE(IFIL62,'(A,1PE12.4,/)')
+     1   ' ThermalExpansion         ',ALPHA1(1)
+           WRITE(IFIL62,'(A)') '*end userProperty'
+          ENDIF
+C       End of IELMNB.EQ.928 condition.
+C END JUL 2010
+C
+C  Input for STAGS shell units next...
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+          DO 470 I = 1,MSTAGS
+           WRITE(IFIL62,'(A)') 'C '
+           IF (NSHPJ(I).EQ.2) THEN
+             WRITE(IFIL62,'(A,I3,A,/,A)')
+     1      'C STAGS SHELL UNIT NUMBER ',I,':',
+     1     ' 5  3  0  0  0  1  $M-1 ISHELL,IGLOBE,NROWS,...,NFABS'
+             WRITE(IFIL62,'(A,1P,4E14.6,A)')
+     1     ' 0. ',PROP2(I),PROP3(I),PROP4(I),PROP5(I),'  $M-2 (cyl.)'
+           ELSE
+             WRITE(IFIL62,'(A,I3,A,/,A)')
+     1      'C STAGS SHELL UNIT NUMBER ',I,':',
+     1     ' 2  3  0  0  0  1  $M-1 ISHELL,IGLOBE,NROWS,...,NFABS'
+             WRITE(IFIL62,'(A,1P,3E14.6,A)')
+     1     ' 0. ',PROP2(I),PROP3(I),PROP4(I),'  $M-2 (flat plate.)'
+           ENDIF
+           WRITE(IFIL62,'(1P,3E14.6,A,/,1P,3E14.6,A,/,1P,3E14.6,A)')
+     1      XGC1(I),YGC1(I),ZGC1(I),'  $M-4A XGC1,YGC1,ZGC1',
+     1      XGC2(I),YGC2(I),ZGC2(I),'  $M-4B XGC2,YGC2,ZGC2',
+     1      XGC3(I),YGC3(I),ZGC3(I),'  $M-4C XGC3,YGC3,ZGC3'
+           ECZ = ECZSKN(I)
+           WRITE(IFIL62,'(I4,A,1P,E14.6,A)') -IWALL(I),
+     1  ' 0  0. ',ECZ,
+     1  ' 0  0  0 $M-5 IWALL,IWIMP,ZETA,ECZ,ILIN,IPLAS,..'
+           WRITE(IFIL62,'(I6,A)') IELMNT,'   $N-1  KELT'
+           IF (IELMNT.EQ.940) THEN
+             PRESS2 = 0.
+             PRESS3 = 0.
+             WRITE(IFIL62,'(1P2E14.6,A)')
+     1                           PRESS2,PRESS3,' 0. $n-1A PA,PB,drl'
+             WRITE(IFIL62,'(A)')
+     1                   ' 0  2          $n-1B integ.scheme,PA & PB'
+           ENDIF
+           IF (JEND.EQ.1) THEN
+              ICROSS = -1
+              WRITE(IFIL62,'(A)')
+     1      ' -1  0. 0. 0. 0  0  $ ICROSS,XSI.ECY,ECZ, etc. O-1a'
+              JR = 1 
+              IR1 = 1
+              IR2 = NCOLS(I)
+              WRITE(IFIL62,'(3I5,A)') JR,IR1,IR2,' $ JR,IR1,IR2   O-1B'
+           ENDIF
+C
+           IF (IBEAM(I).NE.0) THEN
+              ICROSS = 1
+              XSI = 0.
+C BEG AUG 2010
+              ECY = ECYR(I) 
+C END AUG 2010
+              ECZ = ECZR(I) 
+              ILIN = 0
+              IPLAS = 0
+              IF (IELMNB.NE.928)
+     1        WRITE(IFIL62,'(I2,1P,3E11.3,2I4,A)') ICROSS,XSI,ECY,ECZ,
+     1        ILIN,IPLAS,' $ ICROSS,XSI.ECY,ECZ, etc. O-2a'
+              IF (IELMNB.EQ.928)
+     1        WRITE(IFIL62,'(I2,A)') ICROSS,
+     1      ' $ ICROSS                                O-2a'
+              JS = IBEAM(I)
+              IS1 = 1
+              IS2 = NROWS
+              WRITE(IFIL62,'(3I5,A)') JS,IS1,IS2,' $ JS,IS1,IS2   O-2B'
+              IF (IELMNB.EQ.928) THEN
+                 WRITE(IFIL62,'(1P,4E12.4,A)') RAREA,FMOMTS,FMOMTN,TORJ,
+     1          ', $ A,Iy,Iz,J'
+                 WRITE(IFIL62,'(A, 1P,2E12.4,A)')
+     1          ' 6061.  0.83333  0.83333 ',ECY,ECZ,
+     1          ', $ Mat.ID,Sfy,Sfz,ECY,ECZ'
+                 WRITE(IFIL62,'(A)')' 0.   0.   $ Scc, etc.'
+              ENDIF
+           ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+           IF (IMODEL.EQ.1) THEN
+              MRTEND = MSTAGS - 22 + 10 
+              MRTND2 = MSTAGS - 22 + 8
+           ENDIF
+           IF (IMODEL.EQ.2) THEN
+              MRTEND = MSTAGS -6 + 4
+              MRTND2 = MSTAGS -6 + 2
+           ENDIF
+           IF (JEND.EQ.0) THEN
+             IF (I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2) THEN
+               IF (UPDNAL(I).EQ.1) THEN
+                 IF (MSTAGS.GT.1) THEN
+C BEG AUG 2010
+                    IF (I.EQ.1.AND.IMODEL.EQ.1) WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  3  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  6  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+C END AUG 2010
+                    IF (I.EQ.1.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  1  0  $P-1 IBLN(i),i=1,4, IBOND'
+C BEG AUG 2010
+                    IF (I.EQ.1.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  3  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  6  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.1) WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  3  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  6  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+C END AUG 2010
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  1  0  $P-1 IBLN(i),i=1,4, IBOND'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG AUG 2010
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  3  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  6  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.1) WRITE(IFIL62,'(A)')
+     1            ' 1  3  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  2  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+C END AUG 2010
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  1  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+C BEG AUG 2010
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1)
+     1                                          WRITE(IFIL62,'(A)')
+     1            ' 1  3  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+C    1            ' 1  2  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+C END AUG 2010
+                 ELSE
+                    WRITE(IFIL62,'(A)')
+     1            ' 1  2  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                 ENDIF
+               ELSE
+                 IF (MSTAGS.GT.1) THEN
+                  IF (I.EQ.1) WRITE(IFIL62,'(A)')
+     1          ' 1  2  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+                  IF (I.EQ.MRTEND) WRITE(IFIL62,'(A)')
+     1          ' 1  6  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                  IF (I.EQ.MRTND2) WRITE(IFIL62,'(A)')
+     1          ' 1  2  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+                 ELSE
+                  WRITE(IFIL62,'(A)')
+     1          ' 1  2  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                 ENDIF
+               ENDIF
+             ELSE
+               WRITE(IFIL62,'(A)')
+     1       ' 1  6  1  6  0  $P-1 IBLN(i),i=1,4, IBOND'
+             ENDIF
+C            End of I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2 condition
+           ENDIF
+C          End of JEND.EQ.0 condition
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+           IF (JEND.EQ.1) THEN
+             IF (I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2) THEN
+               IF (UPDNAL(I).EQ.1) THEN
+                 IF (MSTAGS.GT.1) THEN
+                    IF (I.EQ.1.AND.IMODEL.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  0  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+C                     WRITE(IFIL62,'(A)') ' 000  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 100  010  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  6  4  3  $P-1 JBLN(i),i=1,4'
+     1              ' 1  6  1  2  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+                    IF (I.EQ.1.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  0  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 100  010  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)')
+     1              ' 1  6  1  1  $P-1 JBLN(i),i=1,4'
+                    ENDIF
+                    IF (I.EQ.1.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  0  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 100  010  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  6  4  3  $P-1 JBLN(i),i=1,4'
+     1              ' 1  6  1  2  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  0  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 111  111  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  6  4  3  $P-1 JBLN(i),i=1,4'
+     1              ' 1  6  1  2  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)')
+     1              ' 1  6  1  6  $P-1 JBLN(i),i=1,4'
+                    ENDIF
+                    IF (I.EQ.MRTEND.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  6  4  3  $P-1 JBLN(i),i=1,4'
+     1              ' 1  6  1  2  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  0  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 111  111  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  3  4  6  $P-1 JBLN(i),i=1,4'
+     1              ' 1  2  1  6  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.2.AND.ISIMP.EQ.0) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)')
+     1              ' 1  1  1  6  $P-1 JBLN(i),i=1,4'
+                    ENDIF
+                    IF (I.EQ.MRTND2.AND.IMODEL.EQ.2.AND.ISIMP.EQ.1) THEN
+                      WRITE(IFIL62,'(A)')
+     1              ' 0  6  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                      WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                      WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+C BEG AUG 2010
+                      WRITE(IFIL62,'(A)')
+C    1              ' 1  3  4  6  $P-1 JBLN(i),i=1,4'
+     1              ' 1  2  1  6  $P-1 JBLN(i),i=1,4'
+C END AUG 2010
+                    ENDIF
+C                End of MSTAGS.GT.1 condition
+                 ELSE
+C                Beginning of MSTAGS.EQ.1 condition
+                    WRITE(IFIL62,'(A)')
+     1            ' 1  2  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                 ENDIF
+C                End of MSTAGS.GT.1 or MSTAGS.EQ.1 condition
+C              End of UPDNAL(I).EQ.1 condition
+C
+               ELSE
+C
+C              Begining of UPDNAL(I).EQ.2 condition
+                 IF (MSTAGS.GT.1) THEN
+                  IF (I.EQ.1) THEN
+                    WRITE(IFIL62,'(A)')
+     1            ' 0  0  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                    WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 100  010  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)')
+     1            ' 1  2  1  6  $P-1 JBLN(i),i=1,4'
+                  ENDIF
+                  IF (I.EQ.MRTEND) THEN
+                    WRITE(IFIL62,'(A)')
+     1            ' 0  6  0  0  1  $P-1 IBLN(i),i=1,4, IBOND'
+                    WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 111  111  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)')
+     1            ' 1  6  1  2  $P-1 JBLN(i),i=1,4'
+                  ENDIF
+                  IF (I.EQ.MRTND2) THEN
+                   WRITE(IFIL62,'(A)')
+     1            ' 0  0  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+                    WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 111  111  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+                    WRITE(IFIL62,'(A)')
+     1            ' 1  2  1  6  $P-1 JBLN(i),i=1,4'
+                  ENDIF
+C                End of MSTAGS.GT.1 condition
+                 ELSE
+C                Beginning of MSTAGS.EQ.1 condition
+                  WRITE(IFIL62,'(A)')
+     1          ' 1  2  1  2  0  $P-1 IBLN(i),i=1,4, IBOND'
+                 ENDIF
+C                End of MSTAGS.GT.1 or MSTAGS.EQ.1 condition
+               ENDIF
+C              End of UPDNAL(I).EQ.1 or UPDNAL(I).EQ.2 condition
+C            End of I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2 condition
+             ELSE
+C            Begin .NOT. I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2 condition
+               WRITE(IFIL62,'(A)')
+     1       ' 0  6  0  6  1  $P-1 IBLN(i),i=1,4, IBOND'
+               WRITE(IFIL62,'(A)') ' 111  000  $P-2 ITRA, IROT'
+               WRITE(IFIL62,'(A)') ' 011  000  $P-2 ITRA, IROT'
+               WRITE(IFIL62,'(A)')
+     1       ' 1  6  1  6  $P-1 JBLN(i),i=1,4'
+             ENDIF
+C            End of I.EQ.1.OR.I.EQ.MRTEND.OR.I.EQ.MRTND2 condition
+           ENDIF
+C          End of JEND.EQ.1 condition
+           IF (JEND.EQ.0) THEN
+            WRITE(IFIL62,'(A)')
+     1    ' 0  0  0  1   $Q-1 NSYS,NICS,NAMS,NUSS' 
+            PNXA = FNHOOP(I) 
+            WRITE(IFIL62,'(1P,E14.6,A)')
+     1      PNXA,'  0. 0. 0. 0. 0. $Q-5 PNXA,PNYA,PNXYA,PNXB,PNYB,PNXYB'
+           ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+           IF (JEND.NE.0) THEN
+             WRITE(IFIL62,'(A)')
+     1     ' 1 0 0 0 0 $ q-1 NSYS,NICS,NAMS,NUSS,NHINGE... (loading)'
+             WRITE(IFIL62,'(A)') ' 1  1  0 $ q-2 ISYS,NN,USRLD'
+             WRITE(IFIL62,'(1PE14.6,A)') -EPSX*ZGC3(1),
+     1     ' -1  1  1 0 0 0 $ q-3 P,LT,LD,LI,LJ,LAX,NX (end shortening)'
+           ENDIF
+C
+           WRITE(IFIL62,'(A)')
+     1   ' 0  0  0  0  0  $R-1 IPRD,IPRR,IPRE,IPRS,IPRP'
+C
+  470     CONTINUE
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C BEG AUG 2010
+C  Add records for rigid link fasteners:
+C         IF (ILINKS.EQ.1) THEN
+          IF (ILINKS.EQ.1.AND.ISIMP.EQ.1) THEN
+           KELT = 130
+           NUNITE = 0
+           DO 1000 IMODUL = 1,MODULS
+            WRITE(IFIL62,'(A)') 'C '
+            WRITE(IFIL62,'(A,I3)')
+     1     'C  fasteners for 6 units, module no. ',IMODUL
+            DO 600 ISEG = 1,6
+             IENDUP = 1
+             IF (ISEG.EQ.6) IENDUP = 2
+             IF (ISEG.EQ.5.AND.IMODUL.GT.1) IENDUP = 2
+             DO 500 IENDS = 1,IENDUP
+              KUNIT = 6*(IMODUL-1) + ISEG
+              IF (KUNIT.EQ.1) GO TO 500
+              NUNITE = NUNITE + 1
+              IUTOT = NUNITS + NUNITE 
+              ISUNIT = KUNIT - 2
+              IF (ISEG.EQ.1) ISUNIT = KUNIT - 6 + 1
+              IF (ISEG.EQ.6.AND.IENDS.EQ.1) ISUNIT = KUNIT - 3
+              IF (ISEG.EQ.5.AND.IENDS.EQ.2) ISUNIT = KUNIT - 6 - 1
+              IF (ISEG.EQ.2) ISUNIT = KUNIT - 1
+C             ICOL1 is the column number in the lower- numbered shell unit
+C             ICOL2 is the column number in the higher-numbered shell unit
+              ICOL1 = NODJ(ISUNIT)
+              ICOL2 = 1
+              IF (ISEG.EQ.6.AND.IENDS.EQ.2) ICOL2 = NODJ(KUNIT)
+              IF (ISEG.EQ.5.AND.IENDS.EQ.1) ICOL2 = NODJ(KUNIT)
+              WRITE(IFIL62,'(A,I3,A,I3,A)')
+     1       'C  fastener for segment number',ISEG,
+     1       ', (fastener f.e. unit: Unit No.',IUTOT,') ...'
+              WRITE(IFIL62,'(A,I4,A,I4,A,I4,A,I3)')
+     1      ' 1',ISUNIT,' 1',ICOL1,
+     1      ' 0. 0. 0. 111 111 0',NROWS,' $ s-1 skin-link,seg.',ISEG
+              WRITE(IFIL62,'(A)')
+     1 ' 1  0  1  0  0.  0.  0. $ s-1a JUPT,JUS,JRS..user pt. increment'
+              WRITE(IFIL62,'(2I4,A,I3,A,I4,A,I2,A)') NROWS+1,KUNIT,
+     1      ' 1',ICOL2,'  0. 0. 0. 111 111 0',NROWS,
+     1      ' $ s-1 seg.',ISEG,'-link'
+              WRITE(IFIL62,'(A)')
+     1 ' 1  0  1  0  0.  0.  0. $ s-1a JUPT,JUS,JRS..user pt. increment'
+              WRITE(IFIL62,'(A,I4,A,I4,A,I3)') ' 1',NROWS+1,
+     1      ' 2 ',KELT,' 1 0 0 0 $ t-1 N1,N2,NR,KELT,NDEFS, seg.',ISEG
+              IF (KELT.EQ.130) WRITE(IFIL62,'(A)')
+     1' 1 1 1 2 1 1  2 2 2 2 2 2 $ t-1c 6 mount table id; 6 breakage id'
+              IF (KELT.EQ.120) WRITE(IFIL62,'(A)') ' 1.0  $ t-1b SCALE'
+              WRITE(IFIL62,'(A,I4,A,2I4,A,I3)')
+     1      ' 2',NROWS+2,' 1 ',KELT,NROWS-1,
+     1      ' 1 1 0 $ t-1 N1,N2,NR,KELT,NDEFS, seg.',ISEG
+              IF (KELT.EQ.130) WRITE(IFIL62,'(A)')
+     1' 1 1 1 2 1 1  2 2 2 2 2 2 $ t-1c 6 mount table id; 6 breakage id'
+              IF (KELT.EQ.120) WRITE(IFIL62,'(A)') ' 1.0  $ t-1b SCALE'
+              WRITE(IFIL62,'(A,I3)')
+     1 ' 0  $ u-1 NSYS (no loading) fastener for segment no.',ISEG
+              WRITE(IFIL62,'(A,I3)')
+     1' 0 0 0 0 0 0 0 0 0 $ v-1 output control, fastener, seg. no.',ISEG
+C
+  500        CONTINUE
+  600       CONTINUE
+ 1000      CONTINUE
+          ENDIF
+C END AUG 2010
+C
+          CLOSE(UNIT=62)
+          IF (INDX.EQ.1.OR.(INDX.EQ.2.AND.ISIMP.EQ.1)) THEN
+            WRITE(IFILE,'(/,/,A,/,A)')
+     1    ' STAGS input file for local buckling: ',
+     1      CASA2
+          ELSE
+            WRITE(IFILE,'(/,/,A,/,A)')
+     1    ' STAGS input file for general buckling: ',
+     1      CASA3
+          ENDIF
+C
+      ENDIF
+C     End of: IF (IFIL14.EQ.24.AND.INDX.NE.0.AND.ITYPEX.EQ.2) THEN
+C     IF (INDX.EQ.1) CALL EXIT
+C     End of STAGS stuff
+C END JUL 2010
+C
+      RETURN
+      END

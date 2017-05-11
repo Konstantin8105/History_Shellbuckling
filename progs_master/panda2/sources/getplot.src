@@ -1,0 +1,182 @@
+C BEG 26 JAN 1989
+C=DECK      GETPLOT
+C  PURPOSE IS TO CHOOSE WHICH VARIABLES TO GET PLOTS OF.
+C
+      PROGRAM GETPLOT
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+C END FEB 1995
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+      DIMENSION ABSCIS(50),ORDNAT(50,20),LEGEND(20),LENGTH(20)
+      CHARACTER*100 WORHED
+      CHARACTER*80 PHRASE
+      CHARACTER*4 ANSOUT,QUAL
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE1,CASE2,CASE3,CASE4,CASE5,CASE7,CASE8,CASE9,CASEU
+      CHARACTER*72 LEGEND
+      LOGICAL ANSL1
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+      I=INDEX(CASE,' ')
+      IX = I
+      IF(I.NE.0) THEN
+         CASE8=CASE(:I-1)//'.OPL'
+         CASE3=CASE(:I-1)//'.PL3'
+      ELSE
+         CASE8=CASE//'.OPL'
+         CASE3=CASE//'.PL3'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2
+      IFILE3= 3
+      IFILE8= 8
+      ifile71 = 71
+C
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile71, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ifile71)
+#endif
+      else
+	OPEN(UNIT=ifile71, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='OLD')
+#if rs6k
+        rewind(ifile3)
+#endif
+      else
+	OPEN(UNIT=ifile3, FILE=case3(1:lastch(case3)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case8(1:lastch(case8)), EXIST=exists)
+      if (exists) then
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+	OPEN(UNIT=ifile8, FILE=case8(1:lastch(case8)), STATUS='NEW')
+      endif
+C
+      WRITE(6,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,5) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+    5 FORMAT(//' ***************** GETPLOT  *******************'/
+     1' The purpose of GETPLOT is to permit you to set up a'/
+     1' formatted file called ',A,'.PL3 which contains abscissa'/
+     1' values and ordinate values that you have provided'/
+     1' interactively. This file is input to DIPLOT2.'//
+     1' The results of the interactive session are saved in a file'/
+     1' called ',A,'.GPL, in which ',A,' is your name for the case.'/
+     1' You may find this file useful for future runs of GETPLOT'/
+     1' in which you want to avoid answering many questions'/
+     1' interactively.'/
+     1' ****************************************************'/)
+C
+      QUAL = '.GPL'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE)
+C
+      I = 0
+   50 CONTINUE
+      I = I + 1
+      REWIND IFILE
+      CALL DATUM(IFILE,25,1,1,INT,ABSCIS(I),CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,26,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 50
+      IABSCI = I
+C
+      NTRACE = 0
+   60 CONTINUE
+      NTRACE = NTRACE + 1
+      WRITE(6,*)' Provide a legend (up to 72 char.) for trace no.',
+     1 NTRACE
+      READ(INFILE,65) LEGEND(NTRACE)
+      WRITE(IOUT,66) LEGEND(NTRACE)
+   65 FORMAT(A)
+   66 FORMAT(1X,A)
+      I = 0
+   70 CONTINUE
+      I = I + 1
+      IF (I.GT.IABSCI) THEN
+         WRITE(6,75) IABSCI
+   75 FORMAT(/' TOO MANY ORDINATE VALUES FOR THIS TRACE. THE NUMBER'/
+     1' OF ORDINATE VALUES MUST EQUAL THE NUMBER OF ABSCISSA VALUES,'/
+     1' WHICH IS', I3/)
+         CALL EXIT
+      ENDIF
+      REWIND IFILE
+      CALL DATUM(IFILE,27,1,1,INT,ORDNAT(I,NTRACE),
+     1           CHARAC,IOUT,I,IPROMP)
+      CALL DATUM(IFILE,28,1,1,INT,REALL,ANSOUT,IOUT,NTRACE,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 70
+      CALL DATUM(IFILE,29,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 60
+C
+C  Next, generate a file, *.PL3, which contains data in a format
+C  suitable for plotting via the program DIPLOT, written by Karen Neier.
+C  The file, *.PL3, contains the data you have just provided
+C  interactively.
+C
+      REWIND IFILE3
+      NTRAC1 = NTRACE + 1
+      WRITE(IFILE3,910) NTRAC1
+      WRITE(IFILE3,920) ' DIPLOT2 INP'
+      KOUNT = 0
+C
+      DO 80 ITRACE = 1,NTRACE
+        WRITE(IFILE3,920) LEGEND(ITRACE)
+   80 CONTINUE
+      DO 90 I = 1,IABSCI
+   90 WRITE(IFILE3,930) ABSCIS(I),(ORDNAT(I,J),J=1,NTRACE)
+      CLOSE(UNIT=IFILE3)
+C
+  910 FORMAT(I4)
+  920 FORMAT(A)
+  930 FORMAT(8E12.5)
+C
+      WRITE(6,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1             CASE(1:NLET)
+      IF (IPROMP.GT.1)
+     1  WRITE(IFILE8,400) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1                    CASE(1:NLET)
+  400 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.GPL = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of GETPLOT.'/
+     1 1X,A,'.OPL = Output from GETPLOT. Please list this file and'/
+     1'          inspect it and the ',A,'.GPL file carefully before'/
+     1'          proceeding.'/
+     1 1X,A,'.PL3 = File for plots via DIPLOT2'/
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' GIVE THE COMMAND:  DIPLOT2   .')
+C
+      CLOSE(UNIT=IOUT)
+      CLOSE(UNIT=2)
+      CLOSE(UNIT=8)
+C
+      END

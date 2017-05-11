@@ -1,0 +1,572 @@
+1.0   BOSOR4 INPUT DATA, INTERACTIVE MODE
+
+      Initial prompts are short, and may contain data names a new
+      user is not familiar with.  Please type H instead of
+      any datum called for, and you will get more information on that
+      datum.
+
+      Page numbers contained in some of the prompts refer to the
+      article: "BOSOR4--Program for stress, buckling, and vibration
+      of complex shells of revolution," STRUCTURAL MECHANICS
+      SOFTWARE SERIES--VOL. I, (N. Perrone & W. Pilkey, editors),
+      University Press of Virginia, 1977, pp. 11-143.  This is a
+      user's manual that contains additional discussion and figures.
+
+      For many examples of shell buckling, discussions of imperfection
+      sensitivity, and descriptions of the physics of shell buckling
+      from an engineer's point of view, please see the book,
+      COMPUTERIZED BUCKLING ANALYSIS OF SHELLS, by D. Bushnell,
+      published by Martinus Nijhoff, Kluwer Academic Publishers,
+      190 Old Derby St., Hingham, MA 02043,or Dordrecht,
+      The Netherlands, 1985.
+
+1.1   Title of case (42 characters or less)
+2.1   INDIC = analysis type indicator
+2.2  
+       0= nonlinear axisymmetric stress (and collapse) analysis,
+      -2= stability determinant calculated for increasing load,
+      -1= bifurcation buckling with nonlinear prebuckling analysis,
+       1= bifurcation buckling with "linear"  prebuckling analysis;
+          (Actually the prebuckling analysis is the same as for
+           INDIC = -1.  However, the applied load is never changed
+           during a case.  Linear behavior is exhibited as long as
+           the user applies a load that is very small compared to
+           the design load.)
+
+       2= modal vibration with axisymmetric nonlinear prestress.
+       3= linear nonsymmetric stress analysis;
+          (Note that the maximum number of circumferential harmonics
+           has been increased from 20 to the following:
+
+             NHARM MAX.  = MIN [90, 1250/NSEG]
+
+           in which NSEG is the number of shell segments.)
+
+       4= bifurcation buckling with linear nonsymmetric prebuckling.
+
+3.1   NPRT = output options (1=minimum, 2=medium, 3=maximum)
+4.1   NLAST = plot options  (-1=none, 0=geometry, 1=u,v,w)
+4.2     
+      NLAST = -1 means no plotting;
+               0 means plots of undeformed and deformed
+                 geometry only;
+               1 means plots of geometry and u,v,w vs arc length.
+
+5.1   ISTRES= output control (0=resultants, 1=sigma, 2=epsilon)
+5.2    
+      ISTRES = 0 means stress resultants will be output
+             = 1 means extreme fiber stresses will be output
+                 (valid for single-layer isotropic walls only);
+             = 2 means strains and curvature changes will be
+                 output (any shell wall type).
+
+      If you want stress output for an orthotropic layered shell,
+      set ISTRES = 2 and compute the stresses from the strains and
+      changes in curvature of the reference surface.
+
+      If INDIC is different from 0 or 3, ISTRES will be set = 0
+      by BOSOR4 regardless of what you choose for it.
+
+6.1   IPRE  = indicator for prebuckling stress calculation (0 or 1)
+6.2     
+        0 = prebuckling state read from input,
+        1 = prebuckling state calculated by BOSOR4.
+
+7.1   JPLOT = indicator for the number of zoomed plots
+8.1   KPLOT(I) = location of Ith station for expanded plots 
+8.2      
+       Example:  1053 means Segment #1, mesh point #53
+
+9.1   LPLOT(I) = magnification factor for Ith expanded plot
+10.1  NSEG  = number of shell segments (less than 295)
+12.0
+      Your title contains the string, "prism" or "Prism" or "PRISM".
+      Therefore, bigbosor4 will assume you have a prismatic shell
+      rather than a shell of revolution. See ITEM NO. 31 in the
+      file, ...bigbosor4/doc/bosor4.news
+
+13.1  AXIALL= length of the prismatic shell
+15.1  IFACTR= multiply previous load step by IFACTR if easy converg.
+16.1  NSTART= starting number of circ. waves (lin. stress analysis)
+16.2    
+      BOSOR4 is valid for both positive and negative values of the
+      circumferential wave number, n.  For positive n the normal
+      displacement w varies around the circumference as sin(n*theta),
+      whereas for negative n,  w varies as cos(n*theta).  The table
+      below shows how other variables and loads vary with + or - n:
+      =============================================================
+      VARIABLES   DEFINITION OF VARIABLES  CIRCUMFERENTIAL VARIATION
+                                             zero or      zero or
+                                             pos. n       neg. n
+      --------------------------------------------------------------
+         u      meridional displacement   sin(n*theta)  cos(n*theta)
+         v      circumferential disp.     cos(n*theta)  sin(n*theta)
+         w      normal outward disp.      sin(n*theta)  cos(n*theta)
+         V      axial line load           sin(n*theta)  cos(n*theta)
+         S      shear line load           cos(n*theta)  sin(n*theta)
+         H      radial line load          sin(n*theta)  cos(n*theta)
+         M      meridional moment         sin(n*theta)  cos(n*theta)
+       TNR,TMX,TMY  thermal line loads    sin(n*theta)  cos(n*theta)
+        PT      meridional traction       sin(n*theta)  cos(n*theta)
+        PC      circumfer. traction       cos(n*theta)  sin(n*theta)
+        PN      normal pressure           sin(n*theta)  cos(n*theta)
+         T      temperature               sin(n*theta)  cos(n*theta)
+       ==============================================================
+17.1  NFIN  = ending number of circ. waves (linear stress analysis)
+17.2   
+      NOTE...The number of circumferential harmonics, NHARM, is
+      given by   NHARM = IABS(NSTART-NFIN)/IABS(INCR) + 1  . The
+      maximum permitted is:
+        NHARM MAX. = MIN [90, 1250/NSEG]
+      INCR is the increment or decrement in the number of circ. waves.
+
+18.1  INCR  = step in number of circ. waves (linear stress)
+18.2   
+      INCR may be positive or negative.
+
+19.1  N0B   = starting number of circ. waves (buckling analysis)
+20.1  NMINB = minimum number of circ. waves  (buckling analysis)
+21.1  NMAXB = maximum number of circ. waves  (buckling analysis)
+22.1  INCRB = increment in number of circ. waves (buckling)
+23.1  NVEC  = number of eigenvalues for each wave number
+24.1  NDIST = number of circ. stations for meridional output
+24.2
+      Use a small number. On big models, use NDIST = 1 and take
+      advantage of the restart capability.
+
+25.1  THETA = circ. stations (in deg.) for meridional output.
+26.1  NCIRC = number of meridional stations for circ. distibutions
+26.2   
+      Use a small number, less than 5.
+
+27.1  ITHETA= meridional location for circumferential output
+27.2   
+              Example: 1011 means segment #1, mesh point #11
+
+28.1  NTHETA= number of output points along circ. from 0 to THETAM.
+28.2   
+      Use maximum of 91 points.
+29.1  THETAM= range of circumferential Fourier expansion & output
+29.2   
+      Circumferential distributions are printed and plotted for
+      0 < THETA < THETAM.
+
+      Loads expanded in Fourier series over -THETAM < THETA < +THETAM
+
+      THETAM is usually equal to 180 deg.  THETAM must be less
+      than or equal to 180 deg.
+
+30.1  THETAS= Nx & Ny along this meridian used in buckling analysis.
+30.2   
+      Prebuckling stress resultant distribution corresponding to
+      THETA = THETAS is assumed to be axisymmetric in the stability
+      analysis.
+
+31.0
+      IPRISM = 1 in this BIGBOSOR4 case.
+      Therefore, the BIGBOSOR4 analysis applies to a true prismatic
+      shell or true prismatic assemblage of shells. The next four
+      input data, N0B, NMINB, NMAXB, INCRB, that you must supply
+      are numbers of axial half waves, N0B, NMINB, NMAXB, along the
+      length, AXIALL, of the prismatic shell and the increment,
+      INCRB, of axial half waves to be used in the search for the
+      buckling load factor and mode shape of the true prismatic
+      shell structure. Please see the file,
+      .../bigbosor4/case/prismatic/prismatic.tar.gz
+      for complete information on true prismatic shells and how
+      the true-prismatic-shell option has been included into
+      BIGBOSOR4.
+
+32.1  N0B   = starting number of axial half waves (buckling analysis)
+34.1  NMINB = minimum number of axial half waves  (buckling analysis)
+36.1  NMAXB = maximum number of axial half waves  (buckling analysis)
+38.1  INCRB = increment in number of axial half waves (buckling)
+40.1  IPRISM=0 for shell of revolution, 1 for true prismatic shell
+40.2 
+      Please see the file, .../bigbosor4/case/prismatic/prismatic.tar.gz,
+      for complete information about true prismatic shells. In order
+      to unpack the compressed tar file, prismatic.tar.gz, type the
+      following two commands:
+      gunzip prismatic.tar.gz
+      tar xvf prismatic.tar
+      Then read the file, prismaticshell.readme .
+
+45.0  
+      Next, please provide factors P and DP,  TEMP and DTEMP, which
+      are multipliers for the pressure, surface traction, and
+      temperature distributions in load system "A".  Note that these
+      multipliers are applied only to load system "A".  They are not
+      applied to load system "B".  (Load system "A" represents the
+      "eigenvalue" load system.  Load system "B" is constant
+      throughout the case.)
+
+47.1  P      = pressure or surface traction multiplier
+47.2   
+      The factor P is applied only to the distributed mechanical
+      loads in load system "A".  For example, if INDIC is less than
+      three (axisymmetric loading), the normal pressure along Segment
+      No. i for load system "A" is given in the first load step by:
+
+        pressure = P*PN(j)         j = 1, 2, ....NMESH(i)
+
+      in which PN(j) is the meridional pressure distribution.
+
+      See pp. 58-60 for further discussion of loading parameters.
+
+48.1  DP     = pressure or surface traction multiplier increment
+49.1  TEMP   = temperature rise multiplier
+49.2   
+      See pp. 58 for a discussion.  The discussion included
+      for the pressure multiplier P applies here also.
+
+50.1  DTEMP  = temperature rise multiplier increment
+51.1  Number of load steps
+51.2  
+      Must be less than 25.  It is generally advisable to use less
+      than about 10.  In big cases use about 3, look at your results,
+      then do RUN RESTART to do more.
+
+
+52.1  FSTART = starting load (see p 58)
+53.1  FMAX   = maximum load  (see p 58)
+54.1  DF     = load increment ( see p 58-60)
+55.1  OMEGA  = angular vel. about axis of revolution (rad/sec)
+56.1  DOMEGA = angular velocity increment (rad/sec)
+57.1  OMEGDR = driving frequency for harmonic forcing (rad/sec)
+58.1  GLATRL = no. of g's lateral forcing (base excitation only)
+59.1  GAXIAL = no. of g's axial forcing (base excitation only)
+60.0  
+      Four kinds of constraint conditions exist in BOSOR4:
+  
+       1. constraints to ground (e.g. boundary condtions)
+       2. juncture compatibility conditions
+       3. regularity conditions at poles (where radius r = 0)
+       4. constraints to prevent rigid body displacements
+  
+      See the fig. on p. 54, for example.  There is a constraint to
+      ground (boundary condition) at Segment 8, Point 8; there are
+      several juncture conditions (e.g. Seg. 2, Pt. 1 is connected
+      to Seg. 1, Pt. 9); there are several poles (e.g. Seg. 1,
+      Pt. 1).  Note that if a shell is not anywhere attached to
+      ground, such as is the case for the example shown on p. 57,
+      the user must choose a node at which to prevent rigid body
+      motion. This node is to be chosen in the section below where
+      the user is asked about constraints to ground. In a section
+      following the "constraints-to-ground" section, the user will
+      be asked to provide specific data for preventing rigid body
+      motion.  Types of rigid body motion are shown on p. 56. An
+      example of appropriate input data is listed on p. 57, bottom.
+    
+61.1  How many segments in the structure?
+62.1  Number of poles (places where r=0) in SEGMENT
+62.2    
+      Your response should probably be 0 or 1.
+
+64.1  IPOLE = nodal point number of pole, IPOLE
+66.1  At how many stations is this segment constrained to ground?
+66.2  
+      This count does not include poles. Multiple constraints to
+      ground within any one segment must be spaced at intervals of
+      at least 3 nodal points.
+
+68.1  INODE = nodal point number of constraint to ground, INODE
+70.1  IUSTAR=axial displacement constraint (0 or 1 or 2)
+70.2   
+      The nature of the constraint condition is governed by four
+      integers which, in the case of a connection to ground, 
+      indicate whether USTAR, VSTAR, WSTAR, and CHI are free 
+      or constrained to be zero or forced to have certain finite
+      values. For example, IUSTAR may be 0 or 1 or 2 :
+         IUSTAR = 0 means that USTAR is free at the node INODE
+         IUSTAR = 1 means that USTAR   =  0  at the node INODE
+         IUSTAR = 2 means that USTAR is imposed at  node INODE
+      For example, simple support at the node INODE on a cylindrical
+      shell is indicated by:
+         IUSTAR = 0 (axial displacement USTAR is free)
+         IVSTAR = 1 (circumferential displacement VSTAR is zero)
+         IWSTAR = 1 (radial displacement WSTAR is zero)
+         ICHI   = 0 (meridional rotation CHI is free)
+      An example of imposed axial displacement is:
+         IUSTAR = 2 (axial displacement USTAR is imposed)
+         IVSTAR = 0 (circumferential displacement VSTAR is free)
+         IWSTAR = 0 (radial displacement WSTAR is free)
+         ICHI   = 1 (meridional rotation CHI is zero)
+      Note that the constraints are applied in an (axial,radial)
+      sense, not in a (meridional,normal) sense. At the bottom of
+      p. 51 the directions of displacement components USTAR and
+      WSTAR are shown, as well as CHI and V.  VSTAR is the same as V.
+
+71.1  IVSTAR=circumferential displacement(0=free,1=0,2=imposed)
+72.1  IWSTAR=radial displacement(0=free,1=constrained,2=imposed)
+73.1  ICHI=meridional rotation (0=free,1=constrained,2=imposed)
+74.1  D1    = radial component of offset of ground support
+74.2   
+      See Fig. A1 on p. 52
+
+75.1  D2    = axial component of offset of ground support
+80.1  Is this constraint the same for both prebuckling and buckling?
+80.2   
+      Different conditions may exist in the prebuckling phase from
+      those in the buckling or vibration phase.  The most common
+      case involves antisymmetric buckling or vibration at a
+      symmetry plane.  A common oversight is the failure to run
+      a case in which buckling and vibration modes are sought
+      which are antisymmetric with respect to a structural plane
+      of symmetry.  The user should check for modes both symmetrical
+      and antisymmetrical at symmetry planes.
+
+      If IUSTAR or IWSTAR or ICHI were 2 (imposed displacement), you
+      must reset them in the bifurcation buckling analysis to either
+      0 or 1  (probably 1, as an imposed displacement in the pre-
+      buckling analysis implies no freedom of motion during buckling
+      deformations).
+
+81.1  IUSTARB= axial displacement for buckling or vibration phase
+81.2   
+      This and the following three items refer to the constraint
+      conditions to be active during the bifurcation buckling
+      or modal vibration phase of the analysis.  Apparently at
+      least one of these conditions is different from what it
+      is in the prebuckling analysis.
+
+82.1  IVSTARB= circ. displacement for buckling or vibration phase
+83.1  IWSTARB= radial displacement for buckling or vibration
+84.1  ICHIB  = meridional rotation for buckling or vibration
+86.1  Is this segment joined to any lower-numbered segments?
+86.2   
+      The segments are numbered 1, 2, . . .NSEG, in the order
+      in which input data were provided for them.  We are
+      concerned here only with those segments joined to the
+      current segment and haviong preceeded it in the segment-
+      by-segment input phase.
+
+88.1  At how may stations is this segment joined to previous segs.?
+88.2   
+      Note that such junctions must be at intervals of at least 3
+      nodal points, no closer.
+
+90.1  INODE = node in current segment (ISEG) of junction, INODE
+92.1  JSEG  = segment no. of lowest segment involved in junction
+94.1  JNODE = node in lowest segmnt (JSEG) of junction
+96.1  IUSTAR= axial displacement (0=not slaved, 1=slaved)
+96.2   
+      The nature of the juncture condition is governed by four
+      integers, IUSTAR, IVSTAR, IWSTAR, and ICHI, which
+      indicate whether USTAR, VSTAR, WSTAR, and CHI are not
+      slaved or are slaved at the junction.  Most of the time you
+      will supply the following input:
+
+         IUSTAR = 1 (axial displacement u is slaved)
+         IVSTAR = 1 (circumferential displacement v is slaved)
+         IWSTAR = 1 (radial displacement w is slaved)
+         ICHI   = 1 (meridional rotation CHI is slaved)
+
+      Note that the constraints are applied in an (axial,radial)
+      sense, not in a (meridional,normal) sense.
+      See figure at bottom of p. 51; also figure on p. 54.
+98.1  IVSTAR= circumferential displacement (0=not slaved, 1=slaved)
+
+100.1 IWSTAR= radial displacement (0=not slaved, 1=slaved)
+102.1 ICHI  = meridional rotation (0=not slaved, 1=slaved)
+104.1 D1    = radial component of juncture gap
+104.2  
+      See Fig. A1, p.52
+
+106.1 D2    = axial component of juncture gap
+108.1 Is this constraint the same for both prebuckling and buckling?
+108.2  
+      Different conditions may exist in the prebuckling phase from
+      those in the buckling or vibration phase.  For example,
+      we may want to simulate the development of a plastic hinge
+      by using IUSTAR, IVSTAR, IWSTAR, ICHI = 1, 1, 1, 1  in the
+      prebuckling analysis and 1, 1, 1, 0 in the buckling phase.
+
+110.1 IUSTARB= axial displacement for buckling or vibration phase
+110.2  
+      This and the following three items refer to the constraint
+      conditions to be active during the bifurcation buckling
+      or modal vibration phase of the analysis.  Apparently at
+      least one of these conditions is different from what it
+      is in the prebuckling analysis.
+
+111.1 IVSTARB= circ. displacement for buckling or vibration phase
+112.1 IWSTARB= radial displacement for buckling or vibration
+113.1 ICHIB  = meridional rotation for buckling or vibration
+115.0   
+      It may be necessary to provide additional constraint to
+      ground in order to prevent rigid body motion.  All possible
+      types of rigid body motion are shown on p. 56. Rigid body
+      motion corresponds to n = 0 or n = 1 circumferential waves.
+      There is no rigid body component for any harmonic with n
+      greater than or equal to 2.  For modal vibration problems rigid
+      body motion need be prevented only if the structure is loaded.
+
+120.1 Given existing constraints, are rigid body modes possible?
+120.2  
+      Whether n=0 and/or n = 1 rigid body modes are possible
+      or not depends on the constraints to ground that you have
+      already supplied.  Please read p. 56 for examples of
+      rigid body motion.
+
+121.1 Do you wish to prevent rigid body motion?
+121.2  
+      You must prevent the possibility of rigid body motion if the
+      structure is loaded in any way.  You need not prevent rigid
+      body motion for modal vibration problems involving unloaded
+      structures.
+
+122.0   
+      Please establish a location (segment no. and nodal point no.)
+      at which to prevent rigid body motion.  This location must
+      not correspond to a pole (a place where r=0).  It must corres-
+      pond to one of the nodes involved in a "constraint-to-ground"
+      condition. (For example, see the data labeled "extra condition"
+      at the bottom of p. 57.)
+
+123.1 ISEG  = segment no. at which to prevent rigid body motion
+124.1 INODE = node no. at which to prevent rigid body motion
+125.0  
+      Rigid body motion for n = 0 and for n = 1 is prevented by
+      assigning 1's to certain of the control integers, IUSTAR,
+      IVSTAR, IWSTAR, and ICHI. Which of these should be unity and
+      which should be zero depends on your existing constraints to
+      ground.  The usual practice is to assign IUSTAR=1, IVSTAR=1,
+      IWSTAR = 0, and ICHI = 0.
+
+126.1 IUSTAR= axial n=0 rigid body constraint (0=none, 1=some)
+126.2  
+      IUSTAR should usually be set equal to 1 here.
+
+127.1 IVSTAR= circ. n=0 rigid body constraint (usually equals 1)
+128.1 IWSTAR= radial n=0 rigid body constraint (usually equals 0)
+129.1 ICHI  = meridional rot. rigid body constraint
+130.1 IUSTAR= axial n=1 rigid body constraint (usually equals 1)
+131.1 IVSTAR= circ. n=1 rigid body constraint (usually equals 1)
+132.1 IWSTAR= radial n=1 rigid body constraint (usually equals 0)
+133.1 ICHI  = meridional rot. rigid body constraint
+134.1 Is there a tank filled with fluid?
+134.2 
+      This section is entered only if there exists at least one
+      non-zero component of acceleration of gravity (axial, lateral,
+      or both), such as would be experienced by a payload in a
+      launch vehicle.
+
+      If you answer "Y" (you are allowed only one fluid-filled tank
+      per case!), you will next be asked to supply the following
+      information:
+
+       1. The WEIGHT density (e.g. lb/in**3) of the fluid, GAMMA
+       2. The axial length of the tank, AXLONG
+       3. The radius of the largest parallel circle in the tank, RBIG
+       4. The axial coordinate of the bottom of the tank, ZBEGIN
+       5. The segment numbers that comprise the tank, ISTANK(j),j=1,2,..
+       6. Whether the inside of the tank is on the left or right side
+          of the wall as you travel along the meridian.
+
+      NOTE: The tank is assumed to be completely full of the fluid.
+      BOSOR4 uses the above information plus the meridional geometry
+      of the tank and the axial and lateral g's, GAXIAL and GLATRL,
+      to which the tank is subjected to compute the pressure of the
+      fluid acting on the tank wall:
+
+      p(fluid) =
+        k*GAMMA{abs(GLATRL)*[RBIG -(GLATRL/abs(GLATRL))*r*cos(theta)]
+              +GAXIAL*[0.5*AXLONG*(1+GAXIAL/abs(GAXIAL)) -(z-ZBEGIN)]}
+
+      in which r is the radius of the parallel circle at z, z is the
+      axial coordinate of an arbitrary point on the tank meridian, and
+      theta is the circumferential coordinate. The factor k is +1.0 if
+      the inside of the tank is on the left side of the wall as you
+      travel along the meridian in the direction of increasing arc
+      length, s; k= -1.0 otherwise. (See p 66, bottom, of "BOSOR4:
+      Program for stress, buckling, and vibration of complex shells of
+      revolution", in STRUCTURAL MECHANICS SOFTWARE SERIES, Vol. 1,
+      N. Perrone and W. Pilkey, editors, Univ. Press of Virginia,
+      pp 11-141 (1974)).
+
+136.1 WEIGHT density (e.g. lb/in**3) of the fluid, GAMMA
+138.1 Axial length of the tank, AXLONG
+140.1 Radius of largest parallel circle in the tank, RBIG
+142.1 Axial coordinate of the bottom of the tank, ZBEGIN
+144.0 
+      Next, please provide the numbers of the segments of the tank wall
+      that "see" the normal pressure applied by the fluid.
+ 
+      NOTE: INCLUDE ONLY THOSE SEGMENTS THAT EXPERIENCE A DELTA-p
+            from the fluid across the wall!
+
+146.1 How many BOSOR4 segments in the tank "see" delta-p(fluid)?
+146.2 
+      NOTE: Include only those segments upon which a net fluid pressure
+            acts on the wall of the tank!
+
+148.1 Segment number, ISTANK
+149.1 Is the inside of the tank to the left of increasing arc, s?
+149.2 
+      The pressure of the fluid acting on the tank wall is given by:
+
+      p(fluid) =
+        k*GAMMA{abs(GLATRL)*[RBIG -(GLATRL/abs(GLATRL))*r*cos(theta)]
+              +GAXIAL*[0.5*AXLONG*(1+GAXIAL/abs(GAXIAL)) -(z-ZBEGIN)]}
+
+      in which r is the radius of the parallel circle at z, z is the
+      axial coordinate of an arbitrary point on the tank meridian, and
+      theta is the circumferential coordinate. The factor k is +1.0 if
+      the inside of the tank is on the left side of the wall as you
+      travel along the meridian in the direction of increasing arc
+      length, s; k= -1.0 otherwise. (See p 66, bottom, of "BOSOR4:
+      Program for stress, buckling, and vibration of complex shells of
+      revolution", in STRUCTURAL MECHANICS SOFTWARE SERIES, Vol. 1,
+      N. Perrone and W. Pilkey, editors, Univ. Press of Virginia,
+      pp 11-141 (1974)).
+      
+150.0 
+      If the loads in either Load Set A or Load Set B or both are
+      not self-equilibrating, such as is true for a free shell
+      subjected to a blast load from the side, you may want BOSOR4
+      to compute the inertial reactions from the applied loads.
+      This BOSOR does in the following way:
+       1. BOSOR calculates the total mass, c.g. location, and
+          mass moments of inertia of the entire structure.
+       2. BOSOR calculates the total forces Fx, Fy, Fz applied at
+          the origin of the global X,Y,Z cartesian coordinate
+          system, and total moments Mx, My, Mz about these axes.
+          The origin of the global X,Y,Z frame is on the axis of
+          revolution at Z = 0. Note that in order for the mass
+          properties (M, z(c.g.), I(c.g.), Iz) and forces Fx,Fy,Fz
+          and moments Mx,My,Mz to be properly calculated you must have
+          already provided the geometry of each segment of the
+          structure in terms of the global Z coordinate.
+       3. Given the six equations for rigid-body dynamics, accelerations
+          of the c.g. and angular accelerations about the c.g. are
+          calculated.
+       4. The components of linear acceleration in the normal,
+          meridional, and circumferential directions everywhere in the
+          structure are then calculated. These accelerations
+          yield inertial loads (F=ma!) that contribute to the line
+          loads (from discrete ring inertia) and distributed loads
+          corresponding to n = +1, n = 0, and n = -1 circumferential
+          waves.
+       The above steps 2., 3., and 4. are performed for either or both
+       Load Set A and/or Load Set B, if you so indicate next.
+       Please note that the calculations just described are performed
+       only for INDIC = 3 or 4.
+       Also note: You must of course supply masses for all the
+       structural parts, even though you regard this as a statics
+       problem.  No mass, no inertial reaction! Remember, the axial
+       coordinate input for each segment must be global for this to
+       work properly.
+
+155.1 Do you want inertial reactions to Load Set A?
+155.2 
+      This calculation is only performed for INDIC = 3 or 4!
+      Please answer N or NO if Load Set A consists only of thermal
+      loads or applied displacements.
+
+160.1 Do you want inertial reactions to Load Set B?
+160.2 
+      This calculation is only performed for INDIC = 3 or 4!
+      Please answer N or NO if there is no Load Set B, or if
+      Load Set B is only thermal or consists of applied displacements.
+  
+165.1 DUMMY ENTRY

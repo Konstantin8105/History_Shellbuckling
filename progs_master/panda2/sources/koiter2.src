@@ -1,0 +1,1142 @@
+C=DECK      CASUM
+      SUBROUTINE CASUM(C,A,CA,W0,R)
+C
+C  PURPOSE IS TO CALCULATE C(i,i,1)*A(j,1) + C(i,i,2)*A(j,2)
+C  AND A(i,1)*nu(1) + A(i,2)*nu(2) AND A(i,1) + A(i,2) AND
+C  SOME G's THAT ARE INDEPENDENT OF THE UNKNOWNS a0,a1,a2,a3,m,N
+C
+      COMMON/GS/G1,G2,G3,G4,G5,G6,G7,G8,G9,G10,G11,G12
+      COMMON/AN/AN1,AN2,AN3,AN30,AA1,AA2,AA3,AA4,AA5,AA6,
+     1          AA30,AA31,AA32,AA33,AA59,ANX1,ANX2,ANX3,ANX30,
+     1          AA65,AA66,AA67,AA68,AN65,AN66,ANX65,ANX66
+      COMMON/UWW13/ASUM4,ASUM6,ASUM6P,ASUM7,TSUM6,A6SUM2,A6SM10,
+     1            AX11,F1,KX,N2S,NX01,NX02,S2BAR,S3BAR,S4BAR,
+     1            FNHOOP,STF222,CS222,C12BAR,SSTAR,NUSTAR,C22INV,
+     1            C33INV
+C BEG NOV 1995
+      DIMENSION C(6,6,5), A(140,6), CA(140,2)
+C END NOV 1995
+      REAL NX01,NX02,KX,N2S,NUSTAR
+C
+       WRITE(8,10) N2S,F1,AX11,NX01,NX02,S2BAR,S3BAR,S4BAR
+   10  FORMAT(/' N2S=',1PE12.4/
+     1         '  F1=',1PE12.4/
+     1         ' AX11=',1PE12.4/
+     1         ' NX01=',1PE12.4/
+     1         ' NX02=',1PE12.4/
+     1         ' S2BAR=',1PE12.4/
+     1         ' S3BAR=',1PE12.4/
+     1         ' S4BAR=',1PE12.4/)
+       C1S = C(1,1,1) - C(1,2,1)**2/C(2,2,1)
+       C2S = C(1,1,2) - C(1,2,2)**2/C(2,2,2)
+      DO 100 I = 1,25
+       CA(I,1) =  C1S*A(I,1) + C2S*A(I,2)
+       CA(I,2) = (C(2,2,1)*A(I,1) + C(2,2,2)*A(I,2))/4.
+  100 CONTINUE
+       FNU1 =C(1,2,1)/C(2,2,1)
+       FNU2 =C(1,2,2)/C(2,2,2)
+       AN1 = A(1,1)*FNU1 +A(1,2)*FNU2
+       AN2 = A(2,1)*FNU1 +A(2,2)*FNU2
+       AN3 = A(3,1)*FNU1 +A(3,2)*FNU2
+C      AN30= A(30,1)*FNU1+A(30,2)*FNU2
+C      AN65= A(65,1)*FNU1+A(65,2)*FNU2
+C      AN66= A(66,1)*FNU1+A(66,2)*FNU2
+C
+       ANX1 = A(1,1)*NX01 +A(1,2)*NX02
+       ANX2 = A(2,1)*NX01 +A(2,2)*NX02
+       ANX3 = A(3,1)*NX01 +A(3,2)*NX02
+C      ANX30= A(30,1)*NX01+A(30,2)*NX02
+C      ANX65= A(65,1)*NX01+A(65,2)*NX02
+C      ANX66= A(66,1)*NX01+A(66,2)*NX02
+C
+       AA1 = A(1,1) + A(1,2)
+       AA2 = A(2,1) + A(2,2)
+       AA3 = A(3,1) + A(3,2)
+       AA4 = A(4,1) + A(4,2)
+       AA5 = A(5,1) + A(5,2)
+       AA6 = A(6,1) + A(6,2)
+C      AA30= A(30,1) + A(30,2)
+C      AA31= A(31,1) + A(31,2)
+C      AA32= A(32,1) + A(32,2)
+C      AA33= A(33,1) + A(33,2)
+C      AA59= A(59,1) + A(59,2)
+C      AA65= A(65,1) + A(65,2)
+C      AA66= A(66,1) + A(66,2)
+C      AA67= A(67,1) + A(67,2)
+C      AA68= A(68,1) + A(68,2)
+C
+C      G1 = W0*W0*CA(11,2)/16. +   CA(1,2)/R**2
+C      G2 = W0*W0*CA(12,2)/32. +2.*CA(2,2)/R**2
+C      G3 = W0*W0*CA(26,2)/64. +   CA(3,2)/R**2
+C      G4 =    W0*CA(11,2)/16.
+C      G5 =    W0*CA(12,2)*3./64.
+C      G6 =    W0*CA(13,2)/32.
+C      G7 =    W0*CA(14,2)/64.
+C      G8 =       CA(11,2)/64.
+C      G9 =       CA(12,2)/64.
+C      G10=       CA(13,2)/64.
+C      G11=       CA(14,2)/64.
+C      G12=       CA(15,2)/64.
+C
+       CALL MOVER(0.,0,G1,1,12)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      VARIAT
+      SUBROUTINE VARIAT(CX,CA,A,W0,A0,A1,A2,A3,A4,A5,A6,
+     1                  M,N,R,NXY,P,E1,E2,E12,FACT)
+C
+C  PURPOSE IS TO CALCULATE FIRST AND SECOND VARIATIONS OF THE
+C  TOTAL POTENTIAL ENERGY, AS GIVEN IN PP. 60-73 OF MAY 1987 NOTES.
+C
+      COMMON/UWW13/ASUM4,ASUM6,ASUM6P,ASUM7,TSUM6,A6SUM2,A6SM10,
+     1            AX11,F1,KX,N2S,NX01,NX02,S2BAR,S3BAR,S4BAR,
+     1            FNHOOP,STF222,CS222,C12BAR,SSTAR,NUSTAR,C22INV,
+     1            C33INV
+      COMMON/GS/G1,G2,G3,G4,G5,G6,G7,G8,G9,G10,G11,G12
+      COMMON/AN/AN1,AN2,AN3,AN30,AA1,AA2,AA3,AA4,AA5,AA6,
+     1          AA30,AA31,AA32,AA33,AA59,ANX1,ANX2,ANX3,ANX30,
+     1          AA65,AA66,AA67,AA68,AN65,AN66,ANX65,ANX66
+      COMMON/FIRSTV/V1A0,V1A1,V1A2,V1A3,V1A4,V1A5,V1A6,V1M,V1N
+      COMMON/SECVAR/A0A0,A0A1,A0A2,A0A3,A0M,A0N,A1A1,A1A2,A1A3,
+     1         A1M,A1N,A2A2,A2A3,A2M,A2N,A3A3,A3M,A3N,MM,MN,NN,
+     1         A0A4,A1A4,A2A4,A3A4,A4A4,A4M,A4N,
+     1         A0A5,A1A5,A2A5,A3A5,A4A5,A5A5,A5M,A5N,
+     1         A0A6,A1A6,A2A6,A3A6,A4A6,A5A6,A6A6,A6M,A6N
+C BEG NOV 1995
+      DIMENSION CA(140,2),A(140,6),CX(6,6,5),D11(2),D12(2),D22(2)
+C END NOV 1995
+      DIMENSION D11M(2),D12M(2),D22M(2),D11MM(2),D12MM(2),D22MM(2)
+      REAL M,N,M2,N2,N2S,N2SS,KX,NXY,MM,MN,NN,NX01,NX02,NUSTAR
+C
+      AT  = A0 + W0
+C     G13   = AT*AT*CA(27,2) +AT*A1*CA(28,2) +A1*A1*CA(29,2)
+C    1           +CA(30,2)/R**2
+C     G13A0 = 2.*AT*CA(27,2) +   A1*CA(28,2)
+C     G13A1 =                 AT   *CA(28,2) +2.*A1*CA(29,2)
+C     G14   = W0*W0*CA(38,2) +2.*W0*A0*CA(39,2) +AT*A1*CA(40,2)
+C    1       +A0*A0*CA(39,2) +   A1*A1*CA(41,2)
+C     G14A0 =                 2.*W0*   CA(39,2) +   A1*CA(40,2)
+C    1       +2.*A0*CA(39,2)
+C     G14A1 =                                   +AT   *CA(40,2)
+C    1                       +   2.*A1*CA(41,2)
+C     G15   = W0*A0*CA(42,2) +   W0*A1*CA(43,2) +A0*A0*CA(44,2)
+C    1       +A0*A1*CA(45,2) +   A1*A1*CA(46,2)
+C     G15A0 = W0*   CA(42,2)                    +2.*A0*CA(44,2)
+C    1       +   A1*CA(45,2)
+C     G15A1 =                    W0   *CA(43,2)
+C    1       +A0   *CA(45,2) +   2.*A1*CA(46,2)
+C     G16   = AT*AT*CA(48,2) +   AT*A1*CA(49,2) +A1*A1*CA(50,2)
+C     G16A0 = 2.*AT*CA(48,2) +      A1*CA(49,2)
+C     G16A1 =                    AT   *CA(49,2) +2.*A1*CA(50,2)
+C     G164   = AT*AT*CA(61,2) +   AT*A1*CA(62,2) +A1*A1*CA(63,2)
+C     G164A0 = 2.*AT*CA(61,2) +      A1*CA(62,2)
+C     G164A1 =                    AT   *CA(62,2) +2.*A1*CA(63,2)
+C     G17   = AT*A0*CA(51,2) +   W0*A1*CA(52,2) +A0*A1*2.*CA(52,2)
+C    1       +A1*A1*CA(53,2)
+C     G17A0 = (2.*A0+W0)*CA(51,2)               +   A1*2.*CA(52,2)
+C     G17A1 =                    W0   *CA(52,2) +A0*   2.*CA(52,2)
+C    1       +2.*A1*CA(53,2)
+C
+C  Need skin bending stiffness terms...
+C
+      CALL SKNBND(CX(1,1,1),M,D11(1),  D12(1),  D22(1),
+     1                        D11M(1), D12M(1), D22M(1),
+     1                        D11MM(1),D12MM(1),D22MM(1))
+C
+      CALL SKNBND(CX(1,1,2),M,D11(2),  D12(2),  D22(2),
+     1                        D11M(2), D12M(2), D22M(2),
+     1                        D11MM(2),D12MM(2),D22MM(2))
+C
+C  Need stringer web and flange bending stiffness terms...
+C
+C
+      USTBPB = 4.*N*N*(CX(4,4,3)*A(1,3) + CX(4,4,4)*A(1,4))
+     1        -2.*N*(  CX(4,5,3)*A(7,3) + CX(4,5,4)*A(7,4))
+     1        +0.25*(  CX(5,5,3)*A(18,3) + CX(5,5,4)*A(18,4))
+     1        +4.*N*(  CX(6,6,3)*A(4,3)+ CX(6,6,4)*A(4,4))
+C
+      USTBN =    8.*N*(CX(4,4,3)*A(1,3) + CX(4,4,4)*A(1,4))
+     1          -2.*(  CX(4,5,3)*A(7,3) + CX(4,5,4)*A(7,4))
+     1          +4.*(  CX(6,6,3)*A(4,3)+ CX(6,6,4)*A(4,4))
+C
+      USTBNN=      8.*(CX(4,4,3)*A(1,3) + CX(4,4,4)*A(1,4))
+C
+      N2 = N*N
+C
+      G18   = 4.*N2*(  D11(1)*A(1,1) +   D11(2)*A(1,2))
+     1         +N *(  D12(1)*A(7,1) +   D12(2)*A(7,2))
+     1         +N *(  D22(1)*A(4,1) +   D22(2)*A(4,2))
+     1       +0.25*(CX(5,5,1)*A(18,1) + CX(5,5,2)*A(18,2))
+     1       + USTBPB
+C
+      G18N  = 8.*N*(  D11(1)*A(1,1) +   D11(2)*A(1,2))
+     1         +(  D12(1)*A(7,1) +   D12(2)*A(7,2))
+     1         +(  D22(1)*A(4,1) +   D22(2)*A(4,2))
+     1         +USTBN
+C
+      G18NN = 8.*(  D11(1)*A(1,1) +   D11(2)*A(1,2))
+     1       + USTBNN
+C
+      G18M  = 4.*N2*( D11M(1)*A(1,1) +  D11M(2)*A(1,2))
+     1         +N *( D12M(1)*A(7,1) +  D12M(2)*A(7,2))
+     1         +N *( D22M(1)*A(4,1) +  D22M(2)*A(4,2))
+C
+      G18MN = 8.*N*( D11M(1)*A(1,1) +  D11M(2)*A(1,2))
+     1         +( D12M(1)*A(7,1) +  D12M(2)*A(7,2))
+     1         +( D22M(1)*A(4,1) +  D22M(2)*A(4,2))
+C
+      G18MM = 4.*N2*(D11MM(1)*A(1,1) + D11MM(2)*A(1,2))
+     1         +N *(D12MM(1)*A(7,1) + D12MM(2)*A(7,2))
+     1         +N *(D22MM(1)*A(4,1) + D22MM(2)*A(4,2))
+C
+      G19   = 8.*N2*(  D11(1)*A(2,1) +  D11(2)*A(2,2))
+     1       +4.*N*(  D12(1)*(A(16,1)+1.5*A(5,1))
+     1             +  D12(2)*(A(16,2)+1.5*A(5,2)))
+     1       +6.*N *(  D22(1)*A(5,1) +  D22(2)*A(5,2))
+     1       +0.25*(CX(5,5,1)*A(19,1) + CX(5,5,2)*A(19,2))
+C
+      G19N  =16.*N*(  D11(1)*A(2,1) +  D11(2)*A(2,2))
+     1         +4.*(  D12(1)*(A(16,1)+1.5*A(5,1))
+     1             +  D12(2)*(A(16,2)+1.5*A(5,2)))
+     1         +6.*(  D22(1)*A(5,1) +  D22(2)*A(5,2))
+C
+      G19NN =  16.*(  D11(1)*A(2,1) +  D11(2)*A(2,2))
+C
+      G19M  = 8.*N2*( D11M(1)*A(2,1) + D11M(2)*A(2,2))
+     1       +4.*N*( D12M(1)*(A(16,1)+1.5*A(5,1))
+     1             + D12M(2)*(A(16,2)+1.5*A(5,2)))
+     1       +6.*N *( D22M(1)*A(5,1) + D22M(2)*A(5,2))
+C
+      G19MN = 16.*N*( D11M(1)*A(2,1) + D11M(2)*A(2,2))
+     1         +4.*( D12M(1)*(A(16,1)+1.5*A(5,1))
+     1             + D12M(2)*(A(16,2)+1.5*A(5,2)))
+     1         +6.*( D22M(1)*A(5,1) + D22M(2)*A(5,2))
+C
+      G19MM = 8.*N2*(D11MM(1)*A(2,1) +D11MM(2)*A(2,2))
+     1       +4.*N*(D12MM(1)*(A(16,1)+1.5*A(5,1))
+     1             +D12MM(2)*(A(16,2)+1.5*A(5,2)))
+     1       +6.*N *(D22MM(1)*A(5,1) +D22MM(2)*A(5,2))
+C
+      G20   = 4.*N2*(  D11(1)*A(3,1) +  D11(2)*A(3,2))
+     1       +3.*N*(  D12(1)*(A(17,1)+2.0*A(6,1))
+     1             +  D12(2)*(A(17,2)+2.0*A(6,2)))
+     1       +9.*N *(  D22(1)*A(6,1) +  D22(2)*A(6,2))
+     1       +0.25*(CX(5,5,1)*A(20,1) + CX(5,5,2)*A(20,2))
+C
+      G20N  = 8.*N*(  D11(1)*A(3,1) +  D11(2)*A(3,2))
+     1         +3.*(  D12(1)*(A(17,1)+2.0*A(6,1))
+     1             +  D12(2)*(A(17,2)+2.0*A(6,2)))
+     1         +9.*(  D22(1)*A(6,1) +  D22(2)*A(6,2))
+C
+      G20NN =   8.*(  D11(1)*A(3,1) +  D11(2)*A(3,2))
+C
+      G20M  = 4.*N2*( D11M(1)*A(3,1) + D11M(2)*A(3,2))
+     1       +3.*N*( D12M(1)*(A(17,1)+2.0*A(6,1))
+     1             + D12M(2)*(A(17,2)+2.0*A(6,2)))
+     1       +9.*N *( D22M(1)*A(6,1) + D22M(2)*A(6,2))
+C
+      G20MN = 8.*N*( D11M(1)*A(3,1) + D11M(2)*A(3,2))
+     1         +3.*( D12M(1)*(A(17,1)+2.0*A(6,1))
+     1             + D12M(2)*(A(17,2)+2.0*A(6,2)))
+     1         +9.*( D22M(1)*A(6,1) + D22M(2)*A(6,2))
+C
+      G20MM = 4.*N2*(D11MM(1)*A(3,1) +D11MM(2)*A(3,2))
+     1       +3.*N*(D12MM(1)*(A(17,1)+2.0*A(6,1))
+     1             +D12MM(2)*(A(17,2)+2.0*A(6,2)))
+     1       +9.*N *(D22MM(1)*A(6,1) +D22MM(2)*A(6,2))
+C
+C     G21   =64.*N2*(  D11(1)*A(30,1) +   D11(2)*A(30,2))
+C    1       +4.*N *(  D12(1)*A(55,1) +   D12(2)*A(55,2))
+C    1       +4.*N *(  D22(1)*A(31,1) +   D22(2)*A(31,2))
+C    1       +0.25*(CX(5,5,1)*A(56,1) + CX(5,5,2)*A(56,2))
+C
+C     G21N  =128.*N*(  D11(1)*A(30,1) +   D11(2)*A(30,2))
+C    1          +4.*(  D12(1)*A(55,1) +   D12(2)*A(55,2))
+C    1          +4.*(  D22(1)*A(31,1) +   D22(2)*A(31,2))
+C
+C     G21NN =  128.*(  D11(1)*A(30,1) +   D11(2)*A(30,2))
+C
+C     G21M  =64.*N2*( D11M(1)*A(30,1) +  D11M(2)*A(30,2))
+C    1       +4.*N *( D12M(1)*A(55,1) +  D12M(2)*A(55,2))
+C    1       +4.*N *( D22M(1)*A(31,1) +  D22M(2)*A(31,2))
+C
+C     G21MN =128.*N*( D11M(1)*A(30,1) +  D11M(2)*A(30,2))
+C    1          +4.*( D12M(1)*A(55,1) +  D12M(2)*A(55,2))
+C    1          +4.*( D22M(1)*A(31,1) +  D22M(2)*A(31,2))
+C
+C     G21MM =64.*N2*(D11MM(1)*A(30,1) + D11MM(2)*A(30,2))
+C    1       +4.*N *(D12MM(1)*A(55,1) + D12MM(2)*A(55,2))
+C    1       +4.*N *(D22MM(1)*A(31,1) + D22MM(2)*A(31,2))
+C
+C     G39   = 4.*N2*(  D11(1)*A(65,1) +   D11(2)*A(65,2))
+C    1         +N *(  D12(1)*A(97,1) +   D12(2)*A(97,2))
+C    1         +N *(  D22(1)*A(98,1) +   D22(2)*A(98,2))
+C    1       +0.25*(CX(5,5,1)*A(99,1) + CX(5,5,2)*A(99,2))
+C
+C     G39N  = 8.*N*(  D11(1)*A(65,1) +   D11(2)*A(65,2))
+C    1         +(  D12(1)*A(97,1) +   D12(2)*A(97,2))
+C    1         +(  D22(1)*A(98,1) +   D22(2)*A(98,2))
+C
+C     G39NN = 8.*(  D11(1)*A(65,1) +   D11(2)*A(65,2))
+C
+C     G39M  = 4.*N2*( D11M(1)*A(65,1) +  D11M(2)*A(65,2))
+C    1         +N *( D12M(1)*A(97,1) +  D12M(2)*A(97,2))
+C    1         +N *( D22M(1)*A(98,1) +  D22M(2)*A(98,2))
+C
+C     G39MN = 8.*N*( D11M(1)*A(65,1) +  D11M(2)*A(65,2))
+C    1         +( D12M(1)*A(97,1) +  D12M(2)*A(97,2))
+C    1         +( D22M(1)*A(98,1) +  D22M(2)*A(98,2))
+C
+C     G39MM = 4.*N2*(D11MM(1)*A(65,1) + D11MM(2)*A(65,2))
+C    1         +N *(D12MM(1)*A(97,1) + D12MM(2)*A(97,2))
+C    1         +N *(D22MM(1)*A(98,1) + D22MM(2)*A(98,2))
+C
+C     G40   =64.*N2*(  D11(1)*A(125,1) +   D11(2)*A(125,2))
+C    1       +4.*N *(  D12(1)*A(130,1) +   D12(2)*A(130,2))
+C    1       +4.*N *(  D22(1)*A(131,1) +   D22(2)*A(131,2))
+C    1       +0.25*(CX(5,5,1)*A(132,1) + CX(5,5,2)*A(132,2))
+C
+C     G40N  =128.*N*(  D11(1)*A(125,1) +   D11(2)*A(125,2))
+C    1          +4.*(  D12(1)*A(130,1) +   D12(2)*A(130,2))
+C    1          +4.*(  D22(1)*A(131,1) +   D22(2)*A(131,2))
+C
+C     G40NN =  128.*(  D11(1)*A(125,1) +   D11(2)*A(125,2))
+C
+C     G40M  =64.*N2*( D11M(1)*A(125,1) +  D11M(2)*A(125,2))
+C    1       +4.*N *( D12M(1)*A(130,1) +  D12M(2)*A(130,2))
+C    1       +4.*N *( D22M(1)*A(131,1) +  D22M(2)*A(131,2))
+C
+C     G40MN =128.*N*( D11M(1)*A(125,1) +  D11M(2)*A(125,2))
+C    1          +4.*( D12M(1)*A(130,1) +  D12M(2)*A(130,2))
+C    1          +4.*( D22M(1)*A(131,1) +  D22M(2)*A(131,2))
+C
+C     G40MM =64.*N2*(D11MM(1)*A(125,1) + D11MM(2)*A(125,2))
+C    1       +4.*N *(D12MM(1)*A(130,1) + D12MM(2)*A(130,2))
+C    1       +4.*N *(D22MM(1)*A(131,1) + D22MM(2)*A(131,2))
+C
+C     G22   =  0.5*(CX(5,5,1)*A(57,1) + CX(5,5,2)*A(57,2))
+C     G224  =  0.5*(CX(5,5,1)*A(64,1) + CX(5,5,2)*A(64,2))
+C
+C G23 contains the terms from DELTA epsilon(xy) (in-plane shear)
+C
+      G23 = A0*A0*AA1 +2.*AT*A1*AA2 +A1*A1*AA3 +2.*W0*A0*AA1
+C    1     +4.*A2*A2*AA30 +A5*A5*AA65 +4.*A6*A6*AA66
+C
+C E1S is the average axial strain, e1, minus F1 minus S2bar*C
+C
+      E1S   = -N*(A0*A0*(CA(1,1) +ASUM6) +2.*AT*A1*CA(2,1)
+     1         +A1*A1*CA(3,1) +2.*W0*A0*(CA(1,1)+ASUM6))/AX11
+C    1        -N*(A2*A2*4.*CA(30,1) +A5*A5*CA(65,1)
+C    1         +A6*A6*4.*CA(66,1))/AX11
+      E1SN  = E1S/N
+      E1SA0 = -N*(2.*A0*(CA(1,1) +ASUM6) +2.   *A1*CA(2,1)
+     1                           +2.*W0*(CA(1,1)+ASUM6))/AX11
+      E1SA1 = -N*(                       +2.*AT   *CA(2,1)
+     1         +2.*A1*CA(3,1))/AX11
+C     E1SA2 = -N*(2.*A2*4.*CA(30,1))/AX11
+C     E1SA5 = -N*(2.*A5*   CA(65,1))/AX11
+C     E1SA6 = -N*(2.*A6*4.*CA(66,1))/AX11
+C
+C C is the quantity at the bottom of p. 53. It appears in
+C the expression e2* = e2 + C (average hoop strain)
+C
+      M2 = M*M
+      C   =  (A0*A0+2.*W0*A0)*(N*(AN1 +M2*AA1) +0.25*AA4)
+     1              +2.*AT*A1*(N*(AN2 +M2*AA2) +0.75*AA5)
+     1              +   A1*A1*(N*(AN3 +M2*AA3) +2.25*AA6)
+C    1              +   A2*A2*(4.*N*(AN30 +M2*AA30) +0.25*AA31)
+C    1              +   A3*A3*0.5*AA32 -0.*A3*AA33/R
+C    1              +   A4*A4*0.5*AA59
+C    1              +   A5*A5*(N*(AN65 +M2*AA65) +0.25*AA67)
+C    1              +   A6*A6*(4.*N*(AN66 +M2*AA66) +0.25*AA68)
+C
+      CM  =  (A0*A0+2.*W0*A0)*N*2.*M*AA1
+     1              +2.*AT*A1*N*2.*M*AA2
+     1              +   A1*A1*N*2.*M*AA3
+C    1              +   A2*A2*4.*N*2.*M*AA30
+C    1              +   A5*A5*N*2.*M*AA65
+C    1              +   A6*A6*4.*N*2.*M*AA66
+C
+      C2M =  (A0*A0+2.*W0*A0)*N*2.*AA1
+     1              +2.*AT*A1*N*2.*AA2
+     1              +   A1*A1*N*2.*AA3
+C    1              +   A2*A2*4.*N*2.*AA30
+C    1              +   A5*A5*N*2.*AA65
+C    1              +   A6*A6*4.*N*2.*AA66
+C
+      CN  =  (A0*A0+2.*W0*A0)*(AN1 +M2*AA1)
+     1              +2.*AT*A1*(AN2 +M2*AA2)
+     1              +   A1*A1*(AN3 +M2*AA3)
+C    1              +   A2*A2*4.*(AN30 +M2*AA30)
+C    1              +   A5*A5*(AN65 +M2*AA65)
+C    1              +   A6*A6*4.*(AN66 +M2*AA66)
+C
+      CMN =  (A0*A0+2.*W0*A0)*2.*M*AA1
+     1              +2.*AT*A1*2.*M*AA2
+     1              +   A1*A1*2.*M*AA3
+C    1              +   A2*A2*4.*2.*M*AA30
+C    1              +   A5*A5*2.*M*AA65
+C    1              +   A6*A6*4.*2.*M*AA66
+C
+      CA0 =  (2.*A0+2.*W0   )*(N*(AN1 +M2*AA1) +0.25*AA4)
+     1              +2.*   A1*(N*(AN2 +M2*AA2) +0.75*AA5)
+      CA0N=  (2.*A0+2.*W0   )*(AN1 +M2*AA1)
+     1              +2.*   A1*(AN2 +M2*AA2)
+      CA0M=  (2.*A0+2.*W0   )*N*2.*M*AA1
+     1              +2.*   A1*N*2.*M*AA2
+      C2A0=                2.*(N*(AN1 +M2*AA1) +0.25*AA4)
+      CA0A1 =        2.      *(N*(AN2 +M2*AA2) +0.75*AA5)
+      CA1 =         +2.*AT   *(N*(AN2 +M2*AA2) +0.75*AA5)
+     1              +   2.*A1*(N*(AN3 +M2*AA3) +2.25*AA6)
+      CA1N=         +2.*AT   *(AN2 +M2*AA2)
+     1              +   2.*A1*(AN3 +M2*AA3)
+      CA1M=         +2.*AT   *N*2.*M*AA2
+     1              +   2.*A1*N*2.*M*AA3
+      C2A1=             2.   *(N*(AN3 +M2*AA3) +2.25*AA6)
+C     CA2 =             2.*A2*(4.*N*(AN30 +M2*AA30) +0.25*AA31)
+C     CA2N=             2.*A2*4.*(AN30 +M2*AA30)
+C     CA2M=             2.*A2*4.*N*2.*M*AA30
+C     C2A2=             2.   *(4.*N*(AN30 +M2*AA30) +0.25*AA31)
+C     CA3 =             2.*A3*0.5*AA32 - 0.*AA33/R
+C     C2A3=             2.   *0.5*AA32
+C     CA4 =             2.*A4*0.5*AA59
+C     C2A4=             2.   *0.5*AA59
+C
+C     CA5 = 2.*A5*(N*(AN65 +M2*AA65) +0.25*AA67)
+C     C2A5= 2.   *(N*(AN65 +M2*AA65) +0.25*AA67)
+C     CA5N= 2.*A5*(AN65 +M2*AA65)
+C     CA5M= 2.*A5*N*2.*M*AA65
+C     CA6 = 2.*A6*(4.*N*(AN66 +M2*AA66) +0.25*AA68)
+C     C2A6= 2.   *(4.*N*(AN66 +M2*AA66) +0.25*AA68)
+C     CA6N= 2.*A6*4.*(AN66 +M2*AA66)
+C     CA6M= 2.*A6*4.*N*2.*M*AA66
+C
+      CAE1 = CA(1,1) *E1S +ANX1
+      CAE2 = CA(2,1) *E1S +ANX2
+      CAE3 = CA(3,1) *E1S +ANX3
+C     CAE30= CA(30,1)*E1S +ANX30
+C     CAE65= CA(65,1)*E1S +ANX65
+C     CAE66= CA(66,1)*E1S +ANX66
+C
+      FSC = FACT*F1 + S2BAR*C
+      G24 = ASUM6*(E1S +FSC) -KX*ASUM6P +TSUM6
+      G25 = .25*(N*3.*ASUM4 +A6SM10)
+      G25N= .25*3.*ASUM4
+      G26 =  4.*A0**3*CA(2,1) +12.*A0*A0*A1*CA(3,1)
+     1     +12.*A0*A1*A1*CA(8,1) +4.*A1**3*CA(9,1)
+     1   +W0*W0*8.*(A0*CA(2,1) +A1*CA(3,1))
+     1   +W0*12.*(A0*A0*CA(2,1) +2.*A0*A1*CA(3,1) +A1*A1*CA(8,1))
+C    1   +16.*A2*A2*(AT*CA(35,1) +A1*CA(36,1))
+      G27 = CAE1*2.*AT +CAE2*2.*A1
+      G28 = CA(1,1)*2.*AT +CA(2,1)*2.*A1
+      G29 = AA1*2.*AT +AA2*2.*A1
+C
+      G30 = CAE2*2.*AT +CAE3*2.*A1
+      G31 = CA(2,1)*2.*AT +CA(3,1)*2.*A1
+      G32 = AA2*2.*AT + AA3*2.*A1
+      G33 =  4.*A0**3*CA(3,1) +12.*A0*A0*A1*CA(8,1)
+     1     +12.*A0*A1*A1*CA(9,1) +4.*A1**3*CA(10,1)
+     1   +W0*W0*8.*(A0*CA(3,1) +A1*CA(8,1))
+     1   +W0*12.*(A0*A0*CA(3,1) +2.*A0*A1*CA(8,1) +A1*A1*CA(9,1))
+C    1   +16.*A2*A2*(AT*CA(36,1) +A1*CA(37,1))
+C
+C     G34 = CAE30
+C     G35 = 16.*(4.*A2**3*CA(34,1)
+C    1      +A2*(A0*A0*CA(35,1) +2.*A0*A1*CA(36,1) +A1*A1*CA(37,1))
+C    1   +2.*W0*A2*(A0*CA(35,1) +A1*CA(36,1)))
+C
+      N2SS = N2S + S3BAR*E1S + S4BAR*C
+C
+      G36 =    A0*A0*CA(1,1) +2.*AT*A1*CA(2,1) +A1*A1*CA(3,1)
+     1     +2.*W0*A0*CA(1,1)
+C    1     +4.*A2*A2*CA(30,1)
+      G37 = CA(2,1)*A0**4 +4.*CA(3,1)*A0**3*A1 +6.*CA(8,1)*A0*A0*A1*A1
+     1     +4.*CA(9,1)*A0*A1**3 +CA(10,1)*A1**4
+     1 +4.*W0*W0*(CA(2,1)*A0*A0 +2.*CA(3,1)*A0*A1 +CA(8,1)*A1*A1)
+     1 +4.*W0*(CA(2,1)*A0**3 +3.*CA(3,1)*A0*A0*A1
+     1 +3.*CA(8,1)*A0*A1*A1 +CA(9,1)*A1**3)
+C    1 +16.*CA(34,1)*A2**4  +8.*A2*A2*(CA(35,1)*A0*A0
+C    1 +2.*CA(36,1)*AT*A1 + CA(37,1)*A1*A1 +2.*W0*A0*CA(35,1))
+C
+C     G38 = A5*A5*(6.*A0*A0*CA(69,1) +12.*A0*A1*CA(70,1)
+C    1     +6.*A1*A1*CA(71,1) +A5*A5*CA(72,1) +4.*W0*W0*CA(69,1)
+C    1     +12.*W0*A0*CA(69,1) +12.*W0*A1*CA(70,1)+8.*A2*A2*CA(80,1))
+C    1     +A6*A6*(96.*A2*A2*CA(73,1) +16.*A6*A6*CA(74,1)
+C    1     +8.*A0*A0*CA(75,1) +16.*AT*A1*CA(76,1) +8.*A1*A1*CA(77,1)
+C    1     +8.*A5*A5*CA(81,1) +16.*W0*A0*CA(75,1))
+C    1     +32.*A2*A5*A6*(AT*CA(78,1) +A1*CA(79,1))
+C
+C     G38A0 = A5*A5*12.*(AT*CA(69,1) +A1*CA(70,1))
+C    1       +A6*A6*16.*(AT*CA(75,1) +A1*CA(76,1))
+C    1       +32.*A2*A5*A6*CA(78,1)
+C 
+C     G38A1 = A5*A5*12.*(AT*CA(70,1) +A1*CA(71,1))
+C    1       +A6*A6*16.*(AT*CA(76,1) +A1*CA(77,1))
+C    1       +32.*A2*A5*A6*CA(79,1)
+C 
+C     G38A2 = A5*A5*16.*A2*CA(80,1) +192.*A2*A6*A6*CA(73,1)
+C    1       +32.*A5*A6*(AT*CA(78,1) +A1*CA(79,1))
+C
+C     G38A5 = 2.*A5*(6.*A0*A0*CA(69,1) +12.*AT*A1*CA(70,1)
+C    1       +6.*A1*A1*CA(71,1) +4.*W0*W0*CA(69,1) +12.*W0*A0*CA(69,1)
+C    1       +8.*A2*A2*CA(80,1) +8.*A6*A6*CA(81,1))+4.*A5**3*CA(72,1)
+C    1       +32.*A2*A6*(AT*CA(78,1) +A1*CA(79,1))
+C
+C     G38A52= 2.*(6.*A0*A0*CA(69,1) +12.*AT*A1*CA(70,1)
+C    1       +6.*A1*A1*CA(71,1) +4.*W0*W0*CA(69,1) +12.*W0*A0*CA(69,1)
+C    1       +8.*A2*A2*CA(80,1) +8.*A6*A6*CA(81,1))+12.*A5**2*CA(72,1)
+C
+C     G38A6 = 2.*A6*(96.*A2*A2*CA(73,1) +64.*A6*A6*CA(74,1)
+C    1     +8.*A0*A0*CA(75,1) +16.*AT*A1*CA(76,1) +8.*A1*A1*CA(77,1)
+C    1     +8.*A5*A5*CA(81,1) +16.*W0*A0*CA(75,1))
+C    1     +32.*A2*A5*(AT*CA(78,1) +A1*CA(79,1))
+C
+C     G38A56= 2.*A5*16.*A6*CA(81,1)+32.*A2*(AT*CA(78,1) +A1*CA(79,1))
+C
+C     G38A62= 2.*(96.*A2*A2*CA(73,1) +64.*A6*A6*CA(74,1)
+C    1     +8.*A0*A0*CA(75,1) +16.*AT*A1*CA(76,1) +8.*A1*A1*CA(77,1)
+C    1     +8.*A5*A5*CA(81,1) +16.*W0*A0*CA(75,1))
+C
+C     G41   = AT*A2*CA(101,2) +A1*A2*CA(103,2) +AT*A3*CA(106,2)
+C    1       +A1*A3*CA(107,2) +A0*CA(109,2)/R +A1*CA(110,2)/R
+C    1       +W0*CA(115,2)/R
+C     G41A0 =    A2*CA(101,2) +A3*CA(106,2) +CA(109,2)/R
+C     G41A1 =    A2*CA(103,2) +A3*CA(107,2) +CA(110,2)/R
+C     G41A2 =    AT*CA(101,2) +A1*CA(103,2)
+C     G41A3 =    AT*CA(106,2) +A1*CA(107,2)
+C
+C     G42   = AT*A2*CA(102,2) +A1*A2*CA(104,2)
+C     G42A0 =    A2*CA(102,2)
+C     G42A1 =    A2*CA(104,2)
+C     G42A2 =    AT*CA(102,2) +A1*CA(104,2)
+C
+C     G43   = AT*AT*CA(113,2) +AT*A1*CA(114,2) +A1*A1*CA(117,2)
+C    1       +A2*A3*CA(122,2) +A2*CA(124,2)/R
+C    1       +(A0*A0 +2.*W0*A0)*CA(126,2) +A5*A5*CA(108,2)
+C     G43A0 = 2.*AT*CA(113,2) +A1*CA(114,2) +2.*AT*CA(126,2)
+C     G43A1 =    AT*CA(114,2) +2.*A1*CA(117,2)
+C     G43A2 =    A3*CA(122,2) +CA(124,2)/R
+C     G43A3 =    A2*CA(122,2)
+C     G43A5 = 2.*A5*CA(108,2)
+C
+C     G44   = AT*AT*CA(111,2) +AT*A1*CA(112,2) +A1*A1*CA(116,2)
+C    1       +A3*A3*CA(121,2) +A3*CA(123,2)/R +0.*CA(125,2)/R**2
+C    1       +A4*A4*CA(127,2) +A2*A2*CA(128,2)
+C     G44A0 = 2.*AT*CA(111,2) +A1*CA(112,2)
+C     G44A1 =    AT*CA(112,2) +2.*A1*CA(116,2)
+C     G44A2 = 2.*A2*CA(128,2)
+C     G44A3 = 2.*A3*CA(121,2) +CA(123,2)/R
+C     G44A4 = 2.*A4*CA(127,2)
+C
+C     G45   = A6*A6*CA(105,2) +A2*A2*CA(118,2) +A2*A3*CA(119,2)
+C    1       +A2*CA(120,2)/R
+C     G45A2 = 2.*A2*CA(118,2) +A3*CA(119,2) +CA(120,2)/R
+C     G45A3 =    A2*CA(119,2)
+C     G45A6 = 2.*A6*CA(105,2)
+C
+C  FIRST VARIATIONS...
+C
+C  a0 equation...(p. 60, May 1987 yellow notes)
+C
+      V1A0 = N*G27 +N*G28*FSC -FACT*NXY*2.*M*N*G29 +.5*N*N*G26
+     1      +N2SS*CA0 +N*G24*2.*AT +2.*A0*(N*ASUM7 +A6SUM2/4.)
+     1      +N*G25*4.*AT*(A0*A0+2.*A0*W0) +2.*A0*G18 +A1*G19
+C    1      +2.*A0*G1 +A1*G2 +3.*A0*A0*G4 +2.*A0*A1*G5
+C    1      +A1*A1*G6 +4.*A0**3*G8 +3.*A0*A0*A1*G9 +2.*A0*A1*A1*G10
+C    1      +A1**3*G11 +A2*A2*G13A0 -A2*A3*G14A0 -A2*G15A0/R
+C    1      +A3*A3*G16A0 +A3*G17A0/R +A4*A4*G164A0
+C    1      +.5*N*N*G38A0 +A3*A4*A5*CA(82,2) +4.*A4*A5*CA(86,2)/R
+C    1      +A5*A5*(W0*CA(91,2) +2.*A0*CA(93,2) +A1*CA(94,2))
+C    1      +A5*A6*G41A0 +A4*A5*G42A0 +A4*A6*G43A0 +A6*A6*G44A0
+C
+C  a1 equation...(p. 61, May 1987 yellow notes)
+C
+      V1A1 = N*G30 + N*G31*FSC -FACT*NXY*2.*M*N*G32 +.5*N*N*G33
+     1      +N2SS*CA1 +A0*G19 +2.*A1*G20
+C    1      +A0*G2 +2.*A1*G3 +A0*A0*G5 +2.*A0*A1*G6
+C    1      +3.*A1*A1*G7 +A0**3*G9 +2.*A0*A0*A1*G10 +3.*A0*A1*A1*G11
+C    1      +4.*A1**3*G12 +A2*A2*G13A1 -A2*A3*G14A1 -A2*G15A1/R
+C    1      +A3*A3*G16A1 +A3*G17A1/R +A4*A4*G164A1
+C    1      +.5*N*N*G38A1 +A3*A4*A5*CA(83,2) +2.*A4*A5*CA(87,2)/R
+C    1      +A5*A5*(W0*CA(92,2) +A0*CA(94,2) +2.*A1*CA(95,2))
+C    1      +A5*A6*G41A1 +A4*A5*G42A1 +A4*A6*G43A1 +A6*A6*G44A1
+C
+C  a2 equation...(p. 62, May 1987 yellow notes)
+C
+C     V1A2 = N*G34*8.*A2 +N*CA(30,1)*8.*A2*FSC
+C    1      -FACT*NXY*2.*M*N*AA30*8.*A2 +.5*N*N*G35 +N2SS*CA2
+C    1      +2.*A2*G13 - A3*G14 - G15/R +2.*A2*A3*A3*CA(47,2)
+C    1      +2.*A2*A4*A4*CA(60,2)
+C    1      +4.*A2*A3*CA(58,2)/R +4.*A2**3*CA(54,2) +2.*A2*G21
+C    1      +.5*N*N*G38A2
+C    1      +A5*A6*G41A2 +A4*A5*G42A2 +A4*A6*G43A2 +A6*A6*G44A2
+C    1      +A5*A5*G45A2
+C
+C  a3 equation...(p. 62, May 1987 yellow notes)
+C
+C     V1A3 =  P*AA33 +N2SS*CA3 -A2*G14 +2.*A2*A2*A3*CA(47,2)
+C    1       +2.*A2*A2*CA(58,2)/R +2.*A3*G16 +G17/R +2.*A3*G22
+C    1       +AT*A4*A5*CA(82,2) +A1*A4*A5*CA(83,2)
+C    1       +A5*A5*(2.*A3*CA(84,2) +2.*CA(88,2)/R)
+C    1       +A5*A6*G41A3 +A4*A6*G43A3 +A6*A6*G44A3 +A5*A5*G45A3
+C
+C  m - equation...(p. 62, May 1987 yellow notes)
+C
+      V1M  = -FACT*NXY*2.*N*G23 +N2SS*CM +A0*A0*G18M +A0*A1*G19M
+     1       +A1*A1*G20M +A2*A2*G21M
+C    1       +A5*A5*G39M +A6*A6*G40M
+C
+C  N - equation...(p. 63, May 1987 yellow notes)
+C
+      V1N  = CAE1*A0*A0 +CAE2*2.*AT*A1 +CAE3*A1*A1 +CAE1*2.*W0*A0
+     1      +G36*FSC -FACT*NXY*2.*M*G23 +N*G37
+     1      +N2SS*CN +A0*A0*G18N +A0*A1*G19N +A1*A1*G20N
+C    1      +CAE30*4.*A2*A2 +A2*A2*G21N
+C    1      +CAE65*A5*A5 +CAE66*4.*A6*A6 +FSC*(CA(65,1)*A5*A5
+C    1      +CA(66,1)*4.*A6*A6) +N*G38 +A5*A5*G39N +A6*A6*G40N
+C
+C  A4- equation...(p. 62, May 1987 yellow notes)
+C
+C     V1A4 = N2SS*CA4 +2.*A2*A2*A4*CA(60,2) +2.*A4*G164 +2.*A4*G224
+C    1      +AT*A3*A5*CA(82,2) +A1*A3*A5*CA(83,2)
+C    1      +2.*A4*A5*A5*CA(85,2) +2.*(AT+A0)*A5*CA(86,2)/R
+C    1      +2.*A1*A5*CA(87,2)/R +A5*G42 +A6*G43 +A6*A6*G44A4
+C
+C  A5- equation...(p. 86, JUNE 1987 yellow notes)
+C
+C     V1A5 = N*CAE65*2.*A5 +N*CA(65,1)*2.*A5*FSC
+C    1      -FACT*NXY*2.*M*N*AA65*2.*A5 +.5*N*N*G38A5 +N2SS*CA5
+C    1      +AT*A3*A4*CA(82,2) +A1*A3*A4*CA(83,2)
+C    1      +2.*A5*(A3*A3*CA(84,2) +A4*A4*CA(85,2))
+C    1      +2.*((AT+A0)*A4*CA(86,2) +A1*A4*CA(87,2)
+C    1           +2.*A3*A5*CA(88,2))/R +2.*A5*CA(89,2)/R**2
+C    1      +2.*A5*(W0*W0*CA(90,2) +A0*W0*CA(91,2)
+C    1             +A1*W0*CA(92,2) +A0*A0*CA(93,2)
+C    1             +A0*A1*CA(94,2) +A1*A1*CA(95,2))
+C    1      +4.*A5*A5*A5*CA(96,2)  +2.*A5*G39 +A6*G41 +A4*G42
+C    1      +A4*A6*G43A5 +2.*A5*G45
+C
+C
+C  A6- equation...
+C
+C     V1A6 = N*CAE66*8.*A6 +N*CA(66,1)*8.*A6*FSC
+C    1      -FACT*NXY*2.*M*N*AA66*8.*A6 +.5*N*N*G38A6 +N2SS*CA6
+C    1      +A5*G41 +A4*G43 +2.*A6*G44 +4.*A6**3*CA(129,2)
+C    1      +A5*A5*G45A6 +2.*A6*G40
+C
+C  SECOND VARIATION....
+C
+C  a0 - equation..(pp. 64-66, May 1987 yellow notes).
+C
+C  a0a0 term...(p. 64, May 1987 yellow notes)
+C
+      A0A0 = N*(CAE1*2. +G28*E1SA0 +CA(1,1)*2.*FSC +G28*S2BAR*CA0)
+     1      -FACT*NXY*2.*M*N*AA1*2. +.5*N*N*(12.*A0*A0*CA(2,1)
+     1      +24.*AT*A1*CA(3,1) +12.*A1*A1*CA(8,1) +W0*W0*8.*CA(2,1)
+     1      +W0*24.*A0*CA(2,1))
+     1      +N2SS*C2A0 +(S3BAR*E1SA0+S4BAR*CA0)*CA0
+     1      +N*(2.*G24 + 2.*AT*ASUM6*(E1SA0 +S2BAR*CA0))
+     1      +2.*(N*ASUM7 +A6SUM2/4.)
+     1      +N*G25*4.*(A0*A0+2.*A0*W0 +2.*AT*AT) + 2.*G18
+C    1      +8.*N*N*A2*A2*CA(35,1) +2.*G1+6.*A0*G4
+C    1      +2.*A1*G5 +12.*A0*A0*G8 +6.*A0*A1*G9 +2.*A1*A1*G10
+C    1      +2.*A2*A2*CA(27,2) -A2*A3*2.*CA(39,2) -2.*A2*CA(44,2)/R
+C    1      +2.*A3*A3*CA(48,2) +2.*A3*CA(51,2)/R +2.*A4*A4*CA(61,2)
+C    1      +A5*A5*(6.*N*N*CA(69,1) +CA(93,2)*2.)
+C    1      +A6*A6*8.*N*N*CA(75,1)
+C    1      +2.*A4*A6*(CA(113,2)+CA(126,2)) +A6*A6*2.*CA(111,2)
+C
+C  a0a1 term...(p. 65, May 1987 yellow notes)
+C
+      A0A1 = N*(CAE2*2. +G28*E1SA1 +CA(2,1)*2.*FSC +G28*S2BAR*CA1)
+     1      -FACT*NXY*2.*M*N*AA2*2. +.5*N*N*(12.*A0*A0*CA(3,1)
+     1      +24.*AT*A1*CA(8,1) +12.*A1*A1*CA(9,1) +W0*W0*8.*CA(3,1)
+     1      +W0*24.*A0*CA(3,1))
+     1      +N2SS*CA0A1 +(S3BAR*E1SA1+S4BAR*CA1)*CA0
+     1      +2.*N*AT*ASUM6*(E1SA1 +S2BAR*CA1) + G19
+C    1      +8.*N*N*A2*A2*CA(36,1) +G2 +2.*A0*G5
+C    1      +2.*A1*G6 +3.*A0*A0*G9 +4.*A0*A1*G10 +3.*A1*A1*G11
+C    1      +A2*A2*CA(28,2) -A2*A3*CA(40,2) -A2*CA(45,2)/R
+C    1      +A3*A3*CA(49,2) +A3*2.*CA(52,2)/R +A4*A4*CA(62,2)
+C    1      +A5*A5*(6.*N*N*CA(70,1) +CA(94,2))
+C    1      +A6*A6*8.*N*N*CA(76,1)
+C    1      +A4*A6*CA(114,2) +A6*A6*CA(112,2)
+C
+C  a0a2 term...(p. 65, May 1987 yellow notes)
+C
+C     A0A2 = N*G28*(E1SA2 + S2BAR*CA2) +.5*N*N*32.*(AT*A2*CA(35,1)
+C    1      +A1*A2*CA(36,1)) +(S3BAR*E1SA2 +S4BAR*CA2)*CA0
+C    1      +2.*A2*G13A0 - A3*G14A0 -G15A0/R +N*2.*AT*ASUM6*(E1SA2
+C    1      +CA2)+16.*A5*A6*N*N*CA(78,1) +A5*A6*CA(101,2)
+C    1      +A4*A5*CA(102,2)
+C
+C  a0a3 term...(p. 66, May 1987 yellow notes)
+C
+C     A0A3 = N*G28*S2BAR*CA3 +S4BAR*CA3*CA0 -A2*G14A0 +2.*A3*G16A0
+C    1      +G17A0/R +N*2*AT*ASUM6*S2BAR*CA3
+C    1      +A4*A5*CA(82,2) +A5*A6*CA(106,2)
+C
+C  a0m term...(p. 66, May 1987 yellow notes)
+C
+      A0M  = N*G28*S2BAR*CM -FACT*NXY*2.*N*G29 +N2SS*CA0M
+     1      +S4BAR*CM*CA0 +2.*A0*G18M +A1*G19M
+C
+C  a0N term...(p. 66, May 1987 yellow notes)
+C
+      A0N  = G27 +N*G28*E1SN +G28*FSC +N*G28*S2BAR*CN
+     1      -FACT*NXY*2.*M*G29
+     1      +N*G26 +N2SS*CA0N +(S3BAR*E1SN +S4BAR*CN)*CA0
+     1      +G24*2.*AT +N*2.*AT*ASUM6*(E1SN +S2BAR*CN)
+     1      +2.*A0*ASUM7 +(G25+N*G25N)*4.*(A0*A0+2.*A0*W0)*AT
+     1      +2.*A0*G18N + A1*G19N 
+C    1      +N*G38A0
+C
+C     A0A4 = 2.*A4*G164A0 +N*G28*S2BAR*CA4 +S4BAR*CA4*CA0
+C    1      +A5*(A3*CA(82,2)+4.*CA(86,2)/R) +A5*G42A0 +A6*G43A0
+C
+C     A0A5 = N*G28*S2BAR*CA5 +(S3BAR*E1SA5 +S4BAR*CA5)*CA0
+C    1      +N*N*A5*12.*(AT*CA(69,1) +A1*CA(70,1))
+C    1      +16.*A2*A6*N*N*CA(78,1)
+C    1      +A3*A4*CA(82,2) +4.*A4*CA(86,2)/R
+C    1      +2.*A5*(W0*CA(91,2) +2.*A0*CA(93,2) +A1*CA(94,2))
+C    1      +A6*G41A0 +A4*C42A0
+C
+C     A0A6 = N*G28*S2BAR*CA6 +(S3BAR*E1SA6 +S4BAR*CA6)*CA0
+C    1       +.5*N*N*(A6*32.*(AT*CA(75,1) +A1*CA(76,1))
+C    1       +32.*A2*A5*CA(78,1)) +A5*G41A0 +A4*G43A0 +2.*A6*G44A0
+C
+C  a1 equation...(pp. 67-71, May 1987 yellow notes)
+C
+C  a1a1 term...(p. 70, May 1987 yellow notes)
+C
+      A1A1 = N*(CAE3*2. +G31*E1SA1 +CA(3,1)*2.*FSC +G31*S2BAR*CA1)
+     1      -FACT*NXY*2.*M*N*AA3*2. +.5*N*N*(12.*A0*A0*CA(8,1)
+     1      +24.*AT*A1*CA(9,1) +12.*A1*A1*CA(10,1) +W0*W0*8.*CA(8,1)
+     1      +24.*W0*A0*CA(8,1)) +N2SS*C2A1
+     1      +(S3BAR*E1SA1 +S4BAR*CA1)*CA1 +2.*G20 
+C    1      +8.*N*N*A2*A2*CA(37,1) +2.*G3 +2.*A0*G6
+C    1      +6.*A1*G7 +2.*A0*A0*G10 +6.*A0*A1*G11 +12.*A1*A1*G12
+C    1      +2.*A2*A2*CA(29,2) -2.*A2*A3*CA(41,2)-2.*A2*CA(46,2)/R
+C    1      +2.*A3*A3*CA(50,2) +2.*A3*CA(53,2)/R +2.*A4*A4*CA(63,2)
+C    1      +A5*A5*(6.*N*N*CA(71,1) +CA(95,2)*2.)
+C    1      +A6*A6*8.*N*N*CA(77,1) +A4*A6*2.*CA(117,2)
+C    1      +A6*A6*2.*CA(116,2)
+C
+C  a1a2 term...(p. 70, May 1987 yellow notes)
+C
+C     A1A2 = N*G31*(E1SA2 +S2BAR*CA2) +.5*N*N*32.*A2*(AT*CA(36,1)
+C    1      +A1*CA(37,1)) +(S3BAR*E1SA2 +S4BAR*CA2)*CA1
+C    1      +2.*A2*G13A1 -A3*G14A1 -G15A1/R +16.*N*N*A5*A6*CA(79,1)
+C    1      +A5*A6*CA(103,2) +A4*A5*CA(104,2)
+C
+C  a1a3 term...(p. 70, May 1987 yellow notes)
+C
+C     A1A3 = N*G31*S2BAR*CA3 +S4BAR*CA3*CA1 -A2*G14A1 +2.*A3*G16A1
+C    1      +G17A1/R +A4*A5*CA(83,2) +A5*A6*CA(107,2)
+C
+C  a1m term...(p. 70, May 1987 yellow notes)
+C
+      A1M  = N*G31*S2BAR*CM -FACT*NXY*2.*N*G32 +N2SS*CA1M
+     1      +S4BAR*CM*CA1 +A0*G19M +2.*A1*G20M
+C
+C  a1N term...(p. 71, May 1987 yellow notes)
+C
+      A1N  = G30 +G31*(N*E1SN +FSC +N*S2BAR*CN)
+     1      -FACT*NXY*2.*M*G32
+     1      +N*G33 +N2SS*CA1N +(S3BAR*E1SN +S4BAR*CN)*CA1
+     1      +A0*G19N +2.*A1*G20N
+C    1      +N*G38A1
+C
+C     A1A4 = 2.*A4*G164A1 +N*G31*S2BAR*CA4 +S4BAR*CA4*CA1
+C    1      +A5*(A3*CA(83,2) +2.*CA(87,2)/R) +A5*G42A1
+C    1      +A6*G43A1 +A6*A6*G44A4
+C
+C     A1A5 = N*G31*S2BAR*CA5 +(S3BAR*E1SA5 +S4BAR*CA5)*CA1
+C    1      +N*N*A5*12.*(AT*CA(70,1) +A1*CA(71,1))
+C    1      +A3*A4*CA(83,2) +2.*A4*CA(87,2)/R
+C    1      +2.*A5*(W0*CA(92,2) +A0*CA(94,2) +2.*A1*CA(95,2))
+C    1      +16.*N*N*A2*A6*CA(79,1) +A6*G41A1 +A4*G42A1
+C
+C     A1A6 = N*G31*S2BAR*CA6 +(S3BAR*E1SA6 +S4BAR*CA6)*CA1
+C    1       +.5*N*N*(A6*32.*(AT*CA(76,1) +A1*CA(77,1))
+C    1       +32.*A2*A5*CA(79,1)) +A5*G41A1 +A4*G43A1
+C    1       +2.*A6*G44A1
+C
+C  a2 equation...(p. 71, May 1987 yellow notes)
+C
+C  a2a2 term...(p. 71, May 1987 yellow notes)
+C
+C     A2A2 = 8.*N*(G34 +CA(30,1)*(A2*E1SA2 +FSC +A2*S2BAR*CA2))
+C    1      -FACT*NXY*2.*M*N*AA30*8. +.5*N*N*(192.*A2*A2*CA(34,1)
+C    1      +16.*(A0*A0*CA(35,1)+2.*AT*A1*CA(36,1)+A1*A1*CA(37,1))
+C    1      +32.*W0*A0*CA(35,1)) +N2SS*C2A2
+C    1      +(S3BAR*E1SA2+S4BAR*CA2)*CA2 +2.*G13+2.*A3*A3*CA(47,2)
+C    1      +2.*A4*A4*CA(60,2)
+C    1      +4.*A3*CA(58,2)/R +12.*A2*A2*CA(54,2) +2.*G21
+C    1      +N*N*A5*A5*8.*CA(80,1) +96.*N*N*A6*A6*CA(73,1)
+C    1      +A6*A6*2.*CA(128,2) +A5*A5*2.*CA(118,2)
+C
+C  a2a3 term...(p. 71, May 1987 yellow notes)
+C
+C     A2A3 = N*CA(30,1)*8.*A2*S2BAR*CA3 +S4BAR*CA3*CA2 - G14
+C    1      +4.*A2*A3*CA(47,2) +4.*A2*CA(58,2)/R
+C    1      +A4*A6*CA(122,2) +A5*A5*CA(119,2)
+C
+C  a2m term...(p. 71, May 1987 yellow notes)
+C
+C     A2M  = N*CA(30,1)*8.*A2*S2BAR*CM -FACT*NXY*2.*N*AA30*8.*A2
+C    1      +N2SS*CA2M +S4BAR*CM*CA2 +2.*A2*G21M
+C
+C  a2N term...(p. 71, May 1987 yellow notes)
+C
+C     A2N  = 8.*A2*(G34 +CA(30,1)*(N*E1SN +FSC +S2BAR*CN))
+C    1      -FACT*NXY*2.*M*AA30*8.*A2 +N*G35 +N2SS*CA2N
+C    1      +(S3BAR*E1SN +S4BAR*CN)*CA2 +2.*A2*G21N +N*G38A2
+C
+C     A2A4 = 4.*A2*A4*CA(60,2) +N*CA(30,1)*8.*A2*S2BAR*CA4
+C    1      +S4BAR*CA4*CA2 +A5*G42A2 +A6*G43A2
+C
+C     A2A5 = N*CA(30,1)*8.*A2*S2BAR*CA5
+C    1      +(S3BAR*E1SA5 +S4BAR*CA5)*CA2
+C    1      +N*N*A5*16.*A2*CA(80,1)
+C    1      +N*N*16.*A5*A6*(AT*CA(78,1) +A1*CA(79,1))
+C    1      +A6*G41A2 +A4*G42A2 +A5*A5*G45A2
+C
+C     A2A6 = N*CA(30,1)*8.*A2*S2BAR*CA6
+C    1      +(S3BAR*E1SA6 +S4BAR*CA6)*CA2
+C    1      + .5*N*N*(384.*A2*A6*CA(73,1)
+C    1      +32.*A5*(AT*CA(78,1) +A1*CA(79,1)))
+C    1      +A5*G41A2 +A4*G43A2 +A6*A6*G44A2
+C
+C  a3 equation...(p. 72, May 1987 yellow notes)
+C
+C  a3a3 term...(p. 72, May 1987 yellow notes)
+C
+C     A3A3 = N2SS*C2A3 + S4BAR*CA3*CA3 +2.*A2*A2*CA(47,2)
+C    1      + 2.*G16 + 2.*G22 +A5*A5*CA(84,2)*2.
+C    1      +A6*A6*2.*CA(121,2)
+C
+C  a3m term...(p. 72, May 1987 yellow notes)
+C
+C     A3M = S4BAR*CM*CA3
+C
+C  a3N term...(p. 72, May 1987 yellow notes)
+C
+C     A3N = (S3BAR*E1SN +S4BAR*CN)*CA3
+C
+C     A3A4= S4BAR*CA4*CA3 +AT*A5*CA(82,2) +A1*A5*CA(83,2)
+C
+C     A3A5= (S3BAR*E1SA5 +S4BAR*CA5)*CA3
+C    1     +AT*A4*CA(82,2) +A1*A4*CA(83,2)
+C    1       +2.*A5*(2.*A3*CA(84,2) +2.*CA(88,2)/R)
+C    1     +A6*G41A3 +2.*A5*G45A3
+C
+C     A3A6= (S3BAR*E1SA6 +S4BAR*CA6)*CA3
+C    1     +A5*G41A3 +A4*G43A3 +2.*A6*G44A3
+C
+C  m equation...(p. 72, May 1987 yellow notes)
+C
+C  mm term...(p. 72, May 1987 yellow notes)
+C
+      MM  = N2SS*C2M +S4BAR*CM*CM +A0*A0*G18MM +A0*A1*G19MM
+     1     +A1*A1*G20MM + A2*A2*G21MM
+C    1     +A5*A5*G39MM +A6*A6*G40MM
+C
+C  mN term...(p. 72, May 1987 yellow notes)
+C
+      MN  = -FACT*NXY*2.*G23 +N2SS*CMN +(S3BAR*E1SN +S4BAR*CN)*CM
+     1      +A0*A0*G18MN +A0*A1*G19MN +A1*A1*G20MN +A2*A2*G21MN
+C    1      +A5*A5*G39MN +A6*A6*G40MN
+C
+C     A4M = S4BAR*CA4*CM
+C     A5M = (S3BAR*E1SA5 +S4BAR*CA5)*CM -FACT*NXY*2.*N*2.*A5*AA65
+C    1     +2.*A5*G39M + N2SS*CA5M
+C
+C     A6M = (S3BAR*E1SA6 +S4BAR*CA6)*CM -FACT*NXY*2.*N*8.*A6*AA66
+C    1     +2.*A6*G40M + N2SS*CA6M
+C
+C  N equation...(p. 73, May 1987 yellow notes)
+C
+C  NN term...(p. 73, May 1987 yellow notes)
+C
+      NN  = (CA(1,1)*(A0*A0+2.*A0*W0) +CA(2,1)*2.*AT*A1
+     1      +CA(3,1)*A1*A1)*E1SN
+     1     +G36*S2BAR*CN + G37 +(S3BAR*E1SN+S4BAR*CN)*CN
+     1     +A0*A0*G18NN +A0*A1*G19NN +A1*A1*G20NN +A2*A2*G21NN
+C    1      +(CA(30,1)*4.*A2*A2 +CA(65,1)*A5*A5
+C    1      +CA(66,1)*4.*A6*A6)*E1SN
+C    1      +S2BAR*CN*(CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)
+C    1      +G38 +A5*A5*G39NN +A6*A6*G40NN
+C
+C     A4N = G36*S2BAR*CA4 +S4BAR*CA4*CN
+C    1     +S2BAR*CA4*(CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)
+C
+C     A5N = (CA(1,1)*(A0*A0+2.*A0*W0) +CA(2,1)*2.*AT*A1
+C    1      +CA(3,1)*A1*A1 +CA(30,1)*4.*A2*A2
+C    1      +CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)*E1SA5
+C    1      +G36*S2BAR*CA5 -FACT*NXY*2.*M*2.*A5*AA65
+C    1      +(S3BAR*E1SA5 +S4BAR*CA5)*CN
+C    1      +S2BAR*CA5*(CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)
+C    1      +N*G38A5 +2.*A5*G39N
+C
+C     A6N = (CA(1,1)*(A0*A0+2.*A0*W0) +CA(2,1)*2.*AT*A1
+C    1      +CA(3,1)*A1*A1 +CA(30,1)*4.*A2*A2
+C    1      +CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)*E1SA6
+C    1      +G36*S2BAR*CA6 -FACT*NXY*2.*M*8.*A6*AA66
+C    1      +(S3BAR*E1SA6 +S4BAR*CA6)*CN
+C    1      +S2BAR*CA6*(CA(65,1)*A5*A5 +CA(66,1)*4.*A6*A6)
+C    1      +N*G38A6 +2.*A6*G40N
+C
+C  A4 equation...(p. 62. bottom, and p. 72, top)
+C
+C     A4A4 = N2SS*C2A4 + S4BAR*CA4*CA4 +2.*A2*A2*CA(60,2)
+C    1      +2.*G164 + 2.*G224 +2.*A5*A5*CA(85,2)
+C    1      +A6*A6*2.*CA(127,2)
+C
+C     A4A5 = (S3BAR*E1SA5 +S4BAR*CA5)*CA4
+C    1      +AT*A3*CA(82,2) +A1*A3*CA(83,2)
+C    1      +2.*A4*2.*A5*CA(85,2) +2.*(AT+A0)*CA(86,2)/R
+C    1      +2.*A1*CA(87,2)/R +G42 +A6*G43A5
+C
+C  A5 equation...(p. 86. bottom, and p. 87, top)
+C
+C     A5A5 = N*CAE65*2. +N*CA(65,1)*E1SA5*2.*A5
+C    1      +N*CA(65,1)*2.*FSC +N*CA(65,1)*2.*A5*S2BAR*CA5
+C    1      -FACT*NXY*2.*M*N*AA65*2. +.5*N*N*G38A52
+C    1      +N2SS*C2A5 +(S3BAR*E1SA5 +S4BAR*CA5)*CA5
+C    1      +2.*(A3*A3*CA(84,2) +A4*A4*CA(85,2))
+C    1      +2.*2.*A3*CA(88,2)/R +2.*CA(89,2)/R**2
+C    1      +2.*(W0*W0*CA(90,2) +A0*W0*CA(91,2)
+C    1          +A1*W0*CA(92,2) +A0*A0*CA(93,2)
+C    1          +A0*A1*CA(94,2) +A1*A1*CA(95,2))
+C    1      +12.*A5*A5*CA(96,2)  +2.*G39
+C    1      +A4*A6*2.*CA(108,2) +2.*G45
+C
+C     A5A6 = N*CA(65,1)*2.*A5*(E1SA6 +S2BAR*CA6)
+C    1      +(S3BAR*E1SA6 +S4BAR*CA6)*CA5 +.5*N*N*G38A56
+C    1      +G41 +A4*G43A5 +2.*A5*G45A6
+C
+C  A6 equation...
+C
+C     A6A6 = N*CA(66,1)*8.*A6*(E1SA6 +S2BAR*CA6)
+C    1      +N*8.*(CAE66 +CA(66,1)*FSC) -FACT*NXY*16.*M*N*AA66
+C    1      +.5*N*N*G38A62 +2.*G40
+C    1      +N2SS*C2A6 +(S3BAR*E1SA6+S4BAR*CA6)*CA6
+C    1      +2.*G44 +12.*A6*A6*CA(129,2) +A5*A5*2.*CA(105,2)
+C
+C  AVERAGE STRAINS, E1 AND E2:
+C
+      E1 = FSC + E1S
+C     E2 = (FNHOOP +STF222*C -C12BAR*E1)/CS222 - C
+      E2 = (FNHOOP*C22INV - E1*NUSTAR - C)/SSTAR
+      E12= FACT*NXY*C33INV +2.*M*N*G23
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      FILLK
+      SUBROUTINE FILLK(K,F)
+C
+C  Fill K and F with the results from the second and first variation
+C  of the total potential. 
+C
+      COMMON/FIRSTV/V1A0,V1A1,V1A2,V1A3,V1A4,V1A5,V1A6,V1M,V1N
+      COMMON/SECVAR/A0A0,A0A1,A0A2,A0A3,A0M,A0N,A1A1,A1A2,A1A3,
+     1         A1M,A1N,A2A2,A2A3,A2M,A2N,A3A3,A3M,A3N,MM,MN,NN,
+     1         A0A4,A1A4,A2A4,A3A4,A4A4,A4M,A4N,
+     1         A0A5,A1A5,A2A5,A3A5,A4A5,A5A5,A5M,A5N,
+     1         A0A6,A1A6,A2A6,A3A6,A4A6,A5A6,A6A6,A6M,A6N
+C
+      DIMENSION K(4,4),F(4)
+      REAL MM,MN,NN,K
+C
+      F(1) = -V1A0
+      F(2) = -V1A1
+      F(3) = -V1M
+      F(4) = -V1N
+C
+      K(1,1) = A0A0
+      K(1,2) = A0A1
+      K(1,3) = A0M
+      K(1,4) = A0N
+      K(2,2) = A1A1
+      K(2,3) = A1M
+      K(2,4) = A1N
+      K(3,3) = MM
+      K(3,4) = MN
+      K(4,4) = NN
+C
+      DO 10 I = 1,4
+      DO 10 J = I,4
+   10 K(J,I)  = K(I,J)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      ROWCOL
+      SUBROUTINE ROWCOL(IROW,K,F)
+C
+C  Set the IROWth row and col. of K and the IROWth element of F equal
+C  to zero, except the element on the main diagonal of K, which is unity.
+C
+      DIMENSION K(4,4),F(4)
+      REAL K
+C
+      F(IROW) = 0.
+      DO 10 I = 1,4
+   10 K(I,IROW) = 0.0
+      DO 20 J = 1,4
+   20 K(IROW,J) = 0.0
+C
+      K(IROW,IROW) = 1.0
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      SOLV44
+      SUBROUTINE SOLV44(ITER,IFILE,C,F,SOLN,NROOTS)
+C
+C  PURPOSE IS TO FIND 
+C
+C                  {SOLN} = inverse[C]*{F}
+C
+      DIMENSION C(4,4),F(4),SOLN(4),TEMP(4,4)
+C
+         CALL MOVER(C,1,TEMP,1,16)
+         CALL MOVER(0.,0,SOLN,1,4)
+         CALL INVERT(TEMP,4,ISING)
+         IF (ISING.NE.0) THEN
+            WRITE(IFILE,*)' SINGULAR STIFFNESS MATRIX.'
+            CALL ERREX
+         ENDIF
+C
+      NROOTS = 0
+      DO 3 I = 1,4
+      IF (TEMP(I,I).LT.0.) NROOTS = NROOTS + 1
+      DO 3 J = 1,4
+        SOLN(I) = SOLN(I) + TEMP(I,J)*F(J)
+    3 CONTINUE
+C
+C  25    FORMAT(1P4E11.3,1PE15.4)
+C        WRITE(IFILE,*) ' STIFFNESS MATRIX AND R.H.S...'
+C        DO 26 I = 1,4
+C        WRITE(IFILE,25) (C(I,J),J=1,4),F(I)
+C  26    CONTINUE
+C
+C        WRITE(IFILE,*) ' FACTORED STIFFNESS MATRIX AND SOLN...'
+C        DO 27 I = 1,4
+C        WRITE(IFILE,25) (TEMP(I,J),J=1,4),SOLN(I)
+C  27    CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      NEWTN2
+      SUBROUTINE NEWTN2(NPRT,IFILE,CX,CA,A,W0,A0,A1,A2,A3,A4,
+     1                  A5,A6,M,N,R,NXY,P)
+C
+C  PURPOSE IS TO PERFORM NEWTON ITERTIONS FOR SOLUTION OF
+C  THE POSTBUCKLING PROBLEM WITH UNKNOWNS a0,a1,a2,a3,m,N.
+C
+C BEG NOV 1995
+      DIMENSION CX(6,6,5),CA(140,2),A(140,6),K(4,4),F(4),SOLN(4)
+C END NOV 1995
+      REAL M,N,NXY,K,MSAVE,NSAVE
+C
+C  SAVE STARTING VALUES...
+C
+      A0SAVE = A0
+      A1SAVE = A1
+       MSAVE = M
+       NSAVE = N
+       KOUNT = 0
+    5 CONTINUE
+       KOUNT = KOUNT + 1
+       IF (KOUNT.GE.3) GO TO 200
+      A0 = A0SAVE
+      A1 = A1SAVE
+       M =  MSAVE
+       N =  NSAVE
+C
+      FACT = 0.9
+      STEP = 0.1
+    8 CONTINUE
+      IF (FACT.LE.0.49) STEP = 0.05
+      FACT = FACT + STEP
+      IF (FACT.GT.1.01) GO TO 200
+C
+      IF (NPRT.GE.2) WRITE(IFILE,3)
+    3 FORMAT(' NEWTON ITERATIONS FOR ELABORATE KOITER PROBLEM'/
+     1' ITER    A0        A1        M         N        E1        E2     
+     1    E12     NROOTS  FACT')
+C
+      NROOTS = 0
+      ITER = 0
+    9 CONTINUE
+      ITER = ITER + 1
+      IF (NPRT.GE.2) THEN
+         WRITE(IFILE,10)ITER,A0,A1,M,N,E1,E2,E12,NROOTS,FACT
+   10    FORMAT(I4,1P7E10.2,I5,1PG12.2)
+      ENDIF
+C
+      CALL VARIAT(CX,CA,A,W0,A0,A1,A2,A3,A4,A5,A6,
+     1            M,N,R,NXY,P,E1,E2,E12,FACT)
+      CALL FILLK(K,F)
+      GO TO (24,22,20,18),KOUNT
+   18 CALL ROWCOL(3,K,F)
+   20 CALL ROWCOL(2,K,F)
+   22 CALL ROWCOL(4,K,F)
+   24 CONTINUE
+C        
+      CALL SOLV44(ITER,IFILE,K,F,SOLN,NROOTS)
+C
+      A0 = A0 + SOLN(1)
+      A1 = A1 + SOLN(2)
+       M =  M + SOLN(3)
+       N =  N + SOLN(4)
+      IF (ITER.LE.2) GO TO  9
+      IF (ITER.GE.45) GO TO 100
+C
+C   Convergence criterion...
+C
+      ANORM = 0.001*SQRT(A0**2 + A1**2)
+      IF (ABS(SOLN(1)).GT.ANORM) GO TO  9
+      IF (ABS(SOLN(2)).GT.ANORM) GO TO  9
+      IF (ABS(SOLN(4)).GT.(0.001*ABS(N))) GO TO  9
+C
+C   Solution accepted...
+C
+      WRITE(IFILE,10)ITER,A0,A1,M,N,E1,E2,E12,NROOTS,FACT
+      WRITE(IFILE,30)
+   30 FORMAT(' NEWTON ITERATIONS CONVERGED.')
+      IF (NROOTS.GT.0) WRITE(IFILE,40) NROOTS
+   40 FORMAT(/' THIS IS NOT THE MINIMUM-ENERGY SOLUTION BECAUSE'/
+     1' THE 4 X 4 STIFFNESS MATRIX OF THE LAST NEWTON ITERATION'/
+     1' IS NOT POSITIVE DEFINITE. NUMBER OF ROOTS SKIPPED=',I3,'.')
+C
+C     IF (KOUNT.EQ.1) GO TO 5
+      GO TO 8
+C
+C   Solution not converged...
+C
+  100 CONTINUE
+      WRITE(IFILE,10)ITER,A0,A1,M,N,E1,E2,E12,NROOTS,FACT
+      WRITE(IFILE,150)
+  150 FORMAT(' NEWTON ITERATIONS FAILED TO CONVERGE.')
+C
+      GO TO 5
+  200 CONTINUE
+      RETURN
+      END

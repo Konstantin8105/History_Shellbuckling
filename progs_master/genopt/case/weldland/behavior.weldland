@@ -1,0 +1,1052 @@
+C=DECK      BEHAVIOR.NEW
+C  This library contains the skeletons of
+C  subroutines called SUBROUTINE BEHXn, n = 1,
+C  2, 3, . . . that will yield predictions
+C  of behavioral responses of various systems
+C  to environments (loads).
+C
+C  You may complete the subroutines by writing
+C  algorithms that yield the responses,
+C  each of which plays a part in constraining
+C  the design to a feasible region. Examples
+C  of responses are: stress, buckling, drag,
+C  vibration, deformation, clearances, etc.
+C
+C  A skeleton routine called SUBROUTINE OBJECT
+C  is also provided for any objective function
+C  (e.g. weight, deformation, conductivity)
+C  you may wish to create.
+C
+C  A skeleton routine called SUBROUTINE USRCON
+C  is also provided for any user-written
+C  constraint condition you may wish to write:
+C  This is an INEQUALITY condition that
+C  involves any program variables.  However,
+C  note that this kind of thing is done
+C  automatically in the program DECIDE, so
+C  try DECIDE first to see if your particular
+C  constraint conditions can be accommodated
+C  more easily there.
+C
+C  Please note that you do not have to modify
+C  BEHAVIOR.NEW in any way, but may instead
+C  prefer to insert your subroutines into the
+C  skeletal libraries ADDCODEn.NEW, n=1,2,...
+C  and appropriate common blocks, dimension
+C  and type statements and calls to these
+C  subroutines in the library STRUCT.NEW.
+C  This strategy is best if your FORTRAN
+C  input to GENOPT contains quite a bit
+C  of software previously written by
+C  yourself or others, and/or the generation
+C  of behavioral constraints is more easily
+C  accomplished via another architecture
+C  than that provided for in the
+C  BEHAVIOR.NEW library. (See instructions
+C  in the libraries ADDCODEn.NEW and
+C  STRUCT.NEW for this procedure.)
+C
+C  The two test cases provided with GENOPT
+C  provide examples of each method:
+C   PLATE (test case 1): use of BEHAVIOR.NEW
+C   PANEL (test case 2): use of ADDCODEn.NEW
+C                        and STRUCT.NEW.
+C
+C   SEVEN ROLES THAT VARIABLES IN THIS SYSTEM OF PROGRAMS PLAY
+C
+C    A variable can have one of the following roles:
+C
+C    1 = a possible decision variable for optimization,
+C        typically a dimension of a structure.
+C    2 = a constant parameter (cannot vary as design evolves),
+C        typically a control integer or material property,
+C        but not a load, allowable, or factor of safety,
+C        which are asked for later.
+C    3 = a parameter characterizing the environment, such
+C        as a load component or a temperature.
+C    4 = a quantity that describes the response of the
+C        structure, (e.g. stress, buckling load, frequency)
+C    5 = an allowable, such as maximum allowable stress,
+C        minimum allowable frequency, etc.
+C    6 = a factor of safety
+C    7 = the quantity that is to be minimized or maximized,
+C        called the "objective function" (e.g. weight).
+C ===========================================================
+C
+C  NAMES, DEFINITIONS, AND ROLES OF THE VARIABLES:
+ 
+C YOU ARE USING WHAT I HAVE CALLED "GENOPT" TO GENERATE AN
+C OPTIMIZATION PROGRAM FOR A PARTICULAR CLASS OF PROBLEMS.
+C THE NAME YOU HAVE CHOSEN FOR THIS CLASS OF PROBLEMS IS: weldland
+ 
+C "GENOPT" (GENeral OPTimization) was written during 1987-1988
+C by Dr. David Bushnell, Dept. 93-30, Bldg. 251, (415)424-3237
+C    Lockheed Missiles and Space Co., 3251 Hanover St.,
+C    Palo Alto, California, USA  94304
+ 
+C The optimizer used in GENOPT is called ADS, and was
+C written by G. Vanderplaats [3]. It is based on the method
+C of feasible directions [4].
+ 
+C                       ABSTRACT
+ 
+C "GENOPT" has the following purposes and properties:
+C     1. Any relatively simple analysis is "automatically"
+C        converted into an optimization of whatever system
+C        can be analyzed with fixed properties. Please note
+C        that GENOPT is not intended to be used for problems
+C        that require elaborate data-base management systems
+C        or large numbers of degrees of freedom.
+ 
+C     2. The optimization problems need not be in fields nor
+C        jargon familiar to me, the developer of GENOPT.
+C        Although all of the example cases (See the cases
+C        in the directories under genopt/case)
+C        are in the field of structural analysis, GENOPT is
+C        not limited to that field.
+ 
+ 
+C     3. GENOPT is a program that writes other programs. These
+C        programs, WHEN AUGMENTED BY USER-SUPPLIED CODING,
+C        form a program system that should be user-friendly in
+C        the GENOPT-user"s field. In this instance the user
+C        of GENOPT must later supply FORTRAN coding that
+C        calculates behavior in the problem class called "weldland".
+ 
+C     4. Input data and textual material are elicited from
+C        the user of GENOPT in a general enough way so that
+C        he or she may employ whatever data, definitions, and
+C        "help" paragraphs will make subsequent use of the
+C        program system thus generated easy by those less
+C        familiar with the class of problems "weldland" than
+C        the GENOPT user.
+ 
+C     5. The program system generated by GENOPT has the same
+C        general architecture as previous programs written for
+C        specific applications by the developer [7 - 16]. That
+C        is, the command set is:
+ 
+C           BEGIN     (User supplies starting design, loads,
+C                      control integers, material properties,
+C                      etc. in an interactive-help mode.)
+ 
+C           DECIDE    (User chooses decision and linked
+C                      variables and inequality constraints
+C                      that are not based on behavior.)
+ 
+C           MAINSETUP (User chooses output option, whether
+C                      to perform analysis of a fixed design
+C                      or to optimize, and number of design
+C                      iterations.)
+ 
+C           OPTIMIZE  (The program system performs, in a batch
+C                      mode, the work specified in MAINSETUP.)
+ 
+C           SUPEROPT  (Program tries to find the GLOBAL optimum
+C                      design as described in Ref.[11] listed
+C                      below (Many OPTIMIZEs in one run.)
+ 
+C           CHANGE    (User changes certain parameters)
+ 
+C           CHOOSEPLOT (User selects which quantities to plot
+C                       vs. design iterations.)
+ 
+C           DIPLOT    (User generates plots)
+ 
+C           CLEANSPEC (User cleans out unwanted files.)
+ 
+C     A typical runstream is:
+C       GENOPTLOG   (activate command set)
+C       BEGIN       (provide starting design, loads, etc.)
+C       DECIDE      (choose decision variables and bounds)
+C       MAINSETUP   (choose print option and analysis type)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHANGE      (change some variables for new starting pt)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       OPTIMIZE    (launch batch run for n design iterations)
+C       CHOOSEPLOT  (choose which variables to plot)
+C       DIPLOT      (plot variables v. iterations)
+C       CHOOSEPLOT  (choose additional variables to plot)
+C       DIPLOT      (plot more variables v design iterations)
+C       CLEANSPEC   (delete extraneous files for specific case)
+ 
+C  IMPORTANT:  YOU MUST ALWAYS GIVE THE COMMAND "OPTIMIZE"
+C              SEVERAL TIMES IN SUCCESSION IN ORDER TO OBTAIN
+C              CONVERGENCE! AN EXPLANATION OF WHY YOU MUST DO
+C              THIS IS GIVEN ON P 580-582 OF THE PAPER "PANDA2,
+C              PROGRAM FOR MINIMUM WEIGHT DESIGN OF STIFFENED,
+C              COMPOSITE LOCALLY BUCKLED PANELS", Computers and
+C              Structures, Vol. 25, No. 4, pp 469-605 (1987).
+ 
+C Due to introduction of a "global" optimizer, SUPEROPT,
+C described in Ref.[11], you can now use the runstream
+ 
+C      BEGIN       (provide starting design, loads, etc.)
+C      DECIDE      (choose decision variables and bounds)
+C      MAINSETUP   (choose print option and analysis type)
+C      SUPEROPT    (launch batch run for "global" optimization)
+C      CHOOSEPLOT  (choose which variables to plot)
+C      DIPLOT      (plot variables v. iterations)
+ 
+C "Global" is in quotes because SUPEROPT does its best to find
+C a true global optimum design. The user is strongly urged to
+C execute SUPEROPT/CHOOSEPLOT several times in succession in
+C order to determine an optimum that is essentially just as
+C good as the theoretical true global optimum. Each execution
+C of the series,
+C      SUPEROPT
+C      CHOOSEPLOT
+ 
+C does the following:
+ 
+C 1. SUPEROPT executes many sets of the two processors,
+C    OPTIMIZE and AUTOCHANGE (AUTOCHANGE gets a new random
+C    "starting" design), in which each set does the following:
+ 
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      OPTIMIZE          (perform k design iterations)
+C      AUTOCHANGE        (get new starting design randomly)
+ 
+C    SUPEROPT keeps repeating the above sequence until the
+C    total number of design iterations reaches about 270.
+C    The number of OPTIMIZEs per AUTOCHANGE is user-provided.
+ 
+C 2. CHOOSEPLOT allows the user to plot stuff and resets the
+C    total number of design iterations from SUPEROPT to zero.
+C    After each execution of SUPEROPT the user MUST execute
+C    CHOOSEPLOT: before the next execution of SUPEROPT the
+C    total number of design iterations MUST be reset to zero.
+ 
+C                     REFERENCES
+ 
+C [1] Bushnell, D., "GENOPT--A program that writes
+C user-friendly optimization code", International
+C Journal of Solids and Structures, Vol. 26, No. 9/10,
+C pp. 1173-1210, 1990. The same paper is contained in a
+C bound volume of papers from the International Journal of
+C Solids and Structures published in memory of Professor
+C Charles D. Babcock, formerly with the California Institute
+C of Technology.
+ 
+C [2] Bushnell, D., "Automated optimum design of shells of
+C revolution with application to ring-stiffened cylindrical
+C shells with wavy walls", AIAA paper 2000-1663, 41st
+C AIAA Structures Meeting, Atlanta, GA, April 2000. Also see
+C Lockheed Martin report, same title, LMMS P525674, November
+C 1999
+ 
+C [2b] Bushnell, D., "Minimum weight design of imperfect
+C isogrid-stiffened ellipsoidal shells under uniform external
+C pressure", AIAA paper 2009-2702, 50th AIAA Structures
+C Meeting, Palm Springs, CA, May 4-7, 2009
+ 
+C [3] Vanderplaats, G. N., "ADS--a FORTRAN program for
+C automated design synthesis, Version 2.01", Engineering
+C Design Optimization, Inc, Santa Barbara, CA, January, 1987
+ 
+C [4] Vanderplaats, G. N. and Sugimoto, H., "A general-purpose
+C optimization program for engineering design", Computers
+C and Structures, Vol. 24, pp 13-21, 1986
+ 
+C [5] Bushnell, D., "BOSOR4: Program for stress, stability,
+C and vibration of complex, branched shells of revolution",
+C in STRUCTURAL ANALYSIS SYSTEMS, Vol. 2, edited by A.
+C Niku-Lari, pp. 25-54, (1986)
+ 
+C [6] Bushnell, D., "BOSOR5: Program for buckling of complex,
+C branched shells of revolution including large deflections,
+C plasticity and creep," in STRUCTURAL ANALYSIS SYSTEMS, Vol.
+C 2,  edited by A. Niku-Lari, pp. 55-67, (1986)
+ 
+C [7] Bushnell, D., "PANDA2--program for minimum weight
+C design of stiffened, composite, locally buckled panels",
+C COMPUTERS AND STRUCTURES, vol. 25, No. 4, pp 469-605, 1987
+ 
+C [8] Bushnell, D., "Improved optimum design of dewar
+C supports", COMPUTERS and STRUCTURES, Vol. 29, No. 1,
+C pp. 1-56 (1988)
+ 
+C [9] Bushnell, D., "SPHERE - Program for minimum weight
+C design of isogrid-stiffened spherical shells under uniform
+C external pressure", Lockheed Report F372046, January, 1990
+ 
+C [10] Bushnell, D.,"Optimum design of imperf.isogrid-stiffened
+C ellipsoidal shells...", written and placed in the file
+C ..genopt/case/torisph/sdm50.report.pdf
+ 
+C [11] Bushnell, D., "Recent enhancements to PANDA2", AIAA
+C paper 96-1337-CP, Proc. 37th AIAA SDM Meeting, April 1996
+C pp. 126-182, in particular, pp. 127-130
+ 
+C [12] Bushnell, D., the file ..genopt/doc/getting.started
+ 
+C [13] Bushnell, D., the case ..genopt/case/torisph
+ 
+C [14] Bushnell, D., the case ..genopt/case/cylinder
+ 
+C [15] Bushnell, D., the case ..genopt/case/wavycyl
+ 
+C [16] Bushnell, D., the case ..genopt/case/plate
+ 
+C [17] Bushnell, D., the case ..genopt/case/sphere
+ 
+C==============================================================
+C                TABLE 1      "GENOPT" COMMANDS
+C==============================================================
+C     HELPG        (get information on GENOPT.)
+C     GENTEXT      (GENOPT user generate a prompt file, program
+C                   fragments [see TABLE 5], programs [see
+C                   TABLE 4]., and this and other files
+C                   [see TABLE 5 and the rest of this file.])
+C     GENPROGRAMS  (GENOPT user generate absolute elements:
+C                   BEGIN.EXE, DECIDE.EXE, MAINSETUP.EXE,
+C                   OPTIMIZE.EXE, CHANGE.EXE, STORE.EXE,
+C                   CHOOSEPLOT.EXE, DIPLOT.EXE.)
+ 
+C     BEGIN        (end user provide starting data.)
+C     DECIDE       (end user choose decision variables, bounds,
+C                   linked variables,inequality constraints.)
+C     MAINSETUP    (end user set up strategy parameters.)
+C     OPTIMIZE     (end user perform optimization, batch mode.)
+C     SUPEROPT     (Program tries to find the GLOBAL optimum
+C                   design as described in Ref.[11] listed
+C                   above (Many OPTIMIZEs in one run.)
+ 
+C     CHANGE       (end user change some parameters.)
+C     CHOOSEPLOT   (end user choose which variables to plot v.
+C                   design iterations.)
+C     DIPLOT       (end user obtain plots.)
+C     INSERT       (GENOPT user add parameters to the problem.)
+C     CLEANGEN     (GENOPT user cleanup your GENeric files.)
+C     CLEANSPEC    (end user cleanup your SPECific case files)
+ 
+C   Please consult the following sources for more
+C   information about GENOPT:
+C        1.  GENOPT.STORY  and  HOWTO.RUN  and  GENOPT.NEWS
+C        2.  Sample cases: (in the directory, genopt/case)
+C        3.  NAME.DEF file, where NAME is the name chosen by
+C            the GENOPT-user for a class of problems. (In this
+C            case  NAME = weldland)
+C        4.  GENOPT.HLP file    (type HELPG)
+C=============================================================
+ 
+C==============================================================
+C   TABLE 2   GLOSSARY OF VARIABLES USED IN "weldland"
+C==============================================================
+C  ARRAY  NUMBER OF         PROMPT
+C    ?   (ROWS,COLS)  ROLE  NUMBER   NAME                 DEFINITION OF VARIABLE
+C                         (weldland.PRO)
+C==============================================================
+C    n   (   0,   0)    1      10   WLAND    = width of the weld land
+C    n   (   0,   0)    1      15   TLAND    = thickness of the weld land
+C    n   (   0,   0)    1      20   ECLAND   = eccentricity of the weld land
+C    n   (   0,   0)    2      25   KLAND    = index for weld land edge stringer
+C    n   (   0,   0)    1      35   TWLAND   = web thickness of the weld land ed
+C    n   (   0,   0)    1      40   HWLAND   = height of the web of the weld lan
+C    n   (   0,   0)    1      45   TFLAND   = thickness of the outstanding flan
+C    n   (   0,   0)    1      50   WFLAND   = width of the outstanding flange o
+C    n   (   0,   0)    2      55   NLAND    = number of weld lands in 360 degre
+C    n   (   0,   0)    1      65   TSKIN    = thickness of the cylindrical shel
+C    n   (   0,   0)    2      70   RADCYL   = radius of the cylindrical shell
+C    n   (   0,   0)    2      75   LENCYL   = length of the cylindrical shell
+C    n   (   0,   0)    2      85   BSTR     = stringer spacing
+C    n   (   0,   0)    2      90   TSTR     = stringer thickness
+C    n   (   0,   0)    2      95   HSTR     = stringer height
+C    n   (   0,   0)    2     100   BRNG     = ring spacing
+C    n   (   0,   0)    2     105   TRNG     = ring thickness
+C    n   (   0,   0)    2     110   HRNG     = ring height
+C    n   (   0,   0)    2     120   EMOD     = Young's modulus
+C    n   (   0,   0)    2     125   NU       = Poisson ratio
+C    n   (   0,   0)    2     130   DENS     = mass density (aluminum = 0.00025
+C    n   (   0,   0)    2     140   MLOWG    = low end of the M-range for genera
+C    n   (   0,   0)    2     145   MHIGHG   = High end of the M-range for gener
+C    n   (   0,   0)    2     150   MLOWP    = low end of the M-range for "panel
+C    n   (   0,   0)    2     155   MHIGHP   = high end of the M-range for "pane
+C    n   (   0,   0)    2     165   NCASES   = Number of load cases (number of e
+C    y   (  20,   0)    3     170   PX       = total axial load (2*pi*r*Nx)
+C    y   (  20,   0)    3     175   PY       = uniform normal pressure
+C    y   (  20,   0)    3     180   PX0      = axial load in Load Set B
+C    y   (  20,   0)    3     185   PY0      = pressure in Load Set B
+C    y   (  20,   0)    4     195   GENBUK   = general buckling load
+C    y   (  20,   0)    5     200   GENBUKA  = allowable for general buckling
+C    y   (  20,   0)    6     205   GENBUKF  = factor of safety for general buck
+C    y   (  20,   0)    4     210   PANBUK   = "panel" buckling
+C    y   (  20,   0)    5     215   PANBUKA  = allowable for "panel" buckling
+C    y   (  20,   0)    6     220   PANBUKF  = factor of safety for "panel" buck
+C    y   (  20,   0)    4     225   STRESS   = weld land effective stress
+C    y   (  20,   0)    5     230   STRESSA  = maximum allowable effective stres
+C    y   (  20,   0)    6     235   STRESSF  = factor of safety for effective st
+C    n   (   0,   0)    7     245   WEIGHT   = weight of the weld land+"extra" e
+C
+C=DECK      BEHX1
+      SUBROUTINE BEHX1
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN general buckling load
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     GENBUK(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = general buckling load
+C
+C   OUTPUT:
+C
+C     GENBUK(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+      COMMON/INSTAB/INDIC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/BUCKN/N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBEG
+      COMMON/NXPART/NXLAND,NXWEB,NXFLNG,NXSKIN,NXSMER
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/EIGALL/EIG0,EIG1,EIG2,EIG3,EIG4
+      COMMON/WAVALL/NWAV0,NWAV1,NWAV2,NWAV3,NWAV4
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+      REAL LENMOD
+      REAL NXLAND,NXWEB,NXFLNG,NOTLND,NXSKIN,NXSMER
+C
+      PI = 3.1415927
+      FLAND = FLOAT(NLAND)
+      NOTLND = 2.*PI*RADCYL - FLAND*WLAND
+      DENOM = NOTLND + NOTLND*HSTR*TSTR/(TSKIN*BSTR)
+     1       +2.*FLAND*HWLAND*TWLAND/TSKIN
+     1       +2.*FLAND*WFLAND*TFLAND/TSKIN
+     1          +FLAND*TLAND/TSKIN
+      NXSKIN = PX(ILOADX)/DENOM
+      NXLAND = NXSKIN*TLAND/TSKIN
+      NXWEB  = NXSKIN*TWLAND/TSKIN
+      NXFLNG = NXSKIN*TFLAND/TSKIN
+      NXSMER = NXSKIN*(1. + HSTR*TSTR/(TSKIN*BSTR))
+C
+      INDIC = 4
+      LENMOD = 1.0
+      RAVE = 100.*LENCYL*LENMOD/PI
+      RBEG = RAVE -0.707*RADCYL
+C BEG FEB 2010
+C     N0B = MLOWG*100
+C     NMAXB = MHIGHG*100 
+      N0B = MLOWG*1
+      NMAXB = MHIGHG*1
+C END FEB 2010
+C
+C  Get model without any weld lands:
+      IF (IMODX.EQ.0) THEN
+C        CALL BOSDEC(0,24,ILOADX,INDIC)
+C
+         IF (ITYPEX.EQ.2) THEN
+C          Get CASE.BEHX0 file for input for BIGBOSOR4...
+C          CASE.BEHX0 is an input file for BIGBOSOR4 for behavior no. 0:
+C          general buckling load without any weld lands
+           I=INDEX(CASE,' ')
+           IF(I.NE.0) THEN
+              CASA=CASE(:I-1)//'.BEHX0'
+           ELSE
+              CASA=CASE//'.BEHX0'
+           ENDIF
+           OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+           CALL BOSDEC(0,61,ILOADX,INDIC)
+           CLOSE(UNIT=61)
+           WRITE(IFILE,'(/,/,A,A,/,A)')
+     1   ' BIGBOSOR4 input file for:',
+     1   ' general buckling load, no weld lands',
+     1     CASA
+         ENDIF
+      ENDIF
+C
+      CALL BOSDEC(1,24,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX1 file for input for BIGBOSOR4...
+C      CASE.BEHX1 is an input file for BIGBOSOR4 for behavior no. 1:
+C      general buckling load 
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX1'
+         ELSE
+            CASA=CASE//'.BEHX1'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(1,61,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' general buckling load',
+     1   CASA
+      ENDIF
+C
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+C BEG FEB 2010
+C        INCRBX = 100
+         INCRBX = 1
+C END FEB 2010
+      ELSE
+         NOBX = NWAV1
+         NMINBX = NWAV1
+         NMAXBX = NWAV1
+C BEG FEB 2010
+C        INCRBX = 100
+         INCRBX = 1
+C END FEB 2010
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG1 = EIGCRT
+         NWAV1= NWVCRT
+      ENDIF
+C
+      WRITE(IFILE,'(/,A)')
+     1 ' GENERAL BUCKLING LOAD FACTORS AND MODES (BEHX1)'
+      DO 10 I = 1,IWAVEB
+         WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1  '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   10 CONTINUE
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1' Critical buckling load factor, GENBUK=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1' Critical number of axial half-waves, NWVCRT=',NWVCRT
+C BEG DEC 2009
+      IF (NWVCRT.EQ.NMAXB)
+     1  WRITE(IFILE,'(/,A,/,A,I5,/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     1' ************** WARNING ************** WARNING ****************',
+     1' The critical wave number, NWVCRT, is equal to MHIGHGx1 =',
+     1  NMAXB,
+     1' which is at the high end of the axial half-wave-number range.',
+     1' Increase (perhaps double or triple) the value of MHIGHG',
+     1' in the *.BEG file and re-optimize. You probably did not',
+     1' capture the critical GENERAL buckling load factor and therefore',
+     1' your optimum design is probably unconservative.',
+     1' **************************************************************'
+C END DEC 2009
+C
+      GENBUK(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX2
+      SUBROUTINE BEHX2
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN "panel" buckling
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     PANBUK(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = "panel" buckling
+C
+C   OUTPUT:
+C
+C     PANBUK(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+C
+      COMMON/INSTAB/INDIC
+      COMMON/EIGB4M/EIGCOM(200),EIGNEG(200),EIGCRN
+      COMMON/WVEB4M/NWVCOM(200),NWVNEG(200),IWAVEB,NWVCRN
+      COMMON/EIGBUK/EIGCRT
+      COMMON/NWVBUK/NWVCRT
+      COMMON/BUCKN/N0BX,NMINBX,NMAXBX,INCRBX
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBEG
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/EIGALL/EIG0,EIG1,EIG2,EIG3,EIG4
+      COMMON/WAVALL/NWAV0,NWAV1,NWAV2,NWAV3,NWAV4
+      COMMON/NUMPAR/IPARX,IVARX,IALLOW,ICONSX,NDECX,NLINKX,NESCAP,ITYPEX
+      common/caseblock/CASE
+      CHARACTER*28 CASE
+      CHARACTER*35 CASA
+      REAL NXLAND,NXWEB,NXFLNG,NOTLND,NXSKIN,NXSMER
+C
+      PI = 3.1415927
+      FLAND = FLOAT(NLAND)
+      NOTLND = 2.*PI*RADCYL - FLAND*WLAND
+      DENOM = NOTLND + NOTLND*HSTR*TSTR/(TSKIN*BSTR)
+     1       +2.*FLAND*HWLAND*TWLAND/TSKIN
+     1       +2.*FLAND*WFLAND*TFLAND/TSKIN
+     1          +FLAND*TLAND/TSKIN
+      NXSKIN = PX(ILOADX)/DENOM
+      NXLAND = NXSKIN*TLAND/TSKIN
+      NXWEB  = NXSKIN*TWLAND/TSKIN
+      NXFLNG = NXSKIN*TFLAND/TSKIN
+      NXSMER = NXSKIN*(1. + HSTR*TSTR/(TSKIN*BSTR))
+C
+      INDIC = 4
+      RAVE = 100.*BRNG/PI
+      RBEG = RAVE -0.707*RADCYL
+C BEG FEB 2010
+C     N0B = MLOWP*100
+C     NMAXB = MHIGHP*100 
+      N0B = MLOWP*1
+      NMAXB = MHIGHP*1
+C END FEB 2010
+C
+      CALL BOSDEC(2,24,ILOADX,INDIC)
+C
+      IF (ITYPEX.EQ.2) THEN
+C      Get CASE.BEHX2 file for input for BIGBOSOR4...
+C      CASE.BEHX2 is an input file for BIGBOSOR4 for behavior no. 2:
+C      "panel" buckling load 
+         I=INDEX(CASE,' ')
+         IF(I.NE.0) THEN
+            CASA=CASE(:I-1)//'.BEHX2'
+         ELSE
+            CASA=CASE//'.BEHX2'
+         ENDIF
+         OPEN(UNIT=61,FILE=CASA,STATUS='UNKNOWN')
+         CALL BOSDEC(2,61,ILOADX,INDIC)
+         CLOSE(UNIT=61)
+         WRITE(IFILE,'(/,/,A,A,/,A)')
+     1 ' BIGBOSOR4 input file for:',
+     1 ' "panel" buckling load',
+     1   CASA
+      ENDIF
+C
+      CALL B4READ
+      IF (IMODX.EQ.0) THEN
+         N0BX = N0B
+         NMINBX = N0B
+         NMAXBX = NMAXB
+C BEG FEB 2010
+C        INCRBX = 100
+         INCRBX = 1
+C END FEB 2010
+      ELSE
+         NOBX = NWAV2
+         NMINBX = NWAV2
+         NMAXBX = NWAV2
+C BEG FEB 2010
+C        INCRBX = 100
+         INCRBX = 1
+C END FEB 2010
+      ENDIF
+      REWIND IFILE9
+      CALL STOCM1(IFILE9)
+      CALL STOCM2(IFILE9)
+      CALL B4MAIN
+      CALL GASP(DUM1,DUM2,-2,DUM3)
+      IF (IMODX.EQ.0) THEN
+         EIG2 = EIGCRT
+         NWAV2= NWVCRT
+      ENDIF
+C
+      WRITE(IFILE,'(/,A)')
+     1 ' "PANEL" BUCKLING LOAD FACTORS AND MODES (BEHX2)'
+      DO 10 I = 1,IWAVEB
+         WRITE(IFILE,'(A,1P,E12.4,A,I4,A)')
+     1  '      ',EIGCOM(I),'(',NWVCOM(I),')'
+   10 CONTINUE
+      WRITE(IFILE,'(A,1P,E12.4)')
+     1' Critical buckling load factor, PANBUK=',EIGCRT
+      WRITE(IFILE,'(A,I5)')
+     1' Critical number of axial half-waves, NWVCRT=',NWVCRT
+C BEG DEC 2009
+      IF (NWVCRT.EQ.NMAXB)
+     1  WRITE(IFILE,'(/,A,/,A,I5,/,A,/,A,/,A,/,A,/,A,/,A,/)')
+     1' ************** WARNING ************** WARNING ****************',
+     1' The critical wave number, NWVCRT, is equal to MHIGHPx1 =',
+     1  NMAXB,
+     1' which is at the high end of the axial half-wave-number range.',
+     1' Increase (perhaps double or triple) the value of MHIGHP',
+     1' in the *.BEG file and re-optimize. You probably did not',
+     1' capture the critical PANEL buckling load factor and therefore',
+     1' your optimum design is probably unconservative.',
+     1' **************************************************************'
+C END DEC 2009
+C
+      PANBUK(ILOADX) = EIGCRT
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      BEHX3
+      SUBROUTINE BEHX3
+     1 (IFILE,NPRINX,IMODX,IFAST,ILOADX,PHRASE)
+C
+C   PURPOSE: OBTAIN weld land effective stress
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE RESPONSE VARIABLE FOR
+C   THE ith LOAD CASE, ILOADX:
+C
+C     STRESS(ILOADX)
+C
+C   AS OUTPUT. THE ith CASE REFERS
+C   TO ith ENVIRONMENT (e.g. load com-
+C   bination).
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C     ILOADX = ith LOADING COMBINATION
+C     PHRASE = weld land effective stress
+C
+C   OUTPUT:
+C
+C     STRESS(ILOADX)
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      REAL NXLAND,NXWEB,NXFLNG,NOTLND,NXSKIN,NXSMER
+C
+      PI = 3.1415927
+      FLAND = FLOAT(NLAND)
+      NOTLND = 2.*PI*RADCYL - FLAND*WLAND
+      DENOM = NOTLND + NOTLND*HSTR*TSTR/(TSKIN*BSTR)
+     1       +2.*FLAND*HWLAND*TWLAND/TSKIN
+     1       +2.*FLAND*WFLAND*TFLAND/TSKIN
+     1          +FLAND*TLAND/TSKIN
+      NXSKIN = PX(ILOADX)/DENOM
+      NXLAND = NXSKIN*TLAND/TSKIN
+      NXWEB  = NXSKIN*TWLAND/TSKIN
+      NXFLNG = NXSKIN*TFLAND/TSKIN
+      NXSMER = NXSKIN*(1. + HSTR*TSTR/(TSKIN*BSTR))
+C
+      STRLND = ABS(NXLAND/TLAND)
+      STRWEB = ABS(NXWEB/TWLAND)
+      STRFLG = ABS(NXFLNG/TFLAND)
+C
+      STRESS(ILOADX) = MAX(STRLND,STRWEB)
+      STRESS(ILOADX) = MAX(STRESS(ILOADX),STRFLG)
+C
+      RETURN
+      END
+C
+C
+C
+C
+C=DECK      USRCON
+      SUBROUTINE USRCON(INUMTT,IMODX,CONMAX,ICONSX,IPOINC,CONSTX,
+     1  WORDCX,WORDMX,PCWORD,CPLOTX,ICARX,IFILEX)
+C   PURPOSE: GENERATE USER-WRITTEN
+C   INEQUALITY CONSTRAINT CONDITION
+C   USING ANY COMBINATION OF PROGRAM
+C   VARIABLES.
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS A CONSTRAINT CONDITION,
+C   CALLED "CONX" IN THIS ROUTINE.
+      DIMENSION WORDCX(*),WORDMX(*),IPOINC(*),CONSTX(*)
+      DIMENSION PCWORD(*),CPLOTX(*)
+      CHARACTER*80 WORDCX,WORDMX,PCWORD
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C
+      CONX = 0.0
+C
+C  INSERT USER-WRITTEN STATEMENTS
+C  HERE. THE CONSTRAINT CONDITION
+C  THAT YOU CALCULATE IS CALLED "CONX"
+C
+      IF (CONX.EQ.0.0) RETURN
+      IF (CONX.LT.0.0) THEN
+         WRITE(IFILEX,*)' CONX MUST BE GREATER THAN ZERO.'
+         CALL EXIT
+      ENDIF
+C
+C  DO NOT CHANGE THE FOLLOWING STATEMENTS, EXCEPT WORDC
+C
+      ICARX = ICARX + 1
+      INUMTT = INUMTT + 1
+      WORDCX(ICARX) = ' USER: PROVIDE THIS.'
+      CPLOTX(ICARX) = CONX - 1.
+      CALL BLANKX(WORDCX(ICARX),IENDP)
+      PCWORD(ICARX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+      IF (IMODX.EQ.0.AND.CONX.GT.CONMAX) GO TO 200
+      IF (IMODX.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+      ICONSX = ICONSX + 1
+      IF (IMODX.EQ.0) IPOINC(INUMTT) = 1
+      CONSTX(ICONSX) = CONX
+      WORDMX(ICONSX)  = WORDCX(ICARX)(1:IENDP)//' -1'
+  200 CONTINUE
+C  END OF USRCON
+C
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      USRLNK
+      SUBROUTINE USRLNK(VARI,I,VARIAB)
+C Purpose: generate user-written
+C linking conditions using any
+C combination of decision variables.
+C You must write conde that, using
+C the variables in the subroutine
+C argument VARIAB as input, ultimately
+C yield a value for the linked variable
+C VARI.
+C
+C VARI is the Ith entry of the array
+C VARIAB.  You have decided that this
+C is to be a linked variable with user
+C defined linking.  It is linked to
+C the decision variables in the array
+C VARIAB.
+C An example will provide the simplest
+C explanation of this:
+C Let"s say that the 5th decision
+C variable candidate (I=5) is linked
+C to the decision variable candidates
+C 2 and 7. (You used DECIDE to select
+C these as decision variables.
+C In this case VARI is equal to
+C VARIAB(I).  You then write your
+C linking equation in the form
+C VARI=f(VARIAB(2),VARIAB(7)).
+C Use the index I in an IF statement if
+C you have more than one user-defined
+C linked variable.
+C
+C
+      REAL VARI,VARIAB(50)
+      INTEGER I
+C
+C  INSERT USER-WRITTEN DECLARATION
+C  STATEMENTS HERE.
+C
+C  INSERT USER-WRITTEN
+C  STATEMENTS HERE.
+C
+C
+C  END OF USRLNK
+      RETURN
+      END
+C=DECK      OBJECT
+      SUBROUTINE OBJECT(IFILE,NPRINX,IMODX,OBJGEN,PHRASE)
+C   PURPOSE:weight of the weld land+"extra" edge stringers
+C
+C   YOU MUST WRITE CODE THAT, USING
+C   THE VARIABLES IN THE LABELLED
+C   COMMON BLOCKS AS INPUT, ULTIMATELY
+C   YIELDS THE OBJECTIVE FUNCTION
+C         WEIGHT
+C   AS OUTPUT. MAKE SURE TO INCLUDE AT
+C   THE END OF THE SUBROUTINE, THE
+C   STATEMENT: OBJGEN = WEIGHT
+C
+C
+C   DEFINITIONS OF INPUT DATA:
+C    IMODX  = DESIGN CONTROL INTEGER:
+C     IMODX = 0 MEANS BASELINE DESIGN
+C     IMODX = 1 MEANS PERTURBED DESIGN
+C     IFAST = 0 MEANS FEW  SHORTCUTS FOR PERTURBED DESIGNS
+C     IFAST = 1 MEANS MORE SHORTCUTS FOR PERTURBED DESIGNS
+C    IFILE = FILE FOR OUTPUT LIST:
+C    NPRINX= OUTPUT CONTROL INTEGER:
+C     NPRINX=0 MEANS SMALLEST AMOUNT
+C     NPRINX=1 MEANS MEDIUM AMOUNT
+C     NPRINX=2 MEANS LOTS OF OUTPUT
+C
+C   DEFINITION OF PHRASE:
+C     PHRASE = weight of the weld land+"extra" edge stringers
+C
+       CHARACTER*80 PHRASE
+C  INSERT ADDITIONAL COMMON BLOCKS:
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C
+C
+C  INSERT SUBROUTINE STATEMENTS HERE.
+C
+      WEIGHT=(WLAND*TLAND
+     1  +2.*(TWLAND*HWLAND+TFLAND*WFLAND))*DENS*386.4
+C
+      OBJGEN =WEIGHT 
+C
+C
+      RETURN
+      END
+C
+C
+C

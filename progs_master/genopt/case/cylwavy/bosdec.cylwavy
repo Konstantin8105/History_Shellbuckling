@@ -1,0 +1,311 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "span"
+C
+      SUBROUTINE BOSDEC(INDX,IFIL14,IMODX,ILOADX,INDIC)
+C  Insert labelled common blocks: cylwavy.COM
+      COMMON/IV01/NMESH(2 ),INMESH 
+      INTEGER NMESH
+      COMMON/FV07/THICK(2 ),ITHICK 
+      REAL THICK
+      COMMON/FV08/RADLOC(2 ),ANGLE(2 )
+      REAL RADLOC,ANGLE
+      COMMON/FV10/TOTLOD(20)
+      REAL TOTLOD
+      COMMON/FV13/LOCBUK(20),LOCBUKA(20),LOCBUKF(20)
+      REAL LOCBUK,LOCBUKA,LOCBUKF
+      COMMON/FV16/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV19/CYLBUK(20,2 ),JCYLBUK,CYLBUKA(20,2 ),CYLBUKF(20,2 )
+      REAL CYLBUK,CYLBUKA,CYLBUKF
+      COMMON/FV22/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV02/MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      INTEGER MLOWG,MHIGHG,MLOWL,MHIGHL,IELMNT,UPDOWN
+      COMMON/FV01/RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+      REAL RADIUS,LENGTH,FACLEN,EMOD,NU,DENSTY,WEIGHT
+C  end of cylwavy.COM
+C
+      COMMON/RZALL/R1(50),R2(50),Z1(50),Z2(50),RC(50),ZC(50),SROT(50)
+      COMMON/LODWGT/FNX(2)
+      COMMON/NSEGS/NSEG
+C
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBIG0,RBIGL,RBIGG
+      DIMENSION FOUND(50),NSUR(50),NSHAPE(50),NNODES(50),NRING(50)
+      DIMENSION IDISP(50,4),JPREV(50,2),JNODPV(50,2),NTYPE(50)
+      DIMENSION NPREV(50),NODPRV(50,2),NGRND(50),NODGRD(50,2)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(99),CONST(99),DEC(50),ESC(50)
+C
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a cylindrical shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+      IF (INDX.EQ.1) THEN
+         RBEG = RBIGL
+      ENDIF
+      IF (INDX.GT.1) THEN
+         RBEG = RBIGG
+      ENDIF
+C
+      CALL MOVER(0.,0,FOUND,1,50)
+      CALL MOVER(1, 0,IDISP,1,200)
+      CALL MOVER(0, 0,JPREV,1,100)
+      CALL MOVER(0, 0,JNODPV,1,100)
+      CALL MOVER(0, 0,NPREV,1,50)
+      CALL MOVER(0, 0,NODPRV,1,100)
+      CALL MOVER(0, 0,NGRND,1,50)
+      CALL MOVER(0, 0,NODGRD,1,100)
+      CALL MOVER(2, 0,NSHAPE,1,50)
+      CALL MOVER(1, 0,NTYPE,1,50)
+      CALL MOVER(61, 0,NNODES,1,50)
+      CALL MOVER(0, 0,NRING,1,50)
+      CALL MOVER(0, 0,NSUR,1,50)
+      CALL MOVER(0., 0,FOUND,1,50)
+C
+C   ZVAL   = distance from the leftmost shell segment surface
+C            to the shell segment reference surface as we
+C            "travel" along the shell segment
+C   NSHAPE = BIGBOSOR4 index for shape of shell segment:
+C            NSHAPE = 1 means cone, cylinder, flat plate
+C            NSHAPE = 2 means toroidal, spherical
+C   NSUR   = BIGBOSOR4 index for location of reference surface
+C            in a shell segment:
+C            NSUR = 0 means middle surface is the ref. surf.
+C            NSUR = 1 means rightmost surface is the ref. surf.
+C            NSUR = -1 means reference surface is the inner surface
+C                      or is at an arbitrary location relative
+C                      to the shell wall material in the shell seg.
+C   R1(i),R2(i),Z1(i),Z2(i) =
+C                 (r,z) end points for the ith shell segment
+C   RC(i),ZX(i) = center of meridional curvature of ith segment
+C   SROT(i) = +1 for clockwise, -1 for anti-clockwise
+C                travel along the ith segment.
+C
+C   NTYPE  = type of callout used for the location of ring
+C            attachment point to the ith shell segment.
+C            NOTE: NTYPE(i) = 1 is always used in this project.
+C            NTYPE(i) = 1 means that the location of the ring
+C            attachment point to the shell segment is identified
+C            by its nodal point number within that shell segment.
+C            BIGBOSOR4 had to be modified to do this. Until now
+C            BIGBOSOR4 only permitted callout locations to be
+C            identified by either radial (r) or axial (z) numbers.
+C            The modification to BIGBOSOR4 was needed to avoid input
+C            errors in BIGBOSOR4 caused by lack of monotonicity
+C            of r-values or z-values within a single shell segment.
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+C  We generate a valid input data file, *.ALL, for BIGBOSOR4
+C
+C  Global input before segment data...
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (INDX.EQ.1) WRITE(IFIL14,'(A)')
+     1   ' local buckling (INDIC=4) ixprism'
+      IF (INDX.EQ.2) WRITE(IFIL14,'(A)')
+     1   ' general buckling (INDIC=4) ixprism'
+      IF (INDX.EQ.1) WRITE(IFIL14,'(1P,E14.6,A)') LENGTH*FACLEN,
+     1   ' $ AXIALL = reduced axial length, LENGTH x FACLEN, local buck'
+      IF (INDX.GT.1) WRITE(IFIL14,'(1P,E14.6,A)') LENGTH,
+     1   ' $ AXIALL = axial length of cyl.'
+      MSEG = NSEG
+      WRITE(IFIL14,'(A,I3,A)')
+     1   ' 4, 1, 0, 0, ',MSEG,' $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+C
+      DO 400 I = 1,MSEG
+         ISEG = I
+         WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+         NNODES(ISEG) = NMESH(1)
+         IF (MOD(ISEG,2).EQ.0) NNODES(ISEG) = NMESH(2)
+         WRITE(IFIL14,'(I4,A,I3,A)') NNODES(ISEG),', 3, ',NSHAPE(ISEG),
+     1 ' $ NMESH,NTYPEH,NSHAPE'
+         WRITE(IFIL14,'(1P,4E14.6,A)') R1(I),Z1(I),R2(I),Z2(I),
+     1 ' $ R1,Z1,R2,Z2'
+         WRITE(IFIL14,'(1P,3E14.6,A)') RC(I),ZC(I),SROT(I),
+     1 ' $ RC,ZC,SROT'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' 0  $ IMP = indicator for imperfection'
+         WRITE(IFIL14,'(A)')' 1, 2, 1  $ NTYPEZ,NZVALU,NTYPE'
+         WRITE(IFIL14,'(A,I5,A)') ' 1, ',NNODES(ISEG),
+     1 ' $ IPOINT(1),IPOINT(2)'
+         ZVAL1 = THICK(1)/2.
+         IF (MOD(ISEG,2).EQ.0) ZVAL1 = THICK(2)/2. 
+         ZVAL2 = ZVAL1
+         WRITE(IFIL14,'(1P,2E14.6,A)') ZVAL1,ZVAL2,'  $ ZVAL1,ZVAL2'
+         WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+C
+         WRITE(IFIL14,'(I5,1PE14.6,A,2I4,A)') NRING(ISEG),FOUND(ISEG),
+     1    ', 2, ',NRLOAD,NTYPE(ISEG),' $ NRINGS,K,NSTRES,NRLOAD,NTYPE'
+C
+         IF (NTYPE(ISEG).EQ.1)
+     1   WRITE(IFIL14,'(A,I4,A)')' 1, ',NNODES(ISEG),
+     1 ' $ IPOINT(1),IPOINT(2)'
+         IF (NTYPE(ISEG).EQ.2)
+     1   WRITE(IFIL14,'(1P,2E14.6,A)') Z1(ISEG),Z2(ISEG),
+     1 ' $ Z1(ISEG),Z2(ISEG)'
+         IF (NTYPE(ISEG).EQ.3)
+     1   WRITE(IFIL14,'(1P,2E14.6,A)') R1(ISEG),R2(ISEG),
+     1 ' $ R1(ISEG),R2(ISEG)'
+         FN101 = 0.
+         FN102 = 0.
+         FN201 = FNX(1)
+         IF (MOD(ISEG,2).EQ.0) FN201 = FNX(2) 
+         FN202 = FN201
+         WRITE(IFIL14,'(1P,4E14.6,A)') FN101,FN102,FN201,FN202,
+     1 ' $ FN10,FN10,FN20,FN20'
+C BEG JUL 2010
+         WRITE(IFIL14,'(A)')' 0., 0., 0., 0.  $ "fixed" prestress'
+C END JUL 2010
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         WRITE(IFIL14,'(A)')' N  $ do not print prestresses'
+         WRITE(IFIL14,'(A)')' 2  $ NWALL'
+         WRITE(IFIL14,'(1P,3E14.6,A)') EMOD,NU,DENSTY,
+     1 ' $ EMOD,NU,DENSTY'
+         ALPH = 0.
+         NRS = 0
+         WRITE(IFIL14,'(1P,E14.6,2I3,A)') ALPH,NRS,NSUR(ISEG),
+     1 ' $ ALPHA,NRS,NSUR'
+C
+         WRITE(IFIL14,'(A)')' N  $ do you want print refsurf,thick.?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out Cij?'
+         WRITE(IFIL14,'(A)')' N  $ do you want to print out loads?'
+C
+  400    CONTINUE
+C
+         WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+         WRITE(IFIL14,'(A)')' 0  $ NLAST'
+         WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+         NMINB = N0B
+         INCRB = 1
+         NVEC  = 1
+         WRITE(IFIL14,'(5I6,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+         WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+         WRITE(IFIL14,'(I6,A)') MSEG,'  $ how many segments?'
+C
+C   Next, generate the BIGBOSOR4 input for all the constraint
+C   conditions (connections to ground and segment junctions)
+C   in the multi-module model.
+C
+C   The connections to ground (NGRND(i) > 0), where
+C   i = the shell segment number, are governed by the
+C   array, IDISP(i,j), where j is an index for which displacement
+C   component is constrained or not constrained.
+C
+C   IDISP(i,j) = 1 means that the jth displacement component is
+C                  constrained to be zero.
+C   IDISP(i,j) = 0 means that the jth displacement component is
+C                  free
+C
+C   In BIGBOSOR4 [10] there are 4 displacement components:
+C
+C   IDISP(i,1) refers to USTAR, the axial (vertical) displacement
+C   IDISP(i,2) refers to VSTAR, the circumferential displacement
+C   IDISP(i,3) refers to WSTAR, the radial (horizontal) displacement
+C   IDISP(i,4) refers to CHI, the meridional rotation
+C
+C   The entire array, IDISP(i,j), i = 1,NSEGS, j = 1,4,
+C   is initially set equal to unity when SUBROUTINE BOSDEC is
+C   called from SUBROUTINE BEHX1 (local buckling:   INDX = 1) and
+C   called from SUBROUTINE BEHX2 (general buckling: INDX = 2,3). In
+C   the following code IDISP(i,j) is reset to zero in certain of
+C   the shell segments:
+C
+C   For LOCAL   buckling (INDX = 1) in Segments 1 and NSEG 
+C               simple support at both Segs. 1 & NSEG
+C   For GENERAL buckling (INDX = 2) in Segments 1 and NSEG
+C               simple support at both Segs. 1 & NSEG
+C
+         DO 500 I = 1,MSEG
+C
+         WRITE(IFIL14,'(A,4I6)')
+     1 ' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+         WRITE(IFIL14,'(A)')' 0  $ number of poles'
+         NGRND(I) = 0
+         IF (I.EQ.1) THEN
+            NGRND(I) = 1
+            NODGRD(I,1) = 1
+            IF (MSEG.EQ.1) NGRND(I) = 2
+            IDISP(I,4) = 0
+         ENDIF
+C
+         IF (I.EQ.MSEG) THEN
+            IF (MSEG.GT.1) THEN
+               NGRND(I) = 1
+               NODGRD(I,1) = NNODES(I)
+            ELSE
+               NODGRD(I,2) = NNODES(I)
+            ENDIF
+            IF (INDX.EQ.2) THEN
+               IDISP(I,4) = 0
+               IF (MSEG.EQ.1) THEN
+                  IDISP(I,4) = 0
+               ENDIF
+            ELSE
+               IDISP(I,4) = 0
+            ENDIF
+         ENDIF
+         WRITE(IFIL14,'(I3,A)') NGRND(I),' $ connect to ground'
+         IF (NGRND(I).GT.0) THEN
+            NGRNDI = NGRND(I)
+            DO 425 J = 1,NGRNDI
+               WRITE(IFIL14,'(I3,A)') NODGRD(I,J),' $ node to ground'
+               IF (I.EQ.1.OR.(I.EQ.MSEG.AND.NODGRD(I,J).EQ.NNODES(I)))
+     1                                                            THEN
+                  IF (MSEG.EQ.1.AND.J.EQ.1) THEN
+                    WRITE(IFIL14,'(A)')
+     1           ' 1, 1, 1, 0  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+                  ELSE
+                    WRITE(IFIL14,'(4I3,A)')
+     1              IDISP(I,1),IDISP(I,2),IDISP(I,3),IDISP(I,4),
+     1            ' $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+                  ENDIF
+                  WRITE(IFIL14,'(A)')' 0.,  0.  $ D1,D2'
+                  WRITE(IFIL14,'(A)')' Y  $ constraint same for buck.?'
+               ENDIF
+  425       CONTINUE
+         ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C
+         IF (I.LE.1) THEN
+             WRITE(IFIL14,'(A)')' N  $ joined to previous segments?'
+         ELSE
+             NPREV(I) = 1
+             WRITE(IFIL14,'(A)')' Y  $ joined to previous segments?'
+             WRITE(IFIL14,'(I3,A)') NPREV(I),' $ connects to prev.segs'
+             NPREVI = NPREV(I)
+             DO 450 J = 1,NPREVI
+               NODPRV(I,J) = 1
+               JPREV(I,J) = I - 1
+               JNODPV(I,J) = NNODES(I-1)
+               WRITE(IFIL14,'(I3,A)') NODPRV(I,J),' $ node current seg'
+               WRITE(IFIL14,'(I3,A)') JPREV(I,J),' $ prev.segment no.'
+               WRITE(IFIL14,'(I3,A)') JNODPV(I,J),' $ node in prev.seg.'
+               WRITE(IFIL14,'(A)')' 1, 1, 1, 1 $ IU,IV,IW,ICHI'
+               WRITE(IFIL14,'(A)')' 0., 0.  $ D1,D2'
+               WRITE(IFIL14,'(A)')' Y  $ is constraint same for buck.?'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  450        CONTINUE
+         ENDIF
+C
+  500    CONTINUE
+C
+C
+         WRITE(IFIL14,'(A)')' N  $ are rigid body motions possible?'
+C
+         DO 550 ISEG = 1,MSEG
+            WRITE(IFIL14,'(A)')' Y  $ do you want to list seg. output?'
+  550    CONTINUE
+         WRITE(IFIL14,'(A)')' Y  $ do you want to list ring forces?'
+C
+      RETURN
+      END

@@ -1,0 +1,806 @@
+C=DECK      FELIPPALIB
+C
+C  THIS IS THE FELIPPA LIBRARY (SOURCE FILE)
+C
+C
+C
+C=DECK CMATCH CMATCH FORTRAN
+C=PURPOSE Match character key against given root+extension string
+C=AUTHOR C. A. Felippa, March 1982
+C=VERSION May 1982
+C=KEYWORDS character byte string manipulation compare match
+C=EQUIPMENT Machine independent
+C=BLOCK ABSTRACT
+C
+C     CMATCH is given two character strings: an alleged
+C     keyword, and an internal keyword.  The internal keyword
+C     consist of a "root" and an optional "extension" portion.
+C     The two portions may be separated by
+C     (1) a caret character (^); or
+C     (2) escaping to lower case for the extension.
+C     (The first form is necessary for computers that do not
+C     recognize lower case characters, e.g. CDC Cyber.)
+C     CMATCH first compares root characters, and reports failure
+C     if no match.  If root match is achieved, it continues
+C     comparing extension characters until: (a) a mismatch is
+C     found; (b) the input or output key is exhausted, or
+C     (c) a blank character is found in either key.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     CMATCH is a logical function.  Typical reference:
+C
+C        IF (CMATCH (KEY1, KEY2))   THEN ...
+C
+C     Inputs:
+C
+C       KEY1        Alleged key.  All alphabetics must be upper case.
+C                   May contain masking characters % and * with the
+C                   usual VAX meaning; however, * is only acceptable
+C                   as trailing "mask the rest" character.
+C       KEY2        Internal key, consisting of root+extension (see
+C                   ABSTRACT).  The extension part may be missing.
+C
+C     Outputs:
+C
+C       CMATCH      .TRUE. if match achieved, else .FALSE.
+C
+C     Examples:
+C
+C       CMATCH ('COPY', 'COP^Y') --> .TRUE.
+C       CMATCH ('COPY', 'COPyall')  --> .TRUE.
+C       CMATCH ('CO', 'COP^Y') --> .FALSE.
+C       CMATCH ('COPOUT', 'COP^Y') -->  .FALSE.
+C       CMATCH ('COPY', 'CONnect') --> .FALSE.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      logical function  CMATCH
+     $              (key1, key2)
+C
+C                   C O M M O N   &   G L O B A L S
+C
+C
+C                   T Y P E   &   D I M E N S I O N
+C
+      character*(*) key1, key2
+      character     ch1, ch2
+      integer       i, j, root
+C
+C                   L O G I C
+C
+      i =        0
+      root =     1
+      CMATCH =   .TRUE.
+C
+      do 2000   j = 1,len(key2)
+        ch2 =      key2(j:j)
+        if (ch2 .eq. '^')                then
+          root =   0
+          go to 2000
+        end if
+        if (ichar(ch2) .ge. ichar('a') .and.
+     $      ichar(ch2) .le. ichar('z'))       then
+          ch2 =    char(ichar(ch2)-(ichar('a')-ichar('A')))
+          root =   0
+        end if
+        ch1 =    ' '
+        i =      i + 1
+        if (i .le. len(key1))            ch1 = key1(i:i)
+        if (ch1 .eq. ' ' .and. root .eq. 0)  return
+        if (ch1 .eq. '*')                return
+        if (ch1 .eq. '%')                ch1 = ch2
+        if (ch1 .ne. ch2)                then
+          CMATCH =   .FALSE.
+          return
+        end if
+        if (ch2 .eq. ' ')              return
+ 2000   continue
+      return
+      end
+C=END FORTRAN
+C=DECK GETLIN GETLIN FORTRAN
+C=PURPOSE Read text line from card-image file
+C=AUTHOR C. A. Felippa, May 1980
+C=VERSION February 1983
+C=BLOCK ABSTRACT
+C
+C     GETLIN reads a text line from a card-image file
+C     connected to a Fortran unit.  It returns an EOL
+C     indication if end-of-file is detected.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     The calling sequence is
+C
+C         CALL  GETLIN (UNIT, LINE, NCH)
+C
+C     Inputs:
+C
+C       UNIT         Fortran unit to be read.   UNIT=0 means the
+C                    user's terminal (rarely used).
+C
+C     Outputs:
+C
+C       LINE         Text line in LINE(1:NCH) if NCH ge 0.
+C                    All trailing blanks are eliminated.
+C       NCH          If ge 0, number of characters stored in LINE
+C                    EXCLUDING trailing blanks.
+C                    If end of file detected, NCH = -1.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      subroutine     GETLIN
+     $               (unit, line, nch)
+C
+C                    T Y P E   &   D I M E N S I O N
+C
+      character*(*)  line
+      integer        unit, nch, LENETB
+C
+C                    L O G I C
+C
+      line =   ' '
+      if (unit .eq. 0)                 then
+        read (*,'(A)',err=5000)    line
+      else
+        read (unit,'(A)',err=5000,end=5000)  line
+      end if
+      nch =       LENETB (line)
+      return
+ 5000 nch =       -1
+      return
+      end
+C=END FORTRAN
+C=DECK GETTOK GETTOK FORTRAN
+C=PURPOSE Get next token from text line
+C=AUTHOR C. A. Felippa, May 1980
+C=VERSION February 1983
+C=BLOCK ABSTRACT
+C
+C     GETTOK parses the next token on a given line of text.
+C     A "token" is a string of non-blank characters delimited by
+C     blanks, commas, or slashes.  GETTOK skips over leading
+C     blanks and returns the token and its length.  It also
+C     advances the character index to point to the token terminator.
+C     All lower-case letters found are converted to upper case.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     The function reference is:
+C
+C         CALL  GETTOK  (S, J, UC, TOKEN, N)
+C
+C     Inputs:
+C
+C       S            Character string to be scanned for token.
+C       J            Starting scan location in S, minus 1.
+C       UC           If 1, convert lower to upper case.
+C
+C     Outputs:
+C
+C       TOKEN        Char string that receives parsed token (blanked
+C                    on entry, may be blank).  If token exceeds
+C                    LEN(TOKEN), excess rightmost chars are dropped.
+C       J            Points to last character processed.
+C       N            Number of characters stored in token (may be 0).
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      subroutine     GETTOK (s, j, uc, token, n)
+C
+C                    T Y P E   &   D I M E N S I O N
+C
+      character*(*)  s, token
+      character      ch
+      integer        i, j, m, n, uc
+C
+C                    L O G I C
+C
+      token =     ' '
+      n  =       0
+      i =        j
+C
+ 2000   i =        i + 1
+        if (i .gt. len(s))             return
+        j =        i
+        ch =       s(i:i)
+        if (ch .eq. ' ' .or. ch .eq. ',')  go to 2000
+        if (ch .eq. '/')               go to 3200
+C
+ 3000   continue
+        ch =       s(i:i)
+        if (ch .eq. ' ' .or.
+     $      ch .eq. ',' .or.
+     $      ch .eq. '/')               return
+ 3200   continue
+        if (n .lt. len(token))         then
+          n =        n + 1
+          if (uc .eq. 1)               then
+C=BLOCK CDC
+C=ELSE
+          if (ichar(ch) .le. ichar('z') .and.
+     $        ichar(ch) .ge. ichar('a'))
+     $              ch = char(ichar(ch)-(ichar('a')-ichar('A')))
+C=END CDC
+          end if
+          token(n:n) = ch
+        end if
+        j =        i
+        i =        i + 1
+        if (i .le. len(s))              go to 3000
+      return
+      end
+C=END FORTRAN
+C=DECK HELPER HELPER FORTRAN
+C=PURPOSE Print help text that matches keyword topics
+C=AUTHOR C. A. Felippa, January 1981
+C=VERSION July 1983
+C=KEYWORDS command language control CLIP
+C=KEYWORDS input I/O
+C=EQUIPMENT Machine independent except for OPEN statement
+C=BLOCK ABSTRACT
+C
+C     HELPER is a stand-alone version of the CLIP subroutine
+C     CLHELP, which handles HELP directives.  HELPER is
+C     suitable for use in unNICE programs.
+C
+C=END ABSTRACT
+C=BLOCK DISCUSSION
+C
+C     English pseudo code description of HELPER follows.
+C
+C     Basic inputs:
+C
+C            help_file_name
+C            topic array: topics(1:number_of_topics)
+C
+C     Pseudo code:
+C
+C         open help_file_name connecting to help_unit
+C         initialize tree_level and current_level to 0
+C         while READ (help_unit,text_line) =/ end_of_file do
+C         | get sentinel := first character of text_line
+C         | if sentinel = down_tree then
+C         | | decrement tree_level
+C         | | if tree_level < 0 take error exit
+C         | else if sentinel = up_tree  then
+C         | | increment tree_level
+C         | | if tree_level = current-level then
+C         | | | get topic_label := token(text_line)
+C         | | | if topic_label = topics(current_level)  then
+C         | | | | if current_level = number_of_topics then
+C         | | | | | print help section
+C         | | | | | close help_unit and exit
+C         | | | | else
+C         | | | | | parse next_level_topic_labels from ? lines
+C         | | | | | if topics(current_level+1) not matched then
+C         | | | | | | print "Sorry. Not documentation on ..."
+C         | | | | | | print "Information available" section if any
+C         | | | | | | close help_unit and exit
+C         | | | | | end if
+C         | | | | | increment current_level
+C         | | | | end if
+C         | | | end if
+C         | | end if
+C         | end if
+C         end while
+C
+C     The implementation below follows the basic skeleton, but
+C     incorporates additional coding for
+C     1. Masked topic keys
+C     2. Show help-root only (number of topics = 0)
+C     3. Display help file "tag"
+C     4. Error conditions
+C     These considerably add to the details.
+C
+C=END DISCUSSION
+C=BLOCK USAGE
+C
+C     The calling sequence is:
+C
+C       CALL HELPER (HFNAME, TOPICS, NTOPIC, PRTUNT, SCREEN, IERR)
+C
+C     where
+C
+C
+C       HFNAME     A character string that contains the name of
+C                  the help file to be searched.
+C                  HELPER opens this file (in read-only mode on
+C                  the VAX) and always closes it before returning.
+C
+C       TOPICS     If NTOPIC > 0, a character array that contains
+C                  NTOPIC topic keys.  Passed key length assumed,
+C                  but only first 8 characters are relevant.
+C                  If NTOPIC = 0, the root-help section is listed,
+C                  and TOPICS ignored.
+C
+C                  Masked topic keys: the last key may contain
+C                  masking characters * and % a la Vax; for example
+C                  B* matches topics that begin with B.
+C                  TOPICS(1)='*', NTOPICS=1 shows all first-level
+C                  topics; TOPICS(1)=TOPICS(2)='*',NTOPICS=2
+C                  shows all second level topics, and so on.
+C                  To print the complete help file, inclding the
+C                  root section, set NTOPICS=1, TOPICS(1)='**'.
+C
+C       NTOPIC     Number of entries in TOPICS list (0 through 4).
+C                  If zero, only the "root help" is listed.
+C
+C       PRTUNT     Logical unit that will receive HELPER output.
+C                  If zero, output goes to the user's terminal.
+C
+C       SCREEN     Line count that makes a "screenful".  Only
+C                  relevant on the VAX version if PRTUNT = 0;
+C                  HELPER will then pause after SCREEN lines have
+C                  been written and prompt the user with More?
+C                  If the user responds NO, print will stop; any
+C                  other response such as <CR> will restart it.
+C                  The recommended setting is SCREEN equal to
+C                  maximum screen lines (usually 24) minus 2.
+C                  If SCREEN=0, this argument is ignored.
+C                  NOTE: in the CLIP version, SCREEN is an integer
+C                  array that supplies screen-formatting information
+C                  (e.g. windowing, reverse video).
+C
+C     The only output argument is
+C
+C       IERR       Zero if no error condition detected.  Else the
+C                  -1   if HELPER wasn't able to open help file.
+C                  >0   if an error condition was detected while
+C                       reading the help file; if so IERR receives
+C                       the number of the last line read.
+C                    Note: a "documentation not found" condition is
+C                    NOT considered an error, as this is generally
+C                    caused by an uninformed user.
+C
+C
+C     Example 1.  HELPER call appropriate to command HELP LIST STRESSES,
+C     for 24-line terminal output, the pertinent help file being
+C     NICE$HLP:STRESS.HLP:
+C
+C       CHARACTER*8 TOPICS(4)
+C             ...
+C       TOPICS(1) = 'LIST'
+C       TOPICS(2) = 'STRESSES'
+C       CALL HELPER ('NICE$HLP:STRESS.HLP', TOPICS, 2, 0, 24-1, IERR)
+C
+C     Example 2.  As above, but command is simply HELP:
+C
+C       CALL HELPER ('NICE$HLP:STRESS.HLP', TOPICS, 0, 0, 24-1, IERR)
+C
+C     In this case TOPICS is a dummy argument.
+C
+C
+C     Additional hints to implementors:
+C
+C     1.  Set PARAMETER value of HUNIT to a unit number that
+C         does not conflict with logical units used by the
+C         calling program, and is acceptable to the host computer.
+C
+C     2.  The OPEN statement that connects the help file should have
+C         an "open read only" clause if that's provided by the host
+C         Fortran compiler (on the VAX, the clause is READONLY).
+C         Otherwise, you may have trouble opening help files that
+C         belong to other users.
+C
+C     3.  HELPER uses subordinate routines CMATCH, GETLIN, GETTOK,
+C         HMATCH, HPRINT, LENETB and PUTLIN.  If any of these conflicts
+C         with a user program name, it should be changed.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      subroutine    HELPER
+     $       (hfname, topics, ntopic, prtunt, screen, ierr)
+C
+C                   C O M M O N   &   G L O B A L S
+C
+C=BLOCK NONE
+c     implicit      none
+C=END NONE
+C
+C                   T Y P E   &   D I M E N S I O N
+C
+      character     hfname*(*), topics(*)*(*)
+      character     line*80, sentin, token*24, topic*8
+      integer       ntopic, prtunt, screen, ierr
+      integer       i, j, k, m, n, s
+      integer       currlv, nchlin, treelv
+      integer       hfline, hlpinp, hlpout, kprint
+      logical       masked, prtall
+      integer       LENETB
+      logical       CMATCH, HMATCH
+C
+C                   P A R A M E T E R
+C
+      integer       HUNIT
+      parameter    (HUNIT=33)
+      character     UPTREE, DNTRE1, DNTRE2
+      character     ENDSEC, NEXTOP, INF, MORINF
+      parameter    (UPTREE='>', DNTRE1='<', DNTRE2=':')
+      parameter    (ENDSEC='*', NEXTOP='?', INF='.', MORINF='!')
+C
+C                   D A T A
+C
+      data          hlpinp /HUNIT/
+C
+C                   L O G I C
+C
+      hfline =   -1
+      ierr =     0
+      open (unit=hlpinp, file=hfname, status='OLD',
+C=BLOCK VAX
+c    $      readonly,
+C=END VAX
+     $      err=6000)
+      currlv =   0
+      treelv =   -1
+      hfline =   0
+      hlpout =   prtunt
+      kprint =   0
+      s =        screen
+      prtall =   .false.
+      if (ntopic .ge. 1 .and.
+     $    topics(1)(1:2) .eq. '**')       then
+        prtall =   .true.
+        currlv =   ntopic
+        s =        0
+      end if
+      masked =   prtall
+C
+ 1000   continue
+        call      GETLIN (hlpinp, line, nchlin)
+        hfline =  hfline + 1
+        if (nchlin .lt. 0)                then
+          if (kprint .eq. 0)              go to 6200
+          close (hlpinp)
+          return
+        end if
+        sentin =  line(1:1)
+C
+        if (sentin .eq. DNTRE1 .or.
+     $      sentin .eq. DNTRE2)           then
+          treelv =   treelv - 1
+*         print *, '<treelv:',treelv
+          if (treelv .lt. -1)             go to 6400
+C
+        else if (sentin .eq. UPTREE)      then
+          treelv =   treelv + 1
+*         print *, '>treelv:',treelv,'  currlv:',currlv
+          if (treelv .eq. currlv .or. prtall) then
+            j =      index(line,' ')
+            call     GETTOK (line(1:nchlin), j, 1, token, n)
+            if (n .le. 0)                 go to 6600
+            if (treelv .eq. 0)            then
+              line =    ' <'//token(1:n)//'>'
+              call      PUTLIN (hlpout, line, n+3)
+              topic =   token
+            end if
+*
+*           print *, 'token:',token(1:8),' topic:',topic
+C
+            n =      min(8,n)
+            if (CMATCH (topic, token(1:n)) .or. prtall)  then
+              if (currlv .eq. ntopic)      then
+                m =      1
+                call     HPRINT (hlpinp, hlpout, s, m, line, hfline)
+                kprint =  kprint + 1
+                if (.not. masked)          then
+                  close (hlpinp)
+                  return
+                end if
+                go to 1000
+              end if
+C
+              topic =   topics(currlv+1)
+              do 2100  i = 1,8
+                if (topic(i:i) .eq. '*' .or.
+     $              topic(i:i) .eq. '%')   masked = .true.
+ 2100           continue
+C
+              if (HMATCH (hlpinp, topic, line, hfline)) then
+                currlv =   currlv + 1
+*               print *, 'HMATCH matched topic:',topic
+              else
+                if (masked .and.
+     $              currlv .lt. ntopic)     go to 1000
+                line =    '0   Sorry.  No documentation on'
+                k =        32
+                do 2500  i = 1,ntopic
+                  line(k+2:) =  topics(i)
+                  k =    min (LENETB(line),78)
+ 2500             continue
+                call     PUTLIN (hlpout, line(1:k), 0)
+                m =      2
+                call     HPRINT (hlpinp, hlpout, s, m, line, hfline)
+                close (hlpinp)
+                return
+              end if
+            end if
+          end if
+        end if
+        go to 1000
+C
+ 5000 continue
+C
+C                  E r r o r   E x i t s
+C
+ 6000 line =   ' *HELPER* Can''t open file '//hfname
+      go to 8000
+C
+C           EOF reached before finding topic
+C
+ 6200 line =   ' *HELPER* Help file inconsistency on given topics'
+      go to 8000
+C
+C           Unbalanced tree structure (too many down-tree sentinels)
+C
+ 6400 write (line,'(A,I6,A)') ' *HELPER* Unbalanced help tree: '//
+     $                      'check line', hfline, ' of help file'
+      go to 8000
+C
+C           Up-tree line has no label
+C
+ 6600 write (line,'(A,I6,A)') ' *HELPER* Line ',hfline,
+     $                        ' of help file has no label'
+      go to 8000
+C
+ 8000 continue
+      call     PUTLIN (hlpout, line, 0)
+      if (hfline .ge. 0)              close (hlpinp)
+      ierr =   hfline
+      return
+      end
+C=END FORTRAN
+C=DECK HMATCH HMATCH FORTRAN
+C=PURPOSE Find whether next-level topic key is in list
+C=AUTHOR C. A. Felippa, January 1981
+C=VERSION February 1983
+C=BLOCK ABSTRACT
+C
+C     HMATCH is called by HELPER to test whether a next-level topic
+C     key appears in the ?-line section immediately following.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     Typical reference is
+C
+C         IF (HMATCH (INP, KEY, LINE, KLINE))   THEN  ...
+C
+C     Inputs arguments:
+C
+C       INP          Logical unit number of help file.
+C       KEY          Topic key to be matched.
+C
+C     Input-output arguments:
+C
+C       LINE         Line-reading workspace.
+C       KLINE        Lines-read counter.
+C
+C     Function returns .TRUE. if KEY is matched, else .FALSE.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      logical function HMATCH
+     $               (inp, key, line, kline)
+C
+C                    T Y P E   &   D I M E N S I O N
+C
+      character      line*80, key*8
+      character      token*8
+      integer        inp, kline
+      integer        j, k, n
+      logical        CMATCH
+C
+C                   P A R A M E T E R
+C
+      character     UPTREE, DNTRE1, DNTRE2
+      character     ENDSEC, NEXTOP, INF, MORINF
+      parameter    (UPTREE='>', DNTRE1='<', DNTRE2=':')
+      parameter    (ENDSEC='*', NEXTOP='?', INF='.', MORINF='!')
+C
+C                    L O G I C
+C
+      HMATCH =  .false.
+ 1000   continue
+        call      GETLIN (inp, line, n)
+        kline =   kline + 1
+        if (n .lt. 0 .or.
+     $      line(1:1) .ne. NEXTOP)     return
+        j =     2
+ 2000     continue
+          call     GETTOK (line, j, 1, token, k)
+          if (k .gt. 0)                then
+            if (CMATCH (key, token(1:k))) then
+              HMATCH = .true.
+              return
+            end if
+            go to 2000
+          end if
+        go to 1000
+      end
+C=END FORTRAN
+C=DECK HPRINT HPRINT FORTRAN
+C=PURPOSE Print help section
+C=AUTHOR C. A. Felippa, January 1981
+C=VERSION February 1983
+C=BLOCK ABSTRACT
+C
+C     HPRINT is called by HELPER to print a help file section.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     The calling sequence is
+C
+C       CALL  HPRINT (INP, OUT, SCREEN, WHAT, LINE, KLINE)
+C
+C     Inputs arguments:
+C
+C       INP          Logical unit number of help file.
+C       OUT          Logical unit number of output file.
+C       SCREEN       See HELPER.
+C       WHAT         1 = print complete help section
+C                    2 = print "Information on" section only
+C
+C     Input-output arguments:
+C
+C       LINE         Line-reading workspace; returns last line read.
+C       KLINE        Help file line counter.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      subroutine     HPRINT
+     $               (inp, out, screen, what, line, kline)
+C
+C                    T Y P E   &   D I M E N S I O N
+C
+      character*80   line
+      character      ans
+      integer        inp, out, screen, what, kline
+      integer        k, m, n
+C
+C                   P A R A M E T E R
+C
+      character     UPTREE, DNTRE1, DNTRE2
+      character     ENDSEC, NEXTOP, INF, MORINF
+      parameter    (UPTREE='>', DNTRE1='<', DNTRE2=':')
+      parameter    (ENDSEC='*', NEXTOP='?', INF='.', MORINF='!')
+C
+C                    L O G I C
+C
+      k =      -1
+ 1000   continue
+        call      GETLIN (inp, line, n)
+        kline =   kline + 1
+        if (n .lt. 0)                  return
+        m =       0
+        if (line(1:1) .eq. INF)        m = 1
+        if (line(1:1) .eq. MORINF)     m = 2
+        if (m .lt. what)               then
+          if (k .ge. 0)                then
+          if (line(1:1) .eq. ENDSEC .or.
+     $        line(1:1) .eq. DNTRE1 .or.
+     $        line(1:1) .eq. DNTRE2)   return
+          end if
+          go to 1000
+        end if
+        line(1:1) =  ' '
+C=BLOCK VAX
+        if (screen .gt. 0 .and.
+     $      out .eq. 0 .and.
+     $      k .ge. screen)             then
+          print '('' More?'',$)'
+          read  '(A)',  ans
+          if (ans .eq. 'N' .or. ans .eq. 'n') return
+*         line(1:1) =  '+'
+          k =      0
+        end if
+C=END VAX
+        call      PUTLIN (out, line, n)
+        k =       k + 1
+        go to 1000
+      end
+C=END FORTRAN
+C=DECK LENETB LENETB FORTRAN
+C=PURPOSE Return length of character string excluding trailin blanks
+C=AUTHOR C. A. Felippa, April 1981
+C=VERSION April 1981
+C=KEYWORDS character byte string manipulation
+C=KEYWORDS character length exclude trailing blanks
+C=EQUIPMENT Machine independent
+C=BLOCK ABSTRACT
+C
+C     LENETB returns the length of its character string argument
+C     excluding all traling blanks.  For an all-blank string,
+C     LENETB returns zero.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C     The function reference is
+C
+C       L =     LENETB  (C)
+C
+C     Inputs -
+C
+C       C           Character string.
+C
+C     Outputs -
+C
+C       LENETB      LEN(C) excluding all trailing blanks.
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      integer function LENETB
+     $              (c)
+C=BLOCK NONE
+c     implicit      none
+C=END NONE
+C
+C                   T Y P E   &   D I M E N S I O N
+C
+      character*(*) c
+      integer       i
+C
+C                   L O G I C
+C
+      LENETB =  len(c)
+      do 2000  i = len(c),1,-1
+        if (c(i:i) .ne. ' ')         return
+        LENETB =  i-1
+ 2000   continue
+      return
+      end
+C=END FORTRAN
+C=DECK PUTLIN PUTLIN FORTRAN
+C=PURPOSE Write text line on terminal or card-image file
+C=AUTHOR C. A. Felippa, May 1980
+C=VERSION February 1983
+C=BLOCK ABSTRACT
+C
+C     PUTLIN writes a given text line on the users terminal or
+C     on a card-image file connected to a Fortran unit.  First
+C     character has the usual carriage control functions.
+C
+C=END ABSTRACT
+C=BLOCK USAGE
+C
+C     The calling sequence is
+C
+C         CALL  PUTLIN (UNIT, LINE, NCH)
+C
+C     Inputs:
+C
+C       UNIT         Fortran unit to be write.
+C       LINE         Text line to be written.
+C       NCH          If gt 0, number of characters in LINE.
+C                    If zero,  use LEN(LINE).
+C
+C=END USAGE
+C=BLOCK FORTRAN
+      subroutine     PUTLIN
+     $               (unit, line, nch)
+C
+C                    T Y P E   &   D I M E N S I O N
+C
+      character*(*)  line
+      integer        unit, nch, n
+C
+C                    L O G I C
+C
+      n =      nch
+      if (n .le. 0)                    n = len(line)
+      if (unit .eq. 0)                 then
+        write (*,'(A)',err=5000)       line(1:n)
+      else
+        write (unit,'(A)',err=5000)    line(1:n)
+      end if
+      return
+ 5000 continue
+      return
+      end
+C=END FORTRAN

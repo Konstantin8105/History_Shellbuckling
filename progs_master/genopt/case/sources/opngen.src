@@ -1,0 +1,274 @@
+C=DECK      OPNGEN
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      SUBROUTINE OPNGEN
+#if (_genopt_)
+C BEG NOV 2005
+      COMMON/IDVMOD/IFIL8X,ITESTX
+C END NOV 2005
+#endif
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8,CASE9,
+C    1             CASE10,CASE11
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE4,CASE5,CASE6,CASE7,CASE8,CASE9,
+     1             CASE10,CASE11
+      integer lastch
+C BEG OCT 2004
+      common/caseblock/CASE
+C END OCT 2004
+      logical exists
+C END UNIX
+C BEG VMS
+C     IUNAME = 12
+C     OPEN(UNIT=12,STATUS='OLD')
+C     CALL CASNAM(IUNAME,CASE)
+C END VMX
+      IFILE  = 26
+      IFILE2 = 27
+      IFILE3 = 28
+      IFILE4 = 30
+      IFILE9 = 9
+      IFIL11 = 29
+C
+#if (_genopt_)
+C BEG NOV 2005 (following lines commented out..
+C
+C     WRITE(IFILE4,'(A)') ' CASE NAME =',CASE
+C
+C     IF (ITESTX.EQ.1) THEN
+C        WRITE(IFIL8X,'(A)') ' just after write(ifile4.. '
+C        CALL EXIT
+C     ENDIF
+C
+C END NOV 2005
+#else
+      WRITE(IFILE4,'(A)') ' CASE NAME =',CASE
+#endif
+
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.ALL'
+         CASE3=CASE(:I-1)//'.WAV'
+         CASE4=CASE(:I-1)//'.DOC'
+         CASE7=CASE(:I-1)//'.RES'
+         CASE8=CASE(:I-1)//'.OUT'
+         CASE9=CASE(:I-1)//'.BLK'
+         CASE10=CASE(:I-1)//'.LAB'
+         CASE11=CASE(:I-1)//'.PLT2'
+      ELSE
+         CASE2=CASE//'.ALL'
+         CASE3=CASE//'.WAV'
+         CASE4=CASE//'.DOC'
+         CASE7=CASE//'.RES'
+         CASE8=CASE//'.OUT'
+         CASE9=CASE//'.BLK'
+#if (_genopt_)
+         CASE10=CASE//'.LAB'
+#endif
+         CASE11=CASE//'.PLT2'
+      ENDIF
+C
+C BEG VMS
+C     OPEN(UNIT=22,FILE='GENOPT:PROMPT4.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=23,FILE=CASE3,STATUS='UNKNOWN')
+C     OPEN(UNIT=24,FILE=CASE2,STATUS='UNKNOWN')
+C     OPEN(UNIT=25,FILE=CASE4,STATUS='UNKNOWN')
+C     OPEN(UNIT=29,FILE=CASE7,STATUS='UNKNOWN')
+C     OPEN(UNIT=30,FILE=CASE8,STATUS='UNKNOWN')
+C     OPEN(UNIT=9, FILE=CASE9,FORM='UNFORMATTED',STATUS='UNKNOWN')
+C     OPEN(UNIT=26,FILE='GENOPT:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=27,FILE='GENOPT:PROMPT2.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=28,FILE='GENOPT:PROMPT3.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=40,FILE=CASE10,STATUS='UNKNOWN')
+C     OPEN(UNIT=54,FILE=CASE11,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+#if (_genopt_)
+      OPEN(UNIT=22,FILE='PROMPT4.DAT',STATUS='OLD')
+#else
+C     OPEN(UNIT=22,FILE='PROMPT4.DAT',STATUS='OLD')
+#endif
+      OPEN(UNIT=26,FILE='PROMPT.DAT',STATUS='OLD')
+      OPEN(UNIT=27,FILE='PROMPT2.DAT',STATUS='OLD')
+      OPEN(UNIT=28,FILE='PROMPT3.DAT',STATUS='OLD')
+C
+      inquire(FILE=CASE9(1:lastch(CASE9)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=9, FILE=CASE9(1:lastch(CASE9)), FORM='UNFORMATTED',
+     1       STATUS='OLD')
+#if rs6k
+        rewind(9)
+#endif
+      else
+        OPEN(UNIT=9, FILE=CASE9(1:lastch(CASE9)), FORM='UNFORMATTED',
+     1       STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE10(1:lastch(CASE10)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=10, FILE=CASE10(1:lastch(CASE10)), STATUS='OLD')
+#if rs6k
+        rewind(10)
+#endif
+      else
+        OPEN(UNIT=10, FILE=CASE10(1:lastch(CASE10)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE3(1:lastch(CASE3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=23, FILE=CASE3(1:lastch(CASE3)), STATUS='OLD')
+#if rs6k
+        rewind(23)
+#endif
+      else
+        OPEN(UNIT=23, FILE=CASE3(1:lastch(CASE3)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE2(1:lastch(CASE2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=24, FILE=CASE2(1:lastch(CASE2)), STATUS='OLD')
+#if rs6k
+        rewind(24)
+#endif
+      else
+        OPEN(UNIT=24, FILE=CASE2(1:lastch(CASE2)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE4(1:lastch(CASE4)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=25, FILE=CASE4(1:lastch(CASE4)), STATUS='OLD')
+#if rs6k
+        rewind(25)
+#endif
+      else
+        OPEN(UNIT=25, FILE=CASE4(1:lastch(CASE4)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE7(1:lastch(CASE7)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=29, FILE=CASE7(1:lastch(CASE7)), STATUS='OLD')
+#if rs6k
+        rewind(29)
+#endif
+      else
+        OPEN(UNIT=29, FILE=CASE7(1:lastch(CASE7)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE8(1:lastch(CASE8)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=30, FILE=CASE8(1:lastch(CASE8)), STATUS='OLD')
+#if rs6k
+        rewind(30)
+#endif
+      else
+        OPEN(UNIT=30, FILE=CASE8(1:lastch(CASE8)), STATUS='NEW')
+      endif
+C
+      inquire(FILE=CASE11(1:lastch(CASE11)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=54, FILE=CASE11(1:lastch(CASE11)), STATUS='OLD')
+#if rs6k
+        rewind(54)
+#endif
+      else
+        OPEN(UNIT=54, FILE=CASE11(1:lastch(CASE11)), STATUS='NEW')
+      endif
+C END UNIX
+C----------------------------------------------------------------------
+      RETURN
+      END
+C
+C
+C
+C=DECK      RWDGEN
+      SUBROUTINE RWDGEN
+C REWIND FILES OPENED BY OPNGEN.
+C#if rs6k
+c     REWIND( 9)
+c     REWIND(11)
+c     REWIND(12)
+c     REWIND(22)
+c     REWIND(23)
+c     REWIND(24)
+c     REWIND(25)
+c     REWIND(26)
+c     REWIND(27)
+c     REWIND(28)
+c     REWIND(29)
+c     REWIND(30)
+c     REWIND(40)
+c     REWIND(54)
+C#else
+      REWIND 9
+      REWIND 11
+      REWIND 12
+      REWIND 22
+      REWIND 23
+      REWIND 24
+      REWIND 25
+      REWIND 26
+      REWIND 27
+      REWIND 28
+      REWIND 29
+      REWIND 30
+      REWIND 40
+      REWIND 54
+C#endif
+      RETURN
+      END
+C
+C
+C
+C=DECK      CLSGEN
+      SUBROUTINE CLSGEN
+C CLOSE FILES OPENED BY OPNGEN.
+#if (_genopt_)
+C BEG NOV 2005
+      COMMON/IDVMOD/IFIL8X,ITESTX
+C END NOV 2005
+#endif
+      CLOSE(UNIT=9)
+#if (_genopt_)
+      CLOSE(UNIT=11,STATUS='DELETE')
+#else
+      CLOSE(UNIT=11)
+#endif
+      CLOSE(UNIT=12)
+#if (_genopt_)
+C BEG NOV 2005
+C     IF (ITESTX.EQ.1) THEN
+C        WRITE(IFIL8X,'(A)') ' in CLSGEN just after close unit 12 '
+C        CALL EXIT
+C     ENDIF
+C END NOV 2005
+#endif
+      CLOSE(UNIT=22)
+#if (_genopt_)
+C BEG NOV 2005
+C     IF (ITESTX.EQ.1) THEN
+C        WRITE(IFIL8X,'(A)') ' in CLSGEN just after close unit 22 '
+C        CALL EXIT
+C     ENDIF
+C END NOV 2005
+#endif
+      CLOSE(UNIT=23)
+      CLOSE(UNIT=24)
+      CLOSE(UNIT=25)
+      CLOSE(UNIT=26)
+      CLOSE(UNIT=27)
+      CLOSE(UNIT=28)
+      CLOSE(UNIT=29)
+#if (_genopt_)
+      CLOSE(UNIT=30,STATUS='DELETE')
+#else
+      CLOSE(UNIT=30)
+#endif
+      CLOSE(UNIT=40)
+      CLOSE(UNIT=54)
+      RETURN
+      END

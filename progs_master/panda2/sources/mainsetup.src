@@ -1,0 +1,1928 @@
+C=DECK      MAINSETUP
+C
+C  PURPOSE IS TO SET UP A FILE TO BE USED AS INPUT FOR BATCH
+C  OPTIMIZATION RUN OR BATCH BUCKLING EVALUATION RUN.
+C
+      PROGRAM MAINS
+C BEG UNIX
+#if hp700
+$hp9000_800 intrinsics
+#endif
+C END UNIX
+C BEG OCT 2006
+      COMMON/ICONSX/ICONSV
+C END OCT 2006
+C BEG MAR 1996
+      DIMENSION FPLOAD(5),FMLOAD(5),FWLOAD(5)
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADX,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END MAR 1996
+      DIMENSION FNXX(5),FNYY(5),FNXXYY(5),FNX0(5),FNY0(5),FNXY0(5)
+      DIMENSION FNXBEG(5),FNXEND(5),FNYBEG(5),FNYEND(5),PRESS(5)
+      DIMENSION FNXYBG(5),FNXYEN(5),IGENRL(5)
+      DIMENSION FSPAN(5),FSGEN(5),FSLOC(5),IABP(5),WIMPG(5),ECC(5)
+      DIMENSION IABT(5),WIMPG1(5),WIMPG2(5)
+      DIMENSION KHYDRO(5),EXAVGA(5),IFREEX(5),IWIDE(5),IREDUC(5)
+C BEG DEC 2001
+      DIMENSION IICURV(5),IIKOIT(5)
+C END DEC 2001
+      DIMENSION IQUICK(5),NSERCH(5),NWAVES(5,2),WIMPL(5),FSSTR(5)
+      DIMENSION WIMPP(5)
+      DIMENSION ILOWVE(5),IWCON(5),WPGMAX(5)
+      DIMENSION TEMP(4,2,5),ITEMP(5),IMTEMP(5),FSBSTR(5)
+      DIMENSION MX(5),MY(5)
+      DIMENSION IFREEL(5)
+      REAL MX,MY
+      COMMON/THICKM/TXMIN(5),TXMAX(5),TYMIN(5),TYMAX(5)
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFILE11   
+      COMMON/INDAT/INFILE
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      DIMENSION ISUBP2(50)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,NCONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(50),ALLOW(50),CONST(99),DEC(50),ESC(50)
+      COMMON/WORDS/WORDP(99),WORDV(50),WORDA(50),WORDC(99),WORDD(50)
+      COMMON/OPTVAR/IDV(50),ILV(50),IDLINK(50,5),IEV(50),JTERMS(50)
+C BEG AUG 1994
+C BEG JUN 1996
+      COMMON/ISANDR/ISAND,ISANDS
+C END JUN 1996
+C BEG MAY 1997
+      COMMON/IZSTIX/IZSTIF(2)
+C END MAY 1997
+C END AUG 1994
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/FDEFAU/FDEFLT
+      COMMON/CDEFAU/CDEFLT
+      CHARACTER*1 CDEFLT
+C END FEB 1995
+C BEG MAR 1995
+      COMMON/MCASEX/MCASE(5)
+C END MAR 1995
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD
+      CHARACTER*4 ANSWER,QUAL,ANSOUT
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+C BEG VMS
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3
+C END VMS
+C BEG UNIX
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3
+      CHARACTER*72 ARGSTR
+C END UNIX
+      LOGICAL ANSL1
+C BEG UNIX
+      integer lastch
+      logical exists
+      common/caseblock/case
+#if cnvx
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if sgi
+      integer signal_handler
+      external signal_handler
+      integer dummyint, signal
+      dummyint = signal(2, signal_handler, -1)
+#endif
+#if star
+      integer signal_handler
+      external signal_handler
+      call signal(2, signal_handler)
+#endif
+#if hp700
+C     call getarg(2, case)
+      call getarg(1, case)
+#else
+      call getarg(1, case)
+#endif
+C END UNIX
+C BEG VMS
+C     CALL CASNAM(5,CASE)
+C END VMS
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPM'
+         CASE3=CASE(:I-1)//'.CBL'
+      ELSE
+         CASE2=CASE//'.OPM'
+         CASE3=CASE//'.CBL'
+      ENDIF
+      NLET = I - 1
+      IF (I.EQ.0) NLET = 12
+C
+C BEG FEB 1995
+      IDDATA = 1
+C END FEB 1995
+      IFILE = 2   
+      IFILE7= 7
+      IFILE8 = 8
+      IOUTFL = 3
+C
+C BEG VMS
+C     OPEN(UNIT=2,FILE='PANDA2:PROMPT.DAT',STATUS='OLD',READONLY)
+C     OPEN(UNIT=3,FILE=CASE,STATUS='UNKNOWN')
+C     OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+C     OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=ifile,FILE='PROMPT.DAT',STATUS='OLD')
+      inquire(FILE=case(1:lastch(case)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='OLD')
+#if rs6k
+        rewind(ioutfl)
+#endif
+      else
+        OPEN(UNIT=ioutfl, FILE=case(1:lastch(case)), STATUS='NEW')
+      endif
+c
+      inquire(FILE=case3(1:lastch(case3)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='OLD',
+     1       FORM='UNFORMATTED')
+#if rs6k
+        rewind(ifile7)
+#endif
+      else
+        OPEN(UNIT=ifile7, FILE=case3(1:lastch(case3)), STATUS='NEW',
+     1       FORM='UNFORMATTED')
+      endif
+c
+      inquire(FILE=case2(1:lastch(case2)), EXIST=exists)
+      if (exists) then
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='OLD')
+#if rs6k
+        rewind(ifile8)
+#endif
+      else
+        OPEN(UNIT=ifile8, FILE=case2(1:lastch(case2)), STATUS='NEW')
+      endif
+C END UNIX
+C
+      MAXLOD = 5
+C
+C   READ IN THE PANDA2 COMMON BLOCKS....
+C
+      CALL GETCOM(IFILE7)
+C
+      WRITE(6,10) CASE(1:NLET), CASE(1:NLET)
+   10 FORMAT(//'  *****************   MAINSETUP   ****************'/
+     1' The purpose of this processor is to permit you to choose loads'/
+     1' and initial imperfections, Nx, Ny, Nxy, Mx, My, Nxo, Nyo, p,'/
+     1' T(iseg), Wimp(global), Wimp(local),  (up to 5 sets of them);'/
+     1' safety factors for general instability, panel instability, '/
+     1' local instability (panel skin), local instability (stiffener'/
+     1' parts), and stress; and strategy parameters for subsequent'/
+     1' batch execution of an optimization analysis (analysis type 1);'/
+     1' or an analysis of a fixed design at fixed load levels'/
+     1' (analysis type 2); or an analysis of a fixed design for a '/
+     1' single load set for monotonically increasing load levels'/
+     1' (test simulation: analysis type 3).'//
+     1' Results of the interactive session in MAINSETUP are saved on a'/
+     1' file called ',A,'.OPT, which will appear at the beginning of'/
+     1' the ',A,'.OPM file when the mainprocessor batch run launched'/
+     1' by your command PANDAOPT has been completed.'//
+     1' NOTE: JUST HIT "RETURN" FOR DEFAULT VALUE OF INPUT DATUM. IF'/
+     1'   PANDA2 REQUIRES AN INPUT, IT WILL SAY "PLEASE SAY SOMETHING"'/
+     1'  ***************************************************'//)
+C
+      QUAL = '.OPT'
+      CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE,IOUTFL)
+C
+      REWIND IFILE
+      IWRITE = 6
+      CALL LOADSX(FNXX,FNYY,FNXXYY,FNX0,FNY0,FNXY0,NLOADS,MAXLOD,
+     1  IFILE,IOUT,FSGEN,FSPAN,FSLOC,FNXBEG,FNXEND,FNYBEG,FNYEND,
+     1  FNXYBG,FNXYEN,IGENRL,IPROMP,PRESS,IABP,WIMPG,ECC,KHYDRO,
+     1  EXAVGA,IFREEX,IWRITE,IQUICK,NSERCH,NWAVES(1,1),FSSTR,WIMPL,
+     1  IWIDE,IREDUC,ILOWVE,IWCON,WPGMAX,TEMP,IMTEMP,ITEMP,1,FSBSTR,
+C BEG MAR 1995
+C BEG MAR 1996
+     1  MX,MY,IABT,IFREEL,WIMPP,WIMPG1,WIMPG2,MCASE,FPLOAD,FMLOAD,
+C BEG DEC 2001
+     1  FWLOAD,IICURV,IIKOIT)
+C END DEC 2001
+C END MAR 1996
+C END MAR 1995
+C
+C  minimum or maximum TOTAL thicknesses of each segment in the
+C  panel modules (either x-oriented cross section or y oriented)
+C
+C  First, do the x-oriented cross-section (skin-stringer module)
+C
+      WRITE(6,20)
+   20 FORMAT(/' IMPOSE TOTAL THICKNESS LIMITS FOR THE SEGMENTS OF AN'/
+     1        ' X-ORIENTED CROSS-SECTION OF THE PANEL MODULE:'/)
+      REWIND IFILE
+C BEG FEB 1995
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,132,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IDDATA = 1
+C END FEB 1995
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+  133    REWIND IFILE
+C BEG FEB 1995
+C BEG MAY 1997
+         IF (ISTIF(1).NE.0) CALL MODULE(IFILE,IOUT,ISTIF(1),IPROMP,0,1,
+     1                                  IZSTIF(1))
+C END MAY 1997
+C END FEB 1995
+         IF (ISTIF(1).EQ.0) WRITE(6,30)
+   30    FORMAT(/' (NO SKETCH BECAUSE THERE ARE NO STRINGERS. ANS= 1)')
+         CALL DATUM(IFILE,133,1,1,ISEG,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,134,1,1,INT,TXMIN(ISEG),CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,135,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 133
+      ENDIF
+      REWIND IFILE
+C BEG FEB 1995
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,136,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IDDATA = 1
+C END FEB 1995
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+  137    REWIND IFILE
+C BEG FEB 1995
+C BEG MAY 1997
+         IF (ISTIF(1).NE.0) CALL MODULE(IFILE,IOUT,ISTIF(1),IPROMP,0,1,
+     1                                  IZSTIF(1))
+C END MAY 1997
+C END FEB 1995
+         IF (ISTIF(1).EQ.0) WRITE(6,30)
+         CALL DATUM(IFILE,137,1,1,ISEG,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,138,1,1,INT,TXMAX(ISEG),CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,139,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 137
+      ENDIF
+C
+C  Next, do the y-oriented cross-section (skin-ring module)
+      IF (ISTIF(2).EQ.0) GO TO 239
+C
+      WRITE(6,40)
+   40 FORMAT(/' IMPOSE TOTAL THICKNESS LIMITS FOR THE SEGMENTS OF A'/
+     1        ' RING CROSS-SECTION:'/)
+      REWIND IFILE
+C BEG FEB 1995
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,132,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IDDATA = 1
+C END FEB 1995
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+  233    REWIND IFILE
+C BEG FEB 1995
+C BEG MAY 1997
+         CALL MODULE(IFILE,IOUT,ISTIF(2),IPROMP,0,2,IZSTIF(2))
+C END MAY 1997
+C END FEB 1995
+         CALL DATUM(IFILE,133,1,1,ISEG,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ISEG.LE.1) THEN
+            WRITE(6,*)' SEGMENT SHOULD BE 2 OR 3 OR 4 FOR "Y" MODULE.'
+            BACKSPACE(IOUT)
+            GO TO 233
+         ENDIF
+         CALL DATUM(IFILE,134,1,1,INT,TYMIN(ISEG),CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,135,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 233
+      ENDIF
+      REWIND IFILE
+C BEG FEB 1995
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,136,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IDDATA = 1
+C END FEB 1995
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+  237    REWIND IFILE
+C BEG FEB 1995
+C BEG MAY 1997
+         IF (ISTIF(2).NE.0) CALL MODULE(IFILE,IOUT,ISTIF(2),IPROMP,0,2,
+     1                                  IZSTIF(2))
+C END MAY 1997
+C END FEB 1995
+         CALL DATUM(IFILE,137,1,1,ISEG,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,138,1,1,INT,TYMAX(ISEG),CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,139,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 237
+      ENDIF
+C
+  239 CONTINUE
+C BEG FEB 1995
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,459,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IINPUT = 0
+      IITYPE = 0
+      CALL DATUM(IFILE,460,1,2,NPRINT,REALL,CHARAC,IOUT,0,IPROMP)
+C BEG AUG 1994
+      CALL DATUM(IFILE,470,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      IINPUT = 0
+      IITYPE = 0
+      CALL DATUM(IFILE,471,1,2,ISAND,REALL,CHARAC,IOUT,0,IPROMP)
+C END AUG 1994
+C BEG NOV 1995
+      CALL DATUM(IFILE,480,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,482,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END NOV 1995
+      CALL DATUM(IFILE,492,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,493,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,494,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,495,1,2,INT,REALL, ANSOUT,IOUT,0,IPROMP)
+      CALL DATUM(IFILE,497,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+  234 CONTINUE
+      IF (ISTIF(2).EQ.0) IINPUT = 0
+      IF (ISTIF(2).NE.0) IINPUT = 1
+      IITYPE = 0
+      CALL DATUM(IFILE,498,1,2,IHOOP,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (ISTIF(2).NE.0.AND.IHOOP.EQ.0) THEN
+         WRITE(6,*)' THERE ARE RINGS. THEREFORE YOU MUST CHOOSE 1'
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 234
+      ENDIF
+C BEG OCT 2006
+      IINPUT = 1
+      IITYPE = 0
+      CALL DATUM(IFILE,708,1,2,ICONSV,REALL,CHARAC,IOUT,0,IPROMP)
+      REWIND IFILE
+C END OCT 2006
+C BEG MAR 1996
+  235 CONTINUE
+      IDDATA = 1
+      CALL DATUM(IFILE,500,1,2,ITYPE,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (IBEAM.EQ.1.AND.ITYPE.EQ.5) THEN
+         WRITE(6,*)' ILLEGAL VALUE FOR ITYPE: YOU CANNOT DO'
+         WRITE(6,*)' LOAD-INTERACTION ANALYSIS ON A BEAM.'
+         BACKSPACE(IOUT)
+         REWIND IFILE
+         GO TO 235
+      ENDIF
+C END MAR 1996
+C
+C BEG AUG 1997
+C     IF (ITYPE.EQ.1.OR.ITYPE.EQ.2) THEN
+C END AUG 1997
+         IDDATA = 0
+         CDEFLT = 'Y'
+         IITYPE = -1
+         CALL DATUM(IFILE,790,1,2,INT,REALL, ANSOUT,IOUT,0,IPROMP)
+C BEG AUG 1997
+C     ENDIF
+C END AUG 1997
+C BEG JULY 1998
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,792,1,2,INT,REALL, ANSOUT,IOUT,0,IPROMP)
+C END JULY 1998
+C BEG JAN 2007
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         IDDATA = 0
+         FDEFLT = 1.0
+         IITYPE = 1
+         CALL DATUM(IFILE,793,1,2,INT,FSALTN,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+C END JAN 2007
+      IF (ITYPE.EQ.1) THEN
+         CALL DATUM(IFILE,795,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+  240    CONTINUE
+         IDDATA = 0
+         IINPUT = 5
+         IITYPE = 0
+         CALL DATUM(IFILE,800,1,2,ITER,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ITER.GT.25) THEN
+            WRITE(6,*)' ITER MUST BE LESS THAN OR EQUAL TO 25.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 240
+         ENDIF
+         IDDATA = 0
+         FDEFLT = 1.0
+         IITYPE = 1
+         CALL DATUM(IFILE,801,1,2,INT,FMAXP, CHARAC,IOUT,0,IPROMP)
+         CDEFLT = 'N'
+         IITYPE = -1
+         CALL DATUM(IFILE,802,1,2,INT,REALL, ANSOUT,IOUT,0,IPROMP)
+         IINPUT = 1
+         IITYPE = 0
+         CALL DATUM(IFILE,803,1,2,IOBJ,REALL,CHARAC,IOUT,0,IPROMP)
+         FDEFLT = 1.0
+         IITYPE = 1
+         CALL DATUM(IFILE,804,1,2,INT,FMARG,CHARAC,IOUT,0,IPROMP)
+      ENDIF
+      IDDATA = 1
+      IF (ITYPE.EQ.3) THEN
+         CALL DATUM(IFILE,920,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+  246    CONTINUE
+         CALL DATUM(IFILE,925,1,2,ILOAD, REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ILOAD.GT.NLOADS) THEN
+            WRITE(6,*)' NO SUCH LOAD CASE. HIGHEST NUMBERED LOAD CASE'
+            WRITE(6,*)' YOU PROVIDED IN THIS RUN OF "MAINSETUP" IS ',
+     1                  NLOADS
+            WRITE(6,*)' PLEASE TRY AGAIN. USE AN INTEGER SMALLER THAN'
+            WRITE(6,*)' OR EQUAL TO ',NLOADS
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 246
+         ENDIF
+C BEG APR 2007
+         IF (IIKOIT(ILOAD).EQ.0) THEN
+            WRITE(6,'(/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1    ' ********** FATAL ERROR: RUN ABORT ************',
+     1    ' You MUST choose to enter the KOITER branch',
+     1    ' [IIKOIT(ILOAD)=1] to perform an ITYPE=3',
+     1    ' (test simulation) analysis. Change the answer',
+     1    ' to the question,',
+     1    ' Do you want to skip the KOITER...?',
+     1    ' from "Y" (yes) to "N" (no) for this load set.',
+     1    ' and try again. This run will now abort.'
+            CALL EXIT
+         ENDIF
+C END APR 2007
+         CALL DATUM(IFILE,927,1,2,ICASE, REALL,CHARAC,IOUT,0,IPROMP)
+C BEG MAR 1996
+         IF (IBEAM.EQ.1) THEN
+            CALL DATUM(IFILE,928,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,929,1,2,INT,DFPLOD,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,930,1,2,INT,DFMLOD,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,931,1,2,INT,DFWLOD,CHARAC,IOUT,0,IPROMP)
+         ELSE
+            CALL DATUM(IFILE,932,1,2,INT,DNX, CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,933,1,2,INT,DNY, CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,934,1,2,INT,DNXY,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,935,1,2,INT,DMX,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,936,1,2,INT,DMY,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,937,1,2,INT,DP,  CHARAC,IOUT,0,IPROMP)
+         ENDIF
+C END MAR 1996
+C BEG FEB 1996
+         IF (IABT(ILOAD).EQ.0) THEN
+C END FEB 1996
+            CALL DATUM(IFILE,938,1,2,INT,TMULT ,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,939,1,2,INT,DTMULT,CHARAC,IOUT,0,IPROMP)
+         ENDIF
+  245 CONTINUE
+         CALL DATUM(IFILE,940,1,2,NSTEPS,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (NSTEPS.GT.30) THEN
+            WRITE(6,*)' NSTEPS MUST BE LESS THAN OR EQUAL TO 30.'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 245
+         ENDIF
+      ENDIF
+      IF (ITYPE.EQ.4) THEN
+         NSTEPS = 0
+         CALL DATUM(IFILE,925,1,2,ILOAD, REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,927,1,2,ICASE, REALL,CHARAC,IOUT,0,IPROMP)
+         REWIND IFILE
+         CALL DATUM(IFILE,382,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+         CALL MOVER(0,0,ISUBP2,1,NVAR)
+  255    CONTINUE
+         ARGSTR = '   LIST FROM WHICH A VARIABLE MU'//
+     $            'ST NOW BE CHOSEN                '
+         CALL OUTVR2(NVAR,VAR, WORDV,ARGSTR,6,59,1,ISUBP2,1)
+         IF (IPROMP.GT.1) THEN
+            ARGSTR = '   LIST FROM WHICH A VARIABLE MU'//
+     $               'ST NOW BE CHOSEN                '
+            CALL OUTVR2(NVAR,VAR, WORDV,ARGSTR,IPROMP,65,1,ISUBP2,1)
+         ENDIF
+C
+         CALL DATUM(IFILE,384,1,2,IBVAR,REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ILV(IBVAR).NE.0) THEN
+            WRITE(6,*)' THIS IS A LINKED VARIABLE.  TRY ANOTHER.'
+            BACKSPACE(IOUT)
+            GO TO 255
+         ENDIF
+         CALL DATUM(IFILE,386,1,2,INT,VARBEG,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,388,1,2,INT,VAREND,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,390,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) NSTEPS = 29
+         NSSS = NSTEPS
+         IF (NSSS.EQ.0) THEN
+  260      CONTINUE
+           CALL DATUM(IFILE,391,1,2,NSTEPS,REALL,CHARAC,IOUT,0,IPROMP)
+           IF (NSTEPS.GT.29) THEN
+              WRITE(6,*)' MAX. NUMBER OF STEPS: NSTEPS(MAX) = 29'
+              BACKSPACE(IOUT)
+              GO TO 260
+           ENDIF
+         ENDIF
+      ENDIF
+C
+      IF (ITYPE.EQ.5) THEN
+         CALL DATUM(IFILE,925,1,2,ILOAD, REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,927,1,2,ICASE, REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,950,0,0,INT,   REALL,CHARAC,IOUT,0,IPROMP)
+         CALL DATUM(IFILE,952,1,2,ICURV, REALL,CHARAC,IOUT,0,IPROMP)
+         IF (ICURV.EQ.1) CALL DATUM(IFILE,953,1,2,INT,FNXY0(ILOAD),
+     1                              CHARAC,IOUT,0,IPROMP)
+         IF (ICURV.EQ.2) CALL DATUM(IFILE,954,1,2,INT,FNY0(ILOAD),
+     1                              CHARAC,IOUT,0,IPROMP)
+         IF (ICURV.EQ.3) CALL DATUM(IFILE,955,1,2,INT,FNX0(ILOAD),
+     1                              CHARAC,IOUT,0,IPROMP)
+         IF (ICURV.EQ.1.OR.ICURV.EQ.2) THEN
+            CALL DATUM(IFILE,956,1,2,INT,FNXB,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,957,1,2,INT,FNXE,CHARAC,IOUT,0,IPROMP)
+         ENDIF
+         IF (ICURV.EQ.1.OR.ICURV.EQ.3) THEN
+            CALL DATUM(IFILE,958,1,2,INT,FNYB,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,959,1,2,INT,FNYE,CHARAC,IOUT,0,IPROMP)
+         ENDIF
+         IF (ICURV.EQ.2.OR.ICURV.EQ.3) THEN
+            CALL DATUM(IFILE,960,1,2,INT,FNXYB,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,961,1,2,INT,FNXYE,CHARAC,IOUT,0,IPROMP)
+         ENDIF
+         NSTEPS = 0
+         CALL DATUM(IFILE,962,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) NSTEPS = 27
+         NSSS = NSTEPS
+         IF (NSSS.EQ.0) THEN
+  270      CONTINUE
+           CALL DATUM(IFILE,963,1,2,NSTEPS,REALL,CHARAC,IOUT,0,IPROMP)
+           IF (NSTEPS.GT.27) THEN
+              WRITE(6,*)' MAX. NUMBER OF STEPS: NSTEPS(MAX) = 27'
+              BACKSPACE(IOUT)
+              GO TO 270
+           ENDIF
+         ENDIF
+      ENDIF
+      CLOSE(UNIT=IOUT)
+      IF (IOUT.NE.IOUTFL) CLOSE(UNIT=IOUTFL)
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=8)
+C
+      WRITE(6,50) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),
+     1            CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+   50 FORMAT(//' DESCRIPTION OF FILES GENERATED BY THIS CASE:'//
+     1 1X,A,'.OPT = Summary of interactive session you have just'/
+     1'          completed. This file can be edited and used for'/
+     1'          future runs of MAINSETUP.'//
+     1 1X,A,'.CBL = Contains part of ',A,' data base.'//
+     1 1X,A,'.OPM = Output from MAINSETUP. Please list this file and'/
+     1'          inspect it and the ',A,'.OPT file carefully before'/
+     1'          proceeding. (NOTE: The ',A,'.OPM file will be empty'/
+     1'          unless the session just finished was a tutorial.)'//
+     1' For further information about files generated during operation'/
+     1' of PANDA2 give the command HELPAN FILES.'//
+     1' Next, give the command CHOOSETEMP or PANDAOPT or SUPEROPT.'/)
+C BEG JUL 2009
+      WRITE(6,202) CASE(1:NLET)
+  202 FORMAT(/
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  PANDAOPT  MANY TIMES DURING AN OPTIMIZATION. INSPECT THE'/
+     1 1X,A,'.OPP  FILE AFTER EACH OPTIMIZATION RUN. OR BETTER YET,'/
+     1' RUN SUPEROPT.'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "PANDAOPT" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' "How many design iterations permitted in this run (5 to 25)?"'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' "5   $ How many design iterations in this run (5 to 25)?"'/)
+C END JUL 2009
+C
+      END
+C
+C
+C
+C=DECK      LOADSX
+      SUBROUTINE LOADSX(FNX,FNY,FNXY,FNX0,FNY0,FNXY0,NLOADS,MAXLOD,
+     1    IFILE,IOUT,FSGEN,FSPAN,FSLOC,FNXBEG,FNXEND,FNYBEG,
+     1    FNYEND,FNXYBG,FNXYEN,IGENRL,IPROMP,PRESS,IABP,WIMPG,ECC,
+     1    KHYDRO,EXAVGA,IFREEX,IWRITE,IQUICK,NSERCH,NWAVES,FSSTR,
+     1    WIMPL,IWIDE,IREDUC,ILOWVE,IWCON,WPGMAX,TEMP,IMTEMP,
+C BEG MAR 1995
+C BEG MAR 1996
+     1    ITEMP,IPRINT,FSBSTR,MX,MY,IABT,IFREEY,WIMPP,WIMPG1,WIMPG2,
+C BEG DEC 2001
+     1    MCASE,FPLOAD,FMLOAD,FWLOAD,IICURV,IIKOIT)
+C END DEC 2001
+C END MAR 1996
+C END MAR 1995
+C
+C  PURPOSE IS TO PERMIT USER TO READ IN LOAD SETS.
+C
+C BEG JULY 2006
+      COMMON/NMFIXD/NUSER(5),MUSER(5),NOSRCH(5)
+C END JULY 2006
+      COMMON/GEOM1/AXIAL,CIRC,R
+      COMMON/GEOM2/B(2),B2(2),H(2),W(2),W2(2)
+      COMMON/INDAT/INFILE
+      COMMON/GEOM3/ISTIF(2),NLAYER(4,2),NSEG(2),INTEXT(2)
+      COMMON/ISOGR/ISOGRD,ISOANG
+C BEG MAR 1996
+      DIMENSION FPLOAD(*),FMLOAD(*),FWLOAD(*)
+C END MAR 1996
+C BEG AUG 1996
+      COMMON/IXIMPX/IXIMPF(5)
+C END AUG 1996
+C BEG DEC 2004
+      COMMON/AXWAVX/AXLWAV(5)
+C END DEC 2004
+C BEG JAN 1998
+      COMMON/GNNSTB/EIGGEN,EIGLOC,FNLOC,FBOUND,LENMOD
+      REAL LENMOD
+C END JAN 1998
+      DIMENSION FNX(*),FNY(*),FNXY(*),FSGEN(*),FSPAN(*),FSLOC(*)
+      DIMENSION FNX0(*),FNY0(*),FNXY0(*),PRESS(*),WIMPG(*)
+      DIMENSION FNXBEG(*),FNXEND(*),FNYBEG(*),FNYEND(*)
+      DIMENSION FNXYBG(*),FNXYEN(*),IGENRL(*),IABP(*),ECC(*)
+      DIMENSION IABT(*),WIMPG1(*),WIMPG2(*)
+      DIMENSION KHYDRO(*),EXAVGA(*),IFREEX(*),IQUICK(*),NSERCH(*)
+      DIMENSION NWAVES(*),FSSTR(*),WIMPL(*),IWIDE(*),IREDUC(*)
+C BEG DEC 2001
+      DIMENSION IICURV(*),IIKOIT(*)
+C END DEC 2001
+      DIMENSION WIMPP(*)
+      DIMENSION ILOWVE(*),IWCON(*),WPGMAX(*)
+      DIMENSION TEMP(4,2,5),ITEMP(*),IMTEMP(5),FSBSTR(*)
+      DIMENSION MX(*),MY(*)
+      DIMENSION IFREEY(5)
+C BEG MAR 1996
+      REAL MX,MY
+C END MAR 1996
+      COMMON/GEOM6/IFAY(2),ITRTOT,IRESET,NLOADX,NSTEPS,WMAX,NCROSS,
+     1       NOPLOT,KMAX,ILAYPL,XMAX,XMIN,YMAX,YMIN,N3DPLT,NOBJ,NSTRNS,
+     1       NPLTST,NABSCI,IDIAG,ITRALL,IFAYT(2),IBEAM,IMISCL(5)
+C END MAR 1996
+      COMMON/TMATL1/MAXMAT,IPMATL(10)
+      COMMON/TMATL2/PARMAT(20,10),TEMPJ(10,20,10),FTEMPJ(10,20,10)
+C BEG FEB 1995
+      COMMON/IDEFAU/IDEFLT,IDDATA,IINPUT,IITYPE
+      COMMON/FDEFAU/FDEFLT
+      COMMON/CDEFAU/CDEFLT
+      CHARACTER*1 CDEFLT
+C END FEB 1995
+C BEG MAR 1995
+      DIMENSION MCASE(*)
+      CHARACTER*4 ANSOUT,ANSOT2,ANSOT3
+C END MAR 1995
+C BEG JUNE 1995
+      CHARACTER*4 CHARAC
+C END JUNE 1995
+      CHARACTER*27 PRWORD
+      LOGICAL ANSL1
+C
+      REWIND IFILE
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) THEN
+C BEG JUN 1996
+C BEG NOV 1996
+         CALL DATUM(IFILE,308,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END JUN 1996
+      ELSE
+         CALL DATUM(IFILE,312,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C END NOV 1996
+      ENDIF
+C END MAR 1996
+C
+      NLOADS = 0
+  210 CONTINUE
+      NLOADS = NLOADS + 1
+      IF (NLOADS.GT.MAXLOD) THEN
+         WRITE(IWRITE,*)' SORRY, NO MORE LOAD SETS PERMITTED.'
+         NLOADS = NLOADS - 1
+         GO TO 216
+      ENDIF
+C
+  212 CONTINUE
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) THEN
+         FNX0(NLOADS)  = 0.
+         FNY0(NLOADS)  = 0.
+         FNXY0(NLOADS) = 0.
+         PRESS(NLOADS) = 0.
+         IWIDE(NLOADS) = 1
+         ECC(NLOADS) = 0.
+         IABP(NLOADS) = 1
+         IFREEX(NLOADS) = 1
+         IFREEY(NLOADS) = 1
+         IGENRL(NLOADS) = 0
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+C BEG NOV 1996
+         CALL DATUM(IFILE,309,1,2,INT,FPLOAD(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,310,1,2,INT,FMLOAD(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,311,1,2,INT,FWLOAD(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+C END NOV 1996
+         IWCON(NLOADS) = 0
+         WPGMAX(NLOADS) = 1.E+10
+         IDDATA = 0
+         CDEFLT = 'N'
+         IITYPE = -1
+         CALL DATUM(IFILE,341,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) IWCON(NLOADS) = 1
+         IDDATA = 1
+         FDEFLT = 0.
+         IITYPE = 1
+         IF (IWCON(NLOADS).EQ.1)
+     1   CALL DATUM(IFILE,342,1,2,INT,WPGMAX(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+         FNX(NLOADS) = FPLOAD(NLOADS)/B(1)
+         FNY(NLOADS) = 0.
+         FNXY(NLOADS) = 0.
+         MX(NLOADS) = FMLOAD(NLOADS)/B(1)
+         MY(NLOADS) = 0.
+         PRESS(NLOADS) = -FWLOAD(NLOADS)/B(1)
+         FNXBEG(NLOADS) = FNX(NLOADS)
+         FNXEND(NLOADS) = FNX(NLOADS)
+         FNYBEG(NLOADS) = FNY(NLOADS)
+         FNYEND(NLOADS) = FNY(NLOADS)
+         FNXYBG(NLOADS) = FNXY(NLOADS)
+         FNXYEN(NLOADS) = FNXY(NLOADS)
+      ELSE
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+C BEG NOV 1996
+         CALL DATUM(IFILE,314,1,2,INT,FNX(NLOADS),CHARAC,IOUT,NLOADS,
+     1              IPROMP)
+         IF (FNX(NLOADS).GT.0.) THEN
+            IF (IPRINT.GT.0)
+     1         WRITE(IWRITE,*)
+     1          ' Nx is positive, indicating axial tension'
+            IDDATA = 1
+            CALL DATUM(IFILE,315,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('N',ANSOUT,INFILE)) THEN
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               REWIND IFILE
+               GO TO 212
+            ELSE
+               WRITE(IWRITE,*)
+     1          ' IT IS BETTER TO INCLUDE APPLIED AXIAL TENSION'
+               WRITE(IWRITE,*)
+     1          ' AS PART OF LOAD SET B RATHER THAN LOAD SET A.'
+            ENDIF
+            CALL DATUM(IFILE,316,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('N',ANSOUT,INFILE)) THEN
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               REWIND IFILE
+               GO TO 212
+            ENDIF
+         ENDIF
+C
+  214    CONTINUE
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,317,1,2,INT,FNY(NLOADS),CHARAC,IOUT,NLOADS,
+     1              IPROMP)
+         IF (FNY(NLOADS).GT.0.) THEN
+            IF (IPRINT.GT.0)
+     1         WRITE(IWRITE,*)
+     1          ' Ny is positive, indicating circum. tension'
+            IDDATA = 1
+            CALL DATUM(IFILE,318,1,1,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('N',ANSOUT,INFILE)) THEN
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               REWIND IFILE
+               GO TO 214
+            ELSE
+               WRITE(IWRITE,*)
+     1          ' IT IS BETTER TO INCLUDE APPLIED HOOP TENSION'
+               WRITE(IWRITE,*)
+     1          ' AS PART OF LOAD SET B RATHER THAN LOAD SET A.'
+            ENDIF
+            CALL DATUM(IFILE,319,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C END NOV 1996
+            IF (ANSL1('N',ANSOUT,INFILE)) THEN
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               BACKSPACE(IOUT)
+               REWIND IFILE
+               GO TO 214
+            ENDIF
+         ENDIF
+C
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,320,1,2,INT,FNXY(NLOADS),CHARAC,IOUT,NLOADS,
+     1              IPROMP)
+         CDEFLT = 'N'
+         IITYPE = -1
+         CALL DATUM(IFILE,322,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IDDATA = 1
+         IGENRL(NLOADS) = 0
+         FNXBEG(NLOADS) = FNX(NLOADS)
+         FNXEND(NLOADS) = FNX(NLOADS)
+         FNYBEG(NLOADS) = FNY(NLOADS)
+         FNYEND(NLOADS) = FNY(NLOADS)
+         FNXYBG(NLOADS) = FNXY(NLOADS)
+         FNXYEN(NLOADS) = FNXY(NLOADS)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+         ANORM = SQRT(FNX(NLOADS)**2 +FNY(NLOADS)**2 +FNXY(NLOADS)**2)
+C        IF (ABS(FNX(NLOADS)).LT.0.001*ANORM) FNX(NLOADS)= -0.001*ANORM
+C        IF (ABS(FNY(NLOADS)).LT.0.001*ANORM) FNY(NLOADS)= -0.001*ANORM
+         IF (ABS(FNXY(NLOADS)).LT.0.005*ANORM) FNXY(NLOADS)=0.005*ANORM
+         IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+            IGENRL(NLOADS) = 1
+  215       CONTINUE
+            CALL DATUM(IFILE,323,1,2,INT,FNXBEG(NLOADS),CHARAC,IOUT,
+     1                 NLOADS,IPROMP)
+            CALL DATUM(IFILE,324,1,2,INT,FNXEND(NLOADS),CHARAC,IOUT,
+     1                 NLOADS,IPROMP)
+C
+            ISKIP = 1
+            IF (ISKIP.EQ.1) GO TO 500 
+C
+            AFNXB = ABS(FNXBEG(NLOADS))
+            AFNXE = ABS(FNXEND(NLOADS))
+            FNXMAX= MAX(AFNXB,AFNXE)
+            IF (FNXMAX.EQ.0.0) THEN
+               WRITE(IWRITE,*)
+     1          ' PLEASE INCLUDE AT LEAST ONE NEGATIVE Nx.'
+               GO TO 400
+            ENDIF
+            DIF   = ABS(FNXMAX-AFNXB)/FNXMAX
+            IF (DIF.LT.0.0001) THEN
+               IF (FNXBEG(NLOADS).GE.0.0) THEN
+                  WRITE(IWRITE,300)
+  300             FORMAT(/
+     1          ' LARGEST RESULTANT ALONG THE EDGE MUST BE NEGATIVE.'/
+     1          ' PLEASE READ THE TWO VALUES OF Nx AGAIN.  MAKE THE'/
+     1          ' LARGEST OF THE TWO VALUES NEGATIVE.'//
+     1          ' NOTE ALSO THAT THE NEGATIVE Nx MUST BE AT LEAST TEN'/
+     1          ' PER CENT LARGER THAN THE POSITIVE Nx.IN OTHER WORDS,'/
+     1          ' YOU CANNOT HAVE:'/
+     1          '                   Nx (beginning) = - Nx (end)'/
+     1          ' OR'/
+     1          '                   Nx (end)       = - Nx (beginning)'/)
+                  GO TO 400
+               ELSE
+                  IF (FNXEND(NLOADS).GT.0.) THEN
+                     DIF2 = ABS(AFNXB - AFNXE)/FNXMAX
+                     IF (DIF2.LT.0.1) THEN
+                        WRITE(IWRITE,300)
+                        GO TO 400
+                     ELSE
+                        GO TO 500
+                     ENDIF
+                  ELSE
+                     GO TO 500
+                  ENDIF
+               ENDIF
+            ELSE
+               IF (FNXEND(NLOADS).GE.0.0) THEN
+                  WRITE(IWRITE,300)
+                  GO TO 400
+               ELSE
+                  IF (FNXBEG(NLOADS).GT.0.) THEN
+                     DIF2 = ABS(AFNXB - AFNXE)/FNXMAX
+                     IF (DIF2.LT.0.1) THEN
+                        WRITE(IWRITE,300)
+                        GO TO 400
+                     ELSE
+                        GO TO 500
+                     ENDIF
+                  ELSE
+                     GO TO 500
+                  ENDIF
+               ENDIF
+            ENDIF
+  400       CONTINUE
+            BACKSPACE(IOUT)
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 215
+  500       CONTINUE
+C
+         ENDIF
+         FNYBEG(NLOADS) = FNY(NLOADS)
+         FNYEND(NLOADS) = FNY(NLOADS)
+         FNXYBG(NLOADS) = FNXY(NLOADS)
+         FNXYEN(NLOADS) = FNXY(NLOADS)
+C
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,326,1,2,INT,MX(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+         CALL DATUM(IFILE,328,1,2,INT,MY(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+      ENDIF
+C END MAR 1996
+C
+      IREDUC(NLOADS) = 0
+      IDDATA = 0
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,453,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) IREDUC(NLOADS) = 1
+      KOUNT = 0
+   30 CONTINUE
+      IINPUT = 0
+      IF (ISOGRD.EQ.1) IINPUT = 1
+C BEG AUG 1995
+C     IF (B(1).GT.(2.0*B(2))) IINPUT = 1
+      IF (B(1).GT.(5.0*B(2))) IINPUT = 1
+C END AUG 1995
+      IF (B(1).GT.(1.1*ABS(R))) IINPUT = 1
+      IF (ISTIF(1).EQ.5) IINPUT = 1
+      IITYPE = 0
+      CALL DATUM(IFILE,455,1,2,IQUICK(NLOADS),REALL,CHARAC,IOUT,
+     1           0,IPROMP)
+      IF (IQUICK(NLOADS).EQ.0) THEN
+C BEG AUG 1995
+C        IF (B(1).GT.(2.0*B(2))) THEN
+         IF (B(1).GT.(5.0*B(2))) THEN
+C END AUG 1995
+            WRITE(6,402) B(1),B(2)
+  402       FORMAT(//' ****** MODEL CHANGE REQUIRED ******'/
+     1' Discretized model of a single panel module cannot be treated'/
+     1' because the stringer spacing is more than 5 times the ring'/
+     1' spacing (or the panel axial length if there are no rings).'//
+     1'     STRINGER SPACING = ',1PE12.4/
+     1'     RING     SPACING = ',1PE12.4//
+     1' Please do one or more of the following'//
+     1'    1. set IQUICK = 1 (no discrete model of module is used) or'/
+     1'    2. make stringer spacing less than 5.0*(ring spacing).'/
+C BEG FEB 2009
+     1'    3. if this message occurs at the end of a SUPEROPT run'/
+     1'       that bombed (see the *.ERR file) use "CHANGE" to save'/
+     1'       the best design so far (look at the end of *.OPP), and'/
+     1'       execute SETUP, MAINSETUP, and SUPEROPT again.'/
+     1'    4. follow the directions given in Item 580 of panda2.news.'/
+     1'    5. possibly introduce an inequality constraint in DECIDE'/
+     1'       that forces B(STR) < 5.0 x B(RNG).'/
+C END FEB 2009
+     1' ****** MODEL CHANGE REQUIRED ******'/)
+C
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 30
+         ENDIF
+C BEG NOV 2003
+C        IF (B(1).GT.(1.1*ABS(R))) THEN
+         IF (B(1).GT.(0.33*ABS(R))) THEN
+C END NOV 2003
+            WRITE(6,40) B(1),R
+   40       FORMAT(//' ****** MODEL CHANGE REQUIRED ******'/
+     1' Discretized model of single panel module cannot be treated'/
+     1' because the stringer spacing spans too large a circumferential'/
+     1' angle of the cylindrical panel or shell. '//
+     1'     STRINGER SPACING = ',1PE12.4/
+     1'     CYLINDER RADIUS  = ',1PE12.4//
+     1' Please do one or more of the following'//
+     1'    1. set IQUICK = 1 (no discrete model of module is used) or'/
+     1'    2. make stringer spacing less than (cylinder radius)/3, or'/
+     1'    3. increase the cylinder radius or make panel module flat.'/
+C BEG FEB 2009
+     1'    4. if this message occurs at the end of a SUPEROPT run'/
+     1'       that bombed (see the *.ERR file) use "CHANGE" to save'/
+     1'       the best design so far (look at the end of *.OPP), and'/
+     1'       execute SETUP, MAINSETUP, and SUPEROPT again.'/
+     1'    5. read Item 675 of ...panda2/doc/panda2.news.'/
+     1'    6. possibly introduce an inequality constraint in DECIDE'/
+     1'       that forces B(STR) < (cylinder radius)/3.'/
+C END FEB 2009
+     1' ****** MODEL CHANGE REQUIRED ******'/)
+C
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 30
+         ENDIF
+         IF (ISTIF(1).EQ.5.AND.KOUNT.EQ.0) THEN
+            WRITE(6,39)
+C BEG MAR 2009
+   39       FORMAT(/
+     1' This is a TRUSS-CORE SANDWICH configuration.  The IQUICK=0'/
+     1' option has been programmed and some check runs have been made.'/
+     1' However, assumptions have been made, especially in the KOITER'/
+     1' branch.  If you want to use IQUICK = 0, do so with caution in'/
+     1' applications involving the TRUSS-CORE SANDWICH configuration.'/
+     1' The sample cases in the directory,.../panda2/case/truss3, have'/
+     1' been run with IQUICK = 0 and the optimum designs from PANDA2'/
+     1' have been verified by application of BIGBOSOR4 via PANEL.'/
+     1' However, look over results for your optimum designs carefully,'/
+     1' and verify them by applying BIGBOSOR4 and possibly also STAGS.'/
+     1' You now have a chance to change your mind or confirm your'/
+     1' choice for IQUICK.'/)
+C END MAR 2009
+            KOUNT = KOUNT + 1
+            REWIND IFILE
+            GO TO 30
+         ENDIF
+         IF (ISOGRD.EQ.1) THEN
+            WRITE(6,*)' FOR ISOGRID STIFFENING IQUICK MUST BE 1  .'
+            WRITE(6,*)' PLEASE SET IQUICK = 1  .'
+            BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 30
+         ENDIF
+C   
+         NSERCH(NLOADS) = 1
+C BEG FEB 1995
+         IDDATA = 0
+         CDEFLT = 'Y'
+         IITYPE = -1
+         CALL DATUM(IFILE,715,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+            IDDATA = 1
+            NSERCH(NLOADS) = 0
+            CALL DATUM(IFILE,728,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+            CALL DATUM(IFILE,730,1,1,NWAVES(NLOADS),REALL,CHARAC,
+     1                 IOUT,NLOADS,IPROMP)
+         ELSE
+            NWAVES(NLOADS) = 0
+            CDEFLT = 'N'
+            IITYPE = -1
+            CALL DATUM(IFILE,720,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+               IDDATA = 1
+               CALL DATUM(IFILE,730,1,1,NWAVES(NLOADS),REALL,CHARAC,
+     1                    IOUT,NLOADS,IPROMP)
+            ENDIF
+         ENDIF
+         ILOWVE(NLOADS) = 0
+         IDDATA = 0
+         IF (ISTIF(1).NE.5) THEN
+            CDEFLT = 'Y'
+            IITYPE = -1
+            CALL DATUM(IFILE,732,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOUT,INFILE)) ILOWVE(NLOADS) = 1
+         ENDIF
+      ENDIF
+C
+      IDDATA = 0
+      FDEFLT = 1.0
+      IITYPE = 1
+      CALL DATUM(IFILE,740,1,2,INT,FSGEN(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+C BEG JULY 1998
+      IF (FSGEN(NLOADS).GE.0.99999.AND.FSGEN(NLOADS).LT.1.1) THEN
+C END JULY 1998
+         FSGEN(NLOADS) = 1.1
+C BEG DEC 2003
+         IF (IPRINT.GT.0) WRITE(IWRITE,'(A,I1,A)')
+C END DEC 2003
+     1 ' FACTOR OF SAFETY FOR GENERAL INSTABILITY, FSGEN(',NLOADS,
+     1 '), HAS BEEN CHANGED TO FSGEN = 1.1 TO AVOID SINGULARITY.'
+      ENDIF
+C BEG DEC 2003
+      IF (IPRINT.GT.0.AND.FSGEN(NLOADS).GT.1.11) WRITE(IWRITE,
+C END DEC 2003
+     1'(/,A,/,A,/,A,1PE9.2,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' *** WARNING! *** WARNING! *** WARNING! *** WARNING! ***',
+     1' Because nonlinear behavior (such as local buckling) may occur,',
+     1' your panel may not survive a load equal to FSGEN=',
+     1 FSGEN(NLOADS),
+     1' times the applied load system (Nx,Ny,Nxy,Mx,My,p) that you',
+     1' are specifying for this load set. Be sure that the (Nx,Ny,Nxy,',
+     1' Mx,My,p) that you supply for optimization (ITYPE=1) runs',
+     1' represent ULTIMATE loads, not operating loads. You can check',
+     1' the capability of the optimized panel with respect to general',
+     1' instability by making a run in which you set ITYPE = 3 and',
+     1' FSGEN = 1.0 (test simulation).',
+     1' '
+      FSPAN(NLOADS) = FSGEN(NLOADS)
+      IF (ISTIF(2).NE.0.AND.ISTIF(1).NE.0) THEN
+         FDEFLT = 1.0
+         IITYPE = 1
+         CALL DATUM(IFILE,742,1,2,INT,FSPAN(NLOADS),CHARAC,IOUT,NLOADS,
+     1              IPROMP)
+C BEG JULY 1998
+         IF (FSPAN(NLOADS).GE.0.99999.AND.FSPAN(NLOADS).LT.1.1) THEN
+C END JULY 1998
+            FSPAN(NLOADS) = 1.1
+C BEG DEC 2003
+            IF (IPRINT.GT.0) WRITE(IWRITE,'(A,I1,A)')
+C END DEC 2003
+     1    ' FACTOR OF SAFETY FOR PANEL INSTABILITY, FSPAN(',NLOADS,
+     1    '), HAS BEEN CHANGED TO FSPAN = 1.1 TO AVOID SINGULARITY.'
+         ENDIF
+C BEG DEC 2003
+         IF (IPRINT.GT.0.AND.FSPAN(NLOADS).GT.1.11) WRITE(IWRITE,
+C END DEC 2003
+     1   '(/,A,/,A,/,A,1PE9.2,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' *** WARNING! *** WARNING! *** WARNING! *** WARNING! ***',
+     1' Because nonlinear behavior (such as local buckling) may occur,',
+     1' your panel may not survive a load equal to FSPAN=',
+     1 FSPAN(NLOADS),
+     1' times the applied load system (Nx,Ny,Nxy,Mx,My,p) that you',
+     1' are specifying for this load set. Be sure that the (Nx,Ny,Nxy,',
+     1' Mx,My,p) that you supply for optimization (ITYPE=1) runs',
+     1' represent ULTIMATE loads, not operating loads. You can check',
+     1' the capability of the optimized panel with respect to panel',
+     1' instability (buckling between rings) by making a run in which',
+     1' you set ITYPE = 3 and FSPAN = 1.0 (test simulation).',
+     1' '
+      ENDIF
+      FDEFLT = 1.0
+      IITYPE = 1
+      CALL DATUM(IFILE,745,1,2,INT,FSLOC(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      IF (FSLOC(NLOADS).LE.0.0) FSLOC(NLOADS) = 0.0001
+      IF (IQUICK(NLOADS).EQ.0.AND.
+C BEG JULY 1998
+     1    FSLOC(NLOADS).GE.0.99999.AND.FSLOC(NLOADS).LT.1.1) THEN
+C END JULY 1998
+             FSLOC(NLOADS) = 1.1
+C BEG DEC 2003
+             IF (IPRINT.GT.0) WRITE(IWRITE,'(A,I1,A)')
+C END DEC 2003
+     1     ' FACTOR OF SAFETY FOR LOCAL   INSTABILITY, FSLOC(',NLOADS,
+     1     '), HAS BEEN CHANGED TO FSLOC = 1.1 TO AVOID SINGULARITY'
+      ENDIF
+      IF (IQUICK(NLOADS).EQ.1.AND.FSLOC(NLOADS).LT.1.0) THEN
+C BEG DEC 2003
+         IF (IPRINT.GT.0) WRITE(IWRITE, 1009) NLOADS, FSLOC(NLOADS)
+C END DEC 2003
+ 1009    FORMAT(/' WARNING FOR LOAD SET NO.',I2,':'/
+     1 ' WITH IQUICK=1 THE FACTOR OF SAFETY FSLOC FOR LOCAL BUCKLING'/
+     1 ' MUST BE GREATER THAN OR EQUAL TO UNITY. FSLOC IS NOW'/
+     1 ' BEING CHANGED FROM',1PE10.3,' TO 1.0.')
+         FSLOC(NLOADS) = 1.0
+      ENDIF
+C BEG DEC 2003
+         IF (IPRINT.GT.0.AND.FSLOC(NLOADS).GT.1.11) WRITE(IWRITE,
+C END DEC 2003
+     1   '(/,A,/,A,/,A,1PE9.2,/,A,/,A,/,A,/,A,/,A,/,A,/,A,/,A)')
+     1' *** WARNING! *** WARNING! *** WARNING! *** WARNING! ***',
+     1' Because nonlinear behavior (such as local buckling) may occur,',
+     1' your panel may not survive a load equal to FSLOC=',
+     1 FSLOC(NLOADS),
+     1' times the applied load system (Nx,Ny,Nxy,Mx,My,p) that you',
+     1' are specifying for this load set. Be sure that the (Nx,Ny,Nxy,',
+     1' Mx,My,p) that you supply for optimization (ITYPE=1) runs',
+     1' represent ULTIMATE loads, not operating loads. You can check',
+     1' the capability of the optimized panel with respect to local',
+     1' buckling (buckling between stringers and rings) by making a',
+     1' run in which you set ITYPE=3 and FSLOC =1.0 (test simulation).',
+     1' '
+      CALL DATUM(IFILE,746,0,0,INT,REALL,CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      KOUNT = 0
+   41 CONTINUE
+      FDEFLT = 1.0
+      IITYPE = 1
+      CALL DATUM(IFILE,747,1,2,INT,FSBSTR(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+C BEG MAR 2009
+C     IF (FSBSTR(NLOADS).LT.1.0) THEN
+      IF (FSBSTR(NLOADS).LT.0.95) THEN
+C END MAR 2009
+         IF (KOUNT.EQ.0.AND.ISTIF(1).EQ.5) THEN
+C BEG DEC 2003
+            IF (IPRINT.GT.0) WRITE(6,411)
+C END DEC 2003
+  411       FORMAT(/' PANEL IS A TRUSS-CORE SANDWICH AND YOU WANT'/
+     1' TO ALLOW LOCAL BUCKLING (FSBSTR IS LESS THAN UNITY). PLEASE'/
+     1' DO THIS WITH THE GREATEST CAUTION, AS THE POSTBUCKLING THEORY'/
+     1' FOR TRUSS-CORE SANDWICHES IS RATHER FLAKY.'//
+     1' IT IS STRONGLY URGED THAT YOU PROVIDE A VALUE OF FSBSTR'/
+     1' THAT IS GREATER THAN OR EQUAL TO UNITY. IT IS BEST TO'/
+     1' USE A VALUE FOR FSBSTR OF ABOUT 1.1 OR GREATER.'/)
+C
+            KOUNT = 1
+C           BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 41
+         ENDIF
+      ENDIF
+      IF (FSBSTR(NLOADS).LE.0.0) FSBSTR(NLOADS) = 0.0001
+      FDEFLT = 1.0
+      IITYPE = 1
+      CALL DATUM(IFILE,750,1,2,INT,FSSTR(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+C
+      IF (ISTIF(1).EQ.0.AND.ISTIF(2).EQ.0) THEN
+         FSTEMP = MAX(FSGEN(NLOADS),FSLOC(NLOADS))
+         FSGEN(NLOADS) = ABS(FSTEMP)
+         FSLOC(NLOADS) = ABS(FSTEMP)
+C BEG DEC 2003
+         IF (IPRINT.GT.0)
+C END DEC 2003
+     1     WRITE(IWRITE,'(/,A,/,A,/,A,1PE9.2,A,/,A,/,A)')
+     1' There are no stiffeners. Therefore, the factors of safety',
+     1' for general and local buckling, FSGEN and FSLOC, are both',
+     1' set equal to the maximum value,',FSTEMP,', that you have',
+     1' just provided for either of them.',
+     1' '
+      ENDIF
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) THEN
+         REWIND IFILE
+         GO TO 5641
+      ENDIF
+C END MAR 1996
+C BEG DEC 2001
+      IICURV(NLOADS) = 0
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,807,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) IICURV(NLOADS) = 1
+      IIKOIT(NLOADS) = 1
+      IF (IICURV(NLOADS).EQ.1) THEN
+         CDEFLT = 'N'
+         IITYPE = -1
+         CALL DATUM(IFILE,809,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOUT,INFILE)) IIKOIT(NLOADS) = 0
+         REWIND IFILE
+      ENDIF
+C END DEC 2001
+      IWIDE(NLOADS) = 1
+      KOUNT = 0
+   42 CONTINUE
+      IF (ISTIF(1).NE.0) CDEFLT = 'Y'
+      IF (ISTIF(1).EQ.0) CDEFLT = 'N'
+      IF (ISOGRD.EQ.1) CDEFLT = 'N'
+      IF (ISTIF(1).EQ.5) CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,808,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C BEG DEC 2003
+      IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+         IF (KOUNT.EQ.0.AND.
+     1       (ISTIF(1).EQ.0.OR.ISTIF(1).EQ.5.OR.ISOGRD.EQ.1)) THEN
+            IF (IPRINT.GT.0.AND.ISTIF(1).EQ.0) WRITE(6,43)
+   43       FORMAT(/' THERE ARE NO AXIAL STIFFENERS. YET YOU WANT'/
+     1' TO USE THE WIDE-COLUMN MODEL FOR BUCKLING. THIS MODEL MAY WELL'/
+     1' BE FAR TOO CONSERVATIVE IN THIS CASE. PLEASE RECONSIDER.'/)
+            IF (IPRINT.GT.0.AND.ISTIF(1).EQ.5) WRITE(6,44)
+   44       FORMAT(/' PANEL IS A TRUSS-CORE SANDWICH, YET YOU WANT'/
+     1' TO USE THE WIDE-COLUMN MODEL FOR BUCKLING. THIS MODEL MAY WELL'/
+     1' BE FAR TOO CONSERVATIVE IN THIS CASE. PLEASE RECONSIDER.'/)
+            IF (IPRINT.GT.0.AND.ISOGRD.EQ.1) WRITE(6,45)
+   45       FORMAT(/' PANEL IS ISOGRID STIFFENED, YET YOU WANT'/
+     1' TO USE THE WIDE-COLUMN MODEL FOR BUCKLING. THIS MODEL MAY WELL'/
+     1' BE FAR TOO CONSERVATIVE IN THIS CASE. PLEASE RECONSIDER.'/)
+            KOUNT = 1
+C           BACKSPACE(IOUT)
+            REWIND IFILE
+            GO TO 42
+         ENDIF
+      ENDIF
+C END DEC 2003
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         IWIDE(NLOADS) = 0
+C BEG DEC 2003
+         IF (IPRINT.GT.0.AND.ISTIF(1).NE.0.AND.ISTIF(1).NE.5
+     1      .AND.ISOGRD.EQ.0) WRITE(IWRITE,452) NLOADS
+C END DEC 2003
+  452       FORMAT(/' **** WARNING **** WARNING **** WARNING ****'/
+     1    ' We are now in SUBROUTINE LOADSX: Load Set No.',I3,/,
+     1    ' YOU HAVE CHOSEN THAT WIDE-COLUMN BUCKLING WILL NOT'/
+     1    ' CONSTRAIN THE DESIGN. (THE WIDE-COLUMN MODEL IS ONE IN'/
+     1    ' WHICH THE PART OF THE PANEL BETWEEN ADJACENT RINGS IS'/
+     1    ' ASSUMED TO BE FLAT.  UNLESS THE DISTANCE BETWEEN RINGS'/
+     1    ' IS RATHER LONG OR THE STRINGERS ARE NOT DEEP, WHEN'/
+     1    ' STRINGERS ARE PRESENT IT IS USUALLY A GOOD IDEA TO'/
+     1    ' ANSWER "YES" TO THE WIDE-COLUMN QUESTION).'//
+     1    ' IN ORDER TO AVOID UNCONSERVATIVE DESIGNS, YOU MAY WANT'/
+     1    ' TO FORCE THE WIDE-COLUMN BUCKLING ANALYSIS TO'/
+     1    ' CONSTRAIN THE DESIGN SINCE THE PANEL IS STIFFENED BY'/
+     1    ' STRINGERS. IN YOUR NEXT RUN YOU SHOULD SERIOUSLY'/
+     1    ' CONSIDER CHANGING YOUR ANSWER TO THE "WIDE-COLUMN"'/
+     1    ' QUESTION FROM "NO" TO "YES". THIS WARNING IS BASED ON'/
+     1    ' PREVIOUS EXPERIENCE WITH STRINGER-STIFFENED PANELS.'/
+C    1    ' WITH IQUICK=0, IF PANDA2 DETECTS THAT WIDE COLUMN'/
+C    1    ' BUCKLING IS CRITICAL IN ANY DESIGN ITERATION, IT WILL'/
+C    1    ' AUTOMATICALLY RE-INTRODUCE THE WIDE-COLUMN BUCKLING'/
+C    1    ' CONSTRAINT CONDITION IF BLADE OR TEE OR JAY OR HAT'/
+C    1    ' STRINGERS ARE PRESENT AND IF ANALYSIS TYPE, ITYPE = 1.'/
+     1   ' **** END WARNING **** END WARNING **** END WARNING ***'/)
+      ENDIF
+C
+C BEG NOV 2003
+      IICURS = IICURV(NLOADS)
+C END NOV 2003
+C BEG DEC 2001
+      IF (IWIDE(NLOADS).EQ.1) IICURV(NLOADS) = 0
+      IF (IQUICK(NLOADS).EQ.1) IICURV(NLOADS) = 0
+      IF (FSLOC(NLOADS).LE.0.9) IICURV(NLOADS) = 0
+      IF (ISOGRD.EQ.1) IICURV(NLOADS) = 0
+C BEG NOV 2003
+C     IF (ISTIF(1).EQ.0) IICURV(NLOADS) = 0
+C END NOV 2003
+      IF (IICURV(NLOADS).EQ.0) IIKOIT(NLOADS) = 1
+C END DEC 2001
+C BEG NOV 2003
+C BEG DEC 2003
+      IF (IPRINT.GT.0.AND.IICURS.NE.IICURV(NLOADS))
+C END DEC 2003
+     1WRITE(IWRITE,'(/,A,/,A,/,A,/,A,/,A,I2,A,I2,/,A,/,A,I2,A,I2,/,A)')
+     1' ********* WARNING ********* WARNING ********* WARNING ********',
+     1' IICURV = 0 means PANDA2 models the panel skin as flat in',
+     1'            discretized skin-stringer module models.',
+     1' IICURV = 1 means PANDA2 models panel skin as curved in same.',
+     1' IICURV =',IICURV(NLOADS),' for Load Case No. =',NLOADS,
+     1' ***NOTE!*** PANDA2 changed IICURV from your input value,',
+     1' IICURV=',IICURS,' to its present value, IICURV=',IICURV(NLOADS),
+     1' ****** END WARNING ******* END WARNING ****** END WARNING *****'
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END NOV 2003
+      REWIND IFILE
+      IDDATA = 0
+      CALL DATUM(IFILE,330,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      FDEFLT = 0.0
+      IITYPE = 1
+      CALL DATUM(IFILE,332,1,2,INT,FNX0(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      CALL DATUM(IFILE,333,1,2,INT,FNY0(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      FNXY0(NLOADS) = 0.
+      ECC(NLOADS) = 0.
+      IINPUT = 0
+      IITYPE = 0
+      CALL DATUM(IFILE,334,1,2,NECC,REALL,CHARAC,IOUT,0,IPROMP)
+      IF (NECC.EQ.1) ECC(NLOADS) = 1.0
+C
+  550 CONTINUE
+      IDDATA = 0
+      FDEFLT = 0.
+      IITYPE = 1
+      CALL DATUM(IFILE,336,1,2,INT,P,CHARAC,IOUT,NLOADS,IPROMP)
+      PRESS(NLOADS) = -P
+C
+      RTEST = 10000.*SQRT(AXIAL**2 +CIRC**2)
+      DIFR  = ABS(RTEST -ABS(R))/RTEST
+      IFLAT = 0
+      IF (DIFR.LT.0.5) IFLAT = 1
+C BEG MAR 1996
+      IF (IBEAM.EQ.1) IFLAT = 1
+C END MAR 1996
+      IF (P.NE.0.) THEN
+       IF (IFLAT.EQ.0) THEN
+          WRITE(IWRITE,559) R, NLOADS, P,
+     1           FNX(NLOADS), FNX0(NLOADS), FNY(NLOADS), FNY0(NLOADS)
+C         WRITE(IWRITE,560)
+C         WRITE(IWRITE,561)
+C BEG NOV 2003
+  559     FORMAT(/
+     1' THE PANEL IS CURVED: Radius of curvature,        R =',1PE12.4/
+     1' INPUT DATA FOR LOAD SET NO.',I3,':'/
+     1'  NORMAL PRESSURE (positive acting upward),       p =',1PE12.4/
+     1'  CURRENTLY APPLIED AXIAL RESULTANTS: Nx(load set A)=',1PE12.4/
+     1'                                     Nxo(load set B)=',1PE12.4/
+     1'  CURRENTLY APPLIED  HOOP RESULTANTS, Ny(load set A)=',1PE12.4/
+     1'                                     Nyo(load set B)=',1PE12.4/)
+C END NOV 2003
+  560    FORMAT(/
+     1' Before you embark on possibly lengthy design iterations,'/
+     1' use the ITYPE = 2 analysis type (analysis of fixed design)'/
+     1' with the NPRINT = 2 option.  Check carefully the part of'/
+     1' the output having to do with how the membrane resultants from'/
+     1' all sources except normal pressure and from pressure are'/
+     1' distributed in the various parts of the single panel module.'/
+     1' As a result of this inspection, you may decide to include or'/
+     1' modify your input for Nx, Ny and/or Nxo, Nyo.  For example,'/
+     1' you may have normal pressure on a ring and stringer-stiffened'/
+     1' cylindrical panel that creates a hoop resultant of p*r which'/
+     1' is distributed over rings and the rest of the structure. YOUR'/
+     1' MODEL may not include the rings, however. Depending on the')
+  561    FORMAT(
+     1' dimensions of the panel and the prebuckling boundary '/
+     1' conditions, PANDA2 may assign the full value of p*r to the'/
+     1' hoop resultant in YOUR MODEL. In order to compensate for the'/
+     1' lack of rings in YOUR MODEL, you will have to include an'/
+     1' applied hoop load with the same value but opposite sign to'/
+     1' the portion of the total p*r load taken by the rings in the'/
+     1' ACTUAL STRUCTURE.  A similar argument holds for the axial'/
+     1' resultant, p*r/2, and the portion of it taken by stringers'/
+     1' that may be absent in your simplified model of an actual'/
+     1' structure. Inspection of the ITYPE=2, NPRINT=2 output plus'/
+     1' your knowledge of the properties of the absent rings and/or'/
+     1' stringers will, with a small calculation, lead you to an'/
+     1' appropriate revision for your MAINSETUP input. Use NTYPE=2,'/
+     1' NPRINT=2 to check the membrane resultant distributions'/
+     1' corresponding to your revised loads before proceeding with'/
+     1' optimization cycles.  Keep doing this until it is right!')
+       ENDIF
+       IABP(NLOADS) = 1
+       KOUNT = 0
+  562  CONTINUE
+       IDDATA = 0
+       CDEFLT = 'Y'
+       IITYPE = -1
+       CALL DATUM(IFILE,337,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+       IF (ISTIF(1).EQ.5) THEN
+          IF (ANSL1('N',ANSOUT,INFILE)) THEN
+             WRITE(6,563)
+  563  FORMAT(/' The structure is a TRUSS-CORE SANDWICH.  Therefore,'/
+     1' you must make the pressure part of Load Set A.'/)
+             BACKSPACE(IOUT)
+             REWIND IFILE
+             GO TO 562
+          ENDIF
+       ENDIF
+C BEG DEC 1998 (The following block has been commented out because of
+C               Oct-Dec 1998 improvements to PANDA2)
+C      IF (KOUNT.EQ.0) THEN
+C         IF (ANSL1('N',ANSOUT,INFILE)) THEN
+C            WRITE(6,564)
+C 564        FORMAT(/
+C    1     ' PANDA2 works more reliably if the pressure is part of'/
+C    1     ' Load Set A. You will be given one chance to change your'/
+C    1     ' mind on this input. PUT THE PRESSURE INTO LOAD SET A'/
+C    1     ' UNLESS YOU HAVE A VERY GOOD REASON FOR NOT DOING SO.'/)
+C            KOUNT = 1
+C            REWIND IFILE
+C            GO TO 562
+C         ENDIF
+C      ENDIF
+C END DEC 1998
+       IF (ANSL1('N',ANSOUT,INFILE)) IABP(NLOADS) = 0
+       KHYDRO(NLOADS) = 0
+       CDEFLT = 'Y'
+       IITYPE = -1
+       CALL DATUM(IFILE,338,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+       IF (ANSL1('Y',ANSOUT,INFILE)) KHYDRO(NLOADS) = 1
+       IF (IFLAT.EQ.1) KHYDRO(NLOADS) = 0
+       IINPUT = 1
+       IITYPE = 0
+       CALL DATUM(IFILE,339,1,2,IFREEX(NLOADS),REALL,CHARAC,IOUT,
+     1           NLOADS,IPROMP)
+       IF (IFLAT.EQ.0) IFREEX(NLOADS) = 1
+C BEG JAN 1995
+C  ALWAYS MAKE MODULE MODEL AXIAL EDGES ALLOWED TO APPROACH EACHOTHER;
+C  OTHERWISE, PANDA2 GETS INTO TROUBLE WHEN THERE ARE THERMAL LOADS.
+       IFREEY(NLOADS) = 1
+C END JAN 1995
+       IF (ISTIF(1).NE.5.AND.ISTIF(1).NE.0
+     1                  .AND.IFREEX(NLOADS).EQ.1) THEN
+          CDEFLT = 'Y'
+          IITYPE = -1
+          CALL DATUM(IFILE,340,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+          IF (ANSL1('Y',ANSOUT,INFILE)) IFREEY(NLOADS) = 1
+       ENDIF
+       IWCON(NLOADS) = 0
+       WPGMAX(NLOADS) = 1.E+10
+       CDEFLT = 'N'
+       IITYPE = -1
+       CALL DATUM(IFILE,341,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+       IF (ANSL1('Y',ANSOUT,INFILE)) IWCON(NLOADS) = 1
+       IDDATA = 1
+       IF (IWCON(NLOADS).EQ.1)
+     1 CALL DATUM(IFILE,342,1,2,INT,WPGMAX(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      ENDIF
+      IF (IFLAT.EQ.0) THEN
+C     CHECK FOR APPROPRIATE INPUT FOR PRESSURE...
+         IABORT = 0
+         IABPP = 0
+         IF (P.EQ.0.0) THEN
+            IF (FNY(NLOADS).NE.0.0) IABORT = 1
+            IF (FNY0(NLOADS).NE.0.0) IABORT = 1
+         ELSE
+            IF (IABP(NLOADS).EQ.1) THEN
+               FNDIF = ABS(P*R - FNY(NLOADS))/ABS(P*R)
+               IABPP = 1
+            ELSE
+               FNDIF = ABS(P*R - FNY0(NLOADS))/ABS(P*R)
+               IABPP = 0
+            ENDIF
+            IF (FNDIF.GT.0.01) IABORT = 1
+         ENDIF
+         PRWORD = '                           '
+         IF (P.NE.0.0.AND.IABPP.EQ.0)
+     1                   PRWORD ='  Pressure is in Load Set B'
+         IF (IABPP.EQ.1) PRWORD ='  Pressure is in Load Set A'
+         IF (IABORT.EQ.1) THEN
+            WRITE(IWRITE,456) NLOADS, R, P, P*R, PRWORD,
+     1                        FNY(NLOADS), FNY0(NLOADS)
+  456       FORMAT(/' *********** RUN ABORT: BAD LOADS ***********'/
+     1' THE PANEL IS CURVED. BAD LOAD DATA FOR LOAD SET NO.',I3,':'/
+     1' SEE FIG. 8 ON P. 490 OF THE LONG 1987 PAPER ON PANDA2.'//
+     1'   1. If any hoop resultant (Ny or Ny0) is nonzero the'/
+     1'      pressure p must be nonzero and satisfy condition (2)'/
+     1'      or (3) as follows;'/
+     1'   2. If the pressure is in Load Set A, then p*R must be'/
+     1'      equal to the hoop resultant in Load Set A, Ny.'/
+     1'   3. If the pressure is in Load Set B, then p*R must be'/
+     1'      equal to the hoop resultant in Load Set B, Nyo.'//
+     1'  Radius of cylinder (positive as shown in Fig.8),R =',1PE12.4/
+     1'  NORMAL PRESSURE (positive acting upward),       p =',1PE12.4/
+     1'  Hoop load that must be applied for equilibrium,p*R=',1PE12.4/
+     1   A/
+     1'  CURRENTLY APPLIED  HOOP LOADS,      Ny(load set A)=',1PE12.4/
+     1'                                     Nyo(load set B)=',1PE12.4)
+            CALL ERREX
+         ENDIF
+         IF (KHYDRO(NLOADS).EQ.1) THEN
+            WRITE(IWRITE,459) NLOADS, R, P, P*R/2., PRWORD,
+     1                        FNX(NLOADS), FNX0(NLOADS)
+  459       FORMAT(/' ****** HYDROSTATIC PRESSURE WARNING **********'/
+     1' INPUT DATA FOR LOAD SET NO.',I3,':'/
+     1' THE PANEL IS CURVED: Radius of curvature,        R =',1PE12.4/
+     1'  NORMAL PRESSURE (positive acting upward),       p =',1PE12.4/
+     1'  AXIAL RESULTANT GENERATED BY PRESSURE, Nx = p*r/2 =',1PE12.4/
+     1   A/
+     1'  CURRENTLY APPLIED AXIAL RESULTANTS: Nx(load set A)=',1PE12.4/
+     1'                                     Nxo(load set B)=',1PE12.4/
+     1' MAKE SURE THAT ONE OF THE AXIAL LOADS (Nx or Nxo)'/
+     1' THAT YOU HAVE ALREADY SUPPLIED FOR THIS LOAD CASE'/
+     1' INCLUDES THE COMPONENT p*r/2 GENERATED BY THE'/
+     1' HYDROSTATIC PRESSURE p.'/
+     1' ********** END OF HYDROSTATIC PRESSURE WARNING ***********')
+         ENDIF
+      ENDIF
+C BEG MAR 1996
+ 5641 CONTINUE
+C END MAR 1996
+      IDDATA = 1
+C BEG JULY 1995
+C     IF (IFLAT.EQ.1) THEN
+C        CALL DATUM(IFILE,343,0,0,INT,REALL,CHARAC,IOUT,NLOADS,IPROMP)
+C 458    CONTINUE
+C        IDDATA = 0
+C        FDEFLT = 0.0
+C        IITYPE = 1
+C        CALL DATUM(IFILE,345,1,2,INT,WIMPG(NLOADS),CHARAC,IOUT,NLOADS,
+C    1              IPROMP)
+C        IF (WIMPG(NLOADS).GT.0.) THEN
+C           WRITE(IWRITE,460) NLOADS,WIMPG(NLOADS)
+C 460 FORMAT(/' *** WARNING *** WARNING *** WARNING *** WARNING ***'/
+C    1' LOAD SET NUMBER',I2,', AXIAL BOWING AMPLITUDE, WIMPG=',1PE12.4/
+C    1' The global axial bowing is positive.  This means that the'/
+C    1' panel is bent so that under axial compression the tips of the'/
+C    1' stringers will be compressed more than the panel skin. There-'/
+C    1' fore, the panel skin will not experience local buckling as'/
+C    1' soon as would a panel without axial bowing or with negative'/
+C    1' axial bowing.  Optimum designs of bowed panels should be'/
+C    1' obtained including both positive and negative WIMPG in order'/
+C    1' to avoid the generation of unconservative designs. You can'/
+C    1' do this by introducing another load set with everything the'/
+C    1' same as the present load set except for the sign of WIMPG.'//
+C    1' If you only want or can only afford one load set, it is best'/
+C    1' to make WIMPG negative, especially if in-plane shear loading'/
+C    1' is present.'/)
+C           IDDATA = 1
+C           CALL DATUM(IFILE,346,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C           IF (ANSL1('Y',ANSOUT,INFILE)) THEN
+C              BACKSPACE(IOUT)
+C              REWIND IFILE
+C              GO TO 458
+C           ENDIF
+C        ENDIF
+C        WIMPP(NLOADS) = WIMPG(NLOADS)
+C        IDDATA = 0
+C        FDEFLT = 0.0000001
+C        IITYPE = 1
+C        CALL DATUM(IFILE,347,1,2,INT,WIMPL(NLOADS),CHARAC,IOUT,
+C    1              NLOADS,IPROMP)
+C     ELSE
+C END JULY 1995
+         CALL DATUM(IFILE,344,0,0,INT,REALL,CHARAC,IOUT,NLOADS,IPROMP)
+         IDDATA = 0
+         FDEFLT = 0.
+         IITYPE = 1
+         CALL DATUM(IFILE,348,1,2,INT,WIMPG1(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+C BEG JULY 1995
+         IF (IFLAT.EQ.1) WIMPG1(NLOADS) = 0.0
+C END JULY 1995
+C BEG JAN 1998
+         IBOUND = FBOUND
+         IF (IBOUND.EQ.1.AND.ISTIF(1).NE.0.AND.ISTIF(2).EQ.0
+     1                  .AND.IFLAT.EQ.1) WRITE(IWRITE,465)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  465    FORMAT(/
+     1' ************** WARNING ************** WARNING **************',/,
+     1 ' You will next be prompted for the amplitude of the general',/,
+     1 ' buckling modal initial imperfection (called Wimpg2).',/,
+     1 ' The panel is clamped for buckling, has stringers, has no',/,
+     1 ' rings, and is flat. Therefore, the effective simply',/,
+     1 ' supported length may be less than the actual length:',/,
+     1 ' L(eff) = LENMOD*L, where LENMOD is computed by PANDA2. In',/,
+     1 ' this case, Wimpg2 that you provide should possibly be:',/,/,
+     1 '     Wimpg2(your input) = Wimpg2(actual)*2*LENMOD**2',/,/,
+     1 ' if you plan to use STAGSMODEL to generate a STAGS model.',/,
+     1 ' You can obtain LENMOD by running PANDAOPT with ITYPE=2,',/,
+     1 ' NPRINT=2 and search the resulting *.OPM file for the string',/,
+     1 ' LENMOD . See ITEM 395 in the file ...panda2/doc/panda2.news',/,
+     1 ' for more information on this subtle point.',/,
+     1 ' *********** END WARNING ********** END WARNING ************',/)
+C END JAN 1998
+         CALL DATUM(IFILE,349,1,2,INT,WIMPG2(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+         IF (WIMPG2(NLOADS).NE.0.) WIMPG1(NLOADS)=
+     1      ABS(WIMPG1(NLOADS))*WIMPG2(NLOADS)/ABS(WIMPG2(NLOADS))
+         WIMPG(NLOADS) = WIMPG1(NLOADS) + WIMPG2(NLOADS)
+         WIMPP(NLOADS) = WIMPG2(NLOADS)
+         IF (ISTIF(2).NE.0.AND.ISTIF(1).NE.0) THEN
+            CALL DATUM(IFILE,350,1,2,INT,WIMPP(NLOADS),CHARAC,IOUT,
+     1                 NLOADS,IPROMP)
+         ENDIF
+         IDDATA = 0
+         FDEFLT = 0.0000001
+         IITYPE = 1
+         CALL DATUM(IFILE,351,1,2,INT,WIMPL(NLOADS),CHARAC,IOUT,
+     1              NLOADS,IPROMP)
+C BEG MAY 2011
+         IF (WIMPL(NLOADS).EQ.0.0) WIMPL(NLOADS) = FDEFLT
+C END MAY 2011
+C BEG AUG 1994
+         IF (ISTIF(1).EQ.0.AND.ISTIF(2).EQ.0) THEN
+C  FOR UNSTIFFENED CURVED PANELS, SET GLOBAL AND LOCAL IMPERFECTIONS
+C  EQUAL BECAUSE THEY ARE THE SAME THING...
+            WIMPMX = MAX(ABS(WIMPG2(NLOADS)),ABS(WIMPL(NLOADS)))
+            WIMPL(NLOADS) = WIMPMX
+            IF (WIMPG2(NLOADS).NE.0.)
+     1       WIMPG2(NLOADS) = WIMPMX*WIMPG2(NLOADS)/ABS(WIMPG2(NLOADS))
+            IF (WIMPG2(NLOADS).EQ.0.) WIMPG2(NLOADS) = WIMPMX
+         ENDIF
+C END AUG 1994
+C BEG JULY 1995
+C     ENDIF
+C END JULY 1995
+C BEG AUG 1996
+      IDDATA = 0
+      CDEFLT = 'Y'
+      IITYPE = -1
+      IXIMPF(NLOADS) = 1
+      CALL DATUM(IFILE,352,1,2,INT,REALL,ANSOUT,IOUT,NLOADS,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) IXIMPF(NLOADS) = 0
+C END AUG 1996
+C BEG DEC 2004
+      AXLWAV(NLOADS) = AXIAL 
+      IF (IXIMPF(NLOADS).EQ.1) THEN
+       CALL DATUM(IFILE,365,0,0,INT,REALL,CHARAC,IOUT,NLOADS,IPROMP)
+       IDDATA = 0
+       FDEFLT = AXIAL 
+       IITYPE = 1
+       CALL DATUM(IFILE,366,1,2,INT,AXLWAV(NLOADS),ANSOUT,IOUT,
+     1                                                NLOADS,IPROMP)
+       AXLWAV(NLOADS) = ABS(AXLWAV(NLOADS))
+       REWIND IFILE
+      ENDIF
+C BEG JULY 2006
+      IDDATA = 0
+      CDEFLT = 'Y'
+      IITYPE = -1
+      NOSRCH(NLOADS) = 0
+      CALL DATUM(IFILE,367,1,2,INT,REALL,ANSOUT,IOUT,NLOADS,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) NOSRCH(NLOADS) = 1
+      IF (NOSRCH(NLOADS).EQ.1) THEN
+         CALL DATUM(IFILE,368,1,2,MUSER(NLOADS),REALL,CHARAC,IOUT,
+     1                                                NLOADS,IPROMP)
+         CALL DATUM(IFILE,369,1,2,NUSER(NLOADS),REALL,CHARAC,IOUT,
+     1                                                NLOADS,IPROMP)
+      ENDIF
+      REWIND IFILE
+C END JULY 2006
+C END DEC 2004
+C BEG DEC 2003 
+      IF (WIMPL(NLOADS).LE.0.0.AND.IQUICK(NLOADS).EQ.0
+     1 .AND.IPRINT.GT.0.AND.IXIMPF(NLOADS).EQ.1) WRITE(IWRITE,47)
+C END DEC 2003
+   47 FORMAT(//' IF THE LOCAL IMPERFECTION IS LESS THAN OR EQUAL'/
+     1' TO ZERO, IT WILL BE SET EQUAL TO (1/10)TH OF THE THICKNESS'/
+     1' OF THE SKIN MIDWAY BETWEEN STRINGERS. THIS IS DONE TO MAKE'/
+     1' THE VARIATION OF STIFFNESS IN THE NEIGHBORHOOD OF THE LOCAL'/
+     1' BUCKLING LOAD SMOOTHER, WHICH RESULTS IN BETTER BEHAVIOR'/
+     1' DURING OPTIMIZATION CYCLES.'/)
+      IDDATA = 0
+      FDEFLT = 1.0
+      IITYPE = 1
+      CALL DATUM(IFILE,353,1,2,INT,EXAVGA(NLOADS),CHARAC,IOUT,NLOADS,
+     1           IPROMP)
+      EXAVGA(NLOADS) = ABS(EXAVGA(NLOADS))
+      IF (EXAVGA(NLOADS).EQ.0.) EXAVGA(NLOADS) = 1.0
+C
+C
+C TEMPERATURE INPUT FOR THIS LOAD FOR EACH SEGMENT. TEMPERATURE IS
+C ASSUMED TO BE CONSTANT IN THE SEGMENT, EXCEPT THE WEB, IN WHICH IT
+C VARIES LINEARLY FROM THE SKIN TO THE WEB TIP....
+C
+      IDDATA = 1
+      CALL MOVER(0.,0,TEMP(1,1,NLOADS),1,8)
+      ITEMP(NLOADS) = 0
+      IMTEMP(NLOADS) = 0
+C BEG FEB 1996
+      IABT(NLOADS) = 1
+C END FEB 1996
+      REWIND IFILE
+      IDDATA = 0
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,72,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IDDATA = 1
+C BEG FEB 1999
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         IABT(NLOADS)=0
+         GO TO 110
+      ENDIF
+C END FEB 1999
+C
+      ITEMP(NLOADS) = 1
+      TLOW = TEMPJ(1,1,1)
+      THIGH= 0.
+      DO 83 IMAT = 1,MAXMAT
+         IPMAT = IPMATL(IMAT)
+      DO 82 IPROP= 1,IPMAT
+         TLOW = MIN(TLOW,TEMPJ(1,IPROP,IMAT))
+      DO 81 ITAB = 1,10
+         THIGH = MAX(THIGH,TEMPJ(ITAB,IPROP,IMAT))
+   81 CONTINUE
+   82 CONTINUE
+   83 CONTINUE
+C
+      CALL DATUM(IFILE,73,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+C
+      ILOOP0 = 1
+C
+      DO 100 ILOOP = ILOOP0,2
+C
+      REWIND IFILE
+      ISTART = 1
+C BEG MAR 1995
+      IEND   = NSEG(ILOOP)
+      IF (ILOOP.EQ.1.AND.ISTIF(1).EQ.0) IEND = 2
+C END MAR 1995
+      IF (ILOOP.EQ.2) THEN
+C BEG MAR 1995
+         ISTART = 3
+         IF (INTEXT(2).EQ.0) TEMP(1,2,NLOADS) = TEMP(1,1,NLOADS)
+         IF (INTEXT(2).EQ.1) TEMP(1,2,NLOADS) = TEMP(2,1,NLOADS)
+         IF (INTEXT(2).EQ.0) TEMP(2,2,NLOADS) = TEMP(2,1,NLOADS)
+         IF (INTEXT(2).EQ.1) TEMP(2,2,NLOADS) = TEMP(1,1,NLOADS)
+C END MAR 1995
+      ENDIF
+      IF (ISTART.GT.IEND) GO TO 100
+C
+      IF (ILOOP.EQ.1) WRITE(6,85)
+      IF (ILOOP.EQ.2) WRITE(6,86)
+   85 FORMAT(/' TEMPERATURE INPUT FOR SKIN-STRINGER PANEL MODULE...')
+   86 FORMAT(/' TEMPERATURE INPUT FOR SKIN-RING PANEL MODULE...')
+C
+      JWEB = 3
+      IF (ISTIF(ILOOP).EQ.5) JWEB = 2
+      JWEBP = JWEB + 1
+      JWEBM = JWEB - 1
+      DO 98 I = ISTART,IEND
+         IF (IPRINT.EQ.1)
+     1    CALL PICT2(6,ISTIF(ILOOP),INTEXT(ILOOP),B2(ILOOP),W2(ILOOP),
+     1               ILOOP,IFAY(ILOOP))
+C
+C BEG MAR 1995
+      IF (I.EQ.1.AND.ILOOP.EQ.1) THEN
+         IF (ISTIF(1).NE.5) THEN
+            CALL DATUM(IFILE,74,1,2,INT,TEMP(I,ILOOP,NLOADS),CHARAC,
+     1                 IOUT,I,IPROMP)
+         ELSE
+            CALL DATUM(IFILE,80,1,2,INT,TEMP(I,ILOOP,NLOADS),CHARAC,
+     1                 IOUT,I,IPROMP)
+         ENDIF
+         TEMPA = TEMP(I,1,NLOADS)
+C END MAR 1995
+         IF (TEMPA.LT.TLOW.OR.TEMPA.GT.THIGH) THEN
+            WRITE(6,91) TEMPA, TLOW, THIGH
+   91 FORMAT(/' YOUR TEMPERATURE INPUT FOR THIS SEGMENT =',1PE12.4/
+     1' THIS IS OUTSIDE THE RANGE OF TEMPERATURES FOR WHICH YOU'/
+     1' PROVIDED MATERIAL PROPERTIES VIA CHOOSETEMP. IN CHOOSETEMP'/
+     1' THE LOWEST  TEMPERATURE, TLOW  = ',1PE12.4/
+     1' THE HIGHEST TEMPERATURE, THIGH = ',1PE12.4/
+     1' EITHER REVISE THE TABULAR DATA ESTABLISHED VIA CHOOSETEMP'/
+     1' OR PROVIDE A DIFFERENT INPUT TEMPERATURE HERE.')
+            CALL EXIT
+         ENDIF
+      ENDIF
+   92 CONTINUE
+C BEG MAR 1995
+      IF (I.EQ.2.AND.ILOOP.EQ.1.AND.ISTIF(1).NE.5) THEN
+         CALL DATUM(IFILE,75,1,2,INT,TEMP(I,ILOOP,NLOADS),CHARAC,
+     1              IOUT,I,IPROMP)
+         TEMPA = TEMP(I,1,NLOADS)
+         IF (TEMPA.LT.TLOW.OR.TEMPA.GT.THIGH) THEN
+            WRITE(6,91) TEMPA, TLOW, THIGH
+            CALL EXIT
+         ENDIF
+      ENDIF
+   94 CONTINUE
+      IF (I.EQ.3.AND.ILOOP.EQ.1.AND.ISTIF(1).EQ.5) THEN
+         CALL DATUM(IFILE,82,1,1,INT,TEMP(I,ILOOP,NLOADS),CHARAC,
+     1              IOUT,I,IPROMP)
+         TEMPA = TEMP(I,1,NLOADS)
+         IF (TEMPA.LT.TLOW.OR.TEMPA.GT.THIGH) THEN
+            WRITE(6,91) TEMPA, TLOW, THIGH
+            CALL EXIT
+         ENDIF
+      ENDIF
+      IF (I.EQ.3.AND.ISTIF(ILOOP).EQ.3) THEN
+         CALL DATUM(IFILE,78,1,1,INT,TEMP(4,ILOOP,NLOADS),CHARAC,
+     1              IOUT,4,IPROMP)
+         TEMPA = TEMP(4,ILOOP,NLOADS)
+         IF (TEMPA.LT.TLOW.OR.TEMPA.GT.THIGH) THEN
+            WRITE(6,91) TEMPA, TLOW, THIGH
+            CALL EXIT
+         ENDIF
+      ENDIF
+C END MAR 1995
+   96 CONTINUE
+      IF (I.EQ.4) THEN
+         REWIND IFILE
+         CALL DATUM(IFILE,77,1,1,INT,TEMP(I,ILOOP,NLOADS),CHARAC,
+     1              IOUT,I,IPROMP)
+         TEMPA = TEMP(I,ILOOP,NLOADS)
+         IF (TEMPA.LT.TLOW.OR.TEMPA.GT.THIGH) THEN
+            WRITE(6,91) TEMPA, TLOW, THIGH
+            CALL EXIT
+         ENDIF
+      ENDIF
+C
+      TEMP(JWEB,ILOOP,NLOADS) = 0.5*(TEMP(JWEBM,ILOOP,NLOADS)
+     1                              +TEMP(JWEBP,ILOOP,NLOADS))
+   98 CONTINUE
+  100 CONTINUE
+C     CALL DATUM(IFILE,86,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C     IF (ANSL1('Y',ANSOUT,INFILE)) IMTEMP(NLOADS) = 1
+      IMTEMP(NLOADS) = 1
+      IDDATA = 0
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,85,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+C BEG FEB 1996
+      IF (ANSL1('Y',ANSOUT,INFILE)) IABT(NLOADS) = 0
+C END FEB 1996
+C     IF (ISTIF(1).EQ.5.AND.IQUICK(NLOADS).EQ.0) IABT(NLOADS) = 1
+  110 CONTINUE
+C
+      IF (ISTIF(1).EQ.5.AND.IQUICK(NLOADS).EQ.0.AND.P.EQ.0.0
+     1    .AND.IABT(NLOADS).EQ.0.AND.WIMPG(NLOADS).EQ.0.) THEN
+         WIMPG(NLOADS) = -0.02*H(1)
+         WRITE(IWRITE,46) NLOADS, H(1),WIMPG(NLOADS)
+   46   FORMAT(/' IN THE CASE OF TRUSS-CORE SANDWICH WALL CONSTRUCTION'/
+     1' AND THE IQUICK = 0 ANALYSIS MODE (LOCAL DEFORMATIONS CALCULA-'/
+     1' TED WITH USE OF KOITER THEORY), THE KOITER BRANCH HAS TROUBLE'/
+     1' WITH CONVERGENCE IF THERE IS NO OVERALL AXIAL BOWING.'/
+     1' THIS DIFFICULTY IS PROBABLY CAUSED BY MULTIPLE BUCKLING MODES'/
+     1' THAT RESULT FROM SYMMETRY IN THE GEOMETRY AND LOADING.'/
+     1' A SMALL AMOUNT OF AXIAL BOWING IS AUTOMATICALLY BEING PROVIDED'/
+     1' (Wimp(global)=-0.02 X HEIGHT OF THE TRUSS-CORE SANDWICH). THIS'/
+     1' WILL USUALLY CAUSE ENOUGH ASYMMETRY TO RELIEVE THE CONVERGENCE'/
+     1' PROBLEMS.  CAREFULLY MONITOR YOUR RESULTS FOR MESSAGES ABOUT'/
+     1' IMAGINARY SOLUTIONS AND CONVERGENCE TROUBLES, JUST IN CASE!'/
+     1' ***** LOAD CASE NO. ',I1,':'/
+     1'          Height of truss-core sandwich,      H(1) = ',1PE12.4/
+     1'          Initial bowing amplitude,   Wimp(global) = ',1PE12.4/)
+C
+      ENDIF
+C
+      IDDATA = 0
+C BEG MAR 1995
+      MCASE(NLOADS) = 2
+      CALL DATUM(IFILE,354,0,0,INT,REALL,CHARAC,IOUT,0,IPROMP)
+      CDEFLT = 'Y'
+      IITYPE = -1
+      CALL DATUM(IFILE,356,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) THEN
+         CDEFLT = 'N'
+         IITYPE = -1
+         CALL DATUM(IFILE,357,1,2,INT,REALL,ANSOT2,IOUT,0,IPROMP)
+         IF (ANSL1('Y',ANSOT2,INFILE)) THEN
+            CDEFLT = 'N'
+            IITYPE = -1
+            CALL DATUM(IFILE,358,1,2,INT,REALL,ANSOT3,IOUT,0,IPROMP)
+            IF (ANSL1('Y',ANSOT3,INFILE)) MCASE(NLOADS) = 1
+         ENDIF
+      ENDIF
+C END MAR 1995
+      CDEFLT = 'N'
+      IITYPE = -1
+      CALL DATUM(IFILE,359,1,2,INT,REALL,ANSOUT,IOUT,0,IPROMP)
+      IF (ANSL1('N',ANSOUT,INFILE)) GO TO 216
+      REWIND IFILE
+      GO TO 210
+C
+  216 CONTINUE
+      IDDATA = 1
+C END FEB 1995
+C
+      RETURN
+      END

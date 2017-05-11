@@ -1,0 +1,438 @@
+10.1  Are you correcting, adding to, or using an existing file?
+10.2   
+      In BOSDEC, yes or no or help answers to prompts for your
+      input must be in the form Y or N or H, respectively. (capital
+      letter, one character only, please!)
+
+      Usually, your answer will be N. However, if you are rerunning
+      BOSDEC
+      and you have a good partial or complete file NAME.ALL
+      and you want to complete your interactive session or simply rerun
+      BOSDEC
+      then answer Y.
+
+      Note that you may only add entries after the last entry in the
+      existing file. In order to change the file in other respects,
+      you must edit it using the VAX edit mode.
+
+20.1  Do you want a tutorial session and tutorial output?
+20.2
+      If you answer Y, you will see explanations after
+      most prompts. The prompts and further explanations of them
+      will be reproduced on your output file.
+
+80.0 
+      *************  THIS IS "BOSDEC" ("BOSOR4 DECK") ***************
+      *************  by David Bushnell, Dept. L9-24   ***************
+
+      The purpose of this program is to set up an input file, *.ALL,
+      for the BOSOR4 computer program for analysis of shells of
+      revolution. Please see the following papers and a book by
+      D. Bushnell for information about BOSOR4:
+
+      1. "BOSOR4: program for stress, buckling and vibration of
+         complex shells of revolution" in STRUCTURAL MECHANICS
+         SOFTWARE SERIES, Vol. 1, (N. Perrone and W. Pilkey, editors)
+         University Press of Virginia, Charlottesville, 1977,
+         pp. 11-131.
+      2. Computers & Structures, Vol. 4,  1974, pp. 399-435
+      3. Computers & Structures, Vol. 18, 1984, pp. 471-536
+      4. COMPUTERIZED BUCKLING ANALYSIS OF SHELLS, Nijhoff, 1985
+
+      In this particular case the shell is a "wavy" cylindrical
+      shell of length, AXIAL, and nominal radius, RADIUS, and
+      thickness, t. The "wavy" shell consists of several segments.
+
+      You supply simple information, such as AXIAL, t, RADIUS,
+      the number of half-waves, NWAVES, over the length
+      of the shell, amplitude, AMPLIT, of the waviness, material
+      properties and boundary conditions, and BOSDEC automatically
+      generates the multi-segment BOSOR4 model. The material is
+      assumed to be linear elastic. The shell is monocoque
+      (unstiffened). The wall can be either isotropic or laminated
+      composite. You can do either a geometrically nonlinear
+      axisymmetric stress analysis (INDIC=0) or a linear non-
+      axisymmetric bifurcation buckling analysis (INDIC = 1). 
+
+      A typical runstream for obtaining behavior of the "wavy"
+      cylindrical shell is:
+         bosdeclog      (enable BOSDEC command, "bosdec")
+         bosdec         (provide input AXIAL, t, RADIUS, etc.
+                         an "echo" file, *.WAV, is generated,
+                         in which "*" represents your name for
+                         the case. "bosdec" generates input for
+                         the BOSOR4 program, the file, *.ALL)
+
+         bosor4log      (enable the BOSOR4 command set.)
+         bosorall       (run BOSOR4. Generates *.OUT file)
+         bosorplot      (generate BOSOR4 plots)
+         cp *.WAV *bos.WAV (save the input for "bosdec")
+         cleanup        (delete files with name "*" except
+                         *.ALL and *.DOC)
+         cp *bos.WAV *.WAV (restore the "bosdec" input, *.WAV)
+      ***********************************************************
+
+85.1  BOSOR4 model type (1 or 2), MODLB4
+85.2 
+      MODLB4 = 1 corresponds to a model with just wavy segments.
+      There is no initial segment in which the waviness is "smeared".
+ 
+      MODLB4 = 2 corresponds to a model in which the wavy segments
+      are connected to an initial segment in which the waviness is
+      "smeared".
+
+87.1  Buckling b.c.(0=sym, 1=antisym) at symmetry plane, ISYMTY
+87.2  
+
+90.1  Analysis: (0,3=stress; 1,4=buckling; 2=vibratn), INDIC
+90.2 
+
+100.1 Length of cylindrical shell, AXIAL
+100.2  
+
+102.1 Average nominal radius of cylindrical shell, RADIUS
+102.2
+      The waviness "oscillates" about RADIUS, with a peak of value
+      equal to AMPLIT both above RADIUS and below RADIUS.
+
+103.1 Total wall thickness, t
+103.2
+
+105.1 Number of axial halfwaves in wavy part of cyl., NWAVES
+105.2
+      NWAVES must be an EVEN number greater than or equal to 2
+      because symmetry is used at both ends of the wavy section.
+
+107.1 Axial length of one halfwave of the wavy pattern, WAVLEN
+107.2 
+     
+110.1 Amplitude of waviness, AMPLIT
+110.2
+
+112.0
+      You will next be asked to choose a "wavy" shape, via an
+      index, IWAVE:
+         IWAVE = 2 means that there exist only toroidal segments
+                   in the "wavy" shape, that is, the segmented
+                   BOSOR4 model will contain only two segments
+                   per complete axial wave: one segment for the
+                   part of the axial wave that is inward and one
+                   segment for the part of the axial wave that is
+                   outward. You can use this model for a sinusoidal
+                   type of axial waviness.
+
+         IWAVE = 3 means that the segmented BOSOR4 model will have
+                   alternating straight (conical) and curved
+                   (toroidal) segments. You can use this model
+                   either for "wavy" shell with "ridges" (relatively
+                   long conical segments combined with short
+                   toroidal segments) or for a bellows type of shell
+                   in which the amplitude of the waviness is larger
+                   than the meridional radius of curvature of the
+                   toroidal segments.
+
+113.1 Which type of waviness (IWAVE = 2 or 3) do you want? IWAVE
+113.2
+      IWAVE=2 means that the wavy shell consists entirely of
+              toroidal segments.
+      IWAVE=3 means that the wavy shell consists of alternating
+              straight (conical) and curved (toroidal) segments.
+
+115.0
+      You have just provided NWAVES and AMPLIT:
+         NWAVES = number of axial halfwaves over the shell length.
+         AMPLIT = amplitude of the waviness.
+      You will next be asked to provide the variable, RADSML:
+         RADSML = local meridional radius of curvature.
+      There are lots of combinations that are "illegal", that is,
+      for which the shell wall is not smooth or has gaps. Don't
+      worry. BOSDEC will tell you to try another combination.
+      If this happens, the best thing to do is leave NWAVES and
+      AMPLIT alone and change RADSML. As soon as BOSDEC
+      determines that you have a "legal" combination of NWAVES,
+      AMPLIT, and RADSML, it will continue to ask you for more
+      input data.
+
+120.1 Local meridional radius of curvature, RADSML
+120.2
+      Small values of RADSML lead to a shell wall that has a
+      "zig-zag" meridian, that is, it consists mostly of
+      conical segments connected by much shorter toroidal
+      segments. If RADSML is too small, such that each toroidal
+      segment length is less than six wall thicknesses, BOSDEC
+      will tell you to try doubling RADSML. You may have to 
+      do this doubling several times to get a "legal" wall shape.
+
+      Larger values of RADSML lead to a smoother waviness. If RADSML
+      is too large, then there isn't enough space for connecting
+      conical segments between toroidal segments, and BOSDEC will
+      tell you to reduce RADSML.
+
+122.1 Location of T-ring: -1=internal, 0=none, 1=external: IRING
+122.2 
+       help for IRING
+ 
+123.1 ring spacing (use zero if no rings): BRINGS
+123.2 
+       help for BRINGS
+ 
+124.1 thickness of web of T-ring: TWEB
+124.2 
+       help for TWEB
+ 
+125.1 height of web of T-ring: HWEB
+125.2 
+       help for HWEB
+ 
+126.1 thickness of outstanding flange of T-ring: TFLANG
+126.2 
+       help for TFLANG
+ 
+127.1 width of outstanding flange of T-ring: HFLANG
+127.2 
+       help for HFLANG
+
+128.1 Average modulus of ring material, ERING
+128.2 
+       help for ERING
+
+129.1 Average Poisson ratio of ring material, FNURNG
+129.2
+       help for FNURNG
+
+130.1 Average mass density of ring material, DENRNG
+130.2 
+       help for DENRNG
+
+131.1 Number of nodal points in each of web, flange, NMESHR
+131.2 
+       help for NMESHR
+
+135.1 Acceleration of gravity in the units of this case, GRAVTY
+135.2 
+
+140.1 Number of axial g's acceleration, GAXIAL
+140.2 
+
+150.1 Number of lateral g's acceleration, GLATRL
+150.2 
+
+170.1 Axial resultant (neg. for compression), Load Set A, FNX
+170.2
+
+175.1 Axial resultant (neg. for compression), Load Set B, FNXB
+175.2
+
+180.1 Pressure (negative for external), Load Set A, PRESS
+180.2
+
+181.1 Pressure (negative for external), Load Set B, PRESSB
+181.2
+
+182.0
+      Next, you will be asked to provide the number, NMESHS, of
+      meridional nodal points in each of the straight (conical)
+      segments, followd by the number, NMESHC, of meridional
+      nodal points in each of the curved (toroidal) segments.
+      The number of nodal points you specify depends on the
+      relative lengths of the straight and curved segments and
+      on the number, NWAVES, of axial halfwaves over the length
+      of the cylindrical shell.
+
+      Unless otherwise instructed, you should probably use
+      something like NMESHS = 21, NMESHC = 21 . However, you may
+      well want to do convergence studies with respect to NMESHS
+      and NMESHC, especially if you have relatively few axial
+      halfwaves over the length of the wavy cylindrical shell.
+
+      If BOSDEC has determined that either the straight segment
+      or the curved segment is very short (less than 10 thicknesses)
+      BOSDEC will suggest that you use fewer nodal points in that
+      segment. If BOSDEC has determined that the straight segment
+      is much longer than the curved segment or visa versa, then
+      BOSDEC will suggest that you use more nodal points in the
+      much longer segment. If the curved segment spans more than
+      90 degrees, then BOSDEC will suggest that you consider using
+      a higher number for NMESHC.
+
+185.1 Number of nodal points in each STRAIGHT segment, NMESHS
+185.2
+      Must be less than 98. Suggestion: 21
+
+186.1 Number of nodal points in each  CURVED  segment, NMESHC
+186.2 
+      Must be less than 98. Suggestion: 21
+
+188.1 Number of nodal points in "smeared" segment, NMESH1
+188.2 
+      The "smeared" segment is the segment in which the waviness
+      is "smeared" (averaged). That is, the wall properties (6x6
+      C(i,j) constitutive matrix) derived by WAVYCYL are used
+      for the wall of a straight-walled cylindrical shell that is
+      equivalent to the wavy cylindrical shell.
+
+189.1 Max. number of d.o.f. in the buckling problem, MAXNOD
+189.2 
+      Ordinarily, use MAXNOD = 3000
+      Sometimes use MAXNOD = 10000 for checking optimized designs.
+
+190.1 Enter index (1=s.s.; 2=clamped) for boundary condition
+190.2 
+      1 means simple support conditions are applied at the
+        bottom end of the cylindrical shell.
+
+      2 means clamped conditions are applied at the bottom
+        end of the cylindrical shell.
+
+      Remember: Symmetry is ALWAYS applied at the top end of the
+      cylindrical shell.
+
+200.1 Starting number of circumferential waves, N0B
+200.2
+      Use a number that is greater than or equal to 1
+
+210.1 Ending number of circumferential waves [see H(elp)],NMAXB
+210.2
+      You can make NMAXB = N0B if you want, then explore a wide
+      range of circ. waves with use of the BOSOR4 processors
+      RESETUP/RESTART.  Or you can explore a range here. If you
+      want very compact output, use RESETUP/RESTART for the wide
+      range of circ. wavenumbers n.
+
+220.1 Increment in number of circumferential waves, INCRB
+220.2 
+      It's a good idea to make the increment of circ. wavenumber n
+      equal to a certain percentage of n, say 10 per cent. Then
+      you won't get results for lots of n when n corresponding
+      to the critical (lowest) buckling load factor is very high.
+
+230.1 Number of eigenvalues for each circ. wavenumber, NVEC
+230.2 
+      Usually you want only the lowest eigenvalue for each circ.
+      wavenumber n. However, sometimes you may want more than one
+      eigenvalue for each n. Use NVEC = 1 if you are exploring
+      a wide range of circ. wavenumber n.
+
+330.1 Type of shell wall (1=isotropic, 2=laminated), IWALL
+330.2 
+
+340.1 Young's modulus, E
+340.2 
+
+350.1 Poisson ratio, Nu
+350.2 
+
+360.1 Material mass density, DENS
+360.2 
+      Use MASS units, not WEIGHT units.
+      (e.g. Aluminum = 0.00025 lb-sec**2/in)
+
+384.0 
+      Input for laminated composite wall...
+
+385.1 number of layers in the wall
+385.2  
+      NOTE: the maximum number of layers total is 90.
+
+386.1 layer index (1,2,...), for layer no.
+386.2  
+      A layer index implies the following "bundle" of properties:
+
+         1. thickness of the layer
+         2. winding angle of the layer (degrees between the
+            normal to the screen and the direction in which the
+            modulus E1 (fiber direction) is measured)
+         3. material type of the layer
+
+      The three properties just listed are identical in two different
+      layers if both of these layers have the same layer index.
+
+387.1 Is this a new layer type?
+388.0 
+      thickness, winding angle, material for layer index
+
+389.1 thickness for layer index no.
+390.1 winding angle (deg.) for layer index no.
+390.2 
+      The definition of winding angle is: the angle in degrees
+      measured from the meridional direction to the direction in
+      which the fiber modulus E1 is measured. The winding angle
+      must be constant along the meridional coordinate.
+
+391.1 material index (1,2,...) for layer index no.
+392.0  
+      You will next be asked to provide material properties corres-
+      ponding to the material types that you have already indicated.
+
+393.1 Next material type... Is material new for material type
+393.2 
+      If any of the materials in previous segments with composite
+      layups (NWALL=4) was the same as the present material, answer
+      N. If this is a new material, answer Y.
+
+394.0 
+      In the following:
+
+        E1 = modulus in the fiber direction
+        E2 = modulus transverse to fibers in the plane of the layer
+         G = in-plane shear modulus
+        NU = Poisson's ratio: NU = NU12 = NU21 * E2/E1
+             NOTE: the NU you provide is the smallest of the two if
+                   E1 > E2.  This is a bit unusual, so BEWARE!
+
+395.1 modulus in the fiber direction, E1
+396.1 modulus transverse to fibers,   E2
+397.1 in-plane shear modulus,          G
+398.1 small Poisson's ratio,          NU
+399.1 thermal expansion along fibers, A1
+400.1 transverse thermal expansion,   A2
+401.1 residual stress temperature (positive),TEMPTUR
+401.2 
+      Degrees must be consistent with thermal expansion coefficients,
+      A1 and A2 given previously.  What is wanted here is the
+      difference between the setting temperature and room temperature,
+      that is, the delta temperature that governs the magnitude of
+      residual stresses and deformations in the panel due to curing.
+      TEMPTUR should be zero or positive.
+
+402.1 mass density (e.g. lb-sec**2/in. Aluminum=.00025), DENS
+402.2 
+      What is wanted is mass density m, not weight density mg.
+
+403.0 
+      Next, you will be asked to provide five maximum allowable
+      stresses:
+         maximum tensile stress along fibers,         sig1(tension)
+         maximum compressive stress along fibers,     sig1(comp.)
+         maximum tensile stress normal to fibers,     sig2(tension)
+         maximum compressive stress normal to fibers, sig2(comp.)
+         maximum in-plane shear stress,               sig12
+      These maximum allowables correspond to a single lamina of
+      composite material (tape or cloth). The thickness of a single
+      lamina is often something like 0.005 inches.
+
+404.1 maximum tensile stress along fibers, matl
+405.1 max compressive stress along fibers, matl
+406.1 max tensile stress normal to fibers, matl  
+407.1 max compress stress normal to fibers,matl  
+408.1 maximum  shear  stress  in  material type                 
+409.1 NRS  = control (0 or 1) for addition of smeared stiffeners
+409.2  
+      NRS = 0 means no smeared stiffeners;
+      NRS = 1 means yes, smeared stiffeners to be added.
+
+620.0 
+      You may wish to limit the number of meridional stations at
+      which you want stresses listed in each lamina of the composite
+      wall. Otherwise you may get too much output. Please indicate
+      next for which nodal points in this segment you want stress
+      output. Don't worry about limiting the output too much. You
+      can always do RESTARTs later and identify new points for
+      stress output if you see a need for it.
+
+622.1 Do you want output for all the nodal points in Segment
+624.0
+      Next, give the nodal points in increasing order...
+
+626.1 Nodal point (e.g. 1 or 2 or 3 or . . . )
+628.1 Any more nodal points for stress output in this segment?

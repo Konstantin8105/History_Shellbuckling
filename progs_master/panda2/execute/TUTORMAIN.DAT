@@ -1,0 +1,2695 @@
+2.0  
+       *******************************************************************
+       ***** FOR THE LATEST NEWS ABOUT PANDA2, PLEASE READ THE FILE ******
+       *****                   CALLED "PANDA2 NEWS"                 ******
+       *******************************************************************
+
+        PANDA2 MAINPROCESSOR FLOW OF CALCULATIONS FOR A GIVEN DESIGN
+
+       The following calculations are performed for each of up to five
+       sets of user-supplied in-plane loads, Nx, Ny, and Nxy, and
+       pressure, p.
+
+       These calculations are performed in SUBROUTINE STRUCT, which
+       is the structural analyzer in the PANDA2 mainprocessor.
+
+       SUMMARY OF COMPUTATIONS REQUIRED FOR EACH DESIGN MODIFICATION
+ 
+       The following is a list of computations which  must  be  performed
+       for each load combination every time the panel design is modified:
+ 
+       1.  calculation of residual state of the panel after cure and
+       before application of any load.
+ 
+       2.  calculation of the prebuckled state of the panel after appli-
+       cation  of the load.  The goal of this step is to determine the
+       distribution of stress resultants over the cross section of the
+       panel module. For each of up to five combinations of (Nx, Ny, Nxy,
+       and p), there may exist two load sets: Load Set A, which includes
+       all loads associated with eigenvalues (load factors for buckling),
+       and Load Set B, which includes all constant (non-eigenvalue) loads.
+       The static response to uniform normal pressure, p, is calculated
+       from nonlinear geometric theory (moderately large rotations).
+ 
+       3.  calculation of local buckling (minimization  with  respect  to
+       axial wave number n is required). Two ranges of number of axial
+       waves are checked, a low-n range and a high-n range.
+ 
+       4.  calculation of local post buckling behavior from a modified
+           form of Koiter theory.
+ 
+       5.  calculation of stress components in material  coordinates  and
+       establishment  of  minimum  stress margins (5 margins required for
+       each material type: tension and compression parallel and perpen-
+       dicular to fibers and in-plane shear).
+ 
+       6.  calculation of general buckling, including deleterious  effect
+       of  locally postbuckled skin (reduced tangent stiffness) and
+       nonuniformity of stress resultants distributed over the  cross
+       section  of  the panel.
+ 
+       7.  calculation of current weight of  the  panel.
+
+
+       SIGN CONVENTIONS FOR VARIOUS TYPES OF PANEL ANALYSIS
+                         PERFORMED BY PANDA2
+
+       It is important to document the sign conventions used for
+       stress resultants; moments; strains; changes in curvature;
+       panel curvature; normal displacement; coordinate, z, normal
+       to the reference surface of each segment of the panel module
+       cross section;  coordinate, x, along the panel axis
+       (normal to the screen); coordinate y (in the plane of the
+       screen); and coordinate, s, along the reference surface of
+       each segment in the panel module cross section. These sign
+       conventions are defined here.  Also defined here is the
+       convention for numbering the layers in each segment of the
+       panel module cross section.
+
+       A typical panel module is depicted below in Figs. 1 and 2.
+
+       The PANDA2 system consists of elements of three analyses,
+       each of which has slightly different sign conventions:
+
+         (1) BOSOR4-type models of discretized panel modules
+
+         (2) PANDA-type models (closed form buckling formulas)
+
+         (3) BOSOR4-type model of discretized entire panel span
+                                 with smeared stiffeners
+
+       
+       The figures below show a typical panel module. For analysis
+       type (1), BOSOR4-type models of discretized panel modules, the
+       sign convention is described below the figures.
+
+        Seg. No. 4-.  |---> s
+        (flange)    . |<------  w  ------>|
+                     ._____________________
+                                |    ^ |
+           Segment No. 3 -----> |    | V
+           (web)                |    | z coordinate
+               Seg. No. 2-.   s |    h
+               (base)      .  ^ |    | 
+         Seg. No. 1-.       . | |->z |            .-Seg. No. 5
+         (skin)    .         .| |    V           . (same as Seg. 1)
+        --------------=====================--------------
+                      |<------ b2 ------->|
+        |<--- Module width  =  stiffener spacing, b --->|
+        |------------> s coordinate (measured along the reference
+                                     surface of each segment)
+
+            y coordinate <------|   (measured from stringer web line
+                                     of attachment, or in case of hat,
+                                     from stringer centerline.  Used
+                                     in PANDA-type analysis.)
+             |
+             |
+             |
+             V
+             z coordinate (z is measured from middle surface of each
+                           segment in the panel module cross section,
+                           and is positive as shown)
+
+             x coordinate is normal to screen and positive out of
+               the screen.
+
+
+           FIG. 1  TYPICAL PANEL MODULE CROSS SECTION, COORDINATES,
+                   SEGMENTS, NOMENCLATURE
+
+
+
+        The (s,x,z) coordinate system is local to each panel module
+        segment, and forms a right-handed system in each module segment.
+
+        The (x,y,z) coordinate system is used in the PANDA-type of
+        analysis. It is shown in the paper, "PANDA--interactive program
+        for minimum weight design of stiffened cylindrical panels and
+        shells.", Computers and Structures, Vol. 16, No. 1-4, pp 167-185,
+        1983.
+
+
+                          Layer No. 1------.
+                                            .
+        (Segment,Node) = (4,1)_____________________(4,7)
+                                              .
+                                     (3,7)     ._____ Layer No. j
+                                       |  
+                    Layer No. 1 -----> | <----------- Layer No. k
+                                       |   
+                 Layer No. 1-.         |   
+                              .        |   
+           Layer No. 1-.       .       |               .-Layer No. 1
+                      .         .      |                .
+                     .           .   (3,1)               .
+           --------------    =====================    --------------
+         (1,1)   .    (1,9)(2,1)   . (2,5)     (2,9)(5,1)  .     (5,9)
+                  .                 .                       .
+                   .                 .                       .
+                    Layer No. m       Layer No. n    Layer No. m
+
+        FIG. 2   EXPLODED VIEW, SHOWING LAYERS and (SEGMENT, NODE) NUMBERS
+
+
+
+        Positive pressure pushes up on the panel module shown in Fig. 1.
+        The pressure acts only on the skin (Segments 1, 2, and 5 in
+        Fig. 2.
+
+        The axial load, Nx, is normal to the plane of the screen and
+        positive for tension.  Units of this load are 
+        force/(length of s coordinate).
+
+        The hoop or circumferential load, Ny, acts parallel to the
+        plane of the screen and is positive for tension.  The units of
+        this load are force/(length of x coordinate)
+
+        Positive Nxy is shown in Fig. 3, below, along with x and y 
+        coordinates and positive winding angle.
+
+                         ------------->Nxy
+             y <-----------------------------+
+                  |                        / |
+                  |                       /  |
+                  |                      /   |<---stringer line of
+                  |                     /    |    attachment
+                  |                    /     |
+                  |                   /      |
+                  |                  /       |
+                  |                 /        |
+                  |                /         |
+                  |               / winding  |
+                  |              /   angle   |
+                  |             / (positive) |
+                  ---------------------------|<---plane of the screen
+                     Nxy <-------------      V
+                  (positive)                 x
+
+             FIG. 3  POSITIVE IN-PLANE SHEAR, WINDING ANGLE
+
+
+        Positive reference surface strains, ex and ey, are tensile.
+        Positive exy follows from postive Nxy.
+
+        Positive axial moment, Mx, causes compression in the fibers
+        normal to the screen at the bottom of FIG. 1 above, and
+        tension in the fibers at the top of FIG. 1 above.  That is,
+        the bottom surface of the panel module becomes concave under
+        positive Mx.
+
+        Positive change in axial curvature, kx, has the same effect as
+        positive axial moment, Mx.  Bottom surface becomes concave.
+
+        Positive hoop (circumferential) moment, My, causes compression
+        in the fibers parallel to the plane of the screen at the bottom
+        of FIG. 1 above, and tension in the fibers at the top of FIG. 1
+        above.  That is, the bottom surface of the panel module
+        sketched above becomes concave under positive My.
+
+        Positive change in hoop (circumferential) curvature has the
+        same effect as positive hoop moment, My.
+
+        Positive twisting moment, Mxy, tends to force the left side
+        of FIG. 1 downward and the right side of the figure upward.
+        The twisting angle increases anticlockwise as we proceed out of
+        the screen, that is along the increasing x coordinate.
+
+        Positive twist, kxy, has the same effect as positive Mxy.
+
+        For the discretized panel module model the following kinematic
+        expressions hold:
+
+             axial change in curvature, kx = w,xx
+             hoop  change in curvature, ky = w,yy
+             twist                     kxy = 2w,xy
+
+        Strains anywhere in the module cross section are given by:
+
+             epsx(z) = ex(ref. surf.) - z*kx(ref. surf.)
+             epsy(z) = ey(ref. surf.) - z*kx(ref. surf.)
+            epsxy(z) =exy(ref. surf.) - z*kxy(ref. surf.)
+
+
+        For cylindrical panels, positive curvature means that the
+        panel skin in the module shown above is concave downward, that
+        is, Segments 1, 2, and 5 in FIG. 1 are concave downward. The
+        generators of the cylinder are normal to the screen.
+ 
+        Positive normal deflection in each panel module segment is
+        in the same direction as positive z.  Positive u is in the
+        same direction as positive s. These two displacment components
+        lie in the plane of the screen or parallel to the plane of
+        the screen. Positive axial displacement v is normal to the
+        screen, and is out of the screen (toward the viewer), in the
+        same direction as positive x.
+
+        In PANDA2 the layers of the panel skin (Segments 1, 2, and 5
+        in FIG. 2 above) are numbered from the top to the bottom.
+        In all segments of the panel module, layer no. 1 is the
+        leftmost layer as we face in the direction of increasing
+        s coordinate, and layer no. NLAYERS is the rightmost layer.
+
+        In the analysis of the entire panel with smeared
+        stiffeners and discretized span (span refers to the
+        length of panel edge in the plane of the screen),
+        a positively curved cylindrical panel is again downward,
+        with the curved edges being the edge that lies in the plane of
+        the screen (x =0) and the opposite edge (x = L).
+
+
+4.0 
+
+
+            1.  Calculate integrated constitutive coefficients, C(i,j), for
+       each segment of the panel module (i,j=1,2,..6);  ("panel module" is
+       defined in Figs. 1 and 2 below).  Calculate thermal resultants,
+       THERM(i),i=1,2,..6, for each segment of the panel module;  calculate
+       CS(i,j), THERMS(i,j) for panel with smeared stiffeners.  Calculate
+       local and general thermal strains.  (first call to SUBROUTINE GETCIJ in
+       SUBROUTINE STRUCT)
+
+
+6.0  
+
+      The stiffened panel is considered to be divided into several
+      identical modules, as follows:
+
+               ___                  ___                   ___
+                |                    |                     |
+                |                    |                     |
+      --------=====----------------=====-----------------=====---------
+      |<---Module No. 1-->|<-- Module No. 2 --->|<--- Module No. 3 -->|
+
+                   Fig. 1 (above)   Panel with three modules
+
+
+
+      This analysis is for a module with T-shaped stiffener...
+
+        Seg. No. 4-.
+                    . |<------  w  ------>|
+                     ._____________________
+                                |   ^
+           Segment No. 3 -----> |   |
+                                |   |
+               Seg. No. 2-.     |   h
+                           .    |   |
+         Seg. No. 1-.       .   |   |             .-Seg. No. 5
+                   .         .  |   V            . (same as Seg. 1)
+        --------------=====================--------------
+                      |<------ b2 ------->|
+        |<--- Module width  =  stiffener spacing, b --->|
+
+                  Fig. 2 (above) Single Panel Module
+
+
+
+7.0  
+
+      The stiffened panel is considered to be divided into several
+      identical modules, as follows:
+
+              ___                  ___                   ___
+                |                    |                     |
+                |                    |                     |
+      --------=====----------------=====-----------------=====---------
+      |<---Module No. 1-->|<-- Module No. 2 --->|<--- Module No. 3 -->|
+
+                   Fig. 1 (above)   Panel with three modules
+
+
+
+      This analysis is for a module with J-shaped stiffener...
+
+        Seg. No. 4-.
+                    . |<-- w -->|
+                     .___________   _
+                                |   ^
+           Segment No. 3 -----> |   |
+                                |   |
+               Seg. No. 2-.     |   h
+                           .    |   |
+         Seg. No. 1-.       .   |   |             .-Seg. No. 5
+                   .         .  |   V            .  (same as Seg. 1)
+        --------------=====================--------------
+                      |<------ b2 ------->|
+        |<--- Module width  =  stiffener spacing, b --->|
+
+                  Fig. 2 (above) Single Panel Module
+
+
+
+
+8.0  
+
+      The stiffened panel is considered to be divided into several
+      identical modules, as follows:
+
+                |                    |                     |
+                |                    |                     |
+      --------=====----------------=====-----------------=====---------
+      |<---Module No. 1-->|<-- Module No. 2 --->|<--- Module No. 3 -->|
+
+                   Fig. 1 (above)   Panel with three modules
+
+
+
+      This analysis is for a module with a rectangular stiffener...
+
+                                |   ^
+           Segment No. 3 -----> |   |
+                                |   |
+               Seg. No. 2-.     |   h
+                           .    |   |
+      Segment No. 1-.       .   |   |             .-Seg. No. 4
+                   .         .  |   V            . (same as Seg. 1)
+        --------------=====================--------------
+                      |<------ b2 ------->|
+        |<--- Module width  =  stiffener spacing, b --->|
+
+                  Fig. 2 (above) Single Panel Module
+
+
+
+
+9.0  
+
+      The stiffened panel is considered to be divided into several
+      identical modules, as follows:
+
+               ___                  ___                   ___
+              /   \                /   \                 /   \
+             /     \              /     \               /     \
+      ----=============--------=============---------=============-----
+      |<---Module No. 1-->|<-- Module No. 2 --->|<--- Module No. 3 -->|
+
+                   Fig. 1 (above)   Panel with three modules
+
+
+
+      This analysis is for a module with hat-shaped (trapezoidal) 
+      stiffener...
+
+                            |<- w ->|
+       Segment No. 4 ---->  ---------
+                           /    ^    \
+       Segment No. 3 ---> /     |     \
+                         /      h      \ 
+       Seg. 1-.         /       |       \ 
+               .       /        V        \ 
+        ----------=============================----------
+                       |<----- w2 ------>|
+                  |<--Segment 2 width,  b2 -->|
+        |<--- Module width  =  stiffener spacing, b --->|
+
+                  Fig. 2 (above) Single Panel Module
+
+
+10.0 
+
+
+            Flow of Calculations in SUBROUTINE GETCIJ (Constitutive Law)
+
+       The constitutive law used in PANDA2 for all segments is based on
+       the principle of shell theory in which the stress-strain relationship
+       is integrated through the thickness.  In SUBROUTINE GETCIJ we seek the
+       6x6 matrix C(i,j) and the 6-component vector NT(i),  which for
+       each segment of the single panel module (see above) occur in the
+       thickness-integrated stress-strain relationship thus:
+         
+          | Nx |     |                 | | ex  |      | Ntx  |
+          |    |     |                 | |     |      |      |
+          | Ny |     |                 | | ey  |      | Nty  |
+          |    |     |                 | |     |      |      |
+          | Nxy|     |                 | | exy |      | Ntxy |
+          <    >  =  |        C        | <     >   -  <      >
+          | Mx |     |                 | | kx  |      | Mtx  |
+          |    |     |                 | |     |      |      |
+          | My |     |                 | | ky  |      | Mty  |
+          |    |     |                 | |     |      |      |
+          | Mxy|     |                 | | kxy |      | Mtxy |
+        
+
+       in which {N} = {Nx, Ny, Nxy, Mx, My, Mxy} are the stress and
+       moment resultants in any panel module segment;  [C] is the 6x6
+       integrated constitutive law;  {E} = {ex, ey, exy, kx, ky, kxy}
+       are the strains and changes in curvature of the reference
+       surface of the corresponding panel module segment;  and {NT} = {Ntx,
+       Nty, Ntxy, Mtx, Mty, Mtxy} are the thermal stress and moment resultants
+       due to curing the composite material panel.
+
+            For all panel module segments except the segments under each
+       stiffener, PANDA2 uses the middle surface of each segment wall as the
+       reference surface for that segment.  The same reference surface
+       is used for all segments that comprise the panel skin.
+
+            We also need the thermal strains and changes in curvature {ET}
+       that would occur if each segment of the panel module were free to
+       strain and warp after curing by itself.  These 6 quantities are derived
+       from the constitutive law above by setting {N} = {Nx, Ny, Nxy, Mx, My,
+       Mxy} equal to zero and solving for {ET} = {ex, ey, exy, kx,
+       ky, kxy}:
+        
+                                     -1
+                       {ET}   =   [C]   {NT}
+        
+
+            If the panel is stiffened by both stringers and rings, then [C],
+       {NT}, and {ET} are calculated for two panel module configurations:  (1)
+       the panel module that represents a cross section normal to the x=axis
+       and, (2) the panel module that represents a cross section normal to the
+       y-axis.
+
+            In addition to the integrated constitutive matrix [C], thermal
+       loads {NT}, and thermal deformations {ET} for each segment of each
+       panel module, the PANDA2 analysis requires analogous quantities [CS],
+       {NTS}, and {ETS}, for the panel with smeared stiffeners.  These
+       quantities are also computed in SUBROUTINE GETCIJ.  Quantities are
+       calculated for the panel with stringers smeared (between rings);  for
+       the panel with rings smeared (between stringers);  and for the panel
+       with both stringers and rings smeared.  The panel deformations {ET}
+       caused by curing are calculated in SUBROUTINE STRTHM, which is called
+       by SUBROUTINE GETCIJ.
+
+11.0
+
+
+
+       REDUCTION FACTORS FOR TRANSVERSE SHEAR DEFORMATION....
+
+            In order to determine appropriate knockdown factors for the
+       weakening effect of transverse shear deformation, integrated
+       stiffnesses for transverse shear deformation are required.  These
+       coefficients are calculated in SUBROUTINE GETCIJ.
+
+       Two theories are programmed into PANDA2:
+         1. Timoshenko beam theory, and
+         2. Mindlin plate theory.
+
+       The Timoshenko beam theory is used for all local buckling
+       phenomena, such as local buckling of the panel skin between
+       stiffeners and crippling of the stiffener segments.
+       The Mindlin theory is used for all models in which stiffeners
+       are smeared out, such as general instability and panel (between
+       rings with stringers smeared out) instability.
+    
+       1.   TIMOSHENKO BEAM THEORY:
+
+       It is assumed that
+       the reduction factor for a plate is the same as it is for a Timoshenko
+       beam.  The equation for the reduction or knockdown factor, given by
+       Timoshenko and Goodier, 2nd edition, pp.  132-135, is:
+        
+
+         REDUCTION FACTOR FOR AXIALLY COMPRESSED WIDE COLUMN =
+        
+               K = 1/[1 + n*N(EULER)/(Teff*Geff)]
+        
+
+       in which n is a shape factor (1.2 for homogenous sheet);  N(EULER)
+       is the critical axial stress resultant from Kirchoff theory;  Teff is
+       the effective wall thickness (simply the total wall thickness in our
+       case);  and Geff is the effective transverse shear stiffness.
+
+       For a layered medium, Geff is assumed to be given by:
+        
+             Geff = Teff/SUM-OVER-i [ t(i)/G13(i) ]
+        
+       in which t(i) is the thickness of the ith layer and G13(i) is the
+       transverse shear stiffness of the ith layer measured in the axial-
+       circumferential (panel) coordinate system rather than in the material
+       coordinate system.
+
+            For biaxial loading with or without in-plane shear loading, the
+       "effective" knockdown factor, KSTAR, is derived assuming that the
+       interaction relation between the three in-plane loading components Nx,
+       Ny, Nxy, is given by:
+        
+         (Nx/Nxcr)**2 + (Ny/Nycr)**2 + (Nxy/Nxycr)**2 = 1
+        
+
+       We assume that the "effective" knockdown factor for transverse
+       shear deformation weakening, KSTAR, can by derived from:
+        
+        (1-KSTAR)**2 = (1 - Kx)**2 + (1 - Ky)**2 + (1 - Kxy)**2
+        
+       in which Kx is the transverse shear deformation weakening
+       knockdown factor for compression in the x-direction (axial
+       compression);  Ky is the knockdown factor for compression in the
+       y-direction;  and Kxy is the knockdown factor for in-plane shear.
+
+            The computations for Geff and Teff occur in SUBROUTINE GETCIJ.
+       The computations for KSTAR occur in SUBROUTINE SHRRED, which is called
+       by subroutines that calculate bifurcation buckling loads neglecting
+       transverse shear deformation effects (GENSTB and LOCAL).
+
+       2. MINDLIN THEORY
+
+       The calculations are performed in GENSTB, which performs the
+       PANDA-type buckling analyses (smeared stiffener models). In
+       particular, GENSTB calls a subroutine EIG in which buckling
+       load factors are computed for given wave numbers. Within EIG
+       the load factors (buckling eigenvalues) are computed either
+       via SUBROUTINE EIGREG (Kirchoff theory) or via SUBROUTINE
+       EIGSHR (Mindlin Theory).  If the user has indicated via
+       MAINSETUP that he/she wants to include transverse shear
+       deformation effects, PANDA2 uses Mindlin theory for any
+       model that includes smeared stiffeners (rings and/or stringers).
+
+       In the Kirchoff theory branch, the reference surface strain
+       and curvature change vector is:
+
+             [e] = [ex, ey, exy, kx, ky, kxy]
+
+       whereas in the Mindlin theory branch it is given by:
+
+             [e] = [ex, ey, exy, (psix,x), (psiy,y), (psix,y+psiy,x)]
+
+       in which (psix,x) denotes "derivative of psix with respect to x",
+       etc.  The variables psix and psiy have the forms:
+
+           psix = -C[m1*   sin(n1*y -m1*x) +m2*   sin(n2*y +m2*x)]
+                  +D[m1**3*sin(n1*y -m1*x) +m2**3*sin(n2*y +m2*x)]
+ 
+           psiy =  C[n1*   sin(n1*y -m1*x) -n2*   sin(n2*y +m2*x)]
+                  -E[n1**3*sin(n1*y -m1*x) -n2**3*sin(n2*y +m2*x)]
+
+       In addition to this, there is an addition to the strain energy
+       expression for the Mindlin theory:
+
+              addt'l energy = 0.5*Integral{gamma(transpose)[A]gamma d(area)
+
+       in which A is a 2x2 symmetric matrix and gamma is the vector,
+
+              gamma = [(dw/dy + psiy), (dw/dx + psix)].
+
+       The matrix A is diagonal, with
+
+          A11 = G(ring web)*t(ring web)*h(ring web)/b(rings)
+          A22 = G(stringer web)*t(stringer web)*h(str. web)/b(stringers)
+
+       in which G is the in-plane shear modulus, t is the thickness,
+       h is the height, and b is the spacing of the stiffeners.
+
+       The derivation of the energy follows along the same lines as
+       that given in the PANDA report, except there are five undetermined
+       coefficients, A, B, C, D, E, in the Mindlin theory rather than the
+       three coefficients A,B,C, in the Kirchoff theory. Therefore, the
+       Mindlin theory requires more computer time.
+
+       In IQUICK = 1 calculations, it may often be best to optimize first
+       neglecting transverse shear deformation effects, and later include
+       these effects when you feel you are near the optimum design. With
+       IQUICK = 0, which involves discretized models, the additional
+       computer time required for Mindlin theory (which applies only to
+       PANDA-type calculations) is not significant. Therefore, with
+       IQUICK = 0, you might as well always include transverse shear
+       effects.
+
+       *********** end of discussion of transverse shear **************
+
+
+
+
+
+12.0
+
+
+                CALCULATE C(i,j) FOR EACH UNIQUE SEGMENT OF THE
+                            PANEL MODULE CROSS SECTION
+
+            1.1 We are now inside SUBROUTINE GETCIJ, just before CALL SEGCIJ.
+       The purpose of SEGCIJ is to compute [C], {NT}, {ET}, Teff, and Geff for
+       each unique segment in the single panel module normal to the x-axis,
+       and if transverse stiffeners (rings) are present, for each unique
+       segment in the single panel module normal to the y-axis.  Quantities
+       pertaining to the panel module cross section normal to the x-axis are:
+        
+         [C]  is called CX(i,j,k),   k = 1,2,..NSEGS
+        
+         {NT} is called THERMX(i,k), k = 1,2,..NSEGS
+        
+         {ET} is called ETHRMX(i,k), k = 1,2,..NSEGS
+        
+         Teff is called TBASE(m),    m = 1 
+         Geff is called GTX(m,k),    m = 1 for G13 and
+                                     m = 2 for G23
+                                     k = 1,2,..NSEGS
+        
+       (NSEGS = number of unique segments in a single panel module:
+                  NSEGS = 3 for blade stiffened configuration;
+                  NSEGS = 4 for J, T, and HAT stiffened modules.)
+        
+
+       Quantities pertaining to the panel module cross section normal to
+       the y-axis are:
+        
+         [C]  is called CY(i,j,k),   k = 1,2,..NSEGS
+        
+         {NT} is called THERMY(i,k), k = 1,2,..NSEGS
+        
+         {ET} is called ETHRMY(i,k), k = 1,2,..NSEGS
+        
+         Teff is called TBASE(m),    m = 2 
+         Geff is called GTY(m,k),    m = 1 for G13 and
+                                     m = 2 for G23
+                                     k = 1,2,..NSEGS
+        
+
+            In the arrays and vectors just cited:  i = 1,2,..6;
+                                                   j = 1,2,..6.
+
+13.0
+
+
+
+
+14.0
+
+
+                SMEARING THE STIFFENER BASES AND STIFFENERS
+
+            1.2 Inside SUBROUTINE GETCIJ, just before the first of three calls
+       to SUBROUTINE SMRCIJ:  In the first call to SUBROUTINE SMRCIJ the
+       stringers are smeared out, and [C], {NT}, {ET}, Teff, and Geff are
+       computed as if the panel had no transverse stiffeners (rings).  The
+       smeared-stringer quantities are stored in arrays and vectors according
+       to the following:
+        
+          [C]  is stored in CX(i,j,5)
+        
+          {NT} is stored in THERMX(i,5)
+        
+          {ET} is stored in ETHRMX(i,5)
+        
+          Teff is stored in TEFF(1)
+        
+          Geff is stored in GTX(m,5); m=1 for G13, m=2 for G23
+        
+
+            In the second call to SUBROUTINE SMRCIJ the rings are smeared out,
+       and [C], {NT}, {ET}, Teff, and Geff are computed as if the panel had no
+       axial stiffeners (stringers).  The smeared-ring quantities are
+       stored in arrays and vectors according to the following:
+        
+          [C]  is stored in CY(i,j,5)
+        
+          {NT} is stored in THERMY(i,5)
+        
+          {ET} is stored in ETHRMY(i,5)
+        
+          Teff is stored in TEFF(2)
+        
+          Geff is stored in GTY(m,5); m=1 for G13, m=2 for G23
+        
+
+            In the third call to SUBROUTINE SMRCIJ both stringers and rings
+       are smeared out, and [C], {NT}, {ET}, Teff, and Geff are stored in
+       arrays and vectors according to the following:
+        
+          [C]  is stored in CS(i,j)
+        
+          {NT} is stored in THERMS(i)
+        
+          {ET} is stored in ETHRMS(i)
+        
+          Geff is stored in GTS(m); m=1 for G13, m=2 for G23
+        
+
+            The smearing process is based upon the following assumptions:
+
+            (1) No in-plane shear load is carried by stiffener webs or flanges
+       that stand out from the panel skin wall.  No in-plane transverse load
+       is carried by these segments either;  they carry load only along their
+       axes.  (Note that this entire C(i,j) discussion holds only for the
+       case in which the stiffeners are smeared out, not for the discretized
+       single module models.)
+
+            (2) The in-plane shear resultant is constant throughout the panel
+       skin, both in the thin and in the thick parts of this skin.
+
+            (3) The axial membrane strain component, ex, is the same in the
+       unbuckled thin part of the skin and in the part where the stringer
+       bases exist.  (This statement of course does not apply when Koiter
+       post-local-buckling theory is being discussed.  We are dealing in
+       SUBROUTINE GETCIJ only with the unbuckled panel stiffnesses.)
+
+            (4) The change in axial curvature, kx, is the same in the
+       unbuckled thin part of the skin and in the part where the stringer
+       bases exist.
+
+            (5) The circumferential membrane strain component, ey, is the
+       same in the unbuckled thin part of the skin and in the part where the
+       ring bases exist.
+
+            (6) The circumferential change in curvature, ky, is the same
+       in the unbuckled thin part of the skin and in the part where the
+       ring bases exist.
+
+            (7) Transverse shear stiffness is governed by panel module segment
+       no.  1 (thin part of skin) and stiffener segments 3 and 4:  The effect
+       of transverse shear deformation weakening on/the thickened areas under
+       the stiffeners (segment 2) is assumed to be the same as that on
+       segment 1.
+
+            (8) For hat stiffeners, the torsional rigidity calculated from the
+       enclosed-area shear flow formula, valid only if there is no local
+       deformation of the hat cross section in the buckling mode, is "knocked
+       down" by a factor PHI = 0.3.  This factor was established as being
+       reasonable during buckling analysis and tests of aluminum semi-sandwich
+       corrugated cylindrical shells.  The work is documented in the JOURNAL
+       OF SPACECRAFT AND ROCKETS (AIAA):  "Local and general buckling of
+       axially compressed, semi-sandwich, corrugated, ring- stiffened
+       cylinders", David Bushnell, J.  Spacecraft and Rockets, Vol.  9, No.
+       5, pp 357-363, May 1972.
+
+
+16.0
+
+
+
+      Inside SUBROUTINE SMRCIJ...
+
+                               DETAILS OF THE ANALYSIS
+                   FOR SMEARING THE STIFFENER BASES AND STIFFENERS
+
+            The following derivation refers to a "panel module".  A "panel
+       module" is defined above.  If stiffeners run both ways there are two
+       modules:
+
+            (1) the cross section perpendicular to the x axis, and
+
+            (2) the cross section perpendicular to the y axis.  
+
+       In the plan view shown below, both "x" and "y" modules appear.
+       The horizontal dimension of the figure is the stringer spacing and the
+       vertical dimension is the ring spacing.
+
+            The starting point for derivation of the constitutive law for the
+       panel module with stringers and rings with thickened bases is the
+       mathematical expression of equilibrium of resultants Nx and Ny
+       [Equations (1) and (2) below] and of moments Mx and My [Equations (3)
+       and (4) below].  These equilibria are written in terms of the forces
+       and moments in the various panel module parts.  [Part (1) = panel skin,
+       Part (2) = stringer base and stringer web(s) and flange, Part (3) =
+       ring base and ring web(s) and flange, and Part (4) = the region where
+       ring and stringer bases overlap.]
+
+            A plan view of the panel module with stringer and ring bases is
+       depicted below:
+        
+              ------------------------------------------------    ---
+              |              |               |               |     ^
+              |              |               |               |     |
+              |   Part (1)   |    Part (2)   |   Part (1)    |     |
+              |  panel skin  | stringer base |  panel skin   |     R
+              |              |               |               |     i
+              |              |               |               |     n
+              ------------------------------------------------     g
+              |              |       x       |               |
+              |   Part (3)   |Part(4)^       |   Part (3)    |
+              |              |       |       |               |     S
+              |  ring base   |overlap+-->y   |  ring base    |     p
+              |              |               |               |     a
+              ------------------------------------------------     c
+              |              |               |               |     i
+              |              |               |               |     n
+              |   Part (1)   |    Part (2)   |   Part (1)    |     g
+              |  panel skin  | stringer base |  panel skin   |     |
+              |              |               |               |     |
+              |              |               |               |     V
+              ------------------------------------------------    ---
+        
+              |<-------S t r i n g e r    S p a c i n g----->|
+
+
+       We know that if we "cut" along the lower horizontal edge of the
+       panel module sketched above, the average axial resultant will be
+       equal to the applied axial resultant, Nx.  The left-hand side of Eq.(1)
+       below expresses this average axial resultant.
+
+            Similarly, along the same edge the average moment resultant is
+       equal to the applied moment resultant, Mx.  The left-hand side of
+       Eq.(3) below expresses this average moment resultant, Mx.
+
+            Also, if we "cut" horizontally along the y axis in the figure
+       above, the average axial resultant must again be equal to the applied
+       resultant, Nx, and the average moment must be equal to the applied
+       moment, Mx.  These average loads are expressed in the right- hand sides
+       of Eqs.  (1) and (3), respectively.
+
+            Now we can express analogous relationships for vertical "cuts"
+       along the left-hand side of the figure above and along the x-axis.  The
+       average stress resultant along both vertical "cuts" must equal the
+       applied hoop resultant, Ny;  the average moment resultant along both
+       vertical "cuts" must equal the applied moment resultant, My.  Equations
+       (2) and (4) below express these force and moment equilibria (continuity).
+
+            The four equations expressing continuity of forces and moments
+       are as follows:
+        
+       B11*Nx(1) +B12*Nx(2) +Nstringer(2) = B11*Nx(3) +B12*Nx(4)
+                                                      +Nstringer(3)     (1)
+        
+       B22*Ny(1) +B21*Ny(3) +Nring(3)     = B22*Ny(2) +B21*Ny(4)
+                                                      +Nring(2)         (2)
+        
+       B11*Mx(1) +B12*Mx(2) +Mstringer(2) = B11*Mx(3) +B12*Mx(4)
+                                                      +Mstringer(3)     (3)
+        
+       B22*My(1) +B21*My(3) +Mring(3)     = B22*My(2) +B21*My(4)
+                                                      +Mring(2)         (4)
+       ********************************************************************
+       ******* NOTE   NOTE    NOTE     NOTE     NOTE     NOTE     *********
+
+       In August 1986 modifications were made to the theory for smeared
+       stiffener bases and stiffener flanges and webs. Instead of equations
+       (1) thru (4) above, the following equilibrium equations were used:
+
+        Nx(1) = Nx(3); Mx(1) = Mx(3);  Ny(1) = Ny(2);  My(1) = My(2)  (1-4)
+
+        ****** END NOTE       END NOTE      END NOTE      END NOTE ********
+        *******************************************************************
+
+       The numbers in parentheses in Nx(1), for example, refer to the
+       part or region of the panel illustrated above.  The coefficients, B11,
+       B12, B21, B22 are given by:
+        
+        B11 = (stringer spacing - stringer base width)/(stringer spacing)
+        B12 = (stringer base width)/(stringer spacing)
+        B21 = (ring base width)/(ring spacing)
+        B22 = (ring spacing - ring base width)/(ring spacing)
+        
+
+       For Parts (1), (2), and (3) the resultants and moments in terms of
+       the strains and changes in curvature are given by:
+        
+       Nx(i) = C11(i)*ex(i) +C12(i)*ey(i) +C14(i)*kx(i) +C15(i)*ky(i)     
+                                                        - Ntx(i)       (5)
+        
+       Ny(i) = C12(i)*ex(i) +C22(i)*ey(i) +C24(i)*kx(i) +C25(i)*ky(i)    
+                                                        - Nty(i)       (6)
+        
+       Mx(i) = C14(i)*ex(i) +C24(i)*ey(i) +C44(i)*kx(i) +C45(i)*ky(i)     
+                                                        - Mtx(i)       (7)
+        
+       My(i) = C15(i)*ex(i) +C25(i)*ey(i) +C45(i)*kx(i) +C55(i)*ky(i)     
+                                                        - Mty(i)       (8)
+        
+
+       in which (i) refers to the part number (region) of the panel and
+        
+        ex(i) is the axial      (x-direction) reference surface strain
+        ey(i) is the transverse (y-direction) reference surface strain
+        kx(i) is the change in axial curvature of the reference surface
+        ky(i) is the change in transverse curvature of the ref. surface
+        
+
+       The constitutive law for Part (4), the region where the stiffener
+       bases overlap, is:
+        
+       Nx(4) = C11(4)*ex(3) +C12(4)*ey(2) +C14(4)*kx(3) +C15(4)*ky(2)
+                                                        - Ntx(4)      (5b)
+        
+       Ny(4) = C12(4)*ex(3) +C22(4)*ey(2) +C24(4)*kx(3) +C25(4)*ky(2)
+                                                        - Nty(4)      (6b)
+        
+       Mx(4) = C14(4)*ex(3) +C24(4)*ey(2) +C44(4)*kx(3) +C45(4)*ky(2)
+                                                        - Mtx(4)      (7b)
+        
+       My(4) = C15(4)*ex(3) +C25(4)*ey(2) +C45(4)*kx(3) +C55(4)*ky(2)
+                                                        - Mty(4)      (8b)
+
+       In Eqs. (5b-8b) the Cij(4) and Ntx(4), Nty(4), Mtx(4), Mty(4), are
+       assumed to be the averages of these quantities in regions 2 and 3.
+        
+       ********************************************************************
+       ******* NOTE   NOTE    NOTE     NOTE     NOTE     NOTE     *********
+
+        Because of the August 1986 modifications, the behavior of
+        region 4 no longer enters the calculations.
+
+        ****** END NOTE       END NOTE      END NOTE      END NOTE ********
+        *******************************************************************
+
+       The constitutive law for all stiffeners (stringers and rings) has
+       the form:
+        
+        Nstringer(i) = STFL1*ex(i) + STFM1*kx(i) - STFT1               (9)
+        
+        Nring(i)     = STFL2*ey(i) + STFM2*ky(i) - STFT2              (10)
+        
+        Mstringer(i) = STFM1*ex(i) + STFMM1*kx(i) - STFMT1            (11)
+        
+        Mring(i)     = STFM2*ey(i) + STFMM2*ky(i) - STFMT2            (12)
+        
+
+       in which the coefficients STFl1, STFL2, STFM1, STFM2, STFT1,
+       STFT2, STFMM1, STFMM2, STFMT1, STFMT2 are derived in SUBROUTINE CSTIF.
+
+       ********************************************************************
+       ******* NOTE   NOTE    NOTE     NOTE     NOTE     NOTE     *********
+
+        August 1986 modification: The subscript (i) no longer appears
+        in equations (9) - (12). The strains and changes in curvature
+        in the stiffener webs and flanges are assumed to be equal to
+        the averages over the entire panel.
+
+        ****** END NOTE       END NOTE      END NOTE      END NOTE ********
+        *******************************************************************
+
+            It is assumed that the strains and changes in curvature in the
+       various parts (1), (2) and (3) of the panel module are related to
+       eachother as follows:
+        
+       ex(overall average) = B22*ex(1) + B21*ex(3)                    (13)
+       ey(overall average) = B11*ey(1) + B12*ey(2)
+       ex(2) = ex(1)
+       ey(3) = ey(1)
+        
+       kx(overall average) = B22*kx(1) + B21*kx(3)                    (14)
+       ky(overall average) = B11*ky(1) + B12*ky(2)
+       kx(2) = kx(1)
+       ky(3) = ky(1)
+        
+
+            The constitutive law for smeared stiffeners is calculated as
+       follows:
+        
+         1. Express Eqs. (1-4) in terms of ex(i),ey(i),kx(i),ky(i), i=1,2,3,
+            through use of Eqs. (5-12). Coefficients for the resulting
+            equations are derived in SUBROUTINE EQSP67.
+
+         2. Eliminate ex(1), ey(1), kx(1), ky(1) from these equations
+            by use of Eqs. (13 and 14).
+
+         3. Solve Eqs.(3) and (4), thus expressed, for kx(3) and ky(2)
+            in terms of ex(3), ey(2), and average strains and changes
+            in curvature, ex, ey, kx, ky, over the entire panel module.
+            Obtain the coefficients D11,D12,D13,D14,D15,D16,D17 and
+                                    D21,D22,D23,D24,D25,D26,D27, which
+            occur in the relationships:
+        
+            kx(3) = D11+D12*ex(3)+D13*ey(2)+D14*ex+D15*ey+D16*kx+D17*ky
+            ky(2) = D21+D22*ex(3)+D23*ey(2)+D24*ex+D25*ey+D26*ky+D27*ky
+
+         4. Solve Eqs. (1 and 2) for ex(3) and ey(2) in terms of the
+            average panel module strains and changes in curvature,
+            ex, ey, kx, ky, thus obtaining the coefficients
+            F11,F12,F13,F14,F15 and F21,F22,F23,F24,F25
+            which occur in the relationships:
+        
+            ex(3) = F11 + F12*ex + F13*ey + F14*kx + F15*ky
+            ey(2) = F21 + F22*ex + F23*ey + F24*kx + F25*ky
+        
+         5. Plug the results from step 4 into the expressions for
+            kx(3) and ky(2) to yield
+
+            kx(3) = G11 + G12*ex + G13*ey + G14*kx + G15*ky
+            ky(2) = G21 + G22*ex + G23*ey + G24*kx + G25*ky
+
+       Steps 2 through 5 are performed in SUBROUTINE EPSKAP.
+
+            The constitutive law with smeared stiffeners is then derived
+       starting from the left-hand-sides of Eqs.(1)-(4) equated to the proper
+       combinations of smeared-stiffener-coefficients and average strains and
+       changes in curvature and integrated thermal forces and moments:
+        
+       B11*Nx(1) +B12*Nx(2) +Nstringer(2) =
+                     C11*ex + C12*ey + C14*kx + C15*ky - Ntx         (15)
+        
+       B22*NY(1) +B21*Ny(3) +Nring(3) =
+                     C12*ex + C22*ey + C24*kx + C25*ky - Nty         (16)
+        
+       B11*Mx(1) +B12*Mx(2) +Mstringer(2) =
+                     C14*ex + C24*ey + C44*kx + C45*ky - Mtx         (17)
+        
+       B22*My(1) +B21*My(3) +Mring(3) =
+                     C15*ex + C25*ey + C45*kx + C55*ky - Mty         (18)
+        
+
+       The smeared-stiffener Cij are determined with use of Eqs.
+       (8)-(14) in Eqs.  (15) - (18) above.  Coefficients of ex, ey, kx, ky on
+       the resulting left-hand-sides are set equal to the corresponding
+       coefficients on the right-hand-sides.
+
+       SMEARED Cij FOR IN-PLANE SHEAR [C(3,3)] AND TORSION [C(6,6)]...
+
+       Shear or torsion is calculated based on the assumption that
+       the resultant is uniform over the entire structure.  We know
+       that for the smeared stiffener case
+
+                    Nxy = C33 exy
+
+       and that in each of the parts of the structure sketched above,
+
+          Nxy(in part 1) = C(3,3,1) exy(1)
+          Nxy(in part 2) = C(3,3,2) exy(2)
+          Nxy(in part 3) = C(3,3,3) exy(3)
+
+       Furthermore, we can assume that the average shear strain over
+       parts 1 and 2 is given by
+
+            exy(average over parts 1 and 2) = exy(1)*b11 + exy(2)*b12
+            exy(average over parts 1 and 3) = exy(1)*b22 + exy(3)*b21
+
+       The average shear strain overall is assumed to be
+
+            exy = 0.5[exy(ave. over 1 and 2) + exy(ave. over 1 and 3)]
+
+       as a result, taking into account that
+
+                     Nxy(1) = Nxy(2) = Nxy(3) = Nxy
+
+       we obtain
+
+            exy = 0.5[(b11+b22)/C(3,3,1) +b12/C(3,3,2) +b21/C(3,3,3)]*Nxy
+
+       The coefficient of Nxy on the r.h.s. is the inverse of C(3,3) for
+       the smeared stiffeners. The reasoning for the torsional rigidity
+       C(6,6) is analogous.
+
+       These final computations are performed in SUBROUTINE CSMEAR.
+            
+
+17.0
+
+
+       Given the C(i,j) and the thermal resultants Ntx, Nty, Mtx, Mty
+       the residual thermal strains and changes in curvature, etx, ety,
+       etxy, ktx, kty, ktxy, are calculated in SUBROUTINE STRTHM. In
+       this calculation the applied loads, Nx, Ny, Nxy, Mx, My, Mxy,
+       are assumed to be zero, the C(i,j) matrix is inverted, and the
+       system of 6 linear equations is solved for the residual strains
+       and changes in curvature. These quantities play a role
+       in later analyses: the residual strains affect the stress
+       constraints in the optimization analysis; thermal resultants
+       derived from the residual strains affect local instability of
+       the various segments of the panel module, and changes in
+       curvature create a bowing of the panel which increases as
+       compressive loads are applied.
+
+
+18.0  
+     
+     
+       CALCULATE C(i,j) FOR SMEARED STIFFENERS WITH POSTBUCKLED SKIN
+
+       Sometimes the wide-column buckling mode calculated with use of
+       the single panel module is characterized by bending of the
+       stringer which is of small amplitude compared to bending of
+       the skin midway between stringers. In PANDA2, if the skin
+       deflects more than 10 times midway between stringers than it
+       does directly under the stringer, than this mode is rejected
+       as an indicator of wide-column buckling. It is regarded as just
+       another local skin buckling mode, a critical load factor for
+       which is computed elsewhere in PANDA2. Since wide-column
+       buckling is used in PANDA2 as an indication of general
+       instability, if the wide-column mode is rejected, then general
+       instability must be calculated in some other way. In PANDA2
+       this "other way" is to use PANDA-type of closed formulas.
+       
+       However, general instability buckling in PANDA is calculated
+       by smearing the stringers, treating the skin as if it is
+       undeformed. It is clear that if the skin deforms a great deal
+       in the wide-column buckling mode, only some effective width of
+       it will contribute to overall buckling. The C(i,j) governing
+       general instability should reflect this reduced effectiveness
+       of the skin.  
+
+       This is done in PANDA2 by setting all C(i,j) of Segment 1 of
+       the skin equal to 0.4 times their previous values, except C(4,4),
+       C(5,5) and C(6,6),  which are left at their previous values.
+
+       When the wide-column buckling mode is calculated later, a
+       switch called ISKIN is set equal to 0 if the mode is accepted
+       as a true indication of general instability, and ISKIN is set
+       equal to 1 if the mode is rejected because there is too much
+       relative skin motion in it. Later, general instability from
+       the PANDA-type of analysis is calculated with use of the
+       appropriate constitutive matrix:
+
+           CS(i,j) - constitutive matrix with use of the fully
+                     effective, undeformed
+                     panel skin if the switch ISKIN = 0, if
+                     it is known that the skin is not in its
+                     postbuckled state, if FSLOC.GE.1.0, and
+                     if IWIDE = 1.
+
+           CS(i,j) - constitutive matrix calculated from KOITER
+                     post-buckling theory if the skin is in its
+                     post-buckled state, if ISKIN = 0, if 
+                     FSLOC.LT.1.0, and if IWIDE = 1;
+
+       CSWIDE(i,j) - constitutive matrix calculated with use of
+                     the undeformed panel skin, but with C(i,j)
+                     of Segment 1 of the panel module reduced as
+                     described above if ISKIN = 1 or if IWIDE = 0
+                     and if IQUICK = 0.
+
+       IWIDE is a user-determined index that has the following meaning:
+              IWIDE = 0 means that the user has chosen a strategy in
+                        which the wide-column buckling mode does not 
+                        constrain the design, regardless of the value
+                        of ISKIN.
+              IWIDE = 1 means that the wide-column buckling mode
+                        does constrain the design if ISKIN = 0, that is,
+                        if PANDA2 does not reject it as a true
+                        indication of general instability.
+
+        IWIDE is always set equal to 1 if the run is not an
+        optimization run. If the run is an optimization run,
+        the user has previously chosen the value of IWIDE during
+        the interactive session in MAINSETUP. If IQUICK = 1, the
+        Cs(i,j) with fully effective skin is always used.
+
+
+19.0
+
+        A constitutive matrix, CSREDU(6,6), is calculated as described
+        above for CSWIDE, except that in this case the smeared rings
+        and ring bases are included. This matrix is used for calculation
+        of general instability in cases for which it is judged that the
+        reduced skin effectiveness should be used.  The skin stiffness is
+        reduced as described above in the case for panel instability.
+
+
+21.0 
+
+
+             FIND LOCATION OF NEUTRAL PLANE FOR LOADING IN X-DIRECTION
+
+            The starting point is the constitutive law for the panel with
+       smeared stiffeners:
+        
+            Nx   = Cs(1,1)*ex + Cs(1,2)*ey + Cs(1,4)*kx + Cs(1,5)*ky  (1)
+        
+            Ny   = Cs(1,2)*ex + Cs(2,2)*ey + Cs(2,4)*kx + Cs(2,5)*ky  (2)
+        
+       Mx =-Nx*dx= Cs(1,4)*ex + Cs(2,4)*ey + Cs(4,4)*kx + Cs(4,5)*ky  (3)
+        
+       My =-Ny*dy= Cs(1,5)*ex + Cs(2,5)*ey + Cs(4,5)*kx + Cs(5,5)*ky  (4)
+        
+
+       in which dx (same as DNEUTX above) is the distance from the middle
+       surface of the thin part of the skin to the neutral plane for axial
+       loading and dy (same as DNEUTY) is the distance from the middle surface
+       of the thin part of the skin to the neutral plane for hoop loading;
+       Cs(i,j) are the coefficients of the constitutive law for the panel with
+       both sets of stiffeners smeared out;  and ex, ey, kx, ky are the
+       average strains and changes in curvature of the reference surface,
+       which in this case is taken to be the middle surface of the thin part
+       of the panel skin.
+
+            The objective is to determine dx and dy.  The procedure used is as
+       follows:
+        
+           1. Solve Eqs. (1) and (2) for ex and ey.
+           2. Plug in the resulting expressions for ex and ey
+              in Eqs. (3) and (4)
+           3. Solve for kx and ky in terms of dx and dy.
+           4. Determine what values of dx and dy yield
+              kx = 0 and ky = 0.
+        
+       NOTE: THE DERIVATION IS A BIT DIFFERENT AS OF APRIL 18, 1989.
+             HOWEVER, THE RESULTS ARE THE SAME. PLEASE SEE SUBROUTINE
+             NEUTAX, IN THE GETCIJ.NEW LIBRARY FOR DETAILS.
+
+            The calculations are performed in SUBROUTINE NEUTAX, which is
+       called from SUBROUTINE GETCIJ.  DNEUTX is first calculated by
+       setting Nx = 1.0 and Ny = 0.0 and solving for dx. This is done
+       in the first call to SUBROUTINE NEUTAX. DNEUTY is then calculated
+       by setting Nx = 0.0 and Ny = 1.0 and solving for dy. This is done
+       in the second call to SUBROUTINE NEUTAX.
+
+
+23.0 
+
+
+       A constitutive matrix, CNEW(i,j), i = 1,6, j = 1,6, is derived
+       given the matrix C(i,j) just calculated and the shift of
+       reference surface, D = - C(1,4)/C(1,1). (The shift D is chosen
+       so that CNEW(1,4) = 0.).  The new
+       reference surface is close to, but not exactly at, the neutral
+       plane for loading in the x (axial) direction.
+
+       The figures below show the nomenclature used in the derivation
+       of CNEW(i,j).
+
+                                          skin middle surface, used as
+                                          the reference surface for the
+       skin->-----------------------  <---old constitutive matrix, C.
+            -=-=-=-=-=-|-=-=-=-=-=-=- <---new reference surface, located
+                 web-->|                  D=-C(1,4)/C(1,1) below the
+                       |                  skin middle surface.
+         flange--> ========= 
+
+         (a) View of panel module cross section, showing old reference
+             surface located at the skin middle surface, and the new
+             reference surface located a distance D below the skin
+             middle surface. (D will be positive in the figure above.)
+
+
+
+            --> M,k                          --> M',k'
+             ^ N,e                            ^ N',e' 
+             l                         D-->l  l<-
+            _l__________                  _l__l_______
+            |l|       ||                  |l| l     ||
+            |l|       ||           skin-->|l| l     ||<--flange
+            |l|       ||                  |l| l     ||
+            ~~~\      ||                  ~~~\    <------web
+                \~~~~~~~                      \~~~~~~~
+
+         (b) Elevation of              (c) Elevation of
+             panel, showing                panel, showing
+             reference surface at          reference surface near
+             skin middle surface,          the neutral plane, shift, D,
+             axial resultant N,            axial resultant N',
+             moment M, strain e, and       moment M', strain e', and
+             curvature change k.           curvature change k'.
+
+
+       The derivation of the new constitutive matrix CNEW from the old
+       constitutive matrix C and the shift D proceeds as follows:
+       For the original reference surface, shown in (b) above, we have
+
+                          N = C e                                 (1)
+
+       in which N represents the vector of 6 loads
+
+                 N = {Nx, Ny, Nxy, Mx, My, Mxy}                   (2)
+
+       e represents the vector of 6 strains and changes in curvature
+
+                 e = {ex, ey, exy, kx, ky, kxy}                   (3)
+
+       and C represents the original 6x6 matrix derived for the
+       reference surface located at the middle surface of the part
+       of the panel module skin midway between stiffeners.
+
+       For the new reference surface, located a distance D from the
+       skin middle surface, we have
+
+                          N' = CNEW e'                            (4)
+
+       If classical Kirchoff thin shell deformations are assumed
+       (plane sections remain plane, normals remain normal), we can
+       relate the forces N and N' and the strains e and e' as follows:
+
+            N = {Nx', Ny', Nxy', Mx'-Nx'D, My'-Ny'D, Mxy'-Nxy'D}  (5)
+
+            e = {ex'+kx'D, ey'+ky'D, exy'+kxy'D, kx', ky', kxy'}  (6)
+
+       We now insert the right-hand sides of Eqs. (5) and (6) into
+       Eq. (1), perform the indicated multiplications and additions,
+       and equate coefficients in the result to like terms in Eq. (4)
+       in order to obtain the new constitutive matrix CNEW. These
+       computations are performed in SUBROUTINE CSHIFT, which is
+       called near the end of SUBROUTINE GETCIJ.
+
+       INPUT TO SUBROUTINE CSHIFT...
+ 
+         C = Old constitutive matrix.
+         D = Reference surface shift.
+ 
+       OUTPUT FROM SUBROUTINE CSHIFT...
+ 
+         CNEW = New constitutive matrix.
+
+
+
+       FORMULAS FOR NEW C(i,j) IN TERMS OF OLD C(i,j) AND SHIFT, D:
+
+       CNEW(i,j), i = 1,3, j=1,3  are unchanged by reference surface
+                                 shift, D.
+
+       CNEW(1,4) = C(1,4) + D*C(1,1)
+       CNEW(1,5) = C(1,5) + D*C(1,2)
+       CNEW(1,6) = C(1,6) + D*C(1,3)
+ 
+       CNEW(2,4) = C(2,4) + D*C(1,2)
+       CNEW(2,5) = C(2,5) + D*C(2,2)
+       CNEW(2,6) = C(2,6) + D*C(2,3)
+ 
+       CNEW(3,4) = C(3,4) + D*C(1,3)
+       CNEW(3,5) = C(3,5) + D*C(2,3)
+       CNEW(3,6) = C(3,6) + D*C(3,3)
+
+       CNEW(4,4) = C(4,4) + 2.*D*C(1,4) + D*D*C(1,1)
+       CNEW(4,5) = C(4,5) + D*(C(2,4)+C(1,5)) + D*D*C(1,2)
+       CNEW(4,6) = C(4,6) + D*(C(1,6)+C(3,4)) + D*D*C(1,3)
+ 
+       CNEW(5,5) = C(5,5) + 2.*D*C(2,5) + D*D*C(2,2)
+       CNEW(5,6) = C(5,6) + D*(C(2,6)+C(3,5)) + D*D*C(2,3)
+ 
+       CNEW(6,6) = C(6,6) + 2.*D*C(3,6) + D*D*C(3,3)
+ 
+ 
+
+25.0 
+
+
+            2.  Calculate general instability load factor from PANDA-type of
+       analysis.  Neglect any postbuckling effects in this preliminary
+       calculation, the purpose of which is to obtain a rough estimate of the
+       critical load to be used next when the additional bowing of the cured
+       and pressurized (and therefore warped)
+       panel under the applied load set, Nx, Ny, and Nxy,
+       is computed.  (first call to SUBROUTINE BUCPAN in SUBROUTINE STRUCT,
+       immediately following CALL GETCIJ).
+
+30.0 
+
+
+            3.  Calculate the residual warping of the cured panel without load
+       and the additional overall bowing under the current applied load set,
+       A (Nx, Ny, Nxy) and separately under the current applied load set B
+       (Nxo,Nyo,Nxyo).  Determine how much of each in-plane applied load is
+       carried by each of the segments of the panel module, including the
+       effect of bowing under the applied load sets.  Postbuckling effects are
+       neglected in this computation.  Calculate the average in-plane strain
+       and curvature change components, {ex,ey,exy,kx,ky,kxy}, in the panel.
+       Calculate the strain and curvature change components
+       {ex(i),ey(i),exy(i),kx(i),ky(i),kxy(i)}, i = 1,4, in each of the unique
+       segments of the panel module.  These are the deformations caused by the
+       Load Set A (Nx,Ny,Nxy). Do the same for Load Set B (Nxo,Nyo,Nxyo).
+       Calculate the thermal (curing) strain and curvature change components
+       {etx(i),ety(i),etxy(i),ktx(i),kty(i),ktxy(i)} in each of the unique
+       panel module segments.  Calculate the stress resultants {Nx(i), Ny(i),
+       Nxy(i)} in each of the panel module segments corresponding to load
+       set A (Nx, Ny, Nxy). Do the same for Load Set B (Nxo, Nyo, Nxyo).
+       Calculate the stress resultants in each of the panel module segments
+       corresponding to thermal curing.
+
+       These calculations are all performed in SUBROUTINE FORCES, which is
+       called by SUBROUTINE STRUCT immediately following the first CALL
+       BUCPAN.
+
+
+
+                     Flow of Calculations in SUBROUTINE FORCES 
+                (Resultants computed in all segments of panel module)
+
+       SUBROUTINE FORCES has statement labels at frequent intervals.  The
+       following paragraphs explain what is going on just after those
+       statement labels.
+
+       3.1 Following "10 CONTINUE" ...
+
+            It is assumed that the initial warping due to thermal cure has the
+       shape:
+        
+           Wresidual(x,y) = Wo sin(pi*x/a) sin(pi*y/b)
+        
+
+       in which "a" and "b" are the axial and circumferential dimensions,
+       respectively.  If the curvature changes are kappax=W,xx and
+       kappay=W,yy, then the residual displacements at the center of the panel
+       due to warping in the x and y directions, respectively, are given by:
+        
+                Wresid(x=a/2) = -ETHERM(4)*a**2/pi**2
+        
+                Wresid(y=b/2) = -ETHERM(5)*b**2/pi**2
+        
+
+       in which ETHERM(4) is the global curvature change, kappax=W,xx;
+       and ETHERM(5) is the global curvature change, kappay=W,yy, due to
+       curing a panel in which stiffeners and sheet are cocured.  (The edges
+       of the warped panel do not lie in a plane;  that is why there are
+       different residual normal displacements used for bowing in the x and y
+       directions.) The curing deformations, ETHERM(4) and ETHERM(5), are
+       calculated in SUBROUTINE STRTHM, which is called by SUBROUTINE GETCIJ.
+
+
+
+       NOTE: EVERYTHING WRITTEN IN PARAGRAPHS 3.2, 3.4, AND 3.5 IS DONE
+             TWICE: ONCE FOR LOAD SET A (Nx, Ny, Nxy) AND AGAIN FOR
+             LOAD SET B (Nxo, Nyo, Nxyo).
+
+
+       3.2 Following "20 CONTINUE"...
+
+            The next task in SUBROUTINE FORCES is to determine the average
+       in-plane strains, ex, ey, exy, and changes in curvature, kx, ky, kxy,
+       of the initially bowed panel, caused by the applied in-plane loads, Nx,
+       Ny, Nxy.  These strains and changes in curvature, called {E}, are
+       obtained from the constitutive law:
+        
+                   {N}  = [Cs]{E}
+        
+
+       in which {N} represents the applied in-plane loads Nx, Ny, Nxy
+       plus moments caused by bowing of the panel and eccentricity between the
+       loading planes (neutral surfaces) and reference surface (middle surface
+       of the skin);  and [Cs] is the 6 x 6 constitutive matrix for the panel
+       with smeared stiffeners.  The applied load vector {N} is given by:
+        
+          Nx  =  Nx (applied external line load--given by user)
+          Ny  =  Ny (applied external line load--given by user)
+          Nxy =  Nxy(applied external line load--given by user)
+          Mx  =  Nx*Wresidual(x=a/2)*A + Nx*DNEUTX
+          My  =  Ny*Wresidual(y=b/2)*A + Ny*DNEUTY
+          Mxy =  0
+        
+
+       in which A is an amplitude factor,
+        
+          A =  EIGGEN/(EIGGEN - 1.)
+        
+
+       where EIGGEN is the bifurcation buckling load factor corresponding
+       to general instability as calculated by a PANDA-type analysis in
+       SUBROUTINE BUCPAN.  The amplitude factor A given above reflects
+       approximately the increase of bowing due to the applied load set Nx,
+       Ny, and Nxy.  The eccentricities DNEUTX and DNEUTY are the distances
+       from the reference surface (middle surface of the skin) to the neutral
+       planes for the x-direction and y-direction, respectively.
+
+
+
+
+
+
+       3.4 After "50 CONTINUE"....FIND DEFORMATIONS DUE TO APPLIED LOADS
+
+            The governing equations here are:
+        
+                      {N} = [Cs]*{E}
+        
+
+       which are solved for the unknown {E} = {ex, ey, exy, kx, ky, kxy}.
+       This 6-component strain vector is stored in EPSLOD.  The inversion of
+       the 6x6 matrix [Cs] and back-substitution are carried out in SUBROUTINE
+       STRTHM, which is called from SUBROUTINE FORCES.  Corresponding to load
+       set B, the 6-component vector of average strains and changes in
+       curvature {E} resulting from (Nxo, Nyo, Nxyo) is stored in EPSLD0.
+
+
+
+
+       3.5 After "60 CONTINUE"...FIND STRAINS AND CHANGES IN CURVATURE IN
+       VARIOUS PARTS OF THE PANEL MODULE ARISING FROM APPLIED LOADS ONLY
+
+            We refer back to the plan view of the panel module with the 4
+       regions (thin skin=1, thickened stringer base=2, thickened ring base=3,
+       overlap region=4).  This plan view appears in the tutorial about
+       SUBROUTINE GETCIJ.
+
+            Given the average strains and changes in curvature at the
+       reference surface, EPSLOD(1)=ex, EPSLOD(2)=ey, EPSLOD(4)=kx,
+       EPSLOD(5)=ky, we wish to extract ex(i), ey(i), kx(i), ky(i), i=1,2,3.
+       These are the strains and changes in curvature of each of the three
+       important regions of the panel module.  (In region 4 it is always
+       assumed that ex(4) = ex(3); ey(4) = ey(2); kx(4) = kx(3); ky(4) =
+       ky(2).) The equations that yield the ex(i), ey(i), kx(i), ky(i),
+       i=1,2,3 were given in the tutorial on GETCIJ, but are repeated below
+       for convenience:
+        
+              ex(overall average) = B22*ex(1) + B21*ex(3)                    
+              ey(overall average) = B11*ey(1) + B12*ey(2)
+              ex(2) = ex(1)
+              ey(3) = ey(1)
+               
+              kx(overall average) = B22*kx(1) + B21*kx(3)                    
+              ky(overall average) = B11*ky(1) + B12*ky(2)
+              kx(2) = kx(1)
+              ky(3) = ky(1)
+               
+        
+              ex(3) = F11 + F12*ex + F13*ey + F14*kx + F15*ky
+              ey(2) = F21 + F22*ex + F23*ey + F24*kx + F25*ky
+               
+              kx(3) = G11 + G12*ex + G13*ey + G14*kx + G15*ky
+              ky(2) = G21 + G22*ex + G23*ey + G24*kx + G25*ky
+        
+       in which
+        
+          B11 = (stringer spacing - stringer base width)/(stringer spacing)
+          B12 = (stringer base width)/(stringer spacing)
+          B21 = (ring base width)/(ring spacing)
+          B22 = (ring spacing - ring base width)/(ring spacing)
+               
+
+       The ex(i), ey(i), kx(i), ky(i), i=1,2,3, are computed for the
+       applied (mechanical) load set, (Nx, Ny) in the first call to SUBROUTINE
+       STRDIS.  The strains are stored in a three-dimensional array,
+       EPSEIG(i,j,k), in SUBROUTINE EPSSKN.  The first index, i=1,2,3,
+       corresponds to ex, ey, exy;  the second index, j=1,2,3,4, corresponds
+       to the various unique segments of the panel module (not the regions
+       referred to above in the plan view, but the segments of the cross
+       section);  and the third index, k=1,2, corresponds to the x-cross
+       section and y-cross section, respectively.  The name "EPSEIG" denotes
+       and "eigenvalue parameter", that is, these strains are multiplied by
+       the load factor corresponding to bifurcation buckling.
+
+       Corresponding to Load Set B the strains exo, eyo, exyo are stored
+       in the array EPSFXL(i,j,k). The name "EPSFXL" denotes "fixed load
+       parameter".
+
+
+
+       3.6 After "70 CONTINUE"...FIND STRAINS AND CHANGES IN CURVATURE IN
+       VARIOUS PARTS OF THE PANEL MODULE ARISING FROM THERMAL LOADS ONLY
+
+            These quantities are computed in the same way as those
+       corresponding to the applied load set, (Nx, Ny).  Now the thermal
+       strain vector ETHERM(1)=etx, ETHERM(2)=ety, ETHERM(4)=ktx,
+       ETHERM(5)=kty, is the input to SUBROUTINE STRDIS, and etx(i), ety(i),
+       ktx(i), kty(i), i=1,2,3, are the output.  These curing strains
+       are stored in the three-dimensional array,
+       EPSFIX(i,j,k).  The name "EPSFIX" indicates that these thermal or
+       curing quantities are not eigenvalue parameters, but are fixed:  they
+       are not to be multiplied by load factors corresponding to bifurcation
+       buckling.
+
+
+
+       3.7 After "80 CONTINUE"...FIND THE STRESS RESULTANTS CORRESPONDING
+       TO THE STRAINS AND CHANGES IN CURVATURE IN THE THIN PART OF THE PANEL
+       SKIN:
+
+            Stress resultants, RESEIG(i,j,1), i=1,2,3;  j = 1 corresponding to
+       the applied load set (Nx, Ny, Nxy), and RESFXL(i,j,1), i=1,2,3;  j = 1
+       corresponding to the applied load set B (Nxo, Nyo, Nxyo), and
+       RESFIX(i,j,1), i=1,2,3; j = 1, corresponding to the curing phase,
+       are computed for the thin part of
+       the panel module skin [Region(1)].  SUBROUTINE RES performs the
+       calculations.  The index i = 1,2,3 corresponds to axial, hoop, and
+       in-plane shear resultants, and the index j corresponds to the unique
+       segment number in the x-cross section of the panel module.  The third
+       index, unity in this case, corresponds to "stringer".  (This index
+       equals 2 for "rings").
+
+
+
+       3.8 After "110 CONTINUE"...RESULTANTS IN THICK PART OF THE SKIN
+       UNDER THE STRINGERS
+
+            The computation is analogous to that described in Paragraph 3.7.
+       Resultants are stored in RESEIG, RESFXL, and RESFIX(i,j,1), i = 1,2,3
+       corresponding to axial, hoop, and in-plane shear resultants; and j=2,
+       corresponding to Segment 2 of the x-cross section of the panel
+       module.  We are still concerned with stringers.  Again, SUBROUTINE RES
+       performs the calculations.
+
+
+
+       3.9 After "120 CONTINUE"...STRAINS AND RESULTANTS IN STRINGER WEB
+       AND FLANGE DUE TO THE APPLIED LOAD SET A (Nx, Ny, Nxy) AND APPLIED
+       LOAD SET B (Nxo, Nyo, Nxyo)
+
+            The calculations are performed in SUBROUTINE WEBFLN.  It is
+       assumed that no stress resultant develops in the planes of the web or
+       flange normal to the axis of the stringer.  For the axial strain and
+       axial resultant in the web, the values at the midwidth station are
+       used.  (These values actually vary across the web cross section because
+       of the axial bowing of the panel).  The resultants are stored in
+       RESEIG and RESFXL(i,j,1), i=1,2,3;  j=3,4, in which j=3 denotes "web"
+       and j=4 denotes "outstanding flange".  Similarly, the membrane strains
+       are stored in EPSEIG and EPSFXL(i,j,1), i = 1,2,3;  j = 3,4.
+
+
+
+       3.10 After "130 CONTINUE"...STRAINS AND RESULTANTS IN STRINGER WEB
+       AND FLANGE DUE TO CURING
+
+            Again, the calculations are performed in SUBROUTINE WEBFLN.  The
+       assumptions enumerated in Paragraph 3.9 apply here also.  The
+       resultants are stored in RESFIX(i,j,1), i=1,2,3;  j=3,4, in which j=3
+       denotes "web" and j=4 denotes "outstanding flange", and the membrane
+       strains are stored in EPSFIX(i,j,1), i = 1,2,3;  j = 3,4.
+
+
+
+       3.11 After "150 CONTINUE"...RESULTANTS IN THICK PART OF THE SKIN
+       UNDER THE RINGS
+
+            The computation is analogous to that described in Paragraph 3.8.
+       Resultants are stored in RESEIG, RESFXL and RESFIX(i,j,2), i = 1,2,3
+       corresponding to axial, hoop, and in-plane shear resultants; and j=2,
+       corresponding to Segment 2 of the y-cross section of the panel
+       module.  We are now concerned with rings.  Again, SUBROUTINE RES
+       performs the calculations.
+
+
+
+       3.12 After "160 CONTINUE"...STRAINS AND RESULTANTS IN RING WEB AND
+       FLANGE DUE TO THE APPLIED LOAD SETS A AND B...
+
+            The calculations are performed in SUBROUTINE WEBFLN.  It is
+       assumed that no stress resultant develops in the planes of the web or
+       flange normal to the axis of the ring.  For the axial strain and axial
+       resultant in the web, the values at the midwidth station are used.
+       (These values actually vary across the web cross section because of the
+       circumferential bowing of the panel).  The resultants are stored in
+       RESEIG and RESFXL(i,j,2), i=1,2,3;  j=3,4, in which j=3 denotes "web"
+       and j=4 denotes "outstanding flange".  Similarly, the membrane strains are
+       are stored in EPSEIG and EPSFXL(i,j,2), i = 1,2,3;  j = 3,4.
+
+
+
+       3.13 After "170 CONTINUE"...STRAINS AND RESULTANTS IN RING WEB AND
+       FLANGE DUE TO CURING
+
+            Again, the calculations are performed in SUBROUTINE WEBFLN.  The
+       assumptions enumerated in Paragraph 3.12 apply here also.  The
+       resultants are stored in RESFIX(i,j,2), i=1,2,3;  j=3,4, in which j=3
+       denotes "web" and j=4 denotes "outstanding flange", and the membrane
+       strains are stored in EPSFIX(i,j,2), i = 1,2,3;  j = 3,4.
+
+       ************ end of discussion about SUBROUTINE FORCES *************
+
+
+33.0 
+
+
+            NONLINEAR STATIC RESPONSE TO UNIFORM NORMAL PRESSURE
+
+          It is well known that monocoque flat plates exhibit a
+       nonlinear stiffening effect under pressure, and that even
+       for rather low design pressures one must account for the
+       membrane stretching that builds up as the plate deflects.
+       Boitnott, Johnson, and Starnes demonstrate that
+       nonlinearities significantly affect the behavior of curved,
+       internally pressurized panels clamped along their straight
+       edges. In this section, which deals with a more complex
+       problem, a stiffened panel, geometric nonlinearities must
+       be included in the model. 
+ 
+       Stiffened panels under normal pressure exhibit two types of
+       response, identified here and in the following paragraphs
+       as Problem 1 and Problem 2: 
+ 
+       Problem 1.\quad The panel bends overall.  This behavior can
+       be captured with a model in which the stiffeners are
+       smeared out. 
+ 
+       Problem 2.\quad The panel bends locally around each
+       stringer This behavior can be captured with a single module
+       model of the type shown in Fig. 1. 
+ 
+       The strategy in PANDA2 is to obtain a reasonably good
+       solution with little computer time by separation of these
+       two behaviors and analysis of each as a nonlinear problem.
+       The total state of the pressurized panel is obtained by
+       adding the results of the two separate analyses. 
+ 
+       Immediately one might object that since the problem is
+       nonlinear, one cannot superpose these results.  The PANDA2
+       strategy would be incorrect if it were not for the fact
+       that the membrane stresses obtained from Problem 1, the
+       overall bending model, occur as prestresses in Problem 2,
+       the local "wrap-around" problem. In this way the essential
+       nonlinear contribution of the first problem to the second
+       is included. 
+ 
+       For both the overall (Problem 1) and the local (Problem
+       2) behavior, The static response to uniform normal pressure is
+       determined from the theory outlined next.  The governing equations
+       are derived by minimization of the total potential,
+ 
+        P = U - W = INTEGRAL [ 0.5*{ e(transpose) [C] e} - W ]dsurf (1)
+
+       with respect to each of the degrees of freedom qi of the
+       discretized panel or panel module cross section.  Thus,
+       the ith equilibrium equation (i = 1, 2, 3,. . . N, where
+       N is the number of degrees of freedom in the discretized
+       model of the panel or panel module cross section) is
+       given by:
+
+        dP/dqi = INTEGRAL[e(transpose)[C]de/dqi - dW/dqi]dsurf = 0  (2)
+
+       in which U is the strain energy, W is the work done by
+       external forces, C is the 6 x 6 constitutive law, e is the
+       strain vector consisting of three in-plane strain components
+       and three curvature change components, and qi is the ith
+       degree of freedom. (Most qi are nodal displacement components,
+       ui, vi, wi. A few of the qi are Lagrange multipliers
+       corresponding to boundary and juncture constraint conditions.)
+       The quantity dsurf is an elemental area of the reference
+       surface.
+
+          Equation (2) represents a set of N nonlinear equations
+       which can be solved by the Newton method. The governing linear
+       equation for each Newton iteration is obtained by expanding
+       the terms in Eq. (2) in a Taylor series about a given point
+       in q-space. Call this point qo. Only linear terms in delta-q
+       are retained in the Taylor series expansion. The resulting
+       equation for the ith degree of freedom has the form
+
+         SUM(J=1,N){INTEGRAL[ e(transpose)[C]d2e/dqidqj +
+
+                    de(transpose)/dqj [C] de/dqi }delta-qj 
+
+                 =  dW/dqi - e(transpose)[C]de/dqi ]dsurf           (3)
+
+       Equation (3) represents an integro-differential equation.
+       Before solutions can be obtained, it must be converted into
+       an algebraic equation. This can easily be done, because all
+       quantities are assumed to vary trigonometrically in one
+       coordinate direction and the other coordinate is discretized.
+
+       After each Newton iteration, the new equilibrium state is
+
+               q = qo + delta-q                                    (4)
+
+       in which qo is the known state after the previous Newton
+       iteration.
+
+       Newton iterations continue until the delta-qi, i = 1, 2,..N
+       are less than, say, 1.0 per cent of the respective qi for all
+       qi larger than 10 per cent of the largest nodal degree of
+       freedom. (Lagrange multipliers are not included in this
+       convergence criterion.) Actually, in order to save time, only
+       the largest normal deflection is monitored for convergence.
+       When delta-w(largest) is less than 0.001*w(largest), the
+       Newton iterations are considered converged.
+
+          In this analysis the displacement components, U, V, W, are
+       assumed to have the form:
+
+              U(x,y) = u(y)*sin(nbar*x)
+              V(x,y) = v(y)*sin(2*nbar*x)                          (5)
+              W(x,y) = w(y)*sin(nbar*x)
+
+       in which x is the axial coordinate (normal to the plane of
+       the screen) and y is the coordinate along each segment of
+       the panel or panel module cross section (in the plane of
+       the screen). The quantity nbar is given by
+
+              nbar = pi/L                                          (6)
+
+       where L is the axial length presently being considered. (May
+       be the entire panel length or the length between adjacent
+       rings.)
+
+          The strain vector e is given by
+
+            e = (ex, ey, exy, kx, ky, kxy)                        (7)
+
+       The in-plane strain components, ex, ey, exy, are given by
+
+           ey  = (u' + w/R1)s + 0.5*(chi**2)*s**2 + eyo
+
+           ex  = 2*nbar*v*c2 + (w/R2)s + 0.5*(psi**2)*c**2 + exo   (8)
+
+           exy =   nbar*u*c  + v'*s2   + chi*psi*s*c
+
+       and the changes in curvature, kx and ky, and twist, kxy, are
+       given by
+
+           ky  = (chi)'*s
+
+           kx  = -nbar*psi*s                                        (9)
+
+           kxy = - 2*nbar*chi*c
+
+       In Eqs. (8) and (9) ( )' = d( )/dy, s = sin(nbar*x),
+       c = cos(nbar*x), s2 = sin(2*nbar*x), c2 = cos(2*nbar*x),
+       R1 and R2 are the radii of curvature in the plane of the
+       screen and normal to the plane of the screen, respectively,
+       chi is the rotation in the plane of the screen, and
+       psi is the rotation normal to the plane of the screen, given
+       by
+
+           chi = w' - u/R1
+                                                                    (10)
+           psi = nbar*w
+
+       The total strain vector e consists of a linear part eL, a
+       nonlinear part eNL, and an initial part eo. The initial part
+       eo arises from the thermal curing of the panel and the applied
+       in-plane load sets, Nx, Ny, Nxy, and Nxo, Nyo, Nxyo. The radii
+       of curvature, R1 and R2, are considered to be the initial
+       curvatures plus any changes due to thermal curing and in-plane
+       loading which is independent of that generated by the uniform
+       normal pressure. Hence, the curvature changes and twist in
+       Eqs. (9) do not contain kyo or kxo terms.
+
+       The work done by external forces is simply
+
+                  W = INTEGRAL [ p*w ]dsurf                         (11)
+
+       Equation (3) is converted into an algebraic equation by use
+       of Eqs. (8-10), replacement of derivatives ( )' and ( )" with
+       appropriate three-point central difference formulas (same as
+       used in BOSOR4), and analytical integration over the axial
+       coordinate x.  The calculations are performed in SUBROUTINE
+       BUCKLE.  SUBROUTINE BUCKLE calls SUBROUTINE ARRAYS, in which
+       the stiffness matrix and right-hand-side vector are set up,
+       SUBROUTINE FACTR, in which the stiffness matrix is decomposed,
+       and SUBROUTINE SOLVE, in which back-substitution is performed.
+       Newton iterations continue until the largest nodal displacement
+       converges to within 0.1 per cent. The computational path in
+       SUBROUTINE BUCKLE and SUBROUTINE ARRAYS is identified by a
+       pointer INDIC having the value 3.
+
+       If the panel is stiffened the nonlinear analysis is first
+       performed for the entire panel with smeared stiffeners. In
+       this analysis all four edges are supported such that
+       u = v = w = 0 and rotation of the edge is permitted.
+       Warping due to curing is included. If the entire panel
+       is longer in the axial direction than twice the circumferential
+       arc length, or in the case of cylindrical panels, if the axial
+       length is greater than twice the "boundary layer" length,
+       considered to be 2.73*sqrt(radius x effective thickness), then
+       U, V, W in the panel skin are assumed to be indpendent of x.
+
+       Upon convergence of the nonlinear analysis of the entire
+       panel with smeared stiffeners, the nonlinear analysis of
+       a single panel module is begun. Here the segmented model
+       shown in Fig. 2 above is used. Symmetry conditions are
+       applied at the two edges of the skin that are normal to
+       the screen. Variations of displacement normal to the screen
+       are assumed to be zero in this local branched model. The
+       panel module is considered to be preloaded by the computed
+       resultants due to curing, the prescribed in-plane Load
+       Set A (Nx, Ny, Nxy), the prescribed Load Set B (Nxo, Nyo),
+       and whatever average in-plane loads are predicted by the
+       just-completed nonlinear analysis of the entire panel with
+       smeared stiffeners.
+
+       The strains and stress resultants arising from this nonlinear
+       analysis for static response to uniform normal pressure are
+       evaluated only at the panel or panel module cross section
+       midway along the x-coordinate, that is, at the symmetry plane
+       parallel to the screen at x = L/2.
+
+
+
+35.0  
+
+
+
+       The following analysis obtains the nonlinear static response
+       of the entire panel to uniform normal pressure. Both stringers
+       and rings, if any, are assumed to be smeared out in this
+       analysis.
+
+       The panel edge in the plane of the screen is discretized. All
+       four edges of the panel are supported such that u = v = w = 0,
+       and rotation of the edge is permitted.
+
+       The panel is preloaded by prescribed in-plane resultants
+       resultants Nx, Ny, Nxy from Load Set A and prescribed in-plane
+       resultants Nxo and Nyo from Load Set B.
+
+37.0  
+
+
+       
+       The following analysis obtains the nonlinear static response
+       of a single panel module to uniform normal pressure.  Symmetry
+       conditions are applied at the generators midway between
+       stringers.  If the panel module is longer than it is wide,
+       axial bending in the skin is ignored.
+
+
+
+40.0 
+
+
+            4.  Calculate knockdown factors for the effect of in-plane shear
+       loads on general buckling and on local buckling.  These knockdown
+       factors are obtained from PANDA-type analyses in which general and
+       local buckling load factors are calculated with and without the
+       in-plane shear load, Nxy.  The knockdown factors are given by:
+
+            KNOCKDOWN = EIGENCRIT(with shear)/EIGENCRIT(no shear)
+
+       The shear knockdown factor for general instability is
+       stored in FKNOCK(1); The shear knockdown factor for
+       wide-column instability is stored in FKNOCK(4); and shear
+       knockdown factors for local instability are stored in
+       FKNOCK(2) and FKNOCK(3). These factors are later applied to
+       critical loads obtained with BOSOR4-type of discretized
+       panel module models because buckling loads for these models
+       are obtained neglecting in-plane shear. FKNOCK(1) is
+       applied to the BOSOR4-type model in which the entire width
+       of the panel with smeared rings and stringers is
+       discretized; FKNOCK(4) is applied to the discretized single
+       panel module model that is used to predict wide-column
+       buckling [See Figs. 20(c) and 21(c)]; FKNOCK(2) is applied
+       to the discretized single panel module model that is used
+       to predict local buckling [See Figs. 20(a) and 21(a)]; and
+       FKNOCK(3) is applied to buckling of the panel skin under a
+       hat stiffener. It is emphasized that these four knockdown
+       factors are for the effect of in-plane shear loading, not
+       for transverse shear deformation.
+
+        The in-plane shear load knockdown factors, FKNOCK(1) and FKNOCK(2), are
+       computed in the second call to SUBROUTINE BUCPAN in SUBROUTINE STRUCT.
+       This "CALL BUCPAN" immediately follows the first "CALL FORCES".
+
+            Another type of shear knockdown factor is obtained by PANDA2 if
+       the user so chooses:  This other type of factor accounts for transverse
+       shear deformation weakening.  Actually, there are several of these
+       factors, one for each segment of the panel module and factors
+       corresponding to PANDA-type models with either or both rings and
+       stringers smeared out.  The transverse shear deformation knockdown
+       factors are calculated in SUBROUTINE SHRRED.
+
+50.0 
+
+
+            5.  In PANDA2 the following kinds of buckling are calculated:
+
+            (a) All types of buckling covered by the original PANDA code.
+       These are listed in Table 1 of Ref.  [1] (Ref.  [1] is identified in
+       the BEGIN tutorial.) Included are:  general instability (rings and
+       stringers participate), local buckling (between adjacent stringers and
+       adjacent rings), panel buckling (between rings with smeared stringers
+       and between stringers with smeared rings), rolling of stiffeners (no
+       web deformation) with skin participation, rolling of stiffeners (with
+       web deformation) without skin participation, and crippling of stiffener
+       parts.
+
+            (b) Local buckling predicted from a model in which the cross
+       section of a single panel module is discretized.  (A description of the
+       single panel module is given in the tutorial session with BEGIN.) Two
+       modes may be calculated, depending on results:  a "high-axial-
+       wavenumber" mode and a "low-axial-wavenumber" mode.  The
+       "high-axial-wavenumber" mode corresponds roughly to buckling of the
+       thin part of the skin (part excluding the width b2 of the faying flange
+       of the stringer).  The "low-axial-wavenumber" mode corresponds roughly
+       to local buckling between stringer centerlines.  A constraint is
+       introduced into the optimization problem that the
+       "low-axial-wavenumber" mode shall correspond to a load factor that is
+       20 per cent higher than the load factor corresponding to the
+       "high-axial-wavenumber" mode.  This tends to prevent stiffener popoff
+       for panels loaded into the post-local- buckling regime.  Local buckling
+       is enforced by introduction of constraints in the stiffness matrix that
+       force the mode to be antisymmetric about the panel module centerline
+       and symmetric midway between stringers.  For both "high" and
+       "low"-axial-wavenumber modes, ranges of number of axial halfwaves are
+       searched until minimum buckling load factors are found with respect to
+       the number of axial halfwaves.
+
+            (c) wide column buckling predicted from the model in which the
+       cross section of a single panel module is discretized.  This mode is
+       obtained in the same way as are the local buckling modes in (b), except
+       that symmetry is imposed at the midwidth of the panel module and the
+       axial wavenumber is fixed at n = 1, rather than search for a critical
+       load factor by varying n, as is done in (b).  If there are transverse
+       stiffeners (rings) present, both the local and the wide- column loads
+       correspond to the panel being simply supported along ring centerlines
+       and rings are neglected in the stability phase of the calculations.
+
+            (d) general instability (rings and stringers smeared out) of the
+       entire panel from a simple discretized model (no branches for
+       stiffeners, since they are smeared out.) The purposes of this model
+       are:
+
+            (1) to provide buckling loads in cases for which the axial load
+            varies along the edge of the panel;
+
+            (2) to provide a check on both the PANDA calculations for general
+            instability and on the wide column calculation for the case of
+            uniform axial compression.
+
+       Such a check is especially useful for the wide column buckling
+       load from (c) because curvature is neglected in the calculation in (c)
+       and included in the calculation in (d).  Note, however, that in this
+       general instability calculation:
+
+            (1) The stiffeners are smeared out.  Hence local stringer cross
+            section deformation is not accounted for, and local skin
+            bending in the general instability mode is not possible.
+
+            (2) The actual (spanwise varying) axial load distribution in the
+            post-locally-buckled panel is not used;  only the uniform
+            prebuckling axial load distribution determined in SUBROUTINE
+            FORCES is used.
+
+       Neglect of (1) yields an unconservative result (buckling load too
+       high);  neglect of (2) could cause either plus or minus error.
+
+60.0 
+
+
+            6.  To continue with the flow of calculations in SUBROUTINE
+       STRUCT...
+
+       Local buckling as predicted from the discretized model of the
+       single panel module is performed by SUBROUTINE LOCAL.  The first call
+       to SUBROUTINE LOCAL corresponds to determination of the
+       "high-axial-wavenumber" local buckling load factor.  If panel module
+       local modes have been determined previously in a given run (for
+       example, for a previous design iteration), the starting axial
+       wavenumber and eigenvector are the values corresponding to the previous
+       critical condition.
+
+            If the structural analysis is being conducted for a small design
+       perturbation for the purpose of determining gradients of constraint
+       conditions for optimization (IMOD = 1), new buckling load factors may
+       be calculated from Rayleigh's quotient, in which the eigenmode is that
+       corresponding to the unperturbed design.  This is what happens if
+       post-local-buckling effects are neglected (FSLOC.GE.1.0).  If
+       post-local-buckling effects are included, a new mode is calculated even
+       for each small design perturbation because this mode is used to
+       calculate the changes in post-local-buckling stresses due to the design
+       perturbation.  These changes must be computed accounting for changes in
+       the local buckling mode shape in order to obtain accurate stress
+       constraint gradients, and therefore appropriate design modifications
+       during optimization cycles.
+
+70.0 
+
+
+            7.  Buckling modal displacements and derivatives of displacements
+       with respect to s, the arc length along the discretized panel module
+       segments, are computed from the eigenvector for the
+       "high-axial-wavenumber" local buckling.  These computations are
+       performed by SUBROUTINE MODE, which follows the first call to
+       SUBROUTINE LOCAL.  These quantities are used in the post-local buckling
+       stress analysis and for later plotting.
+
+80.0 
+
+
+            8.  "Low-axial-wavenumber" local panel module buckling is next
+       calculated.  This calculation is performed only if the critical axial
+       wavenumber for the "high-wavenumber" mode is greater than MLOCAL+1, in
+       which MLOCAL is the number of axial waves in the local buckling mode
+       predicted by the PANDA-type model.  (MLOCAL is printed out above, in
+       the summary that contains the general instability load estimate from a
+       PANDA-type analysis, the knockdown factors for in-plane shear, and the
+       distributions of applied loads over the panel module segments.  MLOCAL
+       is obtained from a PANDA-type of analysis, that is, a closed form
+       analysis.) Also, the eigenvalue in the "high-axial-wavenumber" mode
+       must be less than 1.0 for this calculation to occur, since it is used
+       only to introduce a constraint that helps prevent stiffener popoff, a
+       constraint that is present only if we are interested in local
+       postbuckling behavior (FSLOC.LT.1.0).  In the search for the critical
+       buckling load factor with respect to the number of axial waves, the
+       maximum number of axial waves is restricted to be less than MLOCAL+1,
+       so that computations for the "high wavenumbers" will not be repeated.
+       The local buckling load factor and mode are determined in the second
+       call to SUBROUTINE LOCAL in SUBROUTINE STRUCT.
+
+90.0 
+
+
+       ***************** begin discussion of KOITER branch *************
+
+            9.  There is a section of code in SUBROUTINE STRUCT identified as
+       the "KOITER BRANCH". This branch is always entered if IQUICK = 0,
+       because initially imperfect panels are in their locally postbuckled
+       states for any load. The postbuckling theory used in PANDA2 is
+       similar to a theory originally formulated by Koiter in 1946 in
+
+       Koiter, W.  T., "Het Schuifplooiveld by Grote Overshrijdingen van
+       de Knikspanning", Nationaal Luchtvaart Laboratorium, Report X295,
+       November 1946 (in Dutch)
+
+            According to this theory the local buckling mode in the skin
+       changes shape during the post-local-buckling loading phase:  for
+       applied loads slightly above the bifurcation buckling load
+       corresponding to local buckling, the post-buckling deformation pattern
+       closely resembles the local bifurcation buckling mode.  However, as the
+       applied load is further increased, a region develops midway between two
+       adjacent stringers in which there is little curvature change in the
+       transverse (y) direction.  Thus, the post-locally-buckled skin has
+       one-half wave between stringers, but the top of the wave is "chopped
+       off"--nearly flat--midway between stringers.  This nearly flat region
+       develops only after the load has risen somewhat above the bifurcation
+       buckling load.
+
+            In the KOITER branch the following calculations are performed:
+
+       (a) The post-local buckling normal deflection, w(x,y), is assumed
+       to have the form:
+        
+                   w(x,y) = f*(phi + a*phi**3)*sin[(pi/L)(x-my)]
+        
+
+       in which "phi" is the bifurcation buckling mode, "f" and "a" are
+       undetermined coefficients, "L" is the half wavelength in the axial
+       direction of the critical bifurcation buckling mode, and "m" is the
+       slope of the nodal lines of the post- local buckling pattern.
+
+            This post-local-buckling pattern differs from that proposed by
+       Koiter in 1946.  Koiter assumed that W(y) was constant in a central
+       region away from the stiffeners.  He introduced an edge parameter,
+       alpha, that determined the extent of this region.  Energy minimization
+       with respect to alpha yielded the extent of the flat region.
+
+            In other respects, however, the local postbuckling theory used in
+       PANDA2 is similar to Koiter's 1946 theory.
+
+       (b) Certain wave shape parameters, A1, A2, .  .  A25, are
+       calculated once the bifurcation buckling mode shape "phi" is
+       known.These calculations, involving numerical integration of various
+       products of the buckling modal normal displacement and its first and
+       second derivatives, take place in SUBROUTINE INTEG, which is called
+       from SUBROUTINE MODE.
+
+            The heart of the Koiter theory is contained in SUBROUTINE KOIT2,
+       in which the post-locally-buckled state of the panel is derived.  The
+       following computations occur in KOIT2:
+
+       (c) The average in-plane strains in the panel, EPS1, EPS2, EPS12,
+       are obtained in terms of "f" , "a", and "m", which appear above in the
+       expression for w(x,y).  This calculation occurs in SUBROUTINE EPSAVE,
+       which is called from SUBROUTINE KOIT2.
+
+            The purpose of SUBROUTINE EPSAVE is to calculate certain
+       coefficients, G11, G12,...G16, and G21, G22,...G26, as described next.
+
+            The average in-plane strains in the post-buckling range are given
+       by:
+        
+             EPS1  = F10 + f**2*[G11 +a*G12 +a**2*G13 
+                                 +m**2*(G14 +a*G15 + a**2*G16)]
+        
+             EPS2S = F20 + f**2*[G21 +a*G22 +a**2*G23 
+                                 +m**2*(G24 +a*G25 + a**2*G26)]
+        
+             EPS12 = NXY/CX(3,3,5) + f**2*(G31 + a*G32 + a**2*G33)
+        
+
+       in which F10, F20, and Gij are derived in EPSAVE;  "m" is the slope
+       of the buckling nodal lines;  and "a" is an as yet undetermined
+       coefficient that appears in the expression for the y-variation of the
+       post-local-buckling pattern:
+        
+                  W(y) = f*(phi + a*phi**3)
+        
+
+       in which y is the coordinate across the panel, measured from
+       midway between stringers, and phi is the normalized buckling mode shape
+       determined by the BOSOR4-type of analysis for the discretized panel
+       module cross section.
+
+            EPS1 is the average axial strain in the locally post- buckled
+       panel, EPS2S = EPS2 + Cy, where EPS2 is the average circumferential
+       strain in the locally post-buckled panel;  EPS12 is the average
+       in-plane shear strain in the post-buckled panel;  f is the amplitude of
+       the local buckling pattern.  
+
+            The starting point for this derivation is the relation between
+       given applied loads, Nx, Ny, Nxy, and average loads in the panel skin,
+       N1, N2, N12:
+        
+           Nx  = N1 + N(stringer)
+           Ny  = N2 + N(ring)
+           Nxy = N12
+        
+       in which N1, N2, N12 are given by
+        
+           N1 = Int-on-2L{ Int-on-b[ A11*epsx +A12*epsy +Nxo ]dy}dx/(2bL)
+           N2 = Int-on-2L{ Int-on-b[ A12*epsx +A22*epsy +Nyo ]dy}dx/(2bL)
+           N12= Int-on-2L{ Int-on-b[ A33*epsxy ]dy}dx/(2bL)
+        
+       in which A11 = CX(1,1,i); A12 = CX(1,2,i); A22 = CX(2,2,i);
+                A33 = CX(3,3,i), where i is the module segment number;
+                epsx, epsy, epsxy are the local membrane strains;
+                and Nxo, Nyo are the known thermal resultants from curing.
+                L is the half-wavelength of the local buckle pattern, and
+                b is the stringer spacing.
+        
+        
+       The axial load in each stringer is
+        
+         N(stringer)=Int-L{Sum-segs[Int-s(A11*epsx+A12*epsy+Nxo)ds]}dx/(2bL)
+        
+
+            The expression for N(rings) is analogous.  "segs" above refers to
+       the segments of the stringer cross section (e.g.  web, flange).
+
+            The local membrane strains, epsx, epsy, epsxy, can be expressed in
+       terms of of average strains, EPS1, EPS2, EPS12 plus nonlinear terms
+       arising from to local buckling deformations:
+        
+               epsx = EPS1 + NW**2
+               epsy = EPS2  + CY - NU12*N*W**2 
+               epsxy= EPS12 + (local buckling terms)
+        
+
+       in which CY is a nonlinear function of W given in SUBROUTINE
+       EPSAVE.
+       (d) The local bifurcation buckling load factor, EKOITR, is
+       calculated in SUBROUTINE EIGKOI.  In this calculation the amplitude of
+       the local postbuckling deformations, "f", is assumed to be zero, and
+       the flattening of the bifurcation buckling mode shape, "a", is assumed
+       to be zero.
+
+            The eigenvalue, EKOITR, is computed in the following way:
+
+            (1) The total potential, U - W, [strain energy minus work done by
+       applied load set (Nx, Ny, Nxy)], is written in terms of "f" and "m".
+
+            (2) This total potential is minimized with respect to "f" and "m".
+
+            (3) In the resulting two equations, all terms with "f**2" are
+       neglected, since the amplitude of the bifurcation buckling mode "f" is
+       infinitesimal.
+
+            (4) The equation resulting from d(U-W)/df = 0 yields an expression
+       for the eigenvalue EKOITR in terms of "m", the slope of the buckling
+       nodal lines.  This expression is "plugged into" the equation resulting
+       from d(U-W)/dm = 0.
+
+            (5) The nonlinear equation for "m" resulting from step (4) is
+       solved by Newton's method.
+
+            (6) The value of "m" determined in Step (5) is "plugged into" the
+       expression for EKOITR derived in Step (4).
+
+       (e) The locally post-buckled state is calculated through solution
+       of three simultaneous nonlinear algebraic equations for "f**2", the
+       square of the amplitude of the local buckles;  "a", the measure of the
+       flattening of the bifurcation buckling mode midway between stringers;
+       and "m", the slope of the buckling nodal lines (nonzero due to in-plane
+       shear and/or unbalanced laminate).  These equations are easy to solve
+       because both "a" and "m" can be expressed in terms of "f**2".  The
+       resulting two simultaneous nonlinear algebraic equations are solved by
+       Newton's method in SUBROUTINE NEWTON.
+
+       (f) The average strains, EPS1, EPS2, EPS12, and average stress
+       resultants, N1AVE, N2AVE, N12AVE, in the panel skin are computed in
+       SUBROUTINE NEWTON.  These quantities are needed for computation of the
+       tangent stiffness matrix of the locally post-buckled skin.  Both the
+       thin and thick portions of the panel skin are included.
+
+       (g) The tangent membrane stiffness of the locally post buckled
+       skin is computed.  This 3 x 3 matrix called CTAN is needed for later
+       calculation of general instability and wide column buckling of the
+       locally post- buckled panel.  This computation takes place in
+       SUBROUTINE KOIT2.  Each of the applied resultants, Nx, Ny, Nxy, is
+       perturbed in turn, and new values for EPS1, EPS2, EPS12 and N1AVE,
+       N2AVE, N12AVE are recomputed.  The tangent stiffness matrix CTAN is
+       calculated knowing the rates of change of N1AVE, N2AVE, and N12AVE with
+       respect to EPS1, EPS2, and EPS12.
+
+       (h) Local membrane strain components, eps1, eps2, eps12, and
+       stress resultants, N1VAR, N2VAR, N12VAR, are next calculated in
+       SUBROUTINE STRMID.  These quantities are calculated for all segments in
+       the x-cross section of the single panel module.  Particularly important
+       is the accurate computation of the new axial load distribution, since
+       this of course affects the predicted load factors for crippling of the
+       various segments of the stringer cross section.  Also, new computations
+       of the stress resultants in the ring cross section are performed.
+
+       (i) The stresses in material coordinates are computed in all the
+       layers and at the midwidth and end points of all the segments in the
+       discretized panel module.  The stresses are calculated for both sine
+       and cosine amplitudes of the locally post buckled panel.  Stress
+       constraint conditions are set up based on the minimum margins for each
+       type of failure in each type of material.  The stress failure criteria
+       used in PANDA2 are:
+
+            (1) maximum tension along fibers
+
+            (2) maximum compression along fibers
+
+            (3) maximum tension transverse to fibers
+
+            (4) maximum compression transverse to fibers
+
+            (5) maximum in-plane shear stress
+
+            If the user has indicated in BEGIN that certain material types are
+       composite material unidirectional tape, then for these layers the
+       failure criterion (3) maximum tension transverse to fibers, is ignored.
+       Instead, if transverse failure (cracking) has been detected at certain
+       points in the panel module, at those points the panel is not considered
+       to have failed.  However, The allowable in compression along the fibers
+       of cracked layers is reduced by as much as 50 per cent, depending upon
+       by what margin the transverse tensile stress exceeds the threshold value.
+
+            The stress constraints of the locally post-buckled panel are
+       calculated in SUBROUTINE STRTHK, which is the last subroutine called in
+       the KOITER branch of SUBROUTINE STRUCT.
+
+       (j) a stringer popoff constraint is also calculated in SUBROUTINE
+       STRTHK.  This constraint is based on tensile forces that develop in
+       parts of the stringer web adjacent to the faying flange.  These tensile
+       forces tend to peel the faying flange from the panel skin to which it
+       is attached.  Results from a peel test may be necessary in order to
+       establish an allowable value for the maximum web force permitted at the
+       root of the stringer web. This maximum force/(axial length) is
+       required as input in BEGIN.
+
+       (k) If rings are present the stresses in the various parts of the
+       "ring panel module" (module cross section that lies in the plane
+       of the axial coordinate x) are calculated. This calculation is
+       performed in SUBROUTINE STRCON.
+
+
+      ************************************************************
+      ************************************************************
+      
+             AUGUST-SEPTEMBER MODIFICATION OF POSTBUCKLING ANALYSIS
+
+      *************************************************************
+      *************************************************************
+
+        EQUILIBRIUM OF IMPERFECT, LOCALLY DEFORMED PANELS
+
+      The theory sketched in Section 13 of LMSC-D067175 for equilibrium of
+      locally postbuckled stiffened panels is valid only for perfect
+      panels. The purposes of this discussion are to provide more
+      details of the theory and to extend it to handle nonlinear
+      behavior of a panel with an imperfection in the form of the
+      local buckling mode. (Overall bowing imperfections are handled
+      in a manner to be described later.)
+
+      If an axially stiffened
+      panel has a finite imperfection in the form of the local
+      buckling mode, there are no longer any distinct "prebuckling"
+      and "postbuckling" phases of behavior.  Rather, the panel deforms
+      in a continuous manner as the external loads are increased.
+      This difference in behavior for perfect and imperfect panels
+      is illustrated in Fig. A1. The unstiffened, isotropic panel
+      is subjected to uniform end shortening up to an average axial
+      load four times the load at which the perfect panel buckles
+      locally.  The imperfection, in the form of the bifurcation
+      buckling mode of the perfect panel, has five halfwaves along
+      the length and one half wave across the width.
+
+      The almost perfect panel (imperfection amplitude  w_o/t  = 0.001)
+      exhibits an almost discontinuous behavior at the bifurcation
+      load, whereas the panel with larger imperfection amplitude,
+       w_o/t  = 0.1, exhibits a continuous softening followed by
+      stiffening behavior.
+
+      Two advantages result from the inclusion of local imperfections:
+
+         1.  The behavior of stiffened panels that have been
+         optimized is often sensitive to imperfections. If imperfections
+         are neglected in the theory, the program user must provide a
+         significant factor of safety to compensate for random geometric
+         imperfections that are always present in practical structures.
+         It is difficult to choose an appropriate factor of safety.
+         Introduction of an imperfection in the form of the local
+         buckling mode of the perfect structure partially eliminates
+         this difficulty. While it may still be necessary to introduce
+         a factor of safety larger than unity, the factor can be much
+         closer to unity and can be thought of as a factor to compensate
+         for uncertainties in load, material properties, and failure
+         criteria rather than as a factor to compensate for uncertainty
+         in geometry.  Uncertainties in load, material properties, and
+         failure criteria generally do not affect the behavior with
+         increasing severity, as does uncertainty in geometry, as the
+         structure approaches its optimum configuration. Therefore it
+         is particularly advantageous to include the effect of
+         uncertainty in geometry in the structural analysis rather than
+         compensate for it by use of a large, rather arbitrary, factor
+         of safety.
+
+           2. Because of discontinuous behavior such as that
+         exhibited in Fig. A1 for the almost perfect panel, design
+         iterations often lead to designs and margins that jump around.
+         For example, this behavior occurred during optimization of
+         the ARIANE interstage, and is evident in Figs. 88 and 89.
+         Introduction of a local imperfection smooths the behavior, as
+         displayed in Fig. A1 for the panel with the larger imperfection
+         amplitude. Therefore, gradients of behavior of imperfect panels
+         with respect to design perturbations are generally smooth.
+         They do not ordinarily lead to erratic swings in design or in
+         design margins as the optimum state is sought.
+
+      Components of Strain Energy and External Work
+
+      Details appear in APPENDIX A of LMSC-D067175, revised November 1986.
+      The  derivation there applies to panels that consist of
+      segments each of which has a balanced laminate. Most of the
+      derivation involves the extensional strain energy of the panel
+      skin and stringer web(s) and flange. Rings are ignored, as the
+      theory is concerned only with the portion of the structure
+      between adjacent rings, that is, the panel skin and stringers.
+      The relevant geometry is shown in Fig. 9 or Fig. 13 of LMSC-D067175:
+      a single panel module including one stringer and a width of panel skin
+      that represents the spacing  b  of the stringers. Equilibrium
+      equations are derived from the principle of virtual work and
+      the first variation of the total potential,  U - W , in which
+       U  is the strain energy and  W  is the work done by average
+      prescribed external loads,  N_1, N_2, N_12  .
+
+      Wide column collapse is simulated in the following way:
+      Overall axial bowing,   \kappa_x  is assumed to grow hyperbolically
+      as axial compression increases. An amplitude factor
+      for any initial axial bowing, whether it be caused by an initial
+      geometric imperfection, applied pressure, residual deformation
+      due to curing the panel, axial load eccentricity, or any combination
+      of these effects, is calculated based on a preliminary estimate of
+      the general instability load factor. The overall axial curvature
+      change,  \kappa_x  is assumed to be equal to the axial bowing
+      caused by the effects just listed multiplied by the amplitude factor,
+      which is a number between one and ten, depending on how close the
+      applied axial load is to the estimated critical load factor. A
+      wide-column bifurcation buckling load factor is then calculated,
+      accounting for the amplified axial bowing, the new
+      stress distribution over the panel module cross section, and the
+      axial softening due to local deformation of the panel skin and
+      stringer parts.  This technique agrees fairly well with tests
+      conducted by Thompson, et al (1974), as demonstrated in Figs.
+      xx and xxx of APPENDIX A of LMSC-D067175, revised November 1986.
+
+      All of these calculations as well as the
+      calculations described in previous sections are performed for a local
+      buckling axial half-wavelength  L  determined from a BOSOR4-type of
+      buckling analysis of the discretized panel module model. The critical
+      local buckling load factor and number of axial halfwaves between rings
+      is determined by performing a search over the number of axial halfwaves
+      until a minimum value is found.
+
+      Strategies for Solving the Nonlinear Equations
+
+      The three nonlinear equilibrium equations represented by Eq. (48)
+      of APPENDIX A of LMSC-D067175, revised November 1986, are
+      solved by the Newton-Raphson method. Various strategies are pursued in
+      order to achieve convergence:
+
+         1. If the BOSOR4-type local buckling analysis reveals that
+         the applied load exceeds the critical local bifurcation buckling load
+         of the locally perfect shell ( \lambda < 1 ), then a solution is first
+         obtained with the local imperfection amplitude  w_0  set to zero and
+         with  f=0 ,  a=0 , and  m=m_0 , where  m_0  is the slope of the
+         local buckling nodal lines obtained from the eigenvalue analysis
+         described above. If convergence with  w_0=0  is achieved within 45 iterations
+         the resulting  f ,  a , and  m  are then used as starting values for
+         the case with  w_0 > 0 . If convergence is not achieved with  w_0=0 
+         then convergence is attemped with  w_0>0  with zero starting values for
+          f  and  a  and with m =  m_0 .
+
+         2. If the BOSOR4-type local buckling analysis reveals that
+         the applied load is less than the critical local bifurcation buckling
+         load of the locally perfect shell ( \lambda > 1 ), then convergence is
+         first attempted with  w_0>0 , as described in the last sentence of Strategy 1.
+
+         3. If convergence fails in Strategy 1 or Strategy 2, then
+         either of two strategies will be chosen:
+
+             a. If optimization is being performed and if more
+            than ten design iterations have been completed in the current set of
+            design iterations, then the converged solution for the previous design
+            iteration will be used as a starting value and convergence will be
+            attempted again.
+
+             b. Strategy 4 will be pursued.
+
+         4. If convergence has continued to fail, the slope of the
+         local buckling nodal lines  m  will be set equal to zero and the
+         " m " equation will be removed from the set of three equations to be
+         solved iteratively, leaving only the " f " and the " a " equation to
+         be solved iteratively, an easier problem for which to find a converged
+         solution. If this reduced problem converges within 45 iterations, then
+          m = m_0  will be re-introduced as a starting value, along with the
+         values of  f  and  a  determined from the reduced problem, and the
+         full three-variable problem will be attempted again.
+
+         5. If convergence has continued to fail, the amplitude of the initial
+         local imperfection is increased by a factor of two and convergence
+         of the full three-variable problem is attempted again. This strategy
+         is persued for a maximum of five iterations of increasing the
+         amplitude of the initial imperfection by a factor of two if Newton
+         iterations continue to fail to converge for a given amplitude.
+
+         6. If convergence has continued to fail, both  m  and  a 
+         will be set equal to zero and both the " m " and " a " equations will
+         be removed, leaving only the " f " equation to be solved iteratively.
+         In this case the full three-variable problem is not attempted again.
+
+         7. If convergence has continued to fail,  f  and  a  are
+         set equal to zero and  m  is set equal to  m_0 , the value obtained
+         from solution of the eigenvalue problem described in Section 13 
+         of APPENDIX A of LMSC-D067175.
+
+
+      ************************************************************
+      ************************************************************
+      
+         END OF AUGUST-SEPTEMBER MODIFICATION OF POSTBUCKLING ANALYSIS
+         SEE APPENDIX A OF LMSC-D067175, REVISED NOV. 1986 FOR MORE
+         DETAILS AND COMPARISONS WITH TESTS AND WITH OTHER THEORIES.
+
+      *************************************************************
+      *************************************************************
+
+            ************** end of discussion of KOITER branch **************
+
+100.0 
+
+
+            10.  Crippling of stiffener parts is calculated next in SUBROUTINE
+       STFEIG.  Proper account is of course made here for redistribution of
+       the in-plane loads, Nx, Ny, Nxy, due to post-local buckling.  The
+       coding in SUBROUTINE STFEIG is essentially the same as that in the
+       original PANDA code.  There are two types of crippling:
+
+            (a) crippling of so-called "internal" segments, that is stiffener
+       segments that do not have free edges.  Crippling loads for these
+       interior segments are calculated as if they are infinitely long axially
+       compressed plates simply supported along their two opposite long edges.
+
+            (b) crippling of so-called "end" segments, that is stiffener
+       segments with one free edge.  Crippling loads are computed assuming
+       that the stiffener end cross section does not deform and the number of
+       axial half-waves is the same as that for the interior segment to which
+       the end segment is attached.
+
+110.0 
+
+
+            11.  If IQUICK = 1, that is we do not want to explore post-local-
+       buckling effects according to Koiter's theory, then we next calculate
+       stresses in the panel module in SUBROUTINE STRCON.  The average panel
+       strains obained in SUBROUTINE FORCES and the thermal strains from
+       curing obtained from SUBROUTINE GETCIJ are input, and stress constraint
+       conditions are set up based on the minimum margins for each type of
+       failure in each type of material.  The stress failure criteria used in
+       PANDA2 are:
+
+            (1) maximum tension along fibers
+
+            (2) maximum compression along fibers
+
+            (3) maximum tension transverse to fibers
+
+            (4) maximum compression transverse to fibers
+
+            (5) maximum in-plane shear stress
+
+115.0 
+     
+      
+      
+         Stresses are calculated in each of the lamina through the
+       thickness only at the nodes shown in the bottommost sketch
+       above because computation of these stresses requires quite
+       a bit of computer time, especially if there are many
+       layers. The critical stresses are most likely to be at
+       these points in the panel module cross section because
+       these points correspond to the maximum skin buckling
+       amplitude or bending stress concentrations which occur
+       where the thickness changes or where the webs intersect the
+       panel skin or the stringer flange. 
+
+       There are components of stress that vary in the axial
+       direction as sin(n*pi*x/L) as well as those that vary as
+       cos(n*pi*x/L).  The values of stress corresponding to the
+       axial locations where sin(n*pi*x/L) = 1 are listed in the
+       rows of the following table in which the leftmost entry is
+       SIN.  Those corresponding to axial locations where
+       cos(n*pi*x/L) = 1 are listed in the rows in which the
+       leftmost entry is COS. 
+
+       Sometimes four entries are given for each layer, two for
+       SIN and two for COS. Notice that each (SIN,COS) pair is for
+       a different value of the coordinate, Z, through the
+       thickness. These two pairs of entries correspond to the
+       stresses at the extreme fibers of the layer. Only one pair
+       is given for any layer that was originally designated by
+       the user as being composite tape. This is because composite
+       tape layers are usually very thin, and it is not necessary
+       to compute the stresses at more than one location through
+       the thickness of a thin layer. Sometimes layers are missing
+       from the list.  These are layers the thicknesses of which
+       either the user or PANDA2 has set equal to zero. 
+
+120.0 
+
+
+            12.  Next, the wide column buckling load (an approximation of the
+       general instability load) is calculated.  The proper tangent stiffness
+       of the locally post-buckled skin is included in this model.  Also,
+       redistribution of the axial load due to local buckling of the skin
+       between stringers is accounted for.  The wide column load factor is
+       computed by SUBROUTINE BUCKLE.  It is called "wide column" because
+       general instability of only a single panel module is considered.
+       Therefore, the boundary conditions along the two edges of the complete
+       panel normal to the screen are not considered.  Instead, symmetry
+       conditions are imposed along the analogous two edges of the single
+       panel module.  Symmetry is also imposed along the midwidth of the panel
+       module in order to prevent modes typical of local buckling, that is
+       modes that are antisymmetrical with respect to the midwidth of the
+       panel.
+
+            The number of axial halfwaves is restricted to one.  The length of
+       panel normal to the screen depends on whether or not there are
+       stiffeners in the transverse direction.  If there are not, this length
+       is taken as the length of the entire panel multiplied by a factor that
+       is unity if the actual panel is simply supported along the two edges
+       that lie in the plane of the screen and parallel to it.  If the actual
+       panel is clamped along these two edges, the length of panel normal to
+       the screen is taken as the length of the actual panel divided by the
+       square root of 3.85.  If the panel is stiffened by transverse
+       stiffeners (called "rings" in PANDA2) the length normal to the screen
+       is taken to be the spacing between ring attachment lines and the panel
+       is assumed to be simply supported along these attachment lines and the
+       rings are neglected in the stability phase of the calculations.
+
+            Wide column buckling with use of the discretized single
+       panel module model is included as a constraint because it
+       accounts for local deformations of the stiffener whose axis is normal
+       to the screen in the general buckling mode, whereas the PANDA-type of
+       general instability calculation with the smeared stiffeners does not
+       include this local deformation.  The local deformation is particularly
+       significant in the case of J-shaped stiffeners and sometimes in the
+       case of hat- shaped stiffeners.
+
+130.0 
+
+
+            13.  Next, local, panel, and general instability load factors and
+       load factors corresponding to rolling of the stiffeners with and
+       without participation of the skin are calculated in SUBROUTINE BUCPAN.
+       If IQUICK = 0 (local post buckling effects included in the analysis)
+       the proper constitutive law for the locally post buckled skin is used
+       in generation of panel and general instability load factors.  This
+       represents a PANDA-type of buckling analysis of the entire panel.  It
+       does not involve the discretized model of the panel module.
+
+140.0 
+
+
+            14.  Finally, if the user has indicated that the axial load (load
+       normal to the screen) varies along the panel edge, a calculation of
+       general instabiity based on a discretized model of the entire panel
+       width is performed.  In this model the stringers and rings are smeared
+       out.  It is assumed that the panel is simply-supported along the two
+       edges normal to the screen.  The length of the panel normal to the
+       screen is the actual length of the panel if the two edges in the plane
+       of the screen and parallel to it are simply supported.  This length is
+       taken as the actual length divided by the square root of 3.85 if these
+       two edges are clamped.
+
+            The axial load distribution across the panel does not account for
+       local redistribution due to local buckling of the skin at loads below
+       the general instability load.  However, the correct tangent stiffness
+       of the post-locally-buckled skin is incorporated into the constitutive
+       law for the entire panel with smeared stiffeners.
+
+150.0
+
+
+            15.  After all behavioral constraints (buckling load factors and
+       stresses) have be calculated in SUBROUTINE STRUCT, the objective
+       function, which in this case is the weight of the panel, is computed in
+       SUBROUTINE OBJECT.
+
+200.0 DUMMY ENTRY

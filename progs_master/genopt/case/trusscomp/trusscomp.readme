@@ -1,0 +1,113 @@
+
+8 February, 2010, revised 20 May, 2010, re-revised July, 2010
+
+July, 2010 important note:
+SUBROUTINE BOSDEC was modified in several places, dated
+"JUL 2010" and "MAY 2010". The "MAY 2010" changes have
+to do with the index, "IWRAP". The "JUL 2010" changes
+have to do with the "noodle" ring stiffness properties
+and the computation of EANOOD for the general instability
+analysis.
+
+****************** IMPORTANT NOTE **********************
+July, 15, 2010:
+BIGBOSOR4 was modified as described in bigbosor4.news
+Item No. 33, which reads as follows:
+--------------------------------------------------------
+33. July, 2010
+SUBROUTINE GETPST reads in the prebuckling resultants and
+prebuckling ring loads for the case INDIC=4, IPRE = 0.
+Previously, you could only read in "eigenvalue" loads, that
+is, loads that are to be multiplied by a buckling load
+factor (the eigenvalue). No "fixed" loads (non-eigenvalue
+loads) were provided for with the INDIC=4, IPRE = 0 option.
+Now you read in BOTH "eigenvalue" loads and "fixed" loads
+for the shell (FN10 and FN20) and for the discrete rings
+(RHF, RHFIX).
+
+The library, QUESTIONS.src, also had to be changed, of
+course.
+----------------------------------------------------------
+This means that all GENOPT/BIGBOSOR4 cases that make use
+of the INDIC=4, IPRE=0 branch in BIGBOSOR4 will have to
+be modified. That is, the files, bosdec.weldland, bosdec.span9,
+bosdec.cylwavy, etc. will have to be updated to be consistent
+with the latest version of BIGBOSOR4.
+***********************************************************
+
+
+8 February, 2010 material:
+***************** IMPORTANT NOTE  ***********************
+The "trusscomp" case was modified on February, 8, 2010.
+The ../bosdec/sources/bosdec.trusscomp software and the
+    ../genoptcase/behavior.trusscomp software were modified
+to take advantage of a new BIGBOSOR4 capability: the
+ability of BIGBOSOR4 to analyze true prismatic shells and
+assemblages of true prismatic shells, not just "huge torus"
+models. Please see the files,
+ ../bigbosor4/case/prismatic/prismaticshell.pdf
+ ../bigbosor4/case/prismatic/prismatics.tar.gz
+for details about the "true prismatic shell" model.
+*********************************************************
+
+In the "nasatruss2" case the "true prismatic shell" model
+yielded answers that were very close to those from the
+"huge" torus model:
+
+               local buckling        general buckling
+
+huge torus        1.2992                1.0001
+true prismatic    1.2994                0.9875
+---------------------------------------------------------
+
+
+20 May, 2010 material:
+
+A new index, IWRAP, was added to the input for GENTEXT,
+that is, to the trusscomp.INP file. The three files,
+behavior.trusscomp, struct.trusscomp, and bosdec.trusscomp,
+were updated. bosdec.trusscomp was further corrected to
+work properly for the "isotruss" case. The new index, IWRAP,
+is explained in the trusscomp.PRO file as follows:
+
+  45.0
+       Next, you will be asked to provide the index, IWRAP.
+       IWRAP can be 0 or 1
+       IWRAP = 0 means that the truss-core sandwich wall is
+       fabricated by forming and curing three parts separately:
+       PART 1: The corrugated core
+       PART 2: The lower face sheet
+       PART 3: The upper face sheet
+       After the forming and curing of these three parts the lower
+       and upper face sheets are cold-bonded to the corrugated core.
+
+       IWRAP = 1 means that the entire truss-core sandwich wall is
+       formed and cured at the same time. The core is formed by
+       wrapping right-side-up and upside-down trapezoidal mandrels
+       with NLAYRC layers of composite material, then laying the
+       bottom and top face sheets that each have NLAYRF layers.
+
+  50.1 Fabrication method,  0  or  1: IWRAP
+  50.2
+       Use IWRAP = 0 if the core is formed by stamping.
+       Use IWRAP = 1 if the core is formed by wrapping
+       trapezoidal mandrels.
+       NOTE: If IWRAP = 0 the two radii, RACUTE and ROBTUS,
+       will always be reset to zero no matter what you
+       provide as input values. It is best to use
+       IWRAP = 0 if the truss-core sandwich is made of metal.
+--------------------------------------------------------------------
+
+NOTE: In order to see a sample runstream for the case called
+"nasatruss2", please see the file called "nasatruss2.readme"
+that is contained in the compressed "tar" file: nasatruss2.noprismatic.tar.gz
+
+In order to obtain that version of the "nasatruss2.readme" file,
+type the following:
+
+cp nasatruss2.noprismatic.tar.gz <directory where you want to expand the file>/.
+cd <directory where you want to expand the file>
+gunzip nasatruss2.noprismatic.tar.gz
+tar xvf nasatruss2.noprismatic.tar
+-----------------------------------------------------------------------------
+

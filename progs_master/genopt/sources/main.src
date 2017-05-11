@@ -1,0 +1,1316 @@
+C=DECK      MAIN
+C
+      PROGRAM MAIN
+C
+C
+C  THIS PROGRAM DOES OPTIMIZATION OR ANALYSIS OF A FIXED DESIGN.
+C  IT MAY BE NECESSARY FOR USERS TO WRITE SUBROUTINES OR TO
+C  ESTABLISH ACCESS TO LIBRARIES OF SUBROUTINES WHICH HAVE BEEN
+C  WRITTEN FOR SPECIFIC APPLICATIONS IN THE PAST.
+C
+C  (1)  SUBROUTINES THAT THE USER OF GENOPT WRITES OR BORROWS SHOULD
+C       BE COLLECTED IN THE LIBRARIES CALLED ADDCODEn.NEW, n=1,2,3,...5.
+C       (SEE INSTRUCTIONS IN ADDCODE1.NEW, FOR EXAMPLE.)
+C  
+C  (2)  THE CORRESPONDING SUBROUTINE CALLS, AND ANY LABELLED COMMON
+C       BLOCKS AND VARIABLE DIMENSION AND TYPE STATEMENTS SHOULD BE
+C       ADDED WHERE CALLED FOR IN SUBROUTINE STRUCT, WHICH IS IN THE
+C       STRUCT.NEW LIBRARY (SEE INSTRUCTIONS THERE).
+C
+C  (3)  IF A VARIABLE TRANSLATOR IS NEEDED (WHICH WILL PROBABLY BE
+C       THE CASE) THE APPROPRIATE STATEMENTS SHOULD BE PROVIDED BY
+C       THE GENOPT USER IN SUBROUTINE TRANFR, WHICH IS IN THE
+C       STRUCT.NEW LIBRARY (SEE INSTRUCTIONS THERE).
+C
+      COMMON/PRMFIL/IFILE,IFILE2,IOUT,IPRM(5)   
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11   
+      COMMON/INDAT/INFILE
+      COMMON/LWRUPR/VARLOW(98),VARHI(98),CLINK(98,45),VLINK(98),VBV(99)
+      COMMON/NUMPAR/NPAR,NVAR,NALLOW,ICONST,NDEC,NLINK,NESCAP,ITYPE
+      COMMON/PARAMS/PAR(99),VAR(98),ALLOW(99),CONST(99),DEC(98),ESC(98)
+      COMMON/WORDS1/WORDP(99),WORDV(98),WORDA(99),WORDCC(99),WORDD(98)
+      COMMON/WORDS2/WORDL(98),WORDE(98),WORDIQ(45)
+      COMMON/OPTVAR/IDEC(98),ILV(98),IDLINK(98,45),ISCAPE(98),JTERMS(45)
+      COMMON/NUMPR2/ILAR,ICAR,IOAR,NFLAT,NCASES,NPRINT
+      COMMON/PARAM2/FLAR(98),CAR(99),OAR(98),FSAFE(99),CPWR(98,45)
+C BEG DEC 1990
+C BEG AUG 2009
+      COMMON/IAUTOG/IAUTOF
+      COMMON/PARAM3/CINEQ(45,45),DPWREQ(45,45)
+      COMMON/PARAM4/IDINEQ(45,45),NINEQ,JINEQ(45),IEQTYP(45)
+C END AUG 2009
+C END DEC 1990
+      COMMON/WORDS3/WORDF(98),WORDB(99),WORDOB(98),WORDS(99)
+      COMMON/WORDS4/WORDM(99)
+      COMMON/WORDS5/PCWORD(99)
+      COMMON/PLOTCD/ITRTOT,ITER,OBPLOT(30),CPLOT(99,30),DPLOT(98,30)
+C BEG NOV 2005
+C BEG JAN 2006
+      COMMON/ISKIPX/ISKIP(30)
+C END JAN 2006
+      COMMON/GRADMZ/GRADMX(30)
+      COMMON/IAUTOX/IAUTOC,ITIGHT,IITIGH(3),ITRMIN(3),IDESGN
+      COMMON/IMODFX/IMODFY
+C END NOV 2005
+      COMMON/PWORD/PHRASE
+      COMMON/PWORD2/IBLANK
+C BEG DEC 1990
+      COMMON/BNDLCX/VLBX(98),VUBX(98),RATXX(98)
+      COMMON/SFACT/SMOVE,SFACTR
+      COMMON/GEOMN3/IBVAR,VARPLT(30)
+      COMMON/BNDLCY/RATIO
+C BEG JAN 1998
+      COMMON/ITRSNX/ITRSEN,ITRALL,IRESET
+C END JAN 1998
+C BEG SEP 1999
+C BEG OCT 1999
+      DIMENSION IBEHV(99,20)
+C END OCT 1999
+C END SEP 1999
+C BEG JUN 2013
+C     COMMON/XAVEXX/XAVE(40)
+      COMMON/XAVEXX/XAVE(98)
+C END JUN 2013
+C BEG JUN 2013
+C     DIMENSION FACTDX(40)
+      DIMENSION FACTDX(98)
+C END JUN 2013
+C BEG JULY 2013
+      COMMON/ITERX/ITERS,ITIGHTS,ITERCHG,ITERNEW,ITRCHG2,ITRCHG3
+C END JULY 2013
+C END DEC 1990
+      CHARACTER*80 PHRASE,PCWORD
+      CHARACTER*80 WORDP,WORDV,WORDA,WORDC,WORDD,WORDL,WORDE
+      CHARACTER*80 WORDF,WORDB,WORDOB,WORDS,WORDM,WORDCC,WORDIQ
+C BEG OCT 2005
+C     CHARACTER*12 CASE
+C     CHARACTER*16 CASE2,CASE3,CASE5,CASE6,CASE9
+      CHARACTER*28 CASE
+      CHARACTER*32 CASE2,CASE3,CASE5,CASE6,CASE9
+C END OCT 2005
+      CHARACTER*4 ANSOUT,CHARAC,ANSWER,QUAL
+      DIMENSION ISUB(100),CONPRT(100),CONSTR(100),CONALL(100)
+C BEG JULY 1989
+C BEG NOV 2005
+C BEG JUN 2013
+C     DIMENSION XBEFOR(40),VUB(98),VLB(98),X(98),Y(40),A(41,100)
+      DIMENSION XBEFOR(98),VUB(98),VLB(98),X(98),Y(98),A(98,201)
+C END JUN 2013
+C END NOV 2005
+C END JULY 1989
+C BEG JUN 2013
+C     DIMENSION XSAVE(40),DOBJ(40),CSTAR(100),IPOINC(1500)
+      DIMENSION XSAVE(98),DOBJ(98),CSTAR(100),IPOINC(1500)
+C END JUN 2013
+C BEG AUG 1990
+      DIMENSION VARDEC(98),IWARNV(98,20),IWRNVV(98),VARLEG(98)
+      CHARACTER*12 VARLEG,VARDEC
+      CHARACTER*72 ARGSTR
+C END AUG 1990
+      LOGICAL ANSL1
+      integer lastch
+      logical exists
+      common/caseblock/case
+      call getarg(1, case)
+C
+C  ESTABLISH NAME FOR THE CASE...
+C
+      IUNAME = 12
+      OPEN(UNIT=12,STATUS='OLD')
+      CALL CASSPC(IUNAME,CASE)
+      CLOSE(IUNAME)
+      I=INDEX(CASE,' ')
+      IF(I.NE.0) THEN
+         CASE2=CASE(:I-1)//'.OPM'
+         CASE3=CASE(:I-1)//'.CBL'
+         CASE5=CASE(:I-1)//'.OPT'
+C        CASE6=CASE(:I-1)//'.OUT'
+      ELSE
+         CASE2=CASE//'.OPM'
+         CASE3=CASE//'.CBL'
+         CASE5=CASE//'.OPT'
+C        CASE6=CASE//'.OUT'
+      ENDIF
+      NLET = I - 1
+C BEG OCT 2005
+C     IF (I.EQ.0) NLET = 12
+      IF (I.EQ.0) NLET = 28
+C END OCT 2005
+C
+      INFILE = 55
+      IFILE  = 2
+      IOUT   = 3
+      IFILE7 = 7
+      IFILE8 = 8
+C BEG AUG 1990
+C BEG VMS
+c     OPEN(UNIT=2,FILE='GENOPT:URPROMPT.DAT',STATUS='OLD',READONLY)
+C END VMS
+C BEG UNIX
+      OPEN(UNIT=2,FILE='URPROMPT.DAT',STATUS='OLD')
+C END UNIX
+      OPEN(UNIT=3,STATUS='SCRATCH')
+      OPEN(UNIT=55,FILE=CASE5,STATUS='UNKNOWN')
+C     OPEN(UNIT=66,STATUS='SCRATCH')
+      OPEN(UNIT=7,FILE=CASE3,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=8,FILE=CASE2,STATUS='UNKNOWN')
+C
+C END AUG 1990
+C
+C     QUAL = '.OPT'
+C     CALL NFILE(IFILE,INFILE,IOUT,QUAL,IPROMP,IFILE8,CASE)
+C
+      CALL GETCOM(IFILE7)
+C
+C BEG JULY 1989
+      WRITE(IFILE8,*)' '
+      WRITE(IFILE8,'(A,A,A)')
+     1' ************ END OF THE  ',CASE(1:NLET),'.OPT  FILE ***********'
+C BEG SEP 2013 
+C BEG FEB 2014
+C BEG APR 2014
+      WRITE(IFILE8,'(A)')
+     1' ************ April 2014 VERSION OF GENOPT ****************'
+C END APR 2014
+C END FEB 2014
+C END SEP 2013 
+      WRITE(IFILE8,'(A,A,A)')
+     1' ******** BEGINNING OF THE  ',CASE(1:NLET),'.OPM  FILE *********'
+      WRITE(IFILE8,*)' '
+C END JULY 1989
+C
+C BEG OCT 1999
+      WRITE(IFILE8,41) CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+   41 FORMAT(/
+C END OCT 1999
+     1' *********************** MAIN PROCESSOR **********************'/
+     1' The purpose of the mainprocessor, OPTIMIZE, is to perform,'/
+     1' in a batch mode, the work specified by MAINSETUP for the case'/
+     1' called ',A,'.  Results are stored in the file  ',A,'.OPM.'/
+     1' Please inspect ',A,'.OPM before doing more design iterations.'/
+     1' ************************************************************'/)
+C
+      REWIND IFILE
+      IPROMP = 1
+      CALL DATUM(IFILE,20,1,2,INT,REALL,ANSWER,IOUT,0,0,0,1)
+      IF (ANSL1('Y',ANSWER,INFILE)) IPROMP = IFILE8
+C
+C BEG SEP 1999
+C BEG OCT 1999
+      CALL MOVER(0,0,IBEHV,1,1980)
+      LODMAX = MAX(1,NCASES)
+C BEG JAN 2006
+      CALL MOVER(0,0,ISKIP,1,30)
+C END JAN 2006
+      DO 4 ILOADS = 1,LODMAX
+    2 CONTINUE
+      REWIND IFILE
+      CALL DATUM(IFILE,405,1,2,IBEHAV,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      IF (IBEHAV.EQ.0) GO TO 3
+      IBEHV(IBEHAV,ILOADS) = IBEHAV
+      CALL DATUM(IFILE,410,1,1,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+      IF (ANSL1('Y',ANSOUT,INFILE)) GO TO 2
+    3 CONTINUE
+    4 CONTINUE
+C END OCT 1999
+      REWIND IFILE
+C END SEP 1999
+      CALL DATUM(IFILE,700,1,2,NPRINT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      CALL DATUM(IFILE,710,1,2,ITYPE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C     NPRINT = 0
+      ITER   = 0
+C     IF (ITYPE.EQ.2) NPRINT = 0
+C     IF (IPROMP.GT.1) NPRINT = 2
+C BEG DEC 2005
+      IFAST = 0
+C END DEC 2005
+      IF (ITYPE.EQ.1) THEN
+        CALL DATUM(IFILE,720,1,2,ITER,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG JULY 2013
+        IF (ITERCHG.EQ.1) ITER = ITERNEW
+C END JULY 2013
+C BEG NOV 2005
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        CALL DATUM(IFILE,723,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        IF (ANSL1('Y',ANSOUT,INFILE)) IFAST = 1 
+        CALL DATUM(IFILE,725,1,2,IDESGN,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END NOV 2005
+C BEG DEC 1990
+        CALL DATUM(IFILE,730,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+        CALL DATUM(IFILE,740,1,2,IMOVE,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+C BEG SEP 2013
+C
+C The following statement is commented out:
+C       IF (ITRALL.NE.0.AND.ITRTOT.EQ.0) ITIGHT = 1 
+C
+C END SEP 2013
+        SMOVE = 0.1
+        IF (IMOVE.EQ.2) SMOVE = 0.5
+        IF (IMOVE.EQ.3) SMOVE = 0.01
+        IF (IMOVE.EQ.4) SMOVE = 0.02
+        IF (IMOVE.EQ.5) SMOVE = 0.05
+C BEG AUG 2013
+        IF (IMOVE.EQ.6) SMOVE = 0.005
+C END AUG 2013
+        IF (ITIGHT.EQ.1) SMOVE = 0.02
+C END NOV 2005
+        CALL DATUM(IFILE,742,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        RATIO = 10.
+        IF (ANSL1('N',ANSOUT,INFILE))
+     1    CALL DATUM(IFILE,743,1,2,INT,RATIO,CHARAC,IOUT,0,0,0,IPROMP)
+C BEG NOV 2005
+        IF (SMOVE.LT.0.031) RATIO = 10000000.
+        IF (ITIGHT.EQ.1)    RATIO = 10000000.
+C END NOV 2005
+        CALL DATUM(IFILE,745,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        DX0 = 0.05
+C BEG AUG 2009
+        IF (ANSL1('N',ANSOUT,INFILE))
+     1      CALL DATUM(IFILE,746,1,2,INT,DX0,CHARAC,IOUT,0,0,0,IPROMP)
+        IMODFY = 0
+        CALL DATUM(IFILE,747,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        IF (ANSL1('Y',ANSOUT,INFILE)) IMODFY = 1
+        IF (SMOVE.LT.0.031) IMODFY = 0
+        CALL DATUM(IFILE,748,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+        CALL DATUM(IFILE,749,1,2,IAUTOF,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+C END AUG 2009
+        IF (ANSL1('Y',ANSOUT,INFILE)) ITRTOT = 0
+      ENDIF
+C     End of (ITYPE.EQ.1) condition
+      NSTEPS = 0
+      IF (ITYPE.EQ.3) THEN
+       REWIND IFILE
+       CALL DATUM(IFILE,382,0,0,INT,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+       CALL DATUM(IFILE,384,1,2,IBVAR,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+       CALL DATUM(IFILE,386,1,2,INT,VARBEG,CHARAC,IOUT,0,0,0,IPROMP)
+       CALL DATUM(IFILE,388,1,2,INT,VAREND,CHARAC,IOUT,0,0,0,IPROMP)
+       CALL DATUM(IFILE,390,1,2,INT,REALL,ANSOUT,IOUT,0,0,0,IPROMP)
+       IF (ANSL1('Y',ANSOUT,INFILE)) NSTEPS = 29
+       IF (NSTEPS.EQ.0)
+     1 CALL DATUM(IFILE,392,1,2,NSTEPS,REALL,CHARAC,IOUT,0,0,0,IPROMP)
+      ENDIF
+C END DEC 1990
+C
+C BEG AUG 1990
+      CALL VARNAM(IFILE8,1,NVAR,WORDV,VARLEG)
+      IDV = 0
+      DO 210 I = 1,NVAR
+         IF (IDEC(I).EQ.0) GO TO 210
+         IDV = IDV + 1
+         DO 208 K = 1,12
+            ISTART = K
+            IF (VARLEG(I)(K:K).NE.' ') GO TO 209
+  208    CONTINUE
+  209    CONTINUE
+         VARDEC(IDV) = VARLEG(I)(ISTART: )
+  210 CONTINUE
+      CALL MOVER(0,0,IWARNV,1,1960)
+      CALL MOVER(0,0,IWRNVV,1,98)
+C END AUG 1990
+C
+C BEG DEC 1990
+C BEG JUN 2013
+C     IF (ITRTOT.EQ.0) CALL MOVER(0.,0,XAVE,1,40)
+      IF (ITRTOT.EQ.0) CALL MOVER(0.,0,XAVE,1,98)
+C END JUN 2013
+      CONMAX = 1.5
+      IF (ITYPE.EQ.2.OR.ITYPE.EQ.3) CONMAX = 10000000.
+C END DEC 1990
+      IF (IPROMP.GT.1) CONMAX = 10000000.
+C     IF (ITYPE.EQ.2) CONMAX = 1.E+20
+C
+C     ILOADS = 1
+      JJJ = 0
+      ITRIAL = 0
+      IESCAP = 0
+      IFAIL = 0
+      IZERO = 0
+C
+      CALL SETUPC(NVAR,VAR)
+C
+    6 CONTINUE
+C
+C BEG OCT 2010
+      IF (ITYPE.EQ.1) THEN
+         CONMX1 = CONMAX - 1.0
+         WRITE(IFILE8,'(/,A,A,/,A,1P,E12.4)')
+     1 ' Any margin greater than CONMAX-1.0 is ignored',
+     1 ' during optimization cycles.',
+     1 ' CONMAX-1.0 =',CONMX1
+      ENDIF
+C END OCT 2010
+C BEG DEC 1990
+      NSTEP1 = 1
+      IF (ITYPE.EQ.3) THEN
+         NSTEP1 = NSTEPS + 1
+         FNSTEP = NSTEPS
+         DV = (VAREND - VARBEG)/FNSTEP
+         VARSAV = VAR(IBVAR)
+      ENDIF
+C
+      DO 106 ISTEP = 1,NSTEP1
+      IF (ITYPE.EQ.3) THEN
+         JJJ1 = ISTEP
+         JJJ = JJJ1 - 1
+         FJJ = JJJ
+         VAR(IBVAR) = VARBEG + FJJ*DV
+         VARPLT(ISTEP) = VAR(IBVAR)
+         CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+         CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+         CALL SETUPC(NVAR,VAR)
+      ENDIF
+C END DEC 1990
+      IBEG = 1
+    5 FORMAT(///' ************** NEXT LOAD SET *****************'/
+     1          ' ************** NEXT LOAD SET *****************')
+C
+      ISTART = 0
+C
+C BEG NOV 1990
+      LODMAX = MAX(1,NCASES)
+      DO 105 ILOADS = 1,LODMAX
+C END NOV 1990
+C
+   10 CONTINUE
+C
+      IFAIL = 0
+C
+      IMOD = 0
+      IF (IESCAP.NE.0) THEN
+         IF (NPRINT.GE.0) WRITE(IFILE8,11) JJJ
+   11 FORMAT(//' ***************************************************'/
+     1         ' ***************************************************'/
+     1         ' ***************************************************'/
+     1         ' STRUCTURAL ANALYSIS FOR DESIGN ITERATION',I3,'.'/
+     1' NEW DESIGN WAS OBTAINED VIA CHANGE IN ESCAPE VARIABLES RATHER'/
+     1' THAN VIA ADS.'/)
+C
+C     CALL OUTV2(IFILE8,1,NESCAP,ESC,VAR,WORDE,' CURRENT VALUES OF THE E
+C    1SCAPE VARIABLES FOR THE OPTIMIZATION RUN  ')
+      ARGSTR = 'CURRENT VALUES OF THE ESCAPE VARI'//
+     $         'ABLES FOR THE OPTIMIZATION RUN  '
+      CALL OUTV2(IFILE8,1,NESCAP,ESC,VAR,WORDE,ARGSTR)
+C
+      IF (JJJ.EQ.0) JJJ = 1
+      IF (NPRINT.GE.0) WRITE(IFILE8,111)
+  111 FORMAT(/
+     1         ' ***************************************************'/
+     1         ' ***************************************************'/
+     1         ' ***************************************************'//)
+C
+      ENDIF
+C
+      IF (IESCAP.EQ.0) THEN
+         IF (ILOADS.EQ.1) WRITE(IFILE8,12) JJJ
+   12  FORMAT(///' STRUCTURAL ANALYSIS FOR DESIGN ITERATION NO.',I4,':')
+      ENDIF
+C
+C BEG DEC 1990
+      IF (ITYPE.NE.3) THEN
+         JJJ1 = JJJ + 1
+         IF (JJJ1.GT.29) THEN
+            WRITE(IFILE8,*)' USE FEWER DESIGN ITERATIONS'
+            CALL EXIT(1)
+         ENDIF
+      ENDIF
+C END DEC 1990
+C BEG OCT 1999
+      CALL OUTOPT(IFILE8,NVAR,IDEC,ISCAPE,ILV,CLINK(1,1),IDLINK(1,1),
+     1            VARLOW,VARHI,VAR,WORDV,
+     1' STRUCTURAL ANALYSIS WITH UNPERTURBED DECISION VARIABLES         
+     1',57)
+C
+      CALL STRUCT(IMOD,CONSTR,OBJGEN,CONMAX,NCONST,IPOINC,PCWORD,
+C BEG JAN 2006
+     1 CPLOT(1,JJJ1),ILOADS,ISTART,NUSERC,IBEHV(1,ILOADS),0,IFAST,JJJ1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JAN 2006 
+C END OCT 1999
+      IEND = IBEG + NCONST - 1
+      IF (ILOADS.EQ.1) THEN
+         DO 14 I = 1,NVAR
+   14    DPLOT(I,JJJ1) = VAR(I)
+         OBPLOT(JJJ1)  = OBJGEN
+      ENDIF
+C
+C BEG DEC 1990
+      IF (ILOADS.EQ.LODMAX.AND.IEND.EQ.0.AND.CONMAX.LT.1.E+15) THEN
+C END DEC 1990
+         WRITE(IFILE8,1001) CONMAX
+ 1001    FORMAT(/' NO CONSTRAINTS ARE LESS THAN CONMAX=',1PE12.4,'.'/
+     1 ' WE THEREFORE INCREASE THE VALUE OF CONMAX BY A FACTOR OF 2.0'/
+     1 ' AND TRY AGAIN.'/)
+         IF (CONMAX.LT.1000.) THEN
+            CONMAX = CONMAX*2.0
+         ELSE
+            CONMAX = 1.E+15
+         ENDIF
+         GO TO 10
+      ENDIF
+C
+C BEG OCT 2005
+C     IF (ILOADS.EQ.1)
+C    1CALL OUTOPT(IFILE8,NVAR,IDEC,ISCAPE,ILV,CLINK(1,1),IDLINK(1,1),
+C    1            VARLOW,VARHI,VAR,WORDV,
+C    1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+C    1  ',57)
+C END OCT 2005
+C
+      WRITE(IFILE8,18) ILOADS
+   18 FORMAT(/' ***** RESULTS FOR LOAD SET NO. ',I2,'  ******')
+C BEG DEC 1990
+      IF (ITYPE.EQ.2.OR.ITYPE.EQ.3) THEN
+C END DEC 1990
+         IF (ILOADS.EQ.1) THEN
+            ICARM = ICAR - NINEQ - NUSERC
+         ELSE
+            ICARM = ICAR - ISTART
+         ENDIF
+
+C     CALL OUTVAR( ICARM,  CAR,WORDB,IADDA,'PARAMETERS WHICH DESCRIBE BE
+C    1HAVIOR (e.g. stress, buckling load)  ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH DESCRIBE BEHAVIO'//
+     $         'R (e.g. stress, buckling load)  '
+      CALL OUTVAR( ICARM,  CAR,WORDB,IADDA,ARGSTR,IFILE8,80,1,ISUB,1)
+
+      ENDIF
+C
+      DO 17 I = 1,NCONST
+   17 CONPRT(I) = CONSTR(I) - 1.
+C BEG OCT 2005
+      WRITE(IFILE8,'(/,A,/,A,/,A,/,A,/)')
+     1' ******* NOTE ******* NOTE ******* NOTE ****** NOTE ******',
+     1' The phrase, "NOT APPLY", for MARGIN VALUE means that that',
+     1' particular margin value is exactly zero.',
+     1' *** END NOTE *** END NOTE *** END NOTE *** END NOTE *****'
+C END OCT 2005
+C BEG MAR 2008
+      WRITE(IFILE8,18) ILOADS
+C END MAR 2008
+      IF (ITYPE.EQ.1) THEN
+
+C     CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,'THOSE MARGINS LESS THAN UNI
+C    1TY CORRESPONDING TO CURRENT DESIGN     ',IFILE8,80,0,ISUB,1)
+C BEG OCT 2010
+        ARGSTR = 'MARGINS LESS THAN CONMAX-1 COR'//
+     $           'RESPONDING TO CURRENT DESIGN     '
+C END OCT 2010
+        CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,ARGSTR,IFILE8,80,0,ISUB,1)
+
+      ENDIF
+C BEG DEC 1990
+      IF (ITYPE.EQ.2.OR.ITYPE.EQ.3) THEN
+C END DEC 1990
+
+C     CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,'MARGINS CORRESPONDING TO CU
+C    1RRENT DESIGN (F.S.= FACTOR OF SAFETY)  ',IFILE8,80,0,ISUB,1)
+        ARGSTR = 'MARGINS CORRESPONDING TO CURRENT '//
+     $           'DESIGN (F.S.= FACTOR OF SAFETY)  '
+        CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,ARGSTR,IFILE8,80,0,ISUB,1)
+
+      ENDIF
+C
+C BEG NOV 1990
+      IF (ILOADS.EQ.LODMAX) THEN
+C END NOV 1990
+         WRITE(IFILE8,19)
+   19    FORMAT(/' ***************************************************'/
+     1' ******************** DESIGN OBJECTIVE *******************'/
+     1' *************                             ***********')
+C
+
+C     CALL OUTVAR(1,    OBJGEN,WORDOB,IADDD,'   CURRENT VALUE OF THE OBJ
+C    1ECTIVE FUNCTION:                       ',IFILE8,80,0,ISUB,1)
+      ARGSTR = '   CURRENT VALUE OF THE OBJECTIVE'//
+     $         ' FUNCTION:                       '
+      CALL OUTVAR(1,    OBJGEN,WORDOB,IADDD,ARGSTR,IFILE8,80,0,ISUB,1)
+
+C
+         WRITE(IFILE8,21)
+   21    FORMAT(/' *************                          ************'/
+     1' ******************** DESIGN OBJECTIVE *******************'/
+     1' *****************************************************')
+      ENDIF
+C
+C BEG DEC 1990
+      IF (ITYPE.EQ.2.OR.ITYPE.EQ.3) GO TO 103
+C END DEC 1990
+C
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+C
+C  CHECK TO SEE IF TOO MANY CONSTRAINT CONDITIONS ARE VIOLATED FOR
+C  ADS TO WORK PROPERLY..
+C
+C BEG DEC 1990 (ESCAPE COMMENTED OUT)
+C BEG OCT 2005 (decomment following two lines temporarily...
+C     CALL ESCAPE(IFAIL,NVAR,NDEC,NCONST,ISCAPE,VAR,VARHI,CONSTR,IESCAP,
+C    1       ILOADS,JACTIV)
+C END OCT 2005
+C END DEC 1990
+C
+      IF (IFAIL.EQ.1.AND.IESCAP.EQ.0) WRITE (IFILE8,20)
+   20 FORMAT(//' ADS REFUSES TO ALTER THE DESIGN.  USE A DIFFERENT'/
+     1' STARTING DESIGN AND TRY AGAIN.'/)
+      IF (IFAIL.EQ.1.AND.IESCAP.EQ.0) GO TO 135
+      IF (NDEC.EQ.0) GO TO 130
+      IF (IESCAP.EQ.1) THEN
+         CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+         CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+         IZERO = 0
+         CALL SETUPC(NVAR,VAR)
+         GO TO 10
+      ENDIF
+C
+C  ACCUMULATE CONSTRAINT CONDITIONS FOR VARIOUS CASES...
+C
+      IEND = IBEG + NCONST - 1
+      IF (IEND.GT.150) THEN
+         IF (CONMAX.LT.3.0) THEN
+            WRITE(IFILE8,*)' TOO MANY CONSTRAINTS.'
+            IF (ILOADS.GT.1) THEN
+               WRITE(IFILE8,*)' PLEASE USE FEWER CASES AND/OR'
+               WRITE(IFILE8,*)' USE "CHANGE" TO MAKE THE PARTS'
+               WRITE(IFILE8,*)' OF THE STRUCTURE THICKER.'
+            ELSE
+               WRITE(IFILE8,*)' USE "CHANGE" TO MAKE THE PARTS'
+               WRITE(IFILE8,*)' OF THE STRUCTURE THICKER.'
+            ENDIF
+            CALL ERREX
+         ELSE
+            IF (ILOADS.GT.1) THEN
+               IBEG1 = IBEG - 1
+               DO 22 I = 1,IBEG1
+                  CONMAX = MIN(CONMAX,CONALL(I))
+   22          CONTINUE
+            ENDIF
+            DO 23 I = 1,NCONST
+               CONMAX = MIN(CONMAX,CONSTR(I))
+   23       CONTINUE
+C BEG DEC 1990
+            CONMAX = MAX(CONMAX,1.5)
+C END DEC 1990
+         ENDIF
+         WRITE(IFILE8,25) CONMAX, JJJ
+   25    FORMAT(//' MAXIMUM ALLOWABLE NUMBER OF CONSTRAINTS EXCEEDED.'/
+     1 ' RESETTING THE VARIABLE CONMAX TO CONMAX =',1PE12.4,' AND'/
+     1 ' GOING BACK TO THE BEGINNING OF THE LOAD LOOP FOR DESIGN'/
+     1 ' ITERATION NO.',I3'.'/)
+         GO TO 6
+      ENDIF
+C
+C     WRITE(8,*)' IBEG,IEND,NCONST=',IBEG,IEND,NCONST
+      DO 30 ICONST = IBEG,IEND
+      ICON = ICONST - IBEG + 1
+      CONALL(ICONST) = CONSTR(ICON)
+   30 CONTINUE
+C
+C  PERTURB THE DESIGN IN ORDER TO GET GRADIENTS...
+C
+      DO 100 IDV = 1,NDEC
+C
+C BEG JUNE 1990
+      IF (NDEC.EQ.0) THEN
+         WRITE(IFILE8,*)' THERE ARE NO DECISION VARIABLES. USE DECIDE'
+         CALL ERREX
+      ENDIF
+C
+      NUMDEC = 0
+      DO 37 I = 1,NVAR
+         NUMVAR = I
+         IF (IDEC(I).EQ.1) NUMDEC = NUMDEC + 1
+         IF (NUMDEC.EQ.IDV) GO TO 38
+   37 CONTINUE
+      WRITE(IFILE8,*)' NO DECISION VARIABLE MATCH. MUST BE A BUG.'
+      CALL ERREX
+   38 CONTINUE
+C END JUNE 1990
+C
+      XSAVE(IDV) = X(IDV)
+C
+C  GET PERTURBED VECTOR Y OF DECISION VARIABLES...
+C
+C BEG DEC 1990
+      RATAVE = ABS(XAVE(IDV)/X(IDV))
+      FACTDX(IDV) = MAX(1.0,RATAVE)
+C BEG NOV 2005
+      IF (IMODFY.EQ.0) FACTDX(IDV) = 1.0
+C END NOV 2005
+      CALL NEWY(NDEC,IDV,IDEC,X,Y,DX,WORDV,NVAR,VAR,JJJ,
+     1          IWRNVV(NUMVAR),DX0,FACTDX(IDV))
+C END DEC 1990
+C
+C  GET PERTURBED PARAMETER VECTOR, VAR, FROM Y...
+C
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,Y,WORDV,CPWR,JTERMS)
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+C
+C  DO STRUCTURAL ANALYSIS FOR PERTURBED PARAMETER VECTOR....
+C
+C BEG OCT 1999
+C BEG OCT 2005
+C     IF (NPRINT.GE.0) THEN
+      IF (NPRINT.GE.1) THEN
+C END OCT 2005
+C END OCT 1999
+C BEG JUNE 1990
+      WRITE(IFILE8,40) IDV,IDV,NUMVAR,XSAVE(IDV),WORDV(NUMVAR)
+   40 FORMAT(/' STRUCTURAL ANALYSIS WITH DECISION VARIABLE NO.',I2/
+     1' PERTURBED BY X PER CENT.  DECISION VARIABLE NO. ',I2/
+     1' CORRESPONDS TO DESIGN VARIABLE NO. ',I2,'. ITS UNPERTURBED'/
+     1' VALUE IS ',1PE12.4,' AND ITS DEFINITION IS:'/
+     1' ',A/)
+C END JUNE 1990
+C
+      CALL OUTOPT(IFILE8,NVAR,IDEC,ISCAPE,ILV,CLINK(1,1),IDLINK(1,1),
+     1            VARLOW,VARHI,VAR,WORDV,
+     1' STRUCTURAL ANALYSIS WITH PERTURBED DECISION VARIABLE            
+     1 ',57)
+C
+      ENDIF
+C
+C BEG OCT 1999
+      CALL STRUCT(1,CSTAR,OBSTAR,CONMAX,NCONST,IPOINC,PCWORD,
+C BEG JAN 2006
+     1  CPLOT(1,JJJ1),ILOADS,ISTART,NUSERC,IBEHV(1,ILOADS),IDV,IFAST,
+     1  JJJ1)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END JAN 2006 
+C END OCT 1999
+C
+C BEG OCT 2005
+C     IF (NPRINT.GE.0) THEN
+      IF (NPRINT.GE.1) THEN
+C END OCT 2005
+      DO 50 I = 1,NCONST
+   50 CONPRT(I) = CSTAR(I) - 1.
+
+C     CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,'THOSE MARGINS LESS THAN UNI
+C    1TY CORRESPONDING TO PERTURBED DESIGN   ',IFILE8,80,0,ISUB,1)
+C BEG OCT 2010
+      ARGSTR = 'MARGINS LESS THAN CONMAX-1 COR'//
+     $         'RESPONDING TO PERTURBED DESIGN   '
+C END OCT 2010
+      CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,ARGSTR,IFILE8,80,0,ISUB,1)
+
+C
+      ENDIF
+C
+C  GET GRADIENTS OF CONSTRAINT CONDITIONS...
+C
+C BEG DEC 1990
+C BEG JUN 2013
+C     CALL GRADG(IBEG,IEND,IDV,DX,CONSTR,CSTAR,A,IFILE8,NPRINT,
+C    1           NUMVAR,WORDV(NUMVAR),XSAVE(IDV),
+C    1           IWARNV(NUMVAR,ILOADS),WORDM,VARDEC,FACTDX(IDV))
+      CALL GRADG(IBEG,IEND,IDV,DX,CONSTR,CSTAR,A,IFILE8,NPRINT,
+     1           NUMVAR,WORDV(NUMVAR),XSAVE(IDV),
+     1           IWARNV(NUMVAR,ILOADS),WORDM,VARDEC,FACTDX(IDV),
+     1           NDEC)
+C END JUN 2013
+C END DEC 1990
+C
+C  RESTORE PARAMETER VECTOR, VAR, CORRESPONDING TO CURRENT
+C  UNPERTURBED DESIGN STATE, X...
+C
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+C
+C  GET GRADIENT OF OBJECTIVE FUNCTION...
+C
+C BEG DEC 1990
+      IF (ILOADS.EQ.1) THEN
+         DOBJ(IDV) = (OBSTAR - OBJGEN)/(DX*FACTDX(IDV))
+C        DOBJ(IDV) = (OBSTAR - OBJGEN)/(DX*FACTDX(IDV)*ABS(XSAVE(IDV)))
+C END DEC 1990
+C
+         IF (NPRINT.GE.2)
+     1 WRITE(IFILE8,90) IDV, OBSTAR, OBJGEN, DX, FACTDX(IDV), DOBJ(IDV)
+   90 FORMAT(//' OBJECTIVE FUNCTION GRADIENT FOR DECISION VAR. NO.',I3/
+     1'   OBJECTIVE FUNCTION FOR PURTURBED DESIGN,  OBSTAR =',1PE12.4/
+     1' CONSTRAINT CONDITION FOR ORIGINAL  DESIGN,  OBJGEN =',1PE12.4/
+     1' NORMALIZED FINITE DIFFERENCE INCREMENT,         DX =',1PE12.4/
+     1' FACTOR FOR NORMALIZED FINITE DIFF. INCREMNT,FACTDX =',1PE12.4/
+     1' OBJECTIVE GRADIENT,    (OBSTAR-OBJGEN)/(DX*FACTDX) =',1PE12.4//)
+      ENDIF
+C
+  100 CONTINUE
+C
+  103 CONTINUE
+      IBEG = IBEG + NCONST
+      ISTART = ICAR
+C
+  105 CONTINUE
+C  END OF LOOP OVER NUMBER OF LOAD SETS.
+C
+C BEG DEC 1990
+C
+  106 CONTINUE
+C  END OF LOOP OVER SENSITIVITY RANGE (DESIGN VARIABLE RANGE - ITYPE=3)
+      IF (ITYPE.EQ.3) THEN
+         VAR(IBVAR) = VARSAV
+         CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+         CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+         CALL SETUPC(NVAR,VAR)
+         ITER = NSTEPS
+         ITRSEN = JJJ1
+      ENDIF
+C
+      IF (ITYPE.EQ.2.OR.ITYPE.EQ.3) GO TO 1381
+C END DEC 1990
+C
+C     DO 107 I = 1,IEND
+C 107 WRITE(IFILE8,108) I, CONALL(I)
+C 108 FORMAT(' CONSTRAINT NUMBER=',I3,',  CONSTRAINT VALUE=',1PE12.4)
+C
+C  STORE CURRENT DESIGN IN XBEFOR...
+C
+      DO 110 I = 1,NDEC
+  110 XBEFOR(I) = X(I)
+C
+C  GET NEW DESIGN FROM OPTIMIZER...
+C
+C BEG AUG 1990
+      DO 207 I = 1,NVAR
+      DO 206 ILOADS = 1,NLOADS
+         IWRNVV(I) = MAX(IWRNVV(I),IWARNV(I,ILOADS))
+  206 CONTINUE
+  207 CONTINUE
+C         
+C BEG DEC 1990
+      IF (IEND.EQ.0) THEN
+         IEND = 1
+         CONALL(1) = 1.E+10
+         DO 211 I = 1,NDEC
+  211    A(I,1) = 0.
+      ENDIF
+C
+C BEG NOV 2005
+      CALL CONMAN(JJJ,NDEC,X,XSAVE,OBJGEN,DOBJ,IEND,CONALL,A,VLB,VUB,
+     1            ISTOP,ITRIAL,WORDV,IDEC,VAR,NVAR,NPRINT,IFILE8,
+     1            IWRNVV,VARDEC,FACTDX,GRADMX)
+C END NOV 2005
+C END DEC 1990
+C END AUG 1990
+C
+      IF (ITYPE.EQ.1.AND.NPRINT.GT.1) THEN
+       WRITE(IFILE8,*)' ***** TO GET FURTHER, ANSWER THAT YOU *****'
+       WRITE(IFILE8,*)' ***** DO NOT WANT THE TUTORIAL OPTION *****'
+       WRITE(IFILE8,*)' ***** AND SET NPRINT LESS THAN 2      *****'
+       CALL EXIT(1)
+      ENDIF
+C
+C  UPDATE PARAMETER VECTOR, VAR...
+C
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+      IZERO = 1
+      CALL SETUPC(NVAR,VAR)
+C
+C  DID ADS CHANGE THE DESIGN?
+C
+      IFAIL = 1
+      DO 120 I = 1,NDEC
+      DIFF = ABS((X(I)-XBEFOR(I))/XBEFOR(I) )
+      IF (DIFF.GT.0.001) IFAIL = 0
+  120 CONTINUE
+C BEG DEC 1990
+      DO 1201 I = 1,NDEC
+       RATXX(I) = ABS(X(I)/XBEFOR(I))
+ 1201 CONTINUE
+      DO 1202 I = 1,NDEC
+         IF (ITRTOT.EQ.0.AND.JJJ.EQ.0) XAVE(I) = 0.
+         XAVE(I) = ((ITRTOT+JJJ)*XAVE(I) +ABS(X(I)))/(ITRTOT+JJJ+1)
+ 1202 CONTINUE
+C END DEC 1990
+C
+      IF (IFAIL.EQ.1) WRITE(IFILE8,121)
+  121 FORMAT(//' **********************************'/
+     1         ' **********************************'/
+     1         ' **********************************'//
+     1         '  ADS DID NOT CHANGE THE DESIGN '//
+     1         ' **********************************'/
+     1         ' **********************************'/
+     1         ' **********************************'/)
+C BEG OCT 2005
+C     IF (IFAIL.EQ.0.AND.NPRINT.GE.1) WRITE(IFILE8,122)
+      IF (IFAIL.EQ.0.AND.NPRINT.GE.0) WRITE(IFILE8,122)
+C END OCT 2005
+  122 FORMAT(//' ********************************'/
+     1         ' ********************************'/
+     1         ' ********************************'//
+     1         '    ADS CHANGED THE DESIGN'//
+     1         ' ********************************'/
+     1         ' ********************************'/
+     1         ' ********************************'/)
+      IF (IFAIL.EQ.0) GO TO 130
+      CALL ESCAPE(IFAIL,NVAR,NDEC,IEND,ISCAPE,VAR,VARHI,CONALL,
+     1            IESCAP,1,JACTIV)
+      IF (IFAIL.EQ.1.AND.IESCAP.EQ.0) THEN
+         WRITE(IFILE8,123)
+  123    FORMAT(/' ADS  FAILED TO CHANGE THE DESIGN AND THERE'/
+     1' IS NO ADVANTAGE TO PERFORMING AN ESCAPE SEQUENCE, THAT IS'/
+     1' ESCAPE VARIABLES (THICKNESSES) CANNOT OR SHOULD NOT BE'/
+     1' INCREASED. THIS IS DUE TO ONE OF THE FOLLOWING REASONS:'//
+     1'   1. NO THICKNESSES ARE DECISION VARIABLES AND THEREFORE'/
+     1'      THERE ARE NO ESCAPE VARIABLES. (SOLUTION: USE DECIDE'/
+     1'      TO MAKE AT LEAST ONE THICKNESS A DECISION VARIABLE.)'/
+     1'   2. ALL THICKNESSES HAVE REACHED THEIR UPPER BOUNDS.'/
+     1'      (SOLUTION: INCREASE THE UPPER BOUNDS OF THICKNESSES.'/
+     1'   3. CONVERGENCE HAS BEEN ACHIEVED TO AN OPTIMUM DESIGN!'/
+     1'      (WARNING: It may not be a global optimum. There"s'/
+     1'                nothing in the theory here to guarantee'/
+     1'                convergence to a global optimum. You must'/
+     1'                search for a global optimum by using a'/
+     1'                number of different starting designs and'/
+     1'                seeing which of the iterated designs has'/
+     1'                the best objective (e.g. least weight)'/)
+      ENDIF
+C
+      IF (IESCAP.EQ.0) GO TO 135
+      CALL SETUPX(NVAR,IDEC,VAR,VARLOW,VARHI,X,VLB,VUB,NDEC,WORDV)
+      CALL SETUPV(NVAR,IDEC,ILV,IDLINK,CLINK,VAR,X,WORDV,CPWR,JTERMS)
+      IZERO = 0
+      CALL SETUPC(NVAR,VAR)
+C
+C BEG OCT 2005
+      IESCAP = 0
+      IFAIL = 0
+C END OCT 2005
+      GO TO 6
+  130 CONTINUE
+C
+      ITRIAL = ITRIAL + 1
+      JJJ    = JJJ    + 1
+C
+      IF (JJJ.LT.ITER) GO TO 6
+C
+  135 CONTINUE
+      JJJ1   = JJJ    + 1
+      ITER   = JJJ
+      CONMAX = 10000000.
+C
+      ISTART = 0
+C BEG NOV 1990
+      LODMAX = MAX(1,NCASES)
+      DO 138 ILOADS = 1,LODMAX
+C END NOV 1990
+      IF (ITYPE.EQ.1) 
+C BEG OCT 1999
+     1   CALL STRUCT(IMOD,CONSTR,OBJGEN,CONMAX,NCONST,IPOINC,
+C BEG OCT 2005
+     1 PCWORD,CPLOT(1,JJJ1),ILOADS,ISTART,NUSERC,IBEHV(1,ILOADS),0,
+C BEG JAN 2006
+     1 IFAST,JJJ1)
+C END JAN 2006
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END OCT 2005
+C END OCT 1999
+C
+      IF (ITYPE.EQ.1.AND.ILOADS.EQ.1) THEN
+      DO 136 I = 1,NVAR
+  136 DPLOT(I,JJJ1) = VAR(I)
+      OBPLOT(JJJ1)  = OBJGEN
+      WRITE(IFILE8,12) JJJ
+      CALL OUTOPT(IFILE8,NVAR,IDEC,ISCAPE,ILV,CLINK(1,1),IDLINK(1,1),
+     1            VARLOW,VARHI,VAR,WORDV,
+     1 '         SUMMARY OF INFORMATION FROM OPTIMIZATION ANALYSIS      
+     1  ',57)
+C
+      WRITE(IFILE8,19)
+
+C     CALL OUTVAR(1,    OBJGEN,WORDOB,IADDD,'  CURRENT VALUE OF THE OBJE
+C    1CTIVE FUNCTION:                        ',IFILE8,80,0,ISUB,1)
+      ARGSTR = '  CURRENT VALUE OF THE OBJECTIVE '//
+     $         'FUNCTION:                        '
+      CALL OUTVAR(1,    OBJGEN,WORDOB,IADDD,ARGSTR,IFILE8,80,0,ISUB,1)
+
+      WRITE(IFILE8,21)
+C
+      ENDIF
+C
+      IF (ITYPE.EQ.1) THEN
+         WRITE(IFILE8,18) ILOADS
+         IF (ILOADS.EQ.1) THEN
+            ICARM = ICAR - NINEQ - NUSERC
+         ELSE
+            ICARM = ICAR - ISTART
+         ENDIF
+
+C     CALL OUTVAR( ICARM,  CAR,WORDB,IADDA,'PARAMETERS WHICH DESCRIBE BE
+C    1HAVIOR (e.g. stress, buckling load)  ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH DESCRIBE BEHAVIO'//
+     $         'R (e.g. stress, buckling load)  '
+      CALL OUTVAR( ICARM,  CAR,WORDB,IADDA,ARGSTR,IFILE8,80,1,ISUB,1)
+
+C
+         DO 140 I = 1,NCONST
+  140    CONPRT(I) = CONSTR(I) - 1.
+         WRITE(IFILE8,18) ILOADS
+
+C     CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,'MARGINS CORRESPONDING TO CU
+C    1RRENT DESIGN (F.S.= FACTOR OF SAFETY)  ',IFILE8,80,0,ISUB,1)
+      ARGSTR = 'MARGINS CORRESPONDING TO CURRENT '//
+     $         'DESIGN (F.S.= FACTOR OF SAFETY)  '
+      CALL OUTVAR(NCONST,CONPRT,WORDM,IADDB,ARGSTR,IFILE8,80,0,ISUB,1)
+
+      ENDIF
+C
+      ISTART =  ICAR
+  138 CONTINUE
+ 1381 CONTINUE
+      WRITE(IFILE8,141) NCASES
+  141 FORMAT(' ***********  ALL',I2,' LOAD CASES PROCESSED ***********'/
+     1       ' *****************************************************'//)
+      IF (ITYPE.EQ.1.AND.NPRINT.GT.1) CALL EXIT(1)
+      IF (NPRINT.GE.0) THEN
+
+C     CALL OUTVAR(NPAR,PAR,WORDP,IADDP,'PARAMETERS WHICH ARE ALWAYS FIXE
+C    1D.  NONE CAN BE DECISION VARIAB. ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH ARE ALWAYS FIXED'//
+     $         '.  NONE CAN BE DECISION VARIAB. '
+      CALL OUTVAR(NPAR,PAR,WORDP,IADDP,ARGSTR,IFILE8,80,1,ISUB,1)
+
+C
+
+C     CALL OUTVAR(  ILAR, FLAR,WORDF,IADDA,'PARAMETERS WHICH ARE ENVIRON
+C    1MENTAL FACTORS (e.g. loads, temps.)  ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH ARE ENVIRONMENTA'//
+     $         'L FACTORS (e.g. loads, temps.)  '
+      CALL OUTVAR(  ILAR, FLAR,WORDF,IADDA,ARGSTR,IFILE8,80,1,ISUB,1)
+
+C
+
+C     CALL OUTVAR(NALLOW,ALLOW,WORDA,IADDA,'PARAMETERS WHICH ARE CLASSIF
+C    1IED AS ALLOWABLES (e.g. max. stress) ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH ARE CLASSIFIED A'//
+     $         'S ALLOWABLES (e.g. max. stress) '
+      CALL OUTVAR(NALLOW,ALLOW,WORDA,IADDA,ARGSTR,IFILE8,80,1,ISUB,1)
+
+C
+
+C     CALL OUTVAR( NFLAT,FSAFE,WORDS,IADDA,'PARAMETERS WHICH ARE FACTORS
+C    1 OF SAFETY                           ',IFILE8,80,1,ISUB,1)
+      ARGSTR = 'PARAMETERS WHICH ARE FACTORS OF S'//
+     $         'AFETY                           '
+      CALL OUTVAR( NFLAT,FSAFE,WORDS,IADDA,ARGSTR,IFILE8,80,1,ISUB,1)
+
+C
+      WRITE(IFILE8,573) NINEQ
+  573 FORMAT(/I5,' INEQUALITY CONSTRAINTS WHICH MUST BE SATISFIED'/)
+      DO 580 I = 1,NINEQ
+      WRITE(IFILE8,'(1X,A)') WORDIQ(I)
+  580 CONTINUE
+C
+      ENDIF
+C
+  590 CONTINUE
+C
+C BEG DEC 1990
+      IF (ITYPE.EQ.1) THEN
+         ITRTOT = ITRTOT + JJJ1
+C BEG FEB 2014
+         WRITE(IFILE8,'(A,2I4)') ' JJJ1,ITRTOT=',JJJ1,ITRTOT
+C END FEB 2014
+C BEG FEB 1998
+C        ITRALL = ITRTOT
+C END FEB 1998
+      ENDIF
+      IF (ITYPE.EQ.3) ITRALL = ITRSEN
+C END DEC 1990
+      CALL STORCM(IFILE7)
+C
+      CLOSE(UNIT=7)
+      CLOSE(UNIT=55)
+C
+      WRITE(IFILE8,200) CASE(1:NLET),CASE(1:NLET),
+     1   CASE(1:NLET),CASE(1:NLET),CASE(1:NLET),CASE(1:NLET)
+      WRITE(IFILE8,202) CASE(1:NLET)
+C
+  200 FORMAT(//' DESCRIPTION OF FILES USED AND GENERATED IN THIS RUN:'//
+     1 1X,A,'.NAM = This file contains only the name of the case.'/
+     1 1X,A,'.OPM = Output data. Please list this file and inspect'/
+     1'            carefully before proceeding.'/
+     1 1X,A,'.OPP = Output file containing evolution of design and'/
+     1'            margins since the beginning of optimization cycles.'/
+     1 1X,A,'.CBL = Labelled common blocks for analysis.'/
+     1'            (This is an unformatted sequential file.)'/
+     1 1X,A,'.OPT = This file contains the input data for MAINSETUP'/
+     1'             as well as OPTIMIZE. The batch command OPTIMIZE'/
+     1'             can be given over and over again without having'/
+     1'             to return to MAINSETUP because ',A,'.OPT exists.'/
+     1' URPROMPT.DAT= Prompt file for interactive input.'//
+     1' For further information about files used and generated'/
+     1' during operation of GENOPT, give the command HELPG FILES.'//
+     1' Menu of commands: CHOOSEPLOT, OPTIMIZE, MAINSETUP, CHANGE,'/
+     1'                   DECIDE, SUPEROPT '/)
+C
+C BEG JUL 2009
+C23456789012345678901234567890123456789012345678901234567890123456789012
+  202 FORMAT(
+     1' IN ORDER TO AVOID FALSE CONVERGENCE OF THE DESIGN, BE SURE TO'/
+     1' RUN  "OPTIMIZE"  MANY TIMES DURING AN OPTIMIZATION AND/OR USE'/
+     1' THE "GLOBAL" OPTIMIZING SCRIPT, "SUPEROPT".'/
+     1' **** NOTE: It is almost always best to set the number of ****'/
+     1' **** iterations per execution of "OPTIMIZE" equal to 5   ****'/
+     1' **** in response to the following prompt in "MAINSETUP": ****'/
+     1' **** "How many design iterations in this run (3 to 25)?" ****'/
+     1' **** Hence, the *.OPT file should almost always have the ****'/
+     1' **** following line in it:                               ****'/
+     1' **** "5   $ How many design iterations in this run (3 to 25)?"'/
+     1' ********************* END OF ',A,'.OPM FILE *****************'/)
+C END JUL 2009
+      CLOSE(UNIT=8)
+C
+c Added 11/90 to clear IEEE FPE warnings
+      call ieeexx
+c End 11/90
+      END
+C
+C
+C
+C=DECK      CONX
+C BEG DEC 1990
+      SUBROUTINE CONX(BEHAV,ALLOW,FSAFE,WORDB,WORDA,WORDS,
+     1 INDX,INUMTT,IMOD,CONMAX,ICONST,IPOINC,CONSTR,WORDC,
+     1 WORDM,PCWORD,CPLOT,ICAR)
+C END DEC 1990
+C
+C  SOME DEFINITIONS:
+C   INDX  =  Indicator for the form of the constraint condition (1 or 2 or 3):
+C
+C           1  means that for a feasible design the allowable value (ALLOW)
+C              must be greater than the product of the actual value (BEHAV)
+C              times the factor of safety, (FSAFE).
+C              EXAMPLE: Allowable stress must be greater than the actual
+C                       stress x the factor of safety for stress.
+C              For example, a design margin of this type is expressed as:
+C              1 - [BEHAVIOR)/(ALLOWABLE BEHAVIOR)] X (FACTOR OF SAFETY)
+C
+C           2 means that for a feasible design the actual value (BEHAV)
+C             must be greater than the product of the allowable value (ALLOW)
+C             times the factor of safety (FSAFE).
+C             EXAMPLES: (a) buckling load factor must be greater than the
+C                           allowable value (unity)  x the factor of safety
+C                           for buckling.
+C                       (b) lowest natural frequency must be greater than
+C                           the allowable value x the factor of safety for
+C                           natural frequency.
+C              For example, a design margin of this type is expressed as:
+C              [(BEHAVIOR)/(ALLOWABLE BEHAVIOR)] /(FACTOR OF SAFETY) - 1
+C
+C           3  means that for a feasible design the allowable value (ALLOW)
+C              must be greater than the product of the actual value (BEHAV)
+C              times the factor of safety, (FSAFE). (same as for INDX = 1).
+C              EXAMPLE: Allowable stress must be greater than the actual
+C                       stress x the factor of safety for stress.
+C              For example, a design margin of this type is expressed as:
+C              [(ALLOWABLE BEHAVIOR)/(BEHAVIOR)] /(FACTOR OF SAFETY) - 1
+C
+C   INUMTT = a counter for the constraints on optimum design.
+C   BEHAV  = behavioral variable. 
+C            EXAMPLES: buckling load factor, natural frequency, stress.
+C   ALLOW  = user-assigned allowable value.
+C            EXAMPLES: maximum allowable stress; minimum allowable frequency.
+C                      The allowable load factor for buckling should be unity.
+C   FSAFE  = factor of safety.  There may be different factors of safety for
+C            different behaviors (general buckling, local buckling, stress)
+C   
+C   IMOD   = indicator for type of evaluation: 0 = baseline design;
+C                                              1 = perturbed design
+C   CONMAX = value of design constraint above which it is ignored for the
+C            next design iteration.
+C   ICONST = counter for ACTIVE design constraint.
+C   IPOINC = an indicator set equal to unity if the design constraint
+C            is active when the decision variables have their baseline values.
+C   WORDC  = phrase that identifies the constraint condition
+C   WORDM  = array where WORDC phrases are accumulated.
+C   WORDB  = phrase that identifies the behavior
+C   WORDA  = phrase that identifies the allowable
+C   WORDS  = phrase that identifies the factor of safety
+C   CONSTR = numerical value of the constraint condition.
+C   PCWORD = plot title
+C   CPLOT  = plot value
+C
+      DIMENSION IPOINC(*),CONSTR(*),WORDM(*),PCWORD(*),CPLOT(*)
+      CHARACTER*80 WORDC,WORDB,WORDA,WORDS,WORDM,PCWORD
+C BEG DEC 1990
+      COMMON/BEHNEG/ICONSW(99)
+      CHARACTER*80 WRDTMP,WRDAUG
+C END DEC 1990
+      CHARACTER*7 CN2
+      CALL BLANKX(WORDC,IENDP)
+      CALL BLANKX(WORDB,IENDB)
+      CALL BLANKX(WORDA,IENDA)
+      CALL BLANKX(WORDS,IENDS)
+C
+      ICAR = ICAR + 1
+      CALL CONVRF(FSAFE,CN2)
+C BEG DEC 1990
+      INUMTT = INUMTT + 1
+      IF (ALLOW.NE.0.) THEN
+         RATIO1 = BEHAV*FSAFE/ALLOW
+         RATIO2 = BEHAV/(ALLOW*FSAFE)
+      ELSE
+         RATIO1 = (BEHAV*FSAFE+1.)/(ALLOW+1.)
+         RATIO2 = (BEHAV+1.)/(ALLOW*FSAFE+1.)
+      ENDIF
+      IF (BEHAV.NE.0.) THEN
+         RATIO3 = ALLOW/(BEHAV*FSAFE)
+      ELSE
+         RATIO3 = (ALLOW+1.)/(BEHAV*FSAFE+1.)
+      ENDIF
+      IF (INDX.EQ.1) CON = RATIO1
+      IF (INDX.EQ.2) CON = RATIO2
+      IF (INDX.EQ.3) CON = RATIO3
+C
+      IF (IMOD.EQ.0) THEN
+         IF (INDX.EQ.1) THEN
+            IF (ALLOW.GE.0.) THEN
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ELSE
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ENDIF
+         ENDIF 
+         IF (INDX.EQ.2) THEN
+            IF (ALLOW.GE.0.) THEN
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ELSE
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ENDIF
+         ENDIF
+         IF (INDX.EQ.3) THEN
+            IF (BEHAV.GE.0.) THEN
+               PCWORD(ICAR)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+               CPLOT(ICAR) = CON - 1.
+               CTEST = CON
+            ELSE
+               PCWORD(ICAR)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+               CPLOT(ICAR) = 1. - CON
+               CTEST = 2. - CON
+            ENDIF
+         ENDIF
+      ENDIF
+      IF (ALLOW.EQ.0.0) THEN
+         IF ((INDX.EQ.1.OR.INDX.EQ.3).AND.BEHAV.EQ.1.E-10)
+     1    GO TO 100
+         IF (INDX.EQ.2.AND.BEHAV.EQ.1.E+10) GO TO 100
+      ENDIF
+      IF (IMOD.EQ.0.AND.CTEST.GT.CONMAX) GO TO 100
+      IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 100
+      ICONST = ICONST + 1
+      IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+C
+      IF (INDX.EQ.1) THEN
+         IF (ALLOW.GE.0.) THEN
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ELSE
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ENDIF
+      ENDIF 
+      IF (INDX.EQ.2) THEN
+         IF (ALLOW.GE.0.) THEN
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ELSE
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ENDIF
+      ENDIF
+      IF (INDX.EQ.3) THEN
+         IF (BEHAV.GE.0.) THEN
+            WORDM(ICONST)=WORDC(1:IENDP)//'-1; F.S.='//CN2
+            CONSTR(ICONST) = CON
+         ELSE
+            WORDM(ICONST)='1-'//WORDC(1:IENDP)//'; F.S.='//CN2
+            CONSTR(ICONST) = 2. - CON
+         ENDIF
+      ENDIF
+C END DEC 1990
+  100 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      VARCON
+      SUBROUTINE VARCON(WORDIQ,WORDM,CINEQ,DPWREQ,IDINEQ,
+     1      NINEQ,JINEQ,IEQTYP,INUMTT,IMOD,CONMAX,IPOINC,
+     1      ICONST,CONSTR,VAR,PCWORD,CPLOT,ICAR)
+C
+C  PURPOSE IS TO RECONSTRUCT A CONSTRAINT CONDITION THAT CORRESPONDS
+C  TO AN INEQUALITY CONSTRAINT INVOLVING ALL OF THE VARIABLES THAT
+C  CAN BE CANDIDATES FOR DECISION VARIABLES.
+C
+      DIMENSION WORDIQ(*),WORDM(*),IPOINC(*),CONSTR(*)
+C BEG DEC 1990
+C BEG AUG 2009
+      DIMENSION CINEQ(45,45),DPWREQ(45,45),IDINEQ(45,45)
+C END AUG 2009
+C END DEC 1990
+      DIMENSION JINEQ(*),IEQTYP(*),VAR(*),PCWORD(*),CPLOT(*)
+      CHARACTER*80 WORDIQ,WORDM,PCWORD
+C
+      DO 500 KOUNT = 1,NINEQ
+         JTERMS = JINEQ(KOUNT)
+         CON = 0.
+C        WRITE(8,*)' KOUNT,NINEQ,JTERMS,IEQTYP(KOUNT),CINEQ(1,KOUNT)=',
+C    1               KOUNT,NINEQ,JTERMS,IEQTYP(KOUNT),CINEQ(1,KOUNT)
+         DO 100 JJ = 1,JTERMS
+            IF (JJ.EQ.1) THEN
+               CON = CINEQ(1,KOUNT)
+               GO TO 100
+            ENDIF
+            IVAR = IDINEQ(JJ,KOUNT)
+            CEQ = CINEQ(JJ,KOUNT)
+            PWR = DPWREQ(JJ,KOUNT)
+C           WRITE(8,*)' KOUNT,JJ,IVAR,CEQ,PWR=',KOUNT,JJ,IVAR,CEQ,PWR
+            NPWR = NINT(PWR)
+            CON = CON +CEQ*VAR(IVAR)**NPWR
+  100    CONTINUE
+C
+         INDX = IEQTYP(KOUNT)
+C
+         ICAR   = ICAR   + 1
+         INUMTT = INUMTT + 1
+         CALL BLANKX(WORDIQ(KOUNT),IENDP)
+C BEG DEC 1990
+         IF (IENDP.LT.2) IENDP = 80
+C END DEC 1990
+         IF (IMOD.EQ.0) THEN
+            IF (INDX.EQ.1) THEN
+               PCWORD(ICAR) = '1.- ('//WORDIQ(KOUNT)(5:IENDP)//')'
+               CPLOT(ICAR) = 1. - CON
+            ELSE
+               PCWORD(ICAR) = WORDIQ(KOUNT)(5:IENDP)//' -1.'
+               CPLOT(ICAR) = CON - 1.
+            ENDIF
+         ENDIF
+         IF (INDX.EQ.1.AND.IMOD.EQ.0.AND.(2.-CON).GT.CONMAX) GO TO 200
+         IF ((INDX.EQ.2.OR.INDX.EQ.3).AND.IMOD.EQ.0.AND.CON.GT.CONMAX)
+     1    GO TO 200
+         IF (IMOD.EQ.1.AND.IPOINC(INUMTT).EQ.0) GO TO 200
+         ICONST = ICONST + 1
+         IF (IMOD.EQ.0) IPOINC(INUMTT) = 1
+         IF (INDX.EQ.1) THEN
+            WORDM(ICONST) = '1.- ('//WORDIQ(KOUNT)(5:IENDP)//')'
+            CONSTR(ICONST) = 2. - CON
+         ELSE
+            WORDM(ICONST) = WORDIQ(KOUNT)(5:IENDP)//' -1.'
+            CONSTR(ICONST) = CON
+         ENDIF
+  200    CONTINUE
+  500    CONTINUE
+      RETURN
+      END

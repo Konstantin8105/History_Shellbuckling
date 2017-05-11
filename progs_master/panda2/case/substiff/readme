@@ -1,0 +1,257 @@
+
+readme for substiff directory
+
+The "nasasubstiff.tar" file contains input and
+results from cases run for NASA in Feb. 2009.
+A report was generated:
+
+Optimum designs from PANDA2 of a uniformly axially compressed
+cylindrical shell with internal rectangular stringers and rings
+and with internal substringers and the evaluation of the optimum
+designs by STAGS and BIGBOSOR4
+
+David Bushnell
+25 February, 2009
+
+This report is in the "Bushnell" library at NASA Langley,
+maintained by Allen Waters.
+
+*****************************************************
+NOTE: The most recent results are stored in the
+compressed "tar" files, *.tgz. Each of these cases
+has its own "readme" file.
+******************************************************
+
+--------------------------------------------------------
+Revised July 15, 2011 after the creation of the new PANDA2
+process called "SUPERDUPEROPT", See Item 832 in the file,
+..panda2/doc/panda2.news. A "testax4" case was explored
+with the repeated use of SUPERDUPEROPT.
+---------------------------------------------------------
+
+Please see ..panda2/doc/panda2.news ITEM 600 for details
+about the introduction of substiffeners with rectangular
+cross sections into PANDA2. Also see the paper:
+Bushnell, D. and Rankin. C., Optimum design of stiffened
+panels with substiffeners, AIAA Paper 1932, 46th AIAA SDM
+Meeting, April 2005 (ITEM 600 is a bit out-of-date because
+of following items in the file panda2/doc/panda2.news. The
+results in the paper for the imperfect shells are up-to-date
+as of April 7, 2005. The results in the files, testax4p.5.ps
+and testax4p.opp2 are up-to-date as of April 30, 2005.)
+
+The following cases are described in ITEM 600. Input data
+for these cases are repeated here. All the cases are for
+a s.s. cylindrical shell 300 inches long and with a radius of
+100 inches. The material properties except for the maximum
+allowable stress, are those for aluminum. The maximum
+allowable effective stress is set very high. The cylindrical
+shell is externally stiffened by T-shaped major stringers
+and T-shaped major rings. The loading is:
+
+Axial compression, Nx = -100000 lb/in
+Hoop  compression, Ny =  -20000 lb/in
+In-plane shear,   Nxy =   20000 lb/in
+external pressure,  p =    -200 psi
+
+The cases are called:
+====================================================================================
+                                                        AMPLITUDE, Wimpg2 OF
+CASE NAME            BRIEF DESCRIPTION           GENERAL BUCKLING MODAL IMPERFECTION
+---------         -----------------------        ---------------------------------
+testax3           no substiffeners                zero or Wimpg2 = +1.0 and -1.0 inch
+
+testax4p          external substringers           zero
+                  external subrings
+
+testax4           external substringers           Wimpg2 = +1.0 and -1.0 inch
+                  external subrings
+
+testax5           internal substringers           zero
+                  internal subrings
+
+testsubiso        external subisogrid             zero or Wimpg2 = +1.0 and -1.0 inch
+                  with one circ. member
+=====================================================================================
+
+NOTE: In the typical runstream below the data in the various input
+      files, such as testax3.chg1, testax3.chg2, testax3.stg1
+      testax3.stg7, testax3.stg4, may be inappropriate, depending
+      upon whether or not a buckling modal imperfection is present.
+
+      In the following runstream, I used the case "testax3" as an
+      example. You would do the same for the other cases, testax4p,
+      testax4, testax5, testsubiso. Note that with testsubiso you
+      cannot evaluate the optimum designs obtained via PANDA2 with
+      STAGS because STAGSUNIT does not deal with isogrid
+      configurations.
+
+Typical runstream:
+
+COMMAND         PURPOSE                                  FILE(s)
+                                                  input        output
+---------     ---------------------              ______________________
+panda4log    activate panda2 commands    
+             for panda2 with substiff.
+
+begin        provide starting design            testax3.BEG    testax3.OPB
+setup        PANDA2 sets up templates          
+
+(copy testax3.dec1 into testax3.DEC)
+
+decide        choose decision variables         testax3.DEC    testax3.OPD
+              bounds, geometric constraints
+
+(copy testax3.opt1 into testax3.OPT; make sure ITYPE = 1 for analysis type.)
+
+mainsetup     choose loading, etc.              testax3.OPT
+
+superopt      PANDA2 gets "global"              testax3.OPT    testax3.OPP
+              optimum design
+
+chooseplot    choose what to plot               testax3.CPL    testax3.OPL
+
+diplot        get plots.        
+
+superopt      PANDA2 gets "global"              testax3.OPT    testax3.OPP
+              optimum design
+
+chooseplot    choose what to plot               testax3.CPL    testax3.OPL
+
+diplot        get plots.
+
+superopt      PANDA2 gets "global"              testax3.OPT    testax3.OPP
+              optimum design
+
+chooseplot    choose what to plot               testax3.CPL    testax3.OPL
+
+diplot        get plots.
+
+superopt      PANDA2 gets "global"              testax3.OPT    testax3.OPP
+              optimum design
+
+chooseplot    choose what to plot               testax3.CPL    testax3.OPL
+
+diplot        get plots.
+
+(edit the testax3.OPT file to get output for fixed design: ITYPE = 2)
+
+PANDAOPT      get results for fixed,            testax3.OPT    testax3.OPM
+              globally optimum design.
+
+(copy testax3.chg2 testax3.CHG)
+
+CHANGE        use change to reset stiffener     testax3.CHG    testax3.OPC
+              spacings to closest integral
+              numbers in order to produce
+              a new optimum design suitable
+              for analysis by STAGS
+
+(copy testax3.dec2 testax3.DEC)
+
+DECIDE        new input for decide omits        testax3.DEC     testax3.OPD
+              stiffener spacings as
+              decision variables and
+              removes some now inappropriate
+              inequality constraints.
+
+(edit the testax3.OPT file to reset ITYPE back to 1. This is important.
+ If you don't do it the next execution of SUPEROPT will run forever and ever!)
+
+MAINSETUP     make sure ITYPE = 1!              testax3.OPT  
+
+superopt      PANDA2 gets "global"              testax3.OPT    testax3.OPP
+              optimum design
+
+chooseplot    choose what to plot               testax3.CPL    testax3.OPL
+
+diplot        get plots.
+
+(Edit the testax3.OPT file to change ITYPE from 1 to 2)
+
+PANDAOPT       get results for fixed            testax3.OPT    testax3.OPM
+               design.
+
+(Check results for fixed design to see if you want to execute another
+ sequence, SUPEROPT/CHOOSEPLOT/DIPLOT. Do it again if you want to. If not,
+ do what follows.)
+
+(Copy testax3.stg1 to testax3.STG. This is the smallest "patch" model for
+ obtaining verification from STAGS. Check the data in testax3.STG to make
+ certain that the spacings of the major stiffeners (the "patch" dimensions
+ in this particular case) are correct.)
+
+STAGSUNIT       generate new STAGS input        testax3.STG   testax3.bin
+                files, testax3.bin and                        testax3.inp
+                testax3.inp
+
+(Possibly edit the testax3.bin file, especially for number of eigenvalues
+ and the "eigenvalue shift", which you may want to change from the values
+ that PANDA2 has automatically provided.)
+
+(Copy the STAGS input data to a machine and a directory where you want to
+ execute STAGS and then run STAGS.)
+
+source /home/stags5/prc/initialize     activate STAGS commands
+
+stags -b testax3  run stags                      testax3.bin
+                                                 testax3.inp
+
+(Inspect the testax3.out2 file for results from STAGS)
+
+----------------------------------------------------------------------------
+(generate an appropriate input file for the STAGS processor called STAPL.
+ A typical example of ihput for STAPL follows. The file is called *.pin)
+
+interring.testax3.allshells.480 
+  1  0  1  0  $PL-2  NPLOT,IPREP,IPRS,KDEV
+     1     0     4     0     1  $PL-3  KPLOT,NUNIT,ITEM,STEP,MODE
+    0.0   3  $PL-5  DSCALE,NROTS
+  1   -35.84   $PL-6  IROT,ROT
+  2   -13.14   $PL-6  IROT,ROT
+  3    35.63   $PL-6  IROT,ROT
+---------------------------------------------------------------------------- 
+
+stapl testax3    execute STAPL                   testax3.pin   testax3.pdf
+
+(copy the testax3.pdf file to wherever you want to execute "acroread".
+ I copied to /home/progs/stagscase)
+
+acroread testax3.pdf   get plot of STAGS 
+                       buckling mode on
+                       your screen.
+
+(copy testax3.stg7 testax3.STG. This is the 3 x 9 major bay STAGS model)
+
+STAGSUNIT       generate new STAGS input         testax3.STG  testax3.bin
+                files, testax3.bin and                        testax3.inp
+                testax3.inp
+
+(Possibly edit the testax3.bin file, as before, and as before re-execute
+ STAGS with the new model.
+
+stags -b testax3
+
+(Inspect the testax3.out2 file)
+
+stapl testax3
+
+etc.
+
+(copy testax3.stg4 testax3.STG. This is the entire shell STAGS model)
+
+STAGSUNIT       generate new STAGS input         testax3.STG  testax3.bin
+                files, testax3.bin and                        testax3.inp
+                testax3.inp
+
+(Possibly edit the testax3.bin file, as before, and as before re-execute
+ STAGS with the new model.
+
+stags -b testax3
+
+(Inspect the testax3.out2 file)
+
+stapl testax3
+
+etc.
+================================================================================

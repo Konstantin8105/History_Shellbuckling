@@ -1,0 +1,1765 @@
+
+addbosor4.changes
+
+31 January, 2010
+
+For a discussion of the analysis of true prismatic shells
+by BIGBOSOR4, see the file,
+
+...bigbosor4/case/prismatic/prismatic.tar.gz
+
+in particular the file, prismaticshell.readme, that is embedded
+in that compressed tar file. You can obtain all the individual
+files in the compressed tar file, prismatic.tar.gz, by giving
+the following two commands:
+
+gunzip prismatic.tar.gz
+tar xvf prismatic.tar
+
+
+In order to accommodate true prismatic shells in BIGBOSOR4,
+the file, ...bigbosor4/execute/PROMPT.DAT, was modified as follows:
+----------------------------------------------------------------
+31.0
+      IPRISM = 1 in this BIGBOSOR4 case.
+      Therefore, the BIGBOSOR4 analysis applies to a true prismatic
+      shell or true prismatic assemblage of shells. The next four
+      input data, N0B, NMINB, NMAXB, INCRB, that you must supply
+      are numbers of axial half waves, N0B, NMINB, NMAXB, along the
+      length, AXIALL, of the prismatic shell and the increment,
+      INCRB, of axial half waves to be used in the search for the
+      buckling load factor and mode shape of the true prismatic
+      shell structure. Please see the file,
+      .../bigbosor4/case/prismatic/prismatic.tar.gz
+      for complete information on true prismatic shells and how
+      the true-prismatic-shell option has been included into
+      BIGBOSOR4.
+
+32.1  N0B   = starting number of axial half waves (buckling analysis)
+34.1  NMINB = minimum number of axial half waves  (buckling analysis)
+36.1  NMAXB = maximum number of axial half waves  (buckling analysis)
+38.1  INCRB = increment in number of axial half waves (buckling)
+40.1  IPRISM=0 for shell of revolution, 1 for true prismatic shell
+40.2
+      Please see the file, .../bigbosor4/case/prismatic/prismatic.tar.gz,
+      for complete information about true prismatic shells. In order
+      to unpack the compressed tar file, prismatic.tar.gz, type the
+      following two commands:
+      gunzip prismatic
+      tar xvf prismatic.tar
+      Then read the file, prismaticshell.readme .
+--------------------------------------------------------------------
+The above "help" paragraph, 31.0, and prompts for input, 32.1 - 40.2,
+were added to the PROMPT.DAT file.
+
+The file, ...bigbosor4/sources/addbosor4.src, was changed in many
+places, as listed next. These changes enable BIGBOSOR4 to analyze
+true prismatic shells and assumblages of true prismatc shells. The
+numerous modifications to addbosor4.src are as follows:
+----------------------------------------------------------
+C=DECK      READIT
+      SUBROUTINE READIT
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+
+(lines skipped to save space)
+
+      WRITE(IFILE4,'(A)') HEADNG
+C BEG APR 2009
+C BEG MAY 2009
+C     ILET1 = INDEX(HEADNG,'prism')
+C     ILET2 = INDEX(HEADNG,'Prism')
+C     ILET3 = INDEX(HEADNG,'PRISM')
+      ILET1 = INDEX(HEADNG,'ixprism')
+      ILET2 = INDEX(HEADNG,'ixPrism')
+      ILET3 = INDEX(HEADNG,'ixPRISM')
+C END MAY 2009
+      IPRISM = 0
+      IF (ILET1.NE.0.OR.ILET2.NE.0.OR.ILET3.NE.0) IPRISM = 1
+      IF (IPRISM.EQ.1) THEN
+        CALL DATUM(IFILE,12,0,0,INT,REALL,CHARAC,IOUT,0,1)
+        CALL DATUM(IFILE,13,1,1,INT,AXIALL,CHARAC,IOUT,0,1)
+        REWIND IFILE
+      ENDIF
+C END APR 2009
+   11 FORMAT(1X,18A4)
+
+(lines skipped to save space)
+
+      IF (INDIC.EQ.0.OR.INDIC.EQ.3) GO TO 62
+C BEG JAN 2010
+      IF (IPRISM.EQ.0) THEN
+         CALL DATUM(IFILE,19,1,1,N0B   ,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,20,1,1,NMINB ,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,21,1,1,NMAXB ,REALL,CHARAC,IOUT,0,1)
+         IF (NMAXB.LT.NMINB) CALL ERREX
+         CALL DATUM(IFILE,22,1,1,INCRB ,REALL,CHARAC,IOUT,0,1)
+      ELSE
+         CALL DATUM(IFILE,31,0,0,INT   ,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,32,1,1,N0B   ,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,34,1,1,NMINB ,REALL,CHARAC,IOUT,0,1)
+         CALL DATUM(IFILE,36,1,1,NMAXB ,REALL,CHARAC,IOUT,0,1)
+         IF (NMAXB.LT.NMINB) CALL ERREX
+         CALL DATUM(IFILE,38,1,1,INCRB ,REALL,CHARAC,IOUT,0,1)
+         REWIND IFILE
+      ENDIF
+C END JAN 2010
+      CALL DATUM(IFILE,23,1,1,NVEC  ,REALL,CHARAC,IOUT,0,1)
+
+(lines skipped to save space)
+
+C=DECK      RGDATA
+      SUBROUTINE RGDATA(I,RAD,RADD,CUR2,K,S,SEND,NRINGS,ARC,I5,ITOT,Z)
+C
+C     CALLED FROM READIT, WHICH IS CALLED FROM MAIN.
+
+(lines skipped to save space)
+
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+
+(lines skipped to save space)
+
+      IP(K) = IX(K) + IY(K)
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+         RNGMAS = RNGMAS + RM(K)*AREA(K)*RC(K)
+      ELSE
+         RNGMAS = RNGMAS + RM(K)*AREA(K)*AXIALL
+      ENDIF
+190   CONTINUE
+C BEG APR 2009
+      IF (IPRISM.EQ.0) RNGMAS = 2.*3.1415927*RNGMAS
+C END APR 2009
+      WRITE(IFILE4,200) I, RNGMAS
+  200 FORMAT(/,' MASS OF DISCRETE RINGS IN SEGMENT NO.',I3,' = ',
+     1  1PE12.4,/)
+      RETURN
+      END
+
+(lines skipped to save space)
+
+C=DECK      FDYNAM
+      SUBROUTINE FDYNAM(Z,ITOT,NHARM,NKR,KRING1,ISEG,PLIN1,
+     1                  PLIN2,PAXIAL,LSET)
+C
+C  THIS SUBROUTINE ADDED 17 AUG. 1985. PURPOSE IS TO GET CONTRIBUTION
+C  TO TOTAL FORCES FROM LOADS APPLIED TO THE RINGS. LATER THESE LOADS
+C  WILL BE USED TO OBTAIN DALEMBERT FORCES THAT WILL MAKE THE TOTAL
+C  LOADS ON THE STRUCTURE SELF-EQUILIBRATING.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+
+(lines skipped to save space)
+
+      FMM= PAXIAL(4,K)*PLIN1(INDX)
+      IF (N.NE.-1) GO TO 2
+C BEG APR 2009
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      IF (IPRISM.EQ.0) THEN
+        FX(LSET) = FX(LSET) + PI*RC(K)*(HH-SS)
+        MY(LSET) = MY(LSET) + PI*RC(K)*(VV*RC(K) -SS*Z(IZGL) +HH*Z(IZGL)
+     1             +FMM)
+      ELSE
+        FX(LSET) = FX(LSET) + AXIALL*(HH-SS)
+        MY(LSET) = MY(LSET) + AXIALL*(VV*0.0     -SS*Z(IZGL) +HH*Z(IZGL)
+     1             +FMM)
+      ENDIF
+C END APR 2009
+C
+      GO TO 9
+    2 IF (N.NE.0) GO TO 3
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        FZ(LSET) = FZ(LSET) - 2.*PI*VV*RC(K)
+        MZ(LSET) = MZ(LSET) - 2.*PI*SS*RC(K)**2
+      ELSE
+        FZ(LSET) = FZ(LSET) - AXIALL*VV
+        MZ(LSET) = MZ(LSET) - AXIALL*SS*0.0
+      ENDIF
+C END APR 2009
+      GO TO 9
+    3 IF (N.NE.1) GO TO 9
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        FY(LSET) = FY(LSET) - PI*RC(K)*(HH+SS)
+        MX(LSET) = MX(LSET) + PI*RC(K)*(VV*RC(K) +SS*Z(IZGL) +HH*Z(IZGL)
+     1            +FMM)
+      ELSE
+        FY(LSET) = FY(LSET) - AXIALL*(HH+SS)
+        MX(LSET) = MX(LSET) + AXIALL*(VV*0.0 +SS*Z(IZGL) +HH*Z(IZGL)
+     1            +FMM)
+      ENDIF
+C23456789012345678901234567890123456789012345678901234567890123456789012
+C END APR 2009
+    9 CONTINUE
+      GO TO 360
+   40 CONTINUE
+      RETURN
+      END
+C
+C
+C
+C=DECK      PDYNAM
+      SUBROUTINE PDYNAM(ZA,NHARM,ISEG,PDIST1,PDIST2,PP,RAD,RADD,CUR2,
+     1                  DS,I5I,LSET)
+C
+C  PURPOSE IS TO CALCULATE TOTAL FORCES AND MOMENTS DUE TO
+C  NON-SELF-EQUILIBRATING DISTRIBUTED (AS OPPOSED TO LINE) LOADS.
+C  THIS SUBROUTINE ADDED TO BOSOR4 17 AUGUST 1985. RESULTS ARE USED
+C  FOR DYNAMIC REACTION CALCULATIONS.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+
+(lines skipped to save space)
+
+      RDS = R*H
+C BEG APR 2009
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+C BEG JAN 2010
+         FK2 = FK2/1000000.
+         R = R*1000000.
+C END JAN 2010
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+            RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+         ENDIF
+         RDS = H
+      ENDIF
+C END APR 2009
+      IF (N.NE.-1) GO TO 2
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        FX(LSET) = FX(LSET) +RDS*PI*(PN*RFK2 + PT*RD - PC)
+        MY(LSET) = MY(LSET) +RDS*PI*(Z*(PN*RFK2 +PT*RD -PC)
+     1                              +R*(PN*RD -PT*RFK2))
+      ELSE
+        FX(LSET) = FX(LSET) +RDS*AXIALL*(PN*RFK2 + PT*RD - PC)
+        MY(LSET) = MY(LSET) +RDS*AXIALL*(Z*(PN*RFK2 +PT*RD -PC)
+     1                              +0.0*(PN*RD -PT*RFK2))
+      ENDIF
+C END APR 2009
+      GO TO 9
+    2 IF (N.NE.0) GO TO 3
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        FZ(LSET) = FZ(LSET) + RDS*2.*PI*(-PN*RD +PT*RFK2)
+        MZ(LSET) = MZ(LSET) - RDS*2.*PI*PC*R
+      ELSE
+        FZ(LSET) = FZ(LSET) + RDS*AXIALL*(-PN*RD +PT*RFK2)
+        MZ(LSET) = MZ(LSET) - RDS*AXIALL*PC*0.0
+      ENDIF
+C END APR 2009
+      GO TO 9
+    3 IF (N.NE.1) GO TO 9
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+      IF (IPRISM.EQ.0) THEN
+        FY(LSET) = FY(LSET) - RDS*PI*(PN*RFK2 +PT*RD + PC)
+        MX(LSET) = MX(LSET) + RDS*PI*(Z*(PN*RFK2 +PT*RD +PC)
+     1                               +R*(PN*RD -PT*RFK2))
+      ELSE
+        FY(LSET) = FY(LSET) - RDS*AXIALL*(PN*RFK2 +PT*RD + PC)
+        MX(LSET) = MX(LSET) + RDS*AXIALL*(Z*(PN*RFK2 +PT*RD +PC)
+     1                               +0.0*(PN*RD -PT*RFK2))
+      ENDIF
+C END APR 2009
+    9 CONTINUE
+      GO TO 360
+   40 CONTINUE
+      RETURN
+      END
+
+(lines skipped to save space)
+
+      SUBROUTINE WALLCF(II,NWALL,I5,TT,ILT,RAD,C,THERM,ZREF,S,TEMP,
+     1TIO,NSEG,RADD,CUR1,CUR2,ZAXIAL,DS,ITOT,PHORIG)
+C END DEC 2005
+C
+C     CALLED FROM READIT, WHICH IS CALLED FROM MAIN.
+C     THE WALL STIFFNESS COEFFICIENTS CIJ ARE CALCULATED FOR THE
+C     CURRENT SEGMENT, II. SEVERAL TYPES OF SHELL WALLS MAY BE
+C     INCLUDED IN THE ANALYSIS OF A COMPOSITE SHELL STRUCTURE, AS LONG
+C     AS THE MODEL REMAINS AXISYMMETRIC.
+C BEG MAY 2009
+      COMMON/CSKINY/CSKIN1(6,6,295)
+C END MAY 2009
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+C BEG AUG 1999
+      COMMON/TOTMAX/TOTMAS
+
+(lines skipped to save space)
+
+      ZGLBL = ZAX(I) + ZGLOBL
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        ICM = ICM + PI*RDS*SMPA*(RAD(I)**2 +2.*ZGLBL**2)
+     1   + FACT*PI*RM(KRNG)*RC(KRNG)*AREA(KRNG)*
+     1          (RC(KRNG)**2 +2.*ZGLBL**2)
+        M   = M +2.*PI*(RDS*SMPA +FACT*RC(KRNG)*AREA(KRNG)*RM(KRNG))
+        IZ = IZ +2.*PI*(RDS*SMPA*RAD(I)**2 +FACT*AREA(KRNG)*RM(KRNG)*
+     1          RC(KRNG)**3)
+        ZCM = ZCM + 2.*PI*(RDS*SMPA*ZGLBL +FACT*RC(KRNG)*AREA(KRNG)*
+     1          RM(KRNG)*ZGLBL)
+      ELSE
+        ICM = ICM + 0.5*RDS*SMPA*(AXIALL**2 + ZGLBL**2)
+     1   + FACT*0.5*AXIALL*RM(KRNG)*AREA(KRNG)*
+     1          (AXIALL**2 +2.*ZGLBL**2)
+        M   = M +AXIALL*(RDS*SMPA +FACT*AREA(KRNG)*RM(KRNG))
+        IZ = IZ +AXIALL**3*(RDS*SMPA +FACT*AREA(KRNG)*RM(KRNG))
+        ZCM = ZCM + AXIALL*(RDS*SMPA*ZGLBL +FACT*AREA(KRNG)*
+     1          RM(KRNG)*ZGLBL)
+      ENDIF
+C END APR 2009
+
+(lines skipped to save space)
+
+      SUBROUTINE CFB1(ISEG,I,RAD,NWALL,Z,TD,I5,S,C,RADD,PHORIG)
+C END DEC 2005
+C     CALLED FROM WALLCF, WHICH IS CALLED FROM READIT, WHICH IS CALLED
+C     FROM MAIN. CAUSES CIJ TO BE READ IN DIRECTLY OR MODIFIES SHELL
+C     WALL STIFFNESS COEFFICIENTS CIJ TO ACCOUNT FOR MERIDIONAL AND/OR
+C     CIRCUMFERENTIAL STIFFENERS WHICH ARE SMEARED OUT ACCORDING TO
+C     THE BARUCH-SINGER THEORY.
+C
+C     ALSO CALLED FROM CFB2,CFB4,CFB5,CFB6,CFB7, AND CFB8.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+C BEG DEC 2005
+      DIMENSION PHORIG(*)
+
+(lines skipped to save space)
+
+600   CONTINUE
+C BEG APR 2009
+      IF (ISOGRD(ISEGMT).EQ.0) THEN
+C BEG JAN 2010
+C        IF (IPRISM.EQ.0) D1 = 2.*3.1415927*RAD(I)/AN1
+C        IF (IPRISM.EQ.1) D1 = AXIALL/(AN1 - 1.)
+         D1 = 2.*3.1415927*RAD(I)/AN1
+C END JAN 2010
+      ENDIF
+C END APR 2009
+      IF (ISOGRD(ISEGMT).EQ.1) D1 = SPACNG
+
+(lines skipped to save space)
+
+C=DECK      PRESTS
+      SUBROUTINE PRESTS(JSEG,I5J,HS,NSEG,COEF,PR,BG,FNEW,F,BB,IW,THERM,
+C BEG OCT 2005
+     1ILOC,IFX,IFIX,IROWC,ITYPE,IMAX,IFILE4)
+C END OCT 2005
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION B,UB,F,C,QB,TN1,TN2,TN3,TN4,R,RD,FK1,FK2,CURD,RDS
+
+(lines skipped to save space)
+
+      COMMON/INTRG/ NSTATN(295),IRING(295,20)
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/RNGGEO/RC(198),AREA(198),ER(198),
+     1             IY(198),IX(198),IXY(198),IP(198)
+
+(lines skipped to save space)
+
+      CURD = 0.
+C BEG APR 2009
+C      RFK2 = sine of the angle, phi, of the meridional slope
+      RDS = R*DS
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+C BEG JAN 2010
+         FK2 = FK2/1000000.
+         R = R*1000000.
+C END JAN 2010
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+C BEG JAN 2010
+C           RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+            RFK2 = (FK2/DABS(FK2))*DSQRT(1.-RD**2)
+C END JAN 2010
+         ENDIF
+         RDS = DS
+      ENDIF
+C END APR 2009
+      ISIG = 0
+
+(lines skipped to save space)
+
+C     F1,F2 = TERMS TO BE MULTIPLIED BY D(CHI)/D(Q)
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        F3 = P1 + R*OMEGA**2*SMPA*RD
+        F4 = P3 + R*OMEGA**2*SMPA*RFK2
+      ELSE
+        F3 = P1
+        F4 = P3
+      ENDIF
+C END APR 2009
+C     F3,F4, = TERMS TO BE MULTIPLIED BY U,W. 'LIVE' PRESSURE EFFECT
+
+(lines skipped to save space)
+
+      DTMR = TMR(KK)*TEMP + TMRFIX(KK)
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        EARC = ER(KK)*AREA(KK)/RC(KK)
+        EIRC = ER(KK)*IX(KK)/RC(KK)
+      ELSE
+        EARC = 0.0
+        EIRC = 0.0
+      ENDIF
+C     WC = RADIAL DISPLACEMENT OF CENTROID OF RING.
+      WC = U*RD +W*RFK2 +E2(KK)*CHI -E1(KK)*CHI*CHI/2.
+      IF (IPRISM.EQ.0) THEN
+        FR1 = EARC*WC + DTNR - RC(KK)*(HF(KK) + HFIX(KK))
+     1  - RC(KK)*RC(KK)*OMEGA**2*RM(KK)*AREA(KK)
+        FR2 = RC(KK)*(V(KK) + VFIX(KK))
+        FR3 = EIRC*CHI + DTMR - RC(KK)*(FM(KK) + FMFIX(KK) )
+        FR4 = E2(KK) - E1(KK)*CHI
+        FR5 = - E1(KK)*FR1 - E2(KK)*FR2 + EIRC
+        FR6 = E1(KK) + E2(KK)*CHI
+      ELSE
+        FR1 = 0.0
+        FR2 = 0.0
+        FR3 = 0.0
+        FR4 = E2(KK) - E1(KK)*CHI
+        FR5 = 0.0
+        FR6 = E1(KK) + E2(KK)*CHI
+      ENDIF
+C END APR 2009
+C
+C     BEGINNING OF LOOP FOR CONTRIBUTION TO LOCAL MATRIX OF RING
+C     STRAIN ENERGY AND WORK DONE BY LINE LOADS V,HF, AND FM.
+C
+      DO 80 I=1,N
+C
+C     UCD AND WCD ARE FIRST DERIVATIVES OF CENTROIDAL DISPLACEMENTS
+C     WITH RESPECT TO DEPENDENT VARIABLE Q(I).
+C
+C BEG APR 2009
+      UCD = UB(I)*RFK2 - WB(I)*RD - FR6*ROT(I)
+      WCD = UB(I)*RD + WB(I)*RFK2 + FR4*ROT(I)
+C END APR 2009
+      PSI(I) = PSI(I) + FR1*WCD + FR2*UCD + FR3*ROT(I)
+      DO 70 J=1,I
+C BEG APR 2009
+      BCB(I,J) = BCB(I,J) + FR5*ROT(I)*ROT(J) +
+     1EARC*WCD*(UB(J)*RD +WB(J)*RFK2 +FR4*ROT(J))
+C END APR 2009
+70    CONTINUE
+80    CONTINUE
+
+(lines skipped to save space)
+
+ONTINUE
+C BEG APR 2009
+      USTAR = RFK2*U - RD*W
+      WSTAR = RD*U + RFK2*W
+C END APR 2009
+      IF (IFX(ICOND1,3).EQ.3) USTAR = U
+
+(lines skipped to save space)
+
+C     BEGINNING OF LOOP FOR CONTRIBUTION TO ENERGY OF 'MINUS' PART OF
+C     CONSTRAINT AND BOUNDARY CONDITIONS.
+C
+      DO 150 I=1,N
+C BEG APR 2009
+      USTAR = RFK2*UB(I) - RD*WB(I)
+      WSTAR = RD*UB(I) + RFK2*WB(I)
+C END APR 2009
+      IF (IFX(ICOND1,3).EQ.3) USTAR = UB(I)
+
+(lines skipped to save space)
+
+210   IF (IFIX(ICOND2,2).EQ.IFIX(ICOND2,1)) GO TO 290
+      KKK = ICOND2
+C BEG APR 2009
+      USTAR = RFK2*U - RD*W
+      WSTAR = RD*U + RFK2*W
+C END APR 2009
+C     IR,IR1,IR2 HAVE SAME MEANING AS ABOVE.
+      IR = IROWC(ICOND2)
+
+(lines skipped to save space)
+
+      DO 220 I=1,N
+C BEG APR 2009
+      USTAR = RFK2*UB(I) - RD*WB(I)
+      WSTAR = RD*UB(I) + RFK2*WB(I)
+C END APR 2009
+      IF (IFIX(ICOND2,3).EQ.3) USTAR = UB(I)
+
+(lines skipped to save space)
+
+C=DECK      PGETB
+      SUBROUTINE PGETB(B,ISIG,WB,WBD,HPAST,HI,ROT)
+C
+C     CALLED FROM PRESTS, WHOSE TRACE IS APREB,PRE,MAIN.
+
+(lines skipped to save space)
+
+      DIMENSION B(4,5),WB(5),WBD(5),ROT(5)
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      B(1,1) = FK1*WB(1)
+
+(lines skipped to save space)
+
+      SUBROUTINE PLOCAL(IW,IS,HC,I5,F,C,B,PSTS,PMODE,PSMODE,NSEG,RHF,
+     1THERM,INDIC,TIO,IFIX,IALL,ISTEP,RHFIX)
+C
+C     CALLED FROM PREB, WHOSE TRACE IS PRE,MAIN.
+C     PREBUCKLING STRESSES AND DISPLACEMENTS CALCULATED FROM INPUT
+C     SOLUTION F.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION F
+      DOUBLE PRECISION H,HPAST,HI,C1,C2,C3,W,U,R,RD,FK1,FK2,CURD
+      DOUBLE PRECISION UD,WD,WDD,BETA,CFNLIN,UV,UH
+C BEG APR 2009
+      DOUBLE PRECISION RFK2
+C END APR 2009
+      DIMENSION F(*),C(I5,14),B(I5,5),PSTS(I5,3),T(100),RHFIX(198)
+
+(lines skipped to save space)
+
+      CURD = 0.
+C BEG APR 2009
+C      RFK2 = sine of the angle, phi, of the meridional slope
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+C BEG JAN 2010
+         FK2 = FK2/1000000.
+         R = R*1000000.
+C END JAN 2010
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+C BEG JAN 2010
+C           RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+            RFK2 = (FK2/DABS(FK2))*DSQRT(1.-RD**2)
+C END JAN 2010
+         ENDIF
+      ENDIF
+C END APR 2009
+      UD = (F(I1P) - F(I1M))/H
+
+(lines skipped to save space)
+
+      EPS1 = UD + W*FK1 + CFNLIN*0.5*BETA**2
+C
+C BEG APR 2009
+      UV = U*RFK2 - W*RD
+C END APR 2009
+      FMUL = 0.0
+
+(lines skipped to save space)
+
+20    CONTINUE
+      UH = EPS2*R
+C BEG APR 2009
+      IF (IPRISM.EQ.1) UH = U*RD + W*RFK2
+C END APR 2009
+      N10 = C(I,1)*EPS1 + C(I,2)*EPS2 + C(I,3)*K1 + C(I,4)*K2
+
+(lines skipped to save space)
+
+C=DECK      STABIL
+      SUBROUTINE STABIL(ISEG,L5,HS,NSEG,IBUCK,COEF,PR,BG,FFF,AS,IW,THERM
+     1,ILOC,IFX,IFIX,IROWC,ITYPE,IMAX,PSVAR,PSFIX,RHF,RHFIX,RM,IROWCN,
+     1 PALL,IPOS,Z,
+     1ISKIN,NUMSTF,FNSKNV,FNSKNF,CSKIN)
+C
+C     CALLED FROM ASTAB, WHICH IS CALLED FROM ARRAYS, WHICH IS CALLED
+C     FROM MAIN.  SETS UP STABILITY OR VIBRATION OR NONSYMMETRIC
+C     STRESS EQUATIONS FOR CURRENT SEGMENT (ISEG) AND CURRENT WAVE-
+C     NUMBER N. SEE THE DESCRIPTION UNDER PRESTS FOR MORE DETAILS OF
+C     METHOD. BASED ON MINIMIZATION OF ENERGY WITH RESPECT TO MESH
+C     POINT DISPLACEMENTS.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION  R,RD,FK1,FK2,CURD,RDS,FN,H
+
+(lines skipped to save space)
+
+      COMMON/INTRG/NSTATN(295),IRING(295,20)
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/RNGGEO/RC(198),AREA(198),ER(198),
+     1              IY(198),IX(198),IXY(198),IP(198)
+
+(lines skipped to save space)
+
+C      CURD =DERIVATIVE OF MERIDIONAL CURVATURE W.R.T. S
+C BEG APR 2009
+C      RFK2 = sine of the angle, phi, of the meridional slope
+C     FNBAR = N/R for shell of revolution (N = no. of circ. waves)
+C     FNBAR = N*pi/L for prismatic shell.(L = axial length,
+C                                         N = no. halfwaves over L)
+C END APR 2009
+C
+      R = BG(I,1)
+      RD = BG(I,2)
+      FK1 = BG(I,3)
+      FK2 = BG(I,4)
+      CURD = BG(I,5)
+      RDS = R*DS
+C BEG APR 2009
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+C BEG JAN 2010
+         FK2 = FK2/1000000.
+         R = R*1000000.
+C END JAN 2010
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+C BEG JAN 2010
+C           RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+            RFK2 = (FK2/DABS(FK2))*DSQRT(1.-RD**2)
+C END JAN 2010
+         ENDIF
+         RDS = DS
+      ENDIF
+C BEG JUN 2009
+      IF (R.NE.0.) FNBAR = FN/R
+      IF (R.EQ.0.) FNBAR = FN/(H/100000.)
+C END JUN 2009
+      IF (IPRISM.EQ.1) FNBAR = FN*3.1415927/AXIALL
+C     IF (NPRT.GE.3) WRITE(IFILE4,'(A,I3,1P,3E12.4)')
+C    1' I,RDS,RFK2,FNBAR=',I,RDS,RFK2,FNBAR
+C END APR 2009
+C     POLE CONDITIONS
+
+(lines skipped to save space)
+
+      IF (INDIC.NE.4) THEN
+      RHFIK = RHF(IK) - RHFIX(IK)
+      ELSE
+      RHFIK = RHF(IK)
+      ENDIF
+C
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+         G(1,1) = FN*FN*RHFIK  /RC(IK)
+         G(2,2) = RHFIK  /RC(IK) - DH
+         G(2,3) = -FN*RHFIK  /RC(IK)
+         G(3,2) = G(2,3)
+         G(3,3) = G(1,1) + DH
+      ELSE
+C BEG JAN 2010
+C        G(1,1) = FN*FNBAR*RHFIK
+C        G(2,2) = RHFIK  /RC(IK) - DH
+C        G(2,3) = -FNBAR*RHFIK
+C        G(3,2) = G(2,3)
+C        G(3,3) = G(1,1) + DH
+         G(1,1) = FNBAR**2*RHFIK
+         G(2,2) = RHFIK/R**2 - DH/R
+         G(2,3) = -FNBAR*RHFIK/R
+         G(3,2) = G(2,3)
+         G(3,3) = G(1,1) + DH/R
+C END JAN 2010
+      ENDIF
+C END APR 2009
+      CALL MATMU2(G,E,G1,4,4,0)
+      CALL MATMU4(G1,D,U,4,7,1)
+      GO TO 250
+240   IF (IBUCK.NE.3) GO TO 250
+C     CONTRIBUTION TO THE MASS MATRIX OF DISCRETE RING
+      CALL GETE(IK,E)
+      CALL GETD(I,D,ROT,UB,VB,WB)
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        RHORC = - RM(IK)*RC(IK)
+      ELSE
+        RHORC = - RM(IK)
+      ENDIF
+C END APR 2009
+      RHORCA = RHORC*AREA(IK)
+      TR1(1,1) = RHORCA
+
+(lines skipped to save space)
+
+C     BEGINNING OF LOOP FOR CONTRIBUTION TO ENERGY OF 'MINUS' PART
+C     OF CONSTRAINT AND BOUNDARY CONTITIONS.
+C
+      DO 340 II=1,NSUB
+C BEG APR 2009
+      USTAR = RFK2*UB(II) - RD*WB(II)
+      VSTAR = VB(II)
+      WSTAR = RD*UB(II) + RFK2*WB(II)
+C END APR 2009
+C BEG JUN 2009
+C     IF (IBUCK.EQ.1.AND.NPRT.GE.3)
+C    1 WRITE(IFILE4,'(A,2I6,/,1P,5E12.4)')
+C    1 'After DO 340: NSUB,II,RFK2,RD,UB(II),WB(II),VB(II)=',
+C    1                NSUB,II,RFK2,RD,UB(II),WB(II),VB(II)
+C END JUN 2009
+      IF (IFX(ICOND1,3).EQ.3) USTAR = UB(II)
+      IF (IFX(ICOND1,5).EQ.3) WSTAR = WB(II)
+C     QD( ) = LOCAL MATRIX CONTAINING 'MINUS' PART OF CONSTRAINTS
+C
+      QD(1,II) = FIFX1*(-USTAR + D1(KKK)*ROT(1,II))
+      QD(2,II) = FIFX2*(-VSTAR +
+C BEG APR 2009
+     1 D1(KKK)*(FNBAR*WSTAR-VSTAR/R) +D2(KKK)*FNBAR*USTAR)
+C END APR 2009
+      QD(3,II) = FIFX3*(-WSTAR - D2(KKK)*ROT(1,II))
+      QD(4,II) = -FIFX4*ROT(1,II)
+
+(lines skipped to save space)
+
+      DO 430 II=1,NSUB
+C BEG APR 2009
+      USTAR = RFK2*UB(II) - RD*WB(II)
+      VSTAR = VB(II)
+      WSTAR = RD*UB(II) + RFK2*WB(II)
+C END APR 2009
+      IF (IFIX(ICOND2,3).EQ.3) USTAR = UB(II)
+
+(lines skipped to save space)
+
+C=DECK      SPRING
+      SUBROUTINE SPRING(IFILE4,K,IANGLE,TBAR,U)
+C
+C  March 16, 2008
+C  Purpose is to add strain energy of the IANGLEth spring
+C  attached to ring no. K.
+
+(lines skipped to save space)
+
+      COMMON/RING7/NGROUN(198)
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DOUBLE PRECISION  R,RD,FK1,FK2,CURD,RDS,FN,H
+
+(lines skipped to save space)
+
+C   FN is the number of circumferential waves
+C    R is the radius of the parallel circle (at the ref. surface).
+C BEG APR 2009
+C   FNBAR = FN*pi/L, where L = axial length of prismatic shell
+C END APR 2009
+C
+      EBAR(1,1) = 1.
+      EBAR(1,2) = 0.
+      EBAR(1,3) = 0.
+      EBAR(1,4) = -SPREC1(K)
+C BEG APR 2009
+      EBAR(2,1) = -SPREC2(K)*FNBAR
+      EBAR(2,2) = 1. + SPREC1(K)/R
+      EBAR(2,3) = -SPREC1(K)*FNBAR
+C END APR 2009
+      EBAR(2,4) = 0.
+
+(lines skipped to save space)
+
+C=DECK      GETC
+      SUBROUTINE GETC(L5,IGL,COEF,C)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS STABIL,ASTAB,ARRAYS,MAIN
+C     THE WALL STIFFNESS MATRIX COEF IS TRANSFERRED TO ARRAY C, FOR
+C     CURRENT MESH STATION IN CURRENT SEGMENT.
+C
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION C
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DIMENSION C(6,6),COEF(L5,14)
+
+(lines skipped to save space)
+
+C=DECK      GETPB5
+      SUBROUTINE GETPB5(P,PCOEFA,P2,PCOEFB,UB,VB,WB,B1,ROT,U)
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN.
+C     PRESSURE ROTATION EFFECT FOR BUCKLING PROBLEMS (LIKE BOSOR5 VERSION)
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION U,PR,PP,WB,PROD,PROD1,PROD2
+      DOUBLE PRECISION B1,PR2,ROT,UB,VB
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DIMENSION U(7,7),WB(7)
+
+(lines skipped to save space)
+
+C=DECK      GETRNT
+      SUBROUTINE GETRNT(RNT,ROT,B1,ISIG)
+C
+C     GET MATRIX FOR TRANSFORMATION FROM DISP. GRADIENTS TO NODAL UNKN.
+C     THIS MATRIX IS USED IN THE DERIVATION OF WORK DONE BY MEMBRANE
+C     STRESS RESULTANTS DURING BUCLING OR VIBRATION
+C
+      DOUBLE PRECISION RNT,ROT,B1,R,RD,FK1,FK2,CURD,RDS,FN,H
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DIMENSION RNT(6,7),ROT(3,7),B1(6,7)
+C
+      DO 10 I = 1,7
+      RNT(1,I) = ROT(1,I)
+      RNT(2,I) = ROT(2,I)
+      RNT(3,I) = B1(1,I)
+      RNT(4,I) = B1(2,I)
+   10 CONTINUE
+C
+      RNT(5,3) = -1./H
+      RNT(5,6) = 1./H
+C BEG APR 2009
+      RNT(6,2) = .5*FNBAR
+C END APR 2009
+      RNT(6,3) = -.5*RD/R
+      RNT(6,5) = RNT(6,2)
+      RNT(6,6) = RNT(6,3)
+C
+      IF (ISIG.NE.1) RETURN
+C
+C     POLE CONDITIONS...
+      DO 20 K = 1,7
+   20 RNT(6,K) = RNT(5,K)
+C
+      RETURN
+      END
+
+(lines skipped to save space
+
+      SUBROUTINE GETROT(ROT,I,L5,ISIG,WB,WBD)
+C
+C     CALLED FROM STABIL. MATRIX ROT(I,J) IS SET UP WHICH RELATES
+C     ROTATION VECTOR WITH SHELL REFERENCE SURFACE DISPLACEMENT COMPONEN
+C
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION ROT,WB,WBD
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/INSTAB/INDIC
+      COMMON/FICTP/ IFICT
+      DIMENSION ROT(3,7),WB(7),WBD(7)
+      ROT(1,1) = WBD(1)
+      ROT(1,2) = -0.5*FK1
+      ROT(1,4) = WBD(4)
+      ROT(1,5) = ROT(1,2)
+      ROT(1,7) = WBD(7)
+C BEG APR 2009
+      ROT(2,1) = WB(1)*FNBAR
+C END APR 2009
+      ROT(2,2) = 0.0
+      ROT(2,3) = -0.5*FK2
+C BEG APR 2009
+      ROT(2,4) = WB(4)*FNBAR
+C END APR 2009
+      ROT(2,5) = 0.0
+      ROT(2,6) = ROT(2,3)
+C BEG APR 2009
+      ROT(2,7) = WB(7)*FNBAR
+      ROT(3,2) = 0.25*FNBAR
+C END APR 2009
+      ROT(3,3) = 0.5/H - 0.25*RD/R
+
+(lines skipped to save space)
+
+      SUBROUTINE GETB1(B1,CHIFIX,ROT,L5,ISIG,WB,WBD,HPAST,HI)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS STABIL,ASTAB,ARRAYS,MAIN
+C     STRAIN-DISPLACEMENT AND CURVATURE DISPLACEMENT RELATIONS IN
+C     FINITE-DIFFERENCE FORM. CORRESPONDS TO ITH MESH POINT IN SEGMENT
+C     NUMBER ISEG.
+C
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION C,B1,ROT,CHIFIX,WB,WBD,HPAST,HI
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/INSTAB/INDIC
+      COMMON/FICTP/ IFICT
+      DIMENSION B1(6,7),ROT(3,7),WB(7),WBD(7)
+C
+C     CENTRAL DIFFERENCES USED INSIDE DOMAIN. U AND V LOCATED AT
+C     HALF-STATIONS.
+      B1(1,1) = FK1*WB(1) + CHIFIX*ROT(1,1)
+      B1(1,2) = -1./H + CHIFIX*ROT(1,2)
+      B1(1,4) = FK1*WB(4) + CHIFIX*ROT(1,4)
+      B1(1,5) = 1./H + CHIFIX*ROT(1,5)
+      B1(1,7) = FK1*WB(7) + CHIFIX*ROT(1,7)
+      B1(2,1) = FK2*WB(1)
+      B1(2,2) = 0.5*RD/R
+C BEG APR 2009
+      B1(2,3) = - 0.5*FNBAR
+C END APR 2009
+      B1(2,4) = FK2*WB(4)
+      B1(2,5) = B1(2,2)
+      B1(2,6) = B1(2,3)
+      B1(2,7) = FK2*WB(7)
+      B1(3,1) = CHIFIX*ROT(2,1)
+      B1(3,2) = - B1(2,6)
+      B1(3,3) = -1./H -.5*RD/R + CHIFIX*ROT(2,3)
+      B1(3,4) = CHIFIX*ROT(2,4)
+      B1(3,5) = B1(3,2)
+      B1(3,6) = 1./H - .5*RD/R + CHIFIX*ROT(2,6)
+      B1(3,7) = CHIFIX*ROT(2,7)
+      FMUL = 0.0
+      B1(4,1) = 1./(HPAST*H)  -FMUL*B1(1,1)*FK1
+      B1(4,2) = FK1/H         -FMUL*B1(1,2)*FK1
+      B1(4,4) =-2./(HI*HPAST) -FMUL*B1(1,4)*FK1
+      B1(4,5) = -FK1/H        -FMUL*B1(1,5)*FK1
+      B1(4,7) = 1./(H*HI)     -FMUL*B1(1,7)*FK1
+C
+      DO 10 I=1,7
+C BEG APR 2009
+      B1(5,I) = -ROT(2,I)*FNBAR +ROT(1,I)*RD/R -FMUL*B1(2,I)*FK2
+10    B1(6,I) = 2.*(-ROT(1,I)*FNBAR + ROT(2,I)*RD/R)
+C END APR 2009
+      B1(6,3) = B1(6,3) - 2.*FK2/H
+
+(lines skipped to save space)
+
+C=DECK      GETP
+      SUBROUTINE GETP(P,PCOEFA,P2,PCOEFB,WB,U)
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN.
+C     PRESSURE ROTATION EFFECT FOR BUCKLING PROBLEMS
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION U,PR,PP,WB,PROD,PROD1,PROD2
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DIMENSION U(7,7),WB(7)
+
+(lines skipped to save space)
+
+C=DECK      SRHS
+      SUBROUTINE SRHS(I,L5,B,THERM,PR,F,WB,ISEG,SMPA,IPOS,PALL,
+C BEG SEP 1997
+     1   ILODAB,IOMGAB,Z,IFLSEG)
+C END SEP 1997
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN.
+C     CALLED WHEN INDIC = 3 (LINEAR,NONSYMMETRIC STRESS ANALYSIS), THIS
+C     SUBROUTINE CALCULATES THE RIGHT-HAND-SIDE VECTOR CORRESPONDING TO
+C     DISTRIBUTED MECHANICAL AND THERMAL LOADS ON SHELL SURFACE FOR
+C     SEGMENT NO. ISEG, MESH POINT NO. I.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION WB,B,F,FAXL,FLATL
+      DIMENSION WB(7),IPOS(*),PALL(*)
+      DIMENSION B(6,7),THERM(L5,4),PR(L5,3),F(*)
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+       COMMON/DYNAM/FX(2),FY(2),FZ(2),MX(2),MY(2),MZ(2),
+     1              ICM,IZ,M,ZCM,IDYN(2)
+       REAL MX,MY,MZ,ICM,IZ,M
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/INDICS/I3M,I2M,I1M,I0,I1P,I2P,I3P
+
+(lines skipped to save space)
+
+C     MECHANICAL SURFACE TRACTIONS
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        PT = PR(I,1)*PALL(INDX1)
+     1 + R*OMEGA**2*SMPA*RD*FACT
+        PC = PR(I,2)*PALL(INDX2)
+        PN = PR(I,3)*PALL(INDX1)
+     1 + R*OMEGA**2*SMPA*R*FK2*FACT
+      ELSE
+        PT = PR(I,1)*PALL(INDX1)
+        PC = PR(I,2)*PALL(INDX2)
+        PN = PR(I,3)*PALL(INDX1)
+      ENDIF
+C END APR 2009
+C BEG SEP 1997
+      N = FN
+C     WRITE(IFILE4,'(A,4I3,1P3E12.4)')
+C    1' N,I,ILODAB,IFLSEG,R,GAMMAF,GLATRL=',
+C    1                             N,I,ILODAB,IFLSEG,R,GAMMAF,GLATRL
+      IF (ILODAB.EQ.1.AND.IFLSEG.NE.0) THEN
+         N = FN
+         FFLSEG = IFLSEG
+         IF (N.EQ.0) THEN
+            AGLAT = ABS(GLATRL)
+            AGAXL = ABS(GAXIAL)
+            IF (GAXIAL.EQ.0.) AGAXL = 1.
+C BEG APR 2009
+            IF (IPRISM.EQ.0) THEN
+              PN = PN + FFLSEG*GAMMAF*(AGLAT*0.0
+     1            +GAXIAL*(0.5*(1.+GAXIAL/AGAXL)*AXLONG -(Z-ZBEGIN)))
+            ELSE
+              PN = PN + FFLSEG*GAMMAF*(AGLAT*0.0
+     1            +GAXIAL*(0.5*(1.+GAXIAL/AGAXL)*AXLONG -(Z-ZBEGIN)))
+            ENDIF
+C END APR 2009
+         ENDIF
+         IF (N.EQ.1.OR.N.EQ.-1) THEN
+C BEG APR 2009
+            IF (IPRISM.EQ.0) THEN
+              PN = PN - FFLSEG*GAMMAF*GLATRL*R
+            ELSE
+              PN = PN - FFLSEG*GAMMAF*GLATRL*0.0
+            ENDIF
+C END APR 2009
+         ENDIF
+      ENDIF
+C END SEP 1997
+C
+C  ADDITIONS TO LOADS DUE TO DYNAMIC REACTION OF NON-SELF-EQUILIBRATING
+C  LOADS. ADDED ON 17 AUGUST, 1985. OBTAINED FROM BOSBILTAPE (UNIVAC)
+C
+      IF (IDYN(ILODAB).EQ.0) GO TO 200
+      N = FN
+      IF (IABS(N).GT.1) GO TO 200
+      ZP = Z - ZCM
+      C3 = SMPA*(MY(ILODAB) - FX(ILODAB)*ZCM)/ICM
+      C4 = SMPA*(MX(ILODAB) + FY(ILODAB)*ZCM)/ICM
+      C1 = SMPA*FX(ILODAB)/M + ZP*C3
+      C2 = SMPA*FY(ILODAB)/M - ZP*C4
+      IF (N.NE.-1) GO TO 10
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        PTD = -C1*RD + C3*R*RFK2
+        PCD = C1
+        PND = -C1*RFK2 - C3*R*RD
+      ELSE
+        PTD = -C1*RD + C3*0.0*RFK2
+        PCD = C1
+        PND = -C1*RFK2 - C3*0.0*RD
+      ENDIF
+C END APR 2009
+      GO TO 100
+   10 IF (N.NE.0) GO TO 20
+C BEG APR 2009
+      PTD = -SMPA*RFK2*FZ(ILODAB)/M
+      IF (IPRISM.EQ.0) THEN
+        PCD =  SMPA*R*MZ(ILODAB)/IZ
+      ELSE
+        PCD =  SMPA*0.0*MZ(ILODAB)/IZ
+      ENDIF
+C END APR 2009
+      PND =  SMPA*RD*FZ(ILODAB)/M
+      GO TO 100
+   20 IF (N.NE.1) GO TO 100
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        PTD = C2*RD + C4*R*RFK2
+        PCD = C2
+        PND = C2*RFK2 - C4*R*RD
+      ELSE
+        PTD = C2*RD + C4*0.0*RFK2
+        PCD = C2
+        PND = C2*RFK2 - C4*0.0*RD
+      ENDIF
+C END APR 2009
+  100 CONTINUE
+
+(lines skipped to save space)
+
+      F(I3M) = F(I3M) - FAXL*RD*WB(1)
+C BEG APR 2009
+      F(I2M) = F(I2M) + FAXL*.5*RFK2
+      F(I0)  = F(I0)  - FAXL*RD*WB(4)
+      F(I1P) = F(I1P) + FAXL*.5*RFK2
+C END APR 2009
+      F(I3P) = F(I3P) - FAXL*RD*WB(7)
+C
+      GO TO 30
+C
+   22 CONTINUE
+C
+C    LATERAL BASE MOTION (N = 1 CIRC. WAVE)...
+C
+      FACT = 1.0
+      IF (FN.LT.0.1) FACT = -1.0
+C BEG APR 2009
+      F(I3M) = F(I3M) + FLATL*RFK2*WB(1)
+      F(I2M) = F(I2M) + FLATL*.5*RD
+      F(I1M) = F(I1M) + FLATL*.5*FACT
+      F(I0)  = F(I0)  + FLATL*RFK2*WB(4)
+      F(I1P) = F(I1P) + FLATL*.5*RD
+      F(I2P) = F(I2P) + FLATL*.5*FACT
+      F(I3P) = F(I3P) + FLATL*RFK2*WB(7)
+C END APR 2009
+C
+   30 CONTINUE
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      GETE
+      SUBROUTINE GETE(K,E)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN
+C     CALCULATES TRANSFORMATION MATRIX WHICH RELATES DISPLACEMENTS OF
+C     RING CENTROID TO DISPLACEMENTS OF SHELL REFERENCE SURFACE. ALL
+C     DISPLACEMENTS IN THIS TRANSFORMATION ARE NORMAL AND TANGENTIAL
+C     TO AXIS OF REVOLUTION.
+C
+C     E1(K) IS THE RADIAL DISTANCE OF THE KTH RING CENTROID FROM THE
+C     SHELL REFERENCE SURFACE. E2(K) IS THE AXIAL DISTANCE.
+C
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION E
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/RING2/GAM(198),GJ(198),
+     1            YC(198), XC(198),E1(198),E2(198),PHI(200)
+      DIMENSION E(4,4)
+      E(1,1) = 1.
+      E(1,4) = -E1(K)
+C BEG APR 2009
+      E(2,1) = -E2(K)*FNBAR
+      E(2,2) = 1. + E1(K)/R
+      E(2,3) = -E1(K)*FNBAR
+C END APR 2009
+      E(3,3) = 1.
+      E(3,4) = E2(K)
+      E(4,4) = 1.
+      RETURN
+      END
+C
+C
+C
+C=DECK      GETD
+      SUBROUTINE GETD(K,D,ROT,UB,VB,WB)
+C
+C     CALLED FROM STABIL,WHOSE TRACE IS STABIL,ASTAB,ARRAYS,MAIN
+C     CALCULATES MATRIX WHICH TRANSFORMS DISPLACEMENTS NORMAL AND
+C     TANGENTIAL TO AXIS OF REVOLUTION TO DISPLACEMENTS NORMAL AND
+C     TANGENTIAL TO SHELL REFERENCE SURFACE. CURRENT MESH POINT IN CUR-
+C     RENT SEGMENT.
+C
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+C BEG APR 2009
+      DOUBLE PRECISION D,ROT,UB,VB,WB
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      DIMENSION D(4,7),ROT(3,7),UB(7),VB(7),WB(7)
+C BEG APR 2009 following commented out
+C     RFK2 = R*FK2
+C END APR 2009
+      DO 10 I=1,7
+      D(1,I) = RFK2*UB(I) - RD*WB(I)
+      D(2,I) = VB(I)
+      D(3,I) = RD*UB(I) + RFK2*WB(I)
+10    D(4,I) = ROT(1,I)
+      RETURN
+      END
+C
+C
+C
+C=DECK      GETG
+      SUBROUTINE GETG(I,FN,HOOPF,RINGF,G)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN
+C     RING STIFFNESS MATRIX CALCULATED FOR N WAVES. FORMULAS FROM COHEN.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION HF,RHF,G,FN,FN2,R,R2,R4,E,AR,FIX,FIY,FIXY,FGJ
+C BEG APR 2009
+      DOUBLE PRECISION FNBAR
+C END APR 2009
+      COMMON/RNGGEO/RC(198),AREA(198),ER(198),
+     1              IY(198),IX(198),IXY(198),IP(198)
+      COMMON/RING2/GAM(198),GJ(198),
+     1              YC(198), XC(198),E1(198),E2(198),PHI(200)
+      COMMON/INSTAB/INDIC
+      REAL IX,IY,IXY,IP
+      DIMENSION G(4,4),RINGF(*)
+      FN2 = FN*FN
+C BEG APR 2009
+      R = RC(I)
+      IF (IPRISM.EQ.0) THEN
+         R2 = R*R
+         R4 = R2*R2
+      ENDIF
+C END APR 2009
+      E = ER(I)
+      AR= AREA(I)
+      FIX = IX(I)
+      FIY = IY(I)
+      FIXY = IXY(I)
+      FGJ = GJ(I)
+      RHF = RINGF(I)
+      HF = HOOPF
+C     IF (INDIC.GE.3) HF = 0.0
+C     IF (INDIC.GE.3)RHF = 0.0
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+         G(1,1) =  R*FN2*(FN2*E*FIX + FGJ)/R4 + FN2*RHF/R
+         G(1,2) = -R*FN**3*E*FIXY/R4
+         G(1,3) =  R*FN2*FN2*E*FIXY/R4
+         G(1,4) =  R*FN2*(E*FIX + FGJ)/R**3
+         G(2,2) =  R*FN2*(E*AR + E*FIY/R2)/R2 - HF + RHF/R
+         G(2,3) = -R*FN*(E*AR + FN2*E*FIY/R2)/R2 - FN*RHF/R
+         G(2,4) = -FN*E*FIXY/R2
+         G(3,3) = (E*AR + FN2*FN2*E*FIY/R2)/R + HF + FN2*RHF/R
+         G(3,4) =  FN2*E*FIXY/R2
+         G(4,4) = (E*FIX + FN2*FGJ)/R
+      ELSE
+C BEG JAN 2010
+         R = R*1000000.
+C END JAN 2010
+         FNBAR = FN*3.1415927/AXIALL
+C BEG JAN 2010
+C        G(1,1) =  FN*FNBAR**3*E*FIX + FNBAR**2*FGJ/R  + FN*FNBAR*RHF
+C        G(1,2) = -FNBAR**3*E*FIXY
+C        G(1,3) =  FN*FNBAR**3*E*FIXY
+C        G(1,4) =  FNBAR**2*(E*FIX + FGJ)
+C        G(2,2) =  FN*FNBAR*E*AR + FNBAR**2*E*FIY/R - HF + RHF/R
+C        G(2,3) = -FNBAR*E*AR - FNBAR**3*E*FIY - FNBAR*RHF
+C        G(2,4) = -FNBAR*E*FIXY/R
+C        G(3,3) =  E*AR/R + FN*FNBAR**3*E*FIY + HF + FN*FNBAR*RHF
+C        G(3,4) =  FNBAR**2*E*FIXY
+C        G(4,4) =  E*FIX/R + FN*FNBAR*FGJ
+         G(1,1) =  FNBAR**4*E*FIX + FNBAR**2*FGJ/R**2  + FNBAR**2*RHF
+         G(1,2) = -FNBAR**3*E*FIXY/R
+         G(1,3) =  FNBAR**4*E*FIXY
+         G(1,4) =  FNBAR**2*(E*FIX + FGJ)/R
+         G(2,2) =  FNBAR**2*E*AR + FNBAR**2*E*FIY/R**2 - HF/R + RHF/R**2
+         G(2,3) = -FNBAR*E*AR/R - FNBAR**3*E*FIY/R - FNBAR*RHF/R
+         G(2,4) = -FNBAR*E*FIXY/R**2
+         G(3,3) =  E*AR/R**2 + FNBAR**4*E*FIY + HF/R + FNBAR**2*RHF
+         G(3,4) =  FNBAR**2*E*FIXY/R
+         G(4,4) =  E*FIX/R**2 + FNBAR**2*FGJ
+C END JAN 2010
+      ENDIF
+C END APR 2009
+      G(2,1) = G(1,2)
+      G(3,1) = G(1,3)
+      G(3,2) = G(2,3)
+      G(4,1) = G(1,4)
+      G(4,2) = G(2,4)
+      G(4,3) = G(3,4)
+      RETURN
+      END
+C
+C
+C
+C=DECK      RRHS
+C     OVERLAY(1,1)
+      SUBROUTINE RRHS(I,E,D,F,K,ISEG,IPOS,PALL,ILODAB,V,SHEAR,HF,FM,
+     1 TNR,TMR,TMRX,IOMGAB,Z)
+C
+C     CALLED FROM STABIL, WHOSE TRACE IS ASTAB,ARRAYS,MAIN.
+C     RRHS IS NEEDED IF INDIC = 3 (LINEAR,NONSYMMETRIC STRESS ANALYSIS)
+C     THE WORK DONE BY THE LINE LOADS APPLIED TO THE RING CENTROID IS
+C     CALCULATED. ONLY KTH RING INVOLVED.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION R,RD,FK1,FK2,CURD,RDS,FN,H
+      DOUBLE PRECISION F,E,D,ED
+      DIMENSION F(*),E(4,4),D(4,7),ED(4,7)
+      DIMENSION V(*),SHEAR(*),HF(*),FM(*),IPOS(*),PALL(*)
+      DIMENSION TNR(*),TMR(*),TMRX(*)
+       COMMON/DYNAM/FX(2),FY(2),FZ(2),MX(2),MY(2),MZ(2),
+     1              ICM,IZ,M,ZCM,IDYN(2)
+       REAL MX,MY,MZ,ICM,IZ,M
+C BEG APR 2009
+      COMMON/GGG/R,RD,FK1,FK2,CURD,RDS,FN,H,FNBAR,RFK2
+      DOUBLE PRECISION FNBAR,RFK2
+C END APR 2009
+      COMMON/RNGGEO/RC(198),AREA(198),ER(198),
+     1              IY(198),IX(198),IXY(198),IP(198)
+      REAL IX,IY,IXY,IP
+      COMMON/INDICS/I3M,I2M,I1M,I0,I1P,I2P,I3P
+      COMMON/NOHARM/NHARM
+      COMMON/COUNTR/NKOUNT
+      COMMON/ROTATN/OMEGA,DOMEGA
+      COMMON/RMASS/RM(198)
+      COMMON/AMPFAC/OMEGDR,YLATRL,YAXIAL,BDAMP,AMPLTD,GAMP(200)
+      CALL MATMU3(E,D,ED,4,7)
+C     EFFECT OF RING THERMAL LOADS.
+C     TNR = THERMAL HOOP FORCE
+C     TMR = THERMAL MOMENT ABOUT X- AXIS (OUT-OF-PLANE)
+C     TMRX = THERMAL MOMENT ABOUT Y-AXIS (IN-PLANE)
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+         T1R = -FN*FN*TMR(K)/RC(K)
+         T2R = FN*(TNR(K) + TMRX(K)/RC(K))
+         T3R = -TNR(K) - FN*FN*TMRX(K)/RC(K)
+         T4R = - TMR(K)
+      ELSE
+         FNBAR = FN*3.1415927/AXIALL
+         T1R = -FN*FNBAR*TMR(K)
+         T2R = FN*TNR(K) + FNBAR*TMRX(K)
+         T3R = -TNR(K) - FN*FNBAR*TMRX(K)
+         T4R = - TMR(K)
+      ENDIF
+C END APR 2009
+C     EFFECT OF MECHANICAL LINE LOADS
+C     V = AXIAL LINE LOAD
+C     SHEAR = SHEAR LINE LOAD
+C     HF = RADIAL LINE LOAD
+C     FM = MERIDIONAL MOMENT
+C
+      INDX1 = IPOS(1) + NKOUNT - 1
+      INDX2 = IPOS(2) + NKOUNT - 1
+      INDX3 = IPOS(3) + NKOUNT - 1
+      FACT = 1.0
+      IF (DABS(FN).GT.0.1) FACT = 0.
+      IF (ILODAB.NE.IOMGAB) FACT = 0.
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        F1 = T1R*PALL(INDX3) - V(K)*PALL(INDX1)*RC(K)
+        F2 = T2R*PALL(INDX3) + SHEAR(K)*PALL(INDX2)*RC(K)
+        F3 = T3R*PALL(INDX3) + HF(K)*PALL(INDX1)*RC(K)
+     1    + RC(K)*RC(K)*OMEGA**2*RM(K)*AREA(K)*FACT
+        F4 = T4R*PALL(INDX3) + FM(K)*PALL(INDX1)*RC(K)
+      ELSE
+        F1 = T1R*PALL(INDX3) - V(K)*PALL(INDX1)*AXIALL
+        F2 = T2R*PALL(INDX3) + SHEAR(K)*PALL(INDX2)*AXIALL
+        F3 = T3R*PALL(INDX3) + HF(K)*PALL(INDX1)*AXIALL
+        F4 = T4R*PALL(INDX3) + FM(K)*PALL(INDX1)*AXIALL
+      ENDIF
+C END APR 2009
+C
+C  ADDITION OF DYNAMIC REACTION TERMS ON AUGUST 17, 1985..
+C
+      IF (IDYN(ILODAB).EQ.0) GO TO 200
+      N =FN
+      IF (IABS(N).GT.1) GO TO 200
+      ZP = Z - ZCM
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        C5 = RM(K)*AREA(K)*RC(K)
+      ELSE
+        C5 = RM(K)*AREA(K)*AXIALL
+      ENDIF
+C END APR 2009
+      C3 = C5*(MY(ILODAB) - FX(ILODAB)*ZCM)/ICM
+      C4 = C5*(MX(ILODAB) + FY(ILODAB)*ZCM)/ICM
+      C1 = C5*FX(ILODAB)/M + ZP*C3
+      C2 = C5*FY(ILODAB)/M - ZP*C4
+      IF (N.NE.-1) GO TO 10
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        F1D = RC(K)*C3
+      ELSE
+        F1D = AXIALL*C3
+      ENDIF
+C END APR 2009
+      F2D = C1
+      F3D = -C1
+      GO TO 100
+   10 IF (N.NE.0) GO TO 20
+      F1D = -C5*FZ(ILODAB)/M
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        F2D =  C5*RC(K)*MZ(ILODAB)/IZ
+      ELSE
+        F2D =  C5*AXIALL*MZ(ILODAB)/IZ
+      ENDIF
+C END APR 2009
+      F3D = 0.
+      GO TO 100
+   20 IF (N.NE.1) GO TO 100
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        F1D = RC(K)*C4
+      ELSE
+        F1D = AXIALL*C4
+      ENDIF
+C END APR 2009
+      F2D = C2
+      F3D = C2
+  100 CONTINUE
+      F1 = F1 + F1D
+      F2 = F2 + F2D
+      F3 = F3 + F3D
+  200 CONTINUE
+C     MODIFICATIONS OF RIGHT-HAND-SIDE.
+C     I3M,I2M,I1M,I0,I1P,I2P,I3P = GLOBAL EQUATION NUMBERS OF LOCAL
+C                                  RIGHT-HAND-SIDE
+      F(I3M) = F(I3M) + F1*ED(1,1) +F2*ED(2,1) +F3*ED(3,1) +F4*ED(4,1)
+      F(I2M) = F(I2M) + F1*ED(1,2) +F2*ED(2,2) +F3*ED(3,2) +F4*ED(4,2)
+      F(I1M) = F(I1M) + F1*ED(1,3) +F2*ED(2,3) +F3*ED(3,3) +F4*ED(4,3)
+      F(I0 ) = F(I0 ) + F1*ED(1,4) +F2*ED(2,4) +F3*ED(3,4) +F4*ED(4,4)
+      F(I1P) = F(I1P) + F1*ED(1,5) +F2*ED(2,5) +F3*ED(3,5) +F4*ED(4,5)
+      F(I2P) = F(I2P) + F1*ED(1,6) +F2*ED(2,6) +F3*ED(3,6) +F4*ED(4,6)
+      F(I3P) = F(I3P) + F1*ED(1,7) +F2*ED(2,7) +F3*ED(3,7) +F4*ED(4,7)
+C
+      IF (ILODAB.NE.1) RETURN
+      IF (IPRISM.EQ.1) RETURN
+      IF (OMEGDR.GT.0.)CALL RINGDR(FN,YLATRL,YAXIAL,K,ED,RC(K),AREA(K),
+     1 RM(K),OMEGDR,F)
+C
+      RETURN
+      END
+
+(lines skipped to save space)
+
+C=DECK      RMASDV
+      SUBROUTINE RMASDV(OMEGDR,RM,RC,AREA,FIS,FIN,FISN,E,D,ROT,
+     1 TR1,TR2,TR3,U)
+C
+C     PURPOSE IS TO ADD INERTIAL TERMS FOR DISCRETE RINGS TO
+C    STIFFNESS MATRIX U CORRESPONDING TO STRUCTURE DRIVEN HARMONICALLY
+C    AT A FREQUENCY OF OMEGDR.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DIMENSION E(4,4),D(4,7),ROT(3,7),U(7,7),TR1(4,4),TR2(3,3),TR3(4,4)
+      DOUBLE PRECISION E,D,ROT,TR1,TR2,TR3,U,RHORC,RHORCA
+C
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        RHORC = -OMEGDR*OMEGDR*RM*RC
+      ELSE
+        RHORC = 0.0
+      ENDIF
+C END APR 2009
+      RHORCA = RHORC*AREA
+C
+      TR1(1,1) = RHORCA
+      TR1(2,2) = RHORCA
+      TR1(3,3) = RHORCA
+      TR1(4,4) = RHORC*(FIS + FIN)
+C
+      TR2(2,2) = RHORC*FIS
+      TR2(2,3) = - RHORC*FISN
+      TR2(3,2) = TR2(2,3)
+      TR2(3,3) = RHORC*FIN
+C
+      CALL MATMU2(TR1,E,TR3,4,4,0)
+      CALL MATMU4(TR3,D,U,4,7,1)
+      CALL MATMU4(TR2,ROT,U,3,7,1)
+C
+      RETURN
+      END
+C
+C
+C
+C=DECK      RINGDR
+      SUBROUTINE RINGDR(FN,YLATRL,YAXIAL,K,ET,RC,AREA,RM,OMEGDR,F)
+C
+C    PURPOSE IS TO ADD TERMS ON R.H.S. DUE TO BASE MOTION OF DISCRETE
+C    RING.
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DIMENSION ET(4,7),F(*),TR1(4,4),TR1ET(4,7)
+      COMMON/INDICS/I3M,I2M,I1M,I0,I1P,I2P,I3P
+      DOUBLE PRECISION ET,F,FN,TR1,RHORCA,TR1ET
+C
+      N = DABS(FN) + 0.1
+      IF (N.GT.1) RETURN
+      IF (N.EQ.1.AND.YLATRL.EQ.0.) RETURN
+      IF (N.EQ.0.AND.YAXIAL.EQ.0.) RETURN
+C
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+        RHORCA = OMEGDR*OMEGDR*RM*RC*AREA
+      ELSE
+        RHORCA = 0.0
+      ENDIF
+C END APR 2009
+      TR1(1,1) = RHORCA
+
+(lines skipped to save space)
+
+C=DECK      STOCM1
+      SUBROUTINE STOCM1(IFILE)
+C
+C    STORE LABELLED COMMON BLOCKS ON A FILE..
+
+(lines skipped to save space)
+
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+C
+      WRITE(IFILE)(IDZ(I),I=1,220)
+
+(lines skipped to save space)
+
+C BEG APR 2009
+      WRITE(IFILE) IPRISM,AXIALL
+C END APR 2009
+C
+      RETURN
+      END
+
+(lines skipped to save space)
+
+C=DECK      GETCM1
+      SUBROUTINE GETCM1(IFILE)
+C
+C    READ LABELLED COMMON BLOCKS FROM A FILE..
+
+(lines skipped to save space)
+
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+C
+      READ(IFILE)(IDZ(I),I=1,220)
+
+(lines skipped to save space)
+
+C BEG APR 2009
+      READ(IFILE) IPRISM,AXIALL
+C END APR 2009
+C
+      RETURN
+      END
+
+(lines skipped to save space)
+
+C=DECK      LOCAL
+      SUBROUTINE LOCAL(IW,IS,HC,I5,FN,F,C,B,PSTS,BMODE,NSEG,THERM,
+     1PFXD,INDIC,TIO,IALL,IVEC,SMODE,TMODE,IPOINT,IDIST,IANALY,
+     1 ILOOP,IPOS,PALL,FF,RHF,RHFIX,RVAR,RFIX,XSINGL)
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+      DOUBLE PRECISION H,HPAST,HI,C1,C2,C3,W,U,V,R,RD,FK1,FK2,CURD
+
+(lines skipped to save space)
+
+      CURD = 0.0
+C BEG APR 2009
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+C BEG JAN 2010
+         FK2 = FK2/1000000.
+         R = R*1000000.
+C END JAN 2010
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+C BEG JAN 2010
+C           RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+            RFK2 = (FK2/DABS(FK2))*DSQRT(1.-RD**2)
+C END JAN 2010
+         ENDIF
+      ENDIF
+      FNBAR = FN/R
+      IF (IPRISM.EQ.1) FNBAR = FN*3.1415927/AXIALL
+C END APR 2009
+      RS = R
+
+(lines skipped to save space)
+
+      IF (N.LT.0) FACMLT = -1.0
+C     WRITE(IFILE4,*) ' N,FACMLT,AMPLTD,XSINGL(I1M),XSINGL(I0)=',
+C    1             N,FACMLT,AMPLTD,XSINGL(I1M),XSINGL(I0)
+C BEG APR 2009
+      AMPLTD = AMPLTD +XSINGL(I1M)*1. +XSINGL(I0)*RFK2*FACMLT
+     1                +XSINGL(I1P)*RD
+      IF (I.EQ.1) AMPLTD=AMPLTD +XSINGL(I3M)*RFK2*FACMLT
+     1                          +XSINGL(I2M)*RD
+      IF (I.EQ.I5)AMPLTD=AMPLTD +XSINGL(I3P)*RFK2*FACMLT
+     1                          +XSINGL(I2P)*1.
+C END APR 2009
+C END AUG 1991
+C
+C     NOTE...THE ABOVE FORMULA IS FOR LATERAL FORCED MOTIONS ONLY...
+C
+      GO TO 7
+    6 CONTINUE
+C
+C BEG APR 2009
+      AMPLTD = AMPLTD +XSINGL(I1M)*1. -XSINGL(I0)*RD +XSINGL(I1P)*RFK2
+      IF (I.EQ.1) AMPLTD=AMPLTD -XSINGL(I3M)*RD +XSINGL(I2M)*RFK2
+C END APR 2009
+      IF (I.EQ.I5)AMPLTD=AMPLTD -XSINGL(I3P)*RD *XSINGL(I2P)*1.
+
+(lines skipped to save space)
+
+      GO TO 20
+C BEG APR 2009
+10    PS = W*FNBAR - FK2*V
+      E2 = - V*FNBAR + U*RD/R + W*FK2
+      E12 = VD - V*RD/R + U*FNBAR + CHI0*PS
+      K2=-PS*FNBAR+CHI*RD/R-FMUL*E2*FK2
+      K12 = - CHI*FNBAR + PS*RD/R + VD*FK2
+C END APR 2009
+   20 CONTINUE
+      IF (INDIC.NE.3) GO TO 70
+
+(lines skipped to save space)
+
+C     CORRECTION ADDENDS FOR EDGE STRESS RESULTANTS CALCULATED.
+C
+40    F1 = 0.5*RD*H/R
+C BEG APR 2009
+      F2 = 0.5*FNBAR*H
+C END APR 2009
+      CN1 = - N2*F1 - N12*F2 + 0.5*N10*CHI*H*FK1
+
+(lines skipped to save space)
+
+C=DECK      RINGF
+      SUBROUTINE RINGF(IK,KK,R,RD,FK1,FK2,FN,U,V,W,CHI,F,TLIN,NTOT,NHARM
+     1,IVEC,RHF,TNR,TMR,TMRX,IPOS,PALL,RHARM)
+C     CALLED FROM LOCAL WHOSE TRACE IS MODE,MAIN
+C     DISCRETE RING HOOP FORCE,IN-PLANE MOMENT, OUT-OF-PLANE MOMENT
+C     AND TORQUE ARE COMPUTED FOR KKTH DISCRETE RING AND FOR HARMONIC
+C     FN = FLOAT(N).
+C
+C BEG APR 2009
+      COMMON/IPRSMX/IPRISM,AXIALL
+C END APR 2009
+C BEG MAR 2008
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      COMMON/ISTUFB/KKXX,I5TOTX,ICCCX,NUNKX,KLAPX,ICALLX,IGROUN
+
+(lines skipped to save space)
+
+      DIMENSION D(4,4),E(4,4),B(4,4),C(4,4),G(4,4)
+C BEG APR 2009
+      RFK2 = R*FK2
+      IF (IPRISM.EQ.1) THEN
+         IF (ABS(RD).GT.0.999999) THEN
+            RFK2 = 0.0
+         ELSE
+            RFK2 = (FK2/ABS(FK2))*SQRT(1.-RD**2)
+         ENDIF
+      ENDIF
+      FNBAR = FN/R
+      IF (IPRISM.EQ.1) FNBAR = FN*3.1415927/AXIALL
+C END APR 2009
+      DO 10 I=1,4
+      DO 10 J=1,4
+      D(I,J) = 0.0
+      E(I,J) = 0.0
+      G(I,J) = 0.0
+10    B(I,J) = 0.0
+C     TRANSFORMATION FROM AXIAL AND RADIAL TO NORMAL AND TANGENTIAL
+C     DISPLACEMENT COMPONENTS  QSTAR = D(I,J)*Q
+C BEG APR 2009
+      D(1,1) = RFK2
+C END APR 2009
+      D(1,3) = -RD
+      D(2,2) = 1.
+      D(3,1) = RD
+C BEG APR 2009
+      D(3,3) = RFK2
+C END APR 2009
+      D(4,4) = 1.
+C     TRANSFORMATION FROM SHELL REFERENCE SURFACE TO RING CENTROIDAL
+C     DISPLACEMENTS    QC = E(I,J)*QSTAR
+      E(1,1) = 1.
+      E(1,4) = -E1(KK)
+C BEG APR 2009
+      E(2,1) = -E2(KK)*FNBAR
+      E(2,2) = 1. + E1(KK)/R
+      E(2,3) = -E1(KK)*FNBAR
+C END APR 2009
+      E(3,3) = 1.
+      E(3,4) = E2(KK)
+      E(4,4) = 1.
+C BEG MAR 2008
+      RADRNG(KK) = R
+      IF (KK.EQ.1) IGROUN = 0
+      IF (NTYPAL(KK).EQ.-1.AND.NGROUN(KK).EQ.1) THEN
+       IGROUN = IGROUN + 1
+       IF (IGROUN.GT.10) THEN
+          WRITE(IFILE4,'(/,A,/,A,/,A,I6,A,/,A)')
+     1  ' ****************** RUN ABORT ****************',
+     1  ' Too many different "fake" rings at which springs',
+     1  ' are connected to ground; IGROUN=',IGROUN,' Max.=10',
+     1  ' *********************************************'
+          CALL ERREX
+       ENDIF
+C
+       DO 15 I=1,4
+       DO 15 J=1,4
+       ED(I,J)= 0.0
+       XBAR(I,J) = 0.0
+   15  CONTINUE
+C
+       E(1,4) = -SPREC1(KK)
+C BEG APR 2009
+       E(2,1) = -SPREC2(KK)*FNBAR
+       E(2,2) = 1. + SPREC1(KK)/R
+       E(2,3) = -SPREC1(KK)*FNBAR
+C END APR 2009
+       E(3,4) = SPREC2(KK)
+C      MATRIX MULTIPLICATION: ED = E x D
+
+(lines skipped to save space)
+
+      G(4,4) = GJ(KK)
+C     DISCRETE RING KINEMATIC RELATIONS    EPSILON = B(I,J)*QC
+C BEG APR 2009
+      IF (IPRISM.EQ.0) THEN
+         B(1,2) = -FN/RC(KK)
+         B(1,3) = 1./RC(KK)
+         B(2,1) = FN*FN/RC(KK)**2
+         B(2,4) = 1./RC(KK)
+         B(3,2) = FN/RC(KK)**2
+         B(3,3) = -FN*FN/RC(KK)**2
+         B(4,1) = FN/RC(KK)**2
+         B(4,4) = FN/RC(KK)
+      ELSE
+         FNBARC = FN*3.1415927/AXIALL
+         B(1,2) = -FNBARC
+         B(1,3) = 1./RC(KK)
+         B(2,1) = FNBARC**2
+         B(2,4) = 1./RC(KK)
+         B(3,2) = FNBARC/RC(KK)
+         B(3,3) = -FNBARC**2
+         B(4,1) = FNBARC/RC(KK)
+         B(4,4) = FNBARC
+      ENDIF
+C END APR 2009
+C     MATRIX MULTIPLICATIONS
+      CALL MATMU3(E,D,C,4,4)
+      CALL MATMU3(B,C,D,4,4)
+      CALL MATMU3(G,D,C,4,4)
+      F(KK,IVEC,1)
+     1= C(1,1)*U + C(1,2)*V + C(1,3)*W + C(1,4)*CHI + TNR(KK)*TLIN
+----------------------------------------------------------------------

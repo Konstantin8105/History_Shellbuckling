@@ -1,0 +1,854 @@
+
+/*
+area2d: defines the subplot area based on axis length.
+*/
+void area2d_(_float_ *xaxis, _float_ *yaxis)
+{
+
+  if (level != 1) {
+    derror("Level must be 1.  Routine: area2d", !FATAL);
+    return;
+  }
+
+  plot.xlen = *xaxis;
+  plot.ylen = *yaxis;
+
+/* check for dimensions too large */
+  if (plot.pwidth == DefPageHeight) {
+    if (plot.xlen > DefPageHeight - 0.5) {
+      derror("x-axis dimension reduced to fit landscape plot.", !FATAL);
+      plot.xlen = DefPageHeight - 0.5;
+    }
+    if (plot.ylen > DefPageWidth - 0.5) {
+      derror("y-axis dimension reduced to fit landscape plot.", !FATAL);
+      plot.ylen = DefPageWidth - 0.5;
+    }
+  }
+  else {
+    if (plot.xlen > DefPageWidth - 0.5) {
+      derror("x-axis dimension reduced to fit portrait plot.", !FATAL);
+      plot.xlen = DefPageWidth - 0.5;
+    }
+    if (plot.ylen > DefPageHeight - 0.5) {
+      derror("y-axis dimension reduced to fit portrait plot.", !FATAL);
+      plot.ylen = DefPageHeight - 0.5;
+    }
+  }
+
+  fprintf(fp, "%%\n%%----------------- Page %d ------------------\n", pg);
+  fprintf(fp, "%%%%Page: %d %d\n", pg, pg);
+  pg++;
+
+  level = 2;
+}
+
+
+/*
+graf: Sets up scale on axes with numbered tick marks, scaling both X
+and Y axes in units.
+*/
+void graf_(_float_ *xmin, _float_ *xstp, _float_ *xmax, _float_ *ymin,
+           _float_ *ystp, _float_ *ymax)
+/*
+Arguments:  xmin - actual value of x at the origin (lower left corner)
+            xstp - step size of x in units
+            xmax - maximum value of x to be plotted
+            ymin - actual value of y at the origin (lower left corner)
+            xstp - step size of y in units
+            ymax - maximum value of y to be plotted
+*/
+{
+/* Declare local vars. */
+  _float_ inc, xticklength, yticklength, scale,
+        num_offset = 0.06, lab_offset = num_offset+0.06, just_offset = 0.08;
+  _int_ ticknum, i, just, tickinc;
+  char label[MaxLineLength], xname[MaxLineLength], yname[MaxLineLength],
+       exponent[10];
+  char *exp_base = "x10";
+  enum axis_num_type  axisNumStyle;
+
+#define MaxFactorNum 10
+#define MaxLabelDensity 0.5
+
+/* Begin executable statements */
+
+  if (level != 2) {
+    derror("Level must be 2.  Routine: graf", !FATAL);
+    return;
+  }
+
+  plot.xmin = *xmin;
+  plot.xstp = *xstp;
+  plot.xmax = *xmax;
+  plot.ymin = *ymin;
+  plot.ystp = *ystp;
+  plot.ymax = *ymax;
+  strcpy(xname, plot.xname);
+  strcpy(yname, plot.yname);
+
+/* Check to make sure xmax > xmin and ymax > ymin. */
+  if (plot.xmax <= plot.xmin || plot.ymax <= plot.ymin) {
+    derror("plot.*max must be >= plot.*min.  Routine: graf", !FATAL);
+    return;
+  }
+/*
+  if (plot.xmax == plot.xmin) {
+    plot.xmax = plot.xmax + 1.0;
+    plot.xmin = plot.xmin - 1.0;
+  }
+  if (plot.ymax == plot.ymin) {
+    plot.ymax = plot.ymax + 1.0;
+    plot.ymin = plot.ymin - 1.0;
+  }
+*/
+
+/* Send PS commands to file. */
+
+/* x-axis stuff */
+  if (plot.xtick) {
+    xticklength = TickLength*plot.xtick/abs(plot.xtick);
+    ticknum = round((plot.xmax - plot.xmin) / plot.xstp);
+    inc = plot.xlen/(plot.xmax-plot.xmin)*plot.xstp;
+
+    fprintf(fp, "%%\n%% draw x-axis\n");
+    fprintf(fp, "newpath\n");
+    fprintf(fp, "%.2f %.2f m\n", 0.0, 0.0);
+    fprintf(fp, "%.2f setlinewidth\n", BoxLineWidth);
+    fprintf(fp, "%.2f %.2f rl\n", plot.xlen*DPI, 0.0);
+    fprintf(fp, "%d setlinecap\n", RoundCap);
+    fprintf(fp, "stroke\n");
+
+  /* Update bb struct. */
+    bb.left = MIN(bb.left, (-0.6*MAX(BoxLineWidth, markerscale*MarkerDia) /
+                           DPI) * plot.sf + o.x);
+    bb.right = MAX(bb.right, (plot.xlen +
+                   0.6*MAX(BoxLineWidth, markerscale*MarkerDia)/DPI) *
+                   plot.sf + o.x);
+
+    fprintf(fp, "%.2f setlinewidth\n", 1.0);
+
+  /* Draw x-axis label. */
+
+    fprintf(fp, "%%\n%% Draw x-axis label.\n");
+    fprintf(fp, "%.2f /%s ChooseFont\n", AxisLabelFSize*fontscale,
+                                         AxisLabelFont);
+    just = 3;
+    fprintf(fp, "(%s) %.2f %.2f %d JustString\n", escapeParens(xname),
+                          plot.xlen*DPI/2.0,
+                          -(AxisNumFSize*fontscale +
+                            MAX(0.0,xticklength)*DPI +
+                            lab_offset*fontscale*DPI),
+                          just);
+
+  /* Update bb struct. */
+    if (strlen(xname)) {
+      bb.bottom = MIN(bb.bottom, -(AxisLabelFSize*fontscale/DPI +
+                                 AxisNumFSize*fontscale/DPI +
+                                 lab_offset*fontscale-4.0*log10(fontscale)/DPI +
+                                 MAX(0.0, xticklength)) *
+                                 plot.sf + o.y);
+      bb.left = MIN(bb.left, 0.5 * (plot.xlen - strlen(xname) /
+                             (AxisLabelFcpi-3.0*AxisLabelFcpiSD)/fontscale) *
+                             plot.sf + o.x);
+      bb.right = MAX(bb.right, (0.5 * (plot.xlen + strlen(xname) /
+                               (AxisLabelFcpi-3.0*AxisLabelFcpiSD)/fontscale)) *
+                               plot.sf + o.x);
+    };
+		
+  /* Find scale and style for x-axis numerals. */
+    scale = scaleaxis(plot.xmax, plot.xmin);
+    axisNumStyle = getAxisNumStyle(plot.xmax, plot.xmin, scale);
+
+{ /* begin block for determining tickinc for x-axis. */
+ int j, factornum, factor[MaxFactorNum], label_strlen = 0;
+_float_ label_density;
+
+    factornum = (_int_) getfactors((int *) factor, ticknum);
+    for (j = 0, label_density = 1.0 ;
+         (label_density > MaxLabelDensity) && (j < factornum) ;
+         j++, label_strlen = 0) {
+      tickinc = factor[j];
+
+      for (i = 1;
+	   i <= ticknum+1;
+	   i += tickinc) {
+
+ /*  Generate x-axis numerals according to axisNumStyle. */
+	if (axisNumStyle == SCALEFLOAT)
+	  sprintf(label, "%.1f", (plot.xmin+(i-1)*plot.xstp)/scale);
+        else if (axisNumStyle == FLOAT)
+	  sprintf(label, "%.1f", plot.xmin+(i-1)*plot.xstp);
+	else /* axisNumStyle == INTEGER */
+	  sprintf(label, "%d", (_int_) round(plot.xmin+(i-1)*plot.xstp));
+
+        label_strlen += strlen(label);
+      } /* end for (i=1; ...  */
+
+      label_density = fontscale * label_strlen /
+                      (AxisNumFcpi-AxisNumFcpiSD) / plot.xlen;
+    } /* end for (j=1; ... */
+} /* end block for determining tickinc for x-axis. */
+
+
+  /* Draw x-axis with tick marks and labels. */
+
+    fprintf(fp, "%%\n%% Choose AxisNumFont.\n");
+    fprintf(fp, "%.2f /%s ChooseFont\n", AxisNumFSize*fontscale, AxisNumFont);
+
+    for (i = 1;
+         i <= ticknum;
+         i += tickinc) {
+      if (i > 1) {
+	fprintf(fp, "%%\n%% draw tick mark %d on x-axis\n", i);
+	fprintf(fp, "%.2f %.2f m\n", (i-1)*inc*DPI, 0.0);
+	fprintf(fp, "%.2f %.2f Tick\n", (i-1)*inc*DPI, -xticklength*DPI);
+      }
+
+ /*  Generate x-axis numerals according to axisNumStyle. */
+      if (axisNumStyle == SCALEFLOAT)
+	sprintf(label, "%.1f", (plot.xmin+(i-1)*plot.xstp)/scale);
+      else if (axisNumStyle == FLOAT)
+	sprintf(label, "%.1f", plot.xmin+(i-1)*plot.xstp);
+      else /* axisNumStyle == INTEGER */
+	sprintf(label, "%d", (_int_) round(plot.xmin+(i-1)*plot.xstp));
+
+      fprintf(fp, "%%\n%% draw label %d on x-axis\n", i);
+      if (i == 1)
+	fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label,
+		    ((i-1)*inc -
+		     ((strlen(label) != 1) ? just_offset : 0)*fontscale)*DPI,
+		    -(MAX(0.0, xticklength)*DPI + num_offset*fontscale*DPI), 2);
+      else
+	fprintf(fp, "(%s) %.2f %.2f %d JustString\n",
+		    label, (i-1)*inc*DPI,
+		    -(MAX(0.0, xticklength)*DPI + num_offset*fontscale*DPI), 3);
+    }
+
+  /* Draw right-most tick and label */
+    if (!plot.border) {
+      fprintf(fp, "%%\n%% draw right-most tick mark on x-axis\n");
+      fprintf(fp, "%.2f %.2f m\n", plot.xlen*DPI, 0.0);
+      fprintf(fp, "%.2f %.2f Tick\n", plot.xlen*DPI, -xticklength*DPI);
+    }
+
+ /*  Generate x-axis numeral according to axisNumStyle. */
+    if (axisNumStyle == SCALEFLOAT)
+      sprintf(label, "%.1f", plot.xmax/scale);
+    else if (axisNumStyle == FLOAT)
+      sprintf(label, "%.1f", plot.xmax);
+    else /* axisNumStyle == INTEGER */
+      sprintf(label, "%d", (_int_) round(plot.xmax));
+
+    fprintf(fp, "%%\n%% draw right-most label on x-axis\n");
+    just = 3;
+    fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label, plot.xlen*DPI,
+                -(MAX(0.0, xticklength)*DPI + num_offset*fontscale*DPI), just);
+
+  /* Update bb struct. */
+    bb.right = MAX(bb.right, (plot.xlen +
+                              0.5*strlen(label)/
+                              ((AxisNumFcpi-3.0*AxisNumFcpiSD)/fontscale)) *
+                             plot.sf + o.x);
+    bb.bottom = MIN(bb.bottom, -(AxisNumFSize*fontscale/DPI +
+                               num_offset*fontscale +
+                               MAX(0.0, xticklength)) * plot.sf + o.y);
+
+    *exponent = '\0';
+    if (axisNumStyle == SCALEFLOAT) {
+      { /* begin block */
+      _int_ int_scale;
+      _float_ exp_offset = 0.25;
+
+	int_scale = round(log10(scale));
+	just = 4;
+	fprintf(fp, "%%\n%% print exp_base if x-axis not normal.\n");
+	fprintf(fp, "(%s) %.2f %.2f %d JustString\n", exp_base,
+		    (plot.xlen+exp_offset)*DPI,
+		    -(MAX(0.0, xticklength)*DPI + 1.3*num_offset*fontscale*DPI +
+		    AxisNumFSize*fontscale), just);
+
+    /* Update bb struct. */
+	bb.right = MAX(bb.right, (plot.xlen + exp_offset) * plot.sf + o.x);
+	bb.bottom = MIN(bb.bottom, -(2*AxisNumFSize*fontscale/DPI +
+				     1.3*num_offset*fontscale +
+				     MAX(0.0, xticklength)) * plot.sf + o.y);
+
+	if (int_scale != 1) {
+	  sprintf(exponent, "%d", int_scale);
+	  fprintf(fp, "%%\n%% Print exponent if x-axis is scaled by factor of 10 other than 1.\n");
+	  fprintf(fp, "%.2f /%s ChooseFont\n", AxisExpFSize*fontscale,
+					       AxisExpFont);
+	  just = 1;
+	  fprintf(fp, "(%s) %.2f %.2f %d JustString\n", exponent,
+		      (plot.xlen+exp_offset)*DPI,
+		      -(MAX(0.0, xticklength)*DPI +
+                        1.3*num_offset*fontscale*DPI +
+		        AxisNumFSize*fontscale), just);
+      /* Update bb struct. */
+	  bb.right = MAX(bb.right, (plot.xlen +
+			 strlen(exponent)/
+			 ((AxisExpFcpi-3.0*AxisExpFcpiSD)/fontscale) +
+			 exp_offset) * plot.sf + o.x);
+	}
+      } /* end block */
+    }
+
+  }
+
+/* y-axis stuff. */
+  if (plot.ytick) {
+    yticklength = TickLength*plot.ytick/abs(plot.ytick);
+    ticknum = round((plot.ymax - plot.ymin) / plot.ystp);
+    inc = plot.ylen/(plot.ymax-plot.ymin)*plot.ystp;
+
+    fprintf(fp, "%%\n%% draw y-axis\n");
+    fprintf(fp, "newpath\n");
+    fprintf(fp, "%.2f %.2f m\n", 0.0, 0.0);
+    fprintf(fp, "%.2f setlinewidth\n", BoxLineWidth);
+    fprintf(fp, "%.2f %.2f rl\n", 0.0, plot.ylen*DPI);
+    fprintf(fp, "%d setlinecap\n", RoundCap);
+    fprintf(fp, "stroke\n");
+
+  /* Update bb struct. */
+    bb.bottom = MIN(bb.bottom, (-0.6*MAX(BoxLineWidth, markerscale*MarkerDia) /
+                               DPI) * plot.sf + o.y);
+    bb.top = MAX(bb.top, (plot.ylen +
+                         0.6*MAX(BoxLineWidth, markerscale*MarkerDia)/DPI) *
+                         plot.sf + o.y);
+
+    fprintf(fp, "%.2f setlinewidth\n", 1.0);
+
+  /* Rotate axes +90 degrees to draw tick marks and labels on y-axis. */
+
+    fprintf(fp, "%%\n%% Rotate axes +90 degrees to draw ticks and labels on the y-axis.\n");
+    fprintf(fp, "90 rotate\n");
+
+  /* Draw label for y-axis. */
+
+    fprintf(fp, "%%\n%% Draw label for y-axis.\n");
+    fprintf(fp, "%.2f /%s ChooseFont\n", AxisLabelFSize*fontscale,
+                                         AxisLabelFont);
+    just = 7;
+    fprintf(fp, "(%s) %.2f %.2f %d JustString\n", escapeParens(yname),
+                plot.ylen*DPI/2.0,
+                AxisNumFSize*fontscale +
+                  MAX(0.0, yticklength)*DPI +
+                  1.5*lab_offset*fontscale*DPI,
+                just);
+
+  /* Update bb struct. */
+    if (strlen(yname)) {
+      bb.bottom = MIN(bb.bottom, 0.5 * (plot.ylen - strlen(yname) /
+                                 ((AxisLabelFcpi-3.0*AxisLabelFcpiSD)/
+                                  fontscale)) * plot.sf + o.y);
+      bb.left = MIN(bb.left, -(AxisNumFSize*fontscale/DPI +
+                               1.5*lab_offset*fontscale +
+                               MAX(0.0, yticklength) +
+                               AxisLabelFSize*fontscale/DPI) *
+                               plot.sf + o.x);
+      bb.top = MAX(bb.top, (0.5 * (plot.ylen +
+                           strlen(yname)/((AxisLabelFcpi-3.0*AxisLabelFcpiSD)/
+                                          fontscale))) * plot.sf + o.y);
+    }
+
+  /* Find scale and style for y-axis numerals. */
+    scale = scaleaxis(plot.ymax, plot.ymin);
+    axisNumStyle = getAxisNumStyle(plot.ymax, plot.ymin, scale);
+
+{ /* begin block for determining tickinc for y-axis. */
+ int j, factornum, factor[MaxFactorNum], label_strlen = 0;
+_float_ label_density;
+
+    factornum = (_int_) getfactors((int *) factor, ticknum);
+    for (j = 0, label_density = 1.0 ;
+         (label_density > MaxLabelDensity) && (j < factornum) ;
+         j++, label_strlen = 0) {
+      tickinc = factor[j];
+
+      for (i = 1;
+	   i <= ticknum+1;
+	   i += tickinc) {
+
+ /*  Generate y-axis numerals according to axisNumStyle. */
+	if (axisNumStyle == SCALEFLOAT)
+	  sprintf(label, "%.1f", (plot.ymin+(i-1)*plot.ystp)/scale);
+        else if (axisNumStyle == FLOAT)
+	  sprintf(label, "%.1f", plot.ymin+(i-1)*plot.ystp);
+	else /* axisNumStyle == INTEGER */
+	  sprintf(label, "%d", (_int_) round(plot.ymin+(i-1)*plot.ystp));
+
+        label_strlen += strlen(label);
+      } /* end for (i=1; ...  */
+
+      label_density = fontscale * label_strlen /
+                      (AxisNumFcpi-AxisNumFcpiSD) / plot.ylen;
+    } /* end for (j=1; ... */
+} /* end block for determining tickinc for y-axis. */
+
+
+  /* Draw y-axis with tick marks and labels. */
+
+    fprintf(fp, "%%\n%% Choose AxisNumFont.\n");
+    fprintf(fp, "%.2f /%s ChooseFont\n", AxisNumFSize*fontscale, AxisNumFont);
+
+    for (i = 1;
+         i <= ticknum;
+         i += tickinc) {
+      if (i > 1) {
+	fprintf(fp, "%%\n%% draw tick mark %d on y-axis\n", i);
+	fprintf(fp, "%.2f %.2f m\n", (i-1)*inc*DPI, 0.0);
+	fprintf(fp, "%.2f %.2f Tick\n", (i-1)*inc*DPI, yticklength*DPI);
+      }
+
+ /*  Generate y-axis numerals according to axisNumStyle. */
+      if (axisNumStyle == SCALEFLOAT)
+	sprintf(label, "%.1f", (plot.ymin+(i-1)*plot.ystp)/scale);
+      else if (axisNumStyle == FLOAT)
+	sprintf(label, "%.1f", plot.ymin+(i-1)*plot.ystp);
+      else /* axisNumStyle == INTEGER */
+	sprintf(label, "%d", (_int_) round(plot.ymin+(i-1)*plot.ystp));
+
+      fprintf(fp, "%%\n%% draw label %d on y-axis\n", i);
+      if (i == 1)
+        fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label,
+                    ((i-1)*inc -
+                     ((strlen(label) != 1) ? just_offset : 0)*fontscale)*DPI,
+                    MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI, 8);
+      else
+        fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label, (i-1)*inc*DPI,
+                  MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI, 7);
+    }
+
+  /* Draw top-most tick and label */
+    if (!plot.border) {
+      fprintf(fp, "%%\n%% draw top-most tick mark on y-axis\n");
+      fprintf(fp, "%.2f %.2f m\n", plot.ylen*DPI, 0.0);
+      fprintf(fp, "%.2f %.2f Tick\n", plot.ylen*DPI, yticklength*DPI);
+    }
+
+ /*  Generate y-axis numeral according to axisNumStyle. */
+    if (axisNumStyle == SCALEFLOAT)
+      sprintf(label, "%.1f", plot.ymax/scale);
+    else if (axisNumStyle == FLOAT)
+      sprintf(label, "%.1f", plot.ymax);
+    else /* axisNumStyle == INTEGER */
+      sprintf(label, "%d", (_int_) round(plot.ymax));
+
+    fprintf(fp, "%%\n%% draw top-most label on y-axis\n");
+    if (axisNumStyle == SCALEFLOAT)
+      fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label,
+                  (plot.ylen + just_offset*fontscale)*DPI,
+		  MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI, 6);
+    else  /* (axisNumStyle == INTEGER) or (axisNumStyle == FLOAT) */
+      fprintf(fp, "(%s) %.2f %.2f %d JustString\n", label, plot.ylen*DPI,
+		  MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI, 7);
+
+  /* Update bb struct. */
+    bb.left = MIN(bb.left, -(num_offset + AxisNumFSize*fontscale/DPI +
+                             MAX(0.0, yticklength)) * plot.sf + o.x);
+
+  /* Rotate axes -90 degrees to restore normal orientation. */
+    fprintf(fp, "%%\n%% Rotate axes -90 deg. to restore normal orientation.\n");
+    fprintf(fp, "-90 rotate\n");
+
+    *exponent = '\0';
+    if (axisNumStyle == SCALEFLOAT) {
+      { /* begin block */
+      _int_ int_scale;
+      _float_ exp_offset = 0.0;
+
+	int_scale = round(log10(scale));
+	just = 4;
+	fprintf(fp, "%%\n%% Print exp_base if y-axis is not normal.\n");
+	fprintf(fp, "(%s) %.2f %.2f %d JustString\n", exp_base,
+		    -(MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI +
+                    AxisNumFSize*fontscale),
+                    (plot.ylen + exp_offset)*DPI +
+                    AxisNumFSize*fontscale, just);
+
+    /* Update bb struct. */
+	bb.left = MIN(bb.left,
+		  -(MAX(0.0, yticklength) + num_offset*fontscale +
+                  AxisNumFSize*fontscale/DPI +
+                  strlen(exp_base)/((AxisNumFcpi/fontscale) -
+                                     5.0*(AxisNumFcpiSD/fontscale))) *
+                  plot.sf + o.x);
+	bb.top = MAX(bb.top, (plot.ylen + exp_offset +
+                             AxisNumFSize*fontscale/DPI) * plot.sf + o.y);
+
+	if (int_scale != 1) {
+	  sprintf(exponent, "%d", int_scale);
+	  fprintf(fp, "%%\n%% Print exponent if y-axis is scaled by factor of 10 other than 1.\n");
+	  fprintf(fp, "%.2f /%s ChooseFont\n", AxisExpFSize*fontscale,
+					       AxisExpFont);
+	  just = 1;
+	  fprintf(fp, "(%s) %.2f %.2f %d JustString\n", exponent,
+		      -(MAX(0.0, yticklength)*DPI + num_offset*fontscale*DPI +
+		      AxisNumFSize*fontscale),
+		      (plot.ylen + exp_offset)*DPI + AxisNumFSize*fontscale, just);
+
+      /* Update bb struct. */
+	  bb.top = MAX(bb.top, (plot.ylen + exp_offset +
+				1.5*AxisExpFSize*fontscale/DPI) *
+			       plot.sf + o.y);
+	}
+      } /* end block */
+    }
+
+  } /* end if (plot.ytick) */
+
+/* Print title centered above plot area. */
+  { /* begin block */
+  _float_ y_offset = 0.15;
+
+    fprintf(fp, "%%\n%% print title centered above plot area.\n");
+    fprintf(fp, "%.2f /%s ChooseFont\n", TitleFSize*fontscale, TitleFont);
+    just = 7;
+    fprintf(fp, "(%s) %.2f %.2f %d JustString\n",
+                escapeParens(plot.title),
+                0.5 * plot.xlen * DPI,
+                (plot.ylen + y_offset*fontscale)*DPI, just);
+
+  /* Update bb struct. */
+    if (strlen(plot.title)) {
+      bb.left = MIN(bb.left, 0.5 * (plot.xlen - strlen(plot.title) /
+			     ((TitleFcpi-3.0*TitleFcpiSD)/fontscale)) *
+                             plot.sf + o.x);
+      bb.right = MAX(bb.right, 0.5 * (plot.xlen + strlen(plot.title) /
+			       ((TitleFcpi-3.0*TitleFcpiSD)/fontscale)) *
+                               plot.sf + o.x);
+      bb.top = MAX(bb.top, (plot.ylen + y_offset*fontscale +
+                            TitleFSize*fontscale/DPI) *
+                           plot.sf + o.y);
+    }
+  } /* end block */
+  
+  level = 3;
+} /* end graf */
+
+/*
+grid: Draws grids on all subplots in a plot, and always draws a solid
+outline around each subplot, no matter what interrupted line mode is
+in effect.
+*/
+void grid_(_int_ *xgrid, _int_ *ygrid)
+/*
+Arguments: *xgrid - number of grid lines per xstp
+           *ygrid - number of grid lines per ystp
+    Note: If xgrid is less than zero, then abs(xgrid) is the
+          number of xstps per grid line.  The same holds true for
+          ygrid.
+*/
+{
+_int_ gridnum, i;
+_float_ inc, scale; /* scale = units/inch */
+
+  if (level != 3) {
+    derror("Level must be 3.  Routine: grid", !FATAL);
+    return;
+  }
+
+/* Draw box around plot. */  
+  if (plot.border) {
+    fprintf(fp, "%%\n%% draw box around plot area\n");
+    fprintf(fp, "newpath\n");
+    fprintf(fp, "[] 0 setdash\n");
+    fprintf(fp, "%.2f %.2f m\n", 0.0, 0.0);
+    fprintf(fp, "%.2f %.2f rl\n", 0.0, plot.ylen*DPI);
+    fprintf(fp, "%.2f %.2f rl\n", plot.xlen*DPI, 0.0);
+    fprintf(fp, "%.2f %.2f rl\n", 0.0, -plot.ylen*DPI);
+    fprintf(fp, "%.2f setlinewidth\n", BoxLineWidth);
+    fprintf(fp, "closepath\n");
+    fprintf(fp, "stroke\n");
+  }
+
+
+/* Draw grid lines perpendicular to the x-axis. */
+  scale = (plot.xmax - plot.xmin)/plot.xlen;
+  if (*xgrid > 0) {
+    gridnum = round((plot.xmax-plot.xmin) * (*xgrid)/plot.xstp);
+    inc = plot.xstp/scale/(*xgrid);
+  }
+  else if (*xgrid < 0) {
+    gridnum =  round((plot.xmax-plot.xmin)/(plot.xstp * abs(*xgrid)));
+    inc = plot.xstp/scale * abs(*xgrid);
+  }
+  
+  if (*xgrid != 0)
+    for (i=1; i<=gridnum; i++) {
+      fprintf(fp, "%%\n%% draw grid line %d perpendicular to the x-axis\n", i);
+      fprintf(fp, "newpath\n");
+      if (*xgrid > 0)
+	fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL/5.0,
+                    PIXEL*((i % *xgrid) ? 4.0 : 2.0));
+      else
+	fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL/5.0,
+                    PIXEL*2.0);
+      fprintf(fp, "%.2f %.2f m\n", i*inc*DPI, 0.0);
+      fprintf(fp, "%.2f %.2f rl\n", 0.0, plot.ylen*DPI);
+      fprintf(fp, "%.2f setlinewidth\n", 0.25);
+      fprintf(fp, "stroke\n");
+    }
+
+/* Find zero y-axis and draw line indicating such if it exists. */
+  if (plot.xmax*plot.xmin < EPSILON) {
+    if (fabs(plot.xmin) > EPSILON) {
+      fprintf(fp, "%%\n%% draw white-out line in preparation of zero line.\n");
+      fprintf(fp, "[] 0 setdash\n");
+      fprintf(fp, "%.2f setgray\n", 1.0);
+      fprintf(fp, "newpath\n");
+      fprintf(fp, "%.2f %.2f m\n", -plot.xmin/scale*DPI, TickLength*DPI);
+      fprintf(fp, "%.2f %.2f rl\n", 0.0,
+                  (plot.ylen - TickLength - 0.5*BoxLineWidth)*DPI);
+      fprintf(fp, "%.2f setlinewidth\n", 0.35);
+      fprintf(fp, "stroke\n");
+      fprintf(fp, "%.2f setgray\n", 0.0);
+    }
+    fprintf(fp, "%%\n%% draw zero y-axis line\n");
+    fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL*3.0, PIXEL*1.5);
+    fprintf(fp, "newpath\n");
+    fprintf(fp, "%.2f %.2f m\n", -plot.xmin/scale*DPI, 0.0);
+    fprintf(fp, "%.2f %.2f rl\n", 0.0, plot.ylen*DPI);
+    fprintf(fp, "%.2f setlinewidth\n", 0.35);
+    fprintf(fp, "stroke\n");
+  }
+
+/* Draw grid lines perpendicular to the y-axis. */
+  scale = (plot.ymax - plot.ymin)/plot.ylen;
+
+  if (*ygrid > 0) {
+    gridnum = round((plot.ymax-plot.ymin)*(*ygrid)/plot.ystp);
+    inc = plot.ystp/scale/(*ygrid);
+  }
+  else if (*ygrid < 0) {
+    gridnum = round((plot.ymax-plot.ymin)/(plot.ystp * abs(*ygrid)));
+    inc = plot.ystp/scale * abs(*ygrid);
+  }
+
+  if (*ygrid != 0)
+    for (i=1; i<=gridnum; i++) {
+      fprintf(fp, "%%\n%% draw grid line %d perpendicular to the y-axis\n", i);
+      fprintf(fp, "newpath\n");
+      if (*ygrid > 0)
+	fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL/5.0,
+                    PIXEL*((i % *ygrid) ? 4.0 : 2.0));
+      else
+	fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL/5.0,
+                    PIXEL*2.0);
+      fprintf(fp, "%.2f %.2f m\n", 0.0, i*inc*DPI);
+      fprintf(fp, "%.2f %.2f rl\n", plot.xlen*DPI, 0.0);
+      fprintf(fp, "%.2f setlinewidth\n", 0.25);
+      fprintf(fp, "stroke\n");
+    }
+
+/* Find zero x-axis and draw line indicating such if it exists. */
+  if (plot.ymax*plot.ymin < EPSILON) {
+    if (fabs(plot.ymin) > EPSILON) {
+      fprintf(fp, "%%\n%% draw white-out line in preparation of zero line.\n");
+      fprintf(fp, "[] 0 setdash\n");
+      fprintf(fp, "%.2f setgray\n", 1.0);
+      fprintf(fp, "newpath\n");
+      fprintf(fp, "%.2f %.2f m\n", TickLength*DPI, -plot.ymin/scale*DPI);
+      fprintf(fp, "%.2f %.2f rl\n",
+                  (plot.xlen - TickLength - 0.5*BoxLineWidth)*DPI, 0.0);
+      fprintf(fp, "%.2f setlinewidth\n", 0.35);
+      fprintf(fp, "stroke\n");
+      fprintf(fp, "%.2f setgray\n", 0.0);
+    }
+    fprintf(fp, "%%\n%% draw zero x-axis line\n");
+    fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL*3.0, PIXEL*1.5);
+    fprintf(fp, "newpath\n");
+    fprintf(fp, "%.2f %.2f m\n", 0.0, -plot.ymin/scale*DPI);
+    fprintf(fp, "%.2f %.2f rl\n", plot.xlen*DPI, 0.0);
+    fprintf(fp, "%.2f setlinewidth\n", 0.35);
+    fprintf(fp, "stroke\n");
+    fprintf(fp, "[%.2f %.2f] 0 setdash\n", PIXEL/4.0, PIXEL*3.0);
+  }
+
+/* Reset line style. */
+  reset_("DOT", strlen("DOT"));
+
+}
+
+/*
+loglog: Sets up logarithmic scale on both axes (log-log axis setup),
+writing values as defined by length per cycle or units per inch.
+*/
+void loglog_(_float_ *xorig, _float_ *xcycle, _float_ *yorig, _float_ *ycycle)
+{
+
+  if (level != 2) {
+    derror("Level must be 2.  Routine: loglog", !FATAL);
+    return;
+  }
+
+/* begin body */
+
+  derror("This routine is not supported.  Routine: loglog", FATAL);
+
+/* end body */
+
+  level = 3;
+}
+
+/*
+page: sets the page dimensions wherein the plot is centered and draws a
+page border.
+*/
+void page_(_float_ *pagex, _float_ *pagey)
+{
+
+  if (level != 1) {
+    derror("Level must be 1.  Routine: page", !FATAL);
+    return;
+  }
+
+  if ((*pagex > 8.5 && *pagey > 8.5) || *pagex > 11.0 || *pagey > 11.0) {
+    derror("Page boundaries must fit within 8.5 x 11.0 inches", !FATAL);
+    return;
+  }
+
+  plot.pwidth = *pagex;
+  plot.pheight = *pagey;
+
+}
+
+/*
+title: specifies the subplot area, title of plot, horiz. or vertical
+orientation, and axes labels.
+*/
+void title_(char *title, _int_ *ltitle, char *xname, _int_ *lxname,
+            char *yname, _int_ *lyname, _float_ *xdim, _float_ *ydim)
+/*
+Arguments: title - title of the plot
+           *ltitle - number of characters in title
+           xname - x-axis label
+           *lxname - number of characters in xname
+           yname - y-axis label
+           *lyname - number of characters in yname
+           *xdim - width of actual plot area in inches
+           *ydim - height of actual plot area in inches
+*/
+{
+
+_float_ xshift, yshift;
+
+  if (level != 1) {
+    derror("Level must be 1.  Routine: title", !FATAL);
+    return;
+  }
+
+  strnlcpy(plot.title, title, abs(*ltitle));
+  strnlcpy(plot.xname, xname, abs(*lxname));
+  strnlcpy(plot.yname, yname, abs(*lyname));
+  fixstring(plot.title);
+  fixstring(plot.xname);
+  fixstring(plot.yname);
+
+  if (*ltitle < 0) {
+    plot.pwidth = DefPageHeight;
+    plot.pheight = DefPageWidth;
+  }
+  else {
+    plot.pwidth = DefPageWidth;
+    plot.pheight = DefPageHeight;
+  }
+
+  plot.xtick = *lxname;
+  plot.ytick = *lyname;
+  plot.xlen = *xdim;
+  plot.ylen = *ydim;
+
+/* check for dimensions too large */
+  if (*ltitle < 0) {
+    if (plot.xlen > DefPageHeight - 0.5) {
+      derror("x-axis dimension reduced to fit landscape plot.", !FATAL);
+      plot.xlen = DefPageHeight - 0.5;
+    }
+    if (plot.ylen > DefPageWidth - 0.5) {
+      derror("y-axis dimension reduced to fit landscape plot.", !FATAL);
+      plot.ylen = DefPageWidth - 0.5;
+    }
+  }
+  else {
+    if (plot.xlen > DefPageWidth - 0.5) {
+      derror("x-axis dimension reduced to fit portrait plot.", !FATAL);
+      plot.xlen = DefPageWidth - 0.5;
+    }
+    if (plot.ylen > DefPageHeight - 0.5) {
+      derror("y-axis dimension reduced to fit portrait plot.", !FATAL);
+      plot.ylen = DefPageHeight - 0.5;
+    }
+  }
+
+/* Set physical origin in inches from the bottom-left corner of page if
+   origin has not already been set.  Sets origin to look nice given the
+   plot scale.
+*/
+  if (*ltitle < 0) {
+      xshift = (plot.pwidth - plot.xlen) * 0.55 / SQR(MAX(1.0, plot.sf));
+      yshift = (plot.pheight - plot.ylen) * 0.45 / SQR(MAX(1.0, plot.sf));
+  }
+  else {
+      xshift = (plot.pwidth - plot.xlen) * 0.62 / SQR(MAX(1.0, plot.sf));
+      yshift = (plot.pheight - plot.ylen) * 0.22 / SQR(MAX(1.0, plot.sf));
+  }
+
+/* Rotate axis if landscape mode. */
+  if (*ltitle < 0) {
+    fprintf(fp, "%%\n%% rotate and translate axis if in landscape mode\n");
+    fprintf(fp, "90 rotate\n");
+    fprintf(fp, "%.2f %.2f translate\n", 0.0, -plot.pheight*DPI);
+  }
+
+  bshift_(&xshift, &yshift);
+
+  fprintf(fp, "%%\n%%----------------- Page %d ------------------\n", pg);
+  fprintf(fp, "%%%%Page: %d %d\n", pg, pg);
+  pg++;
+
+  level = 2;
+}
+
+/*
+xlog: sets up a logarithmic scale on the x-axis and a linear scale on
+the y-axis,
+*/
+void xlog_(_float_ *xorig, _float_ *xcycle, _float_ *yorig, _float_ *ystep)
+{
+
+  if (level != 2) {
+    derror("Level must be 2.  Routine: xlog", !FATAL);
+    return;
+  }
+
+/* body of routine */
+
+  derror("This routine is not supported.  Routine: xlog", FATAL);
+
+/* end body */
+
+  level = 3;
+}
+
+/*
+ylog: sets up a logarithmic scale on the y-axis and a linear scale on
+the x-axis.
+*/
+void ylog_(_float_ *xorig, _float_ *xstep, _float_ *yorig, _float_ *ycycle)
+{
+
+  if (level != 2) {
+    derror("Level must be 2.  Routine: ylog", !FATAL);
+    return;
+  }
+
+/* body of routine */
+
+  derror("This routine is not supported.  Routine: ylog", FATAL);
+
+/* end body */
+
+  level = 3;
+}
+

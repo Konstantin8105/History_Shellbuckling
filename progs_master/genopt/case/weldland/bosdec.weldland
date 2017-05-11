@@ -1,0 +1,482 @@
+C=DECK      BOSDEC
+C
+C  PURPOSE IS TO SET UP BIGBOSOR4 INPUT FILE FOR "weldland"
+C
+      SUBROUTINE BOSDEC(INDX,IFIL14,ILOADX,INDIC)
+C  Insert labelled common blocks: weldland.COM
+      COMMON/FV01/WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      REAL WLAND,TLAND,ECLAND,TWLAND,HWLAND,TFLAND,WFLAND,TSKIN
+      COMMON/FV09/RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      REAL RADCYL,LENCYL,BSTR,TSTR,HSTR,BRNG,TRNG,HRNG,EMOD
+      COMMON/FV20/PX(20)
+      REAL PX
+      COMMON/FV26/GENBUK(20),GENBUKA(20),GENBUKF(20)
+      REAL GENBUK,GENBUKA,GENBUKF
+      COMMON/FV29/PANBUK(20),PANBUKA(20),PANBUKF(20)
+      REAL PANBUK,PANBUKA,PANBUKF
+      COMMON/FV32/STRESS(20),STRESSA(20),STRESSF(20)
+      REAL STRESS,STRESSA,STRESSF
+      COMMON/IV01/KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      INTEGER KLAND,NLAND,MLOWG,MHIGHG,MLOWP,MHIGHP
+      COMMON/FV18/NU,DENS,WEIGHT
+      REAL NU,DENS,WEIGHT
+      COMMON/FV21/PY(20),PX0(20),PY0(20)
+      REAL PY,PX0,PY0
+C  end of weldland.COM
+      COMMON/BUCKN0/N0B,NMAXB
+      COMMON/RBEGX/RBEG
+      COMMON/NXPART/NXLAND,NXWEB,NXFLNG,NXSKIN,NXSMER
+      DIMENSION ISMEAR(50),NX(50),R1(50),R2(50),Z1(50),Z2(50)
+      DIMENSION THICK(50),NSHAPE(50),RC(50),ZC(50),IFLANG(50)
+      DIMENSION DR(50),DZ(50),NMESH(50),JLAND(50)
+      REAL NXLAND,NXWEB,NXFLNG,NXSKIN,NXSMER,NX
+      COMMON/PRMOUT/IFILE3,IFILE4,IFILE8,IFILE9,IFIL11
+      REWIND IFIL14
+C
+      WRITE(IFILE4,3)
+    3 FORMAT(//'  ****************  BOSDEC  *******************'/
+     1'  The purpose of BOSDEC is to set up an input file, NAME.ALL,'/
+     1'  for a cylindrical shell. NAME is your name for'/
+     1'  the case. The file NAME.ALL is a BOSOR4 input "deck" used'/
+     1'  by SUBROUTINE B4READ.'/
+     1'  ***********************************************'/)
+C
+      CALL MOVER(0,0,ISMEAR,1,50)
+      CALL MOVER(0,0,NSHAPE,1,50)
+      CALL MOVER(0,0,IFLANG,1,50)
+      CALL MOVER(0,0,NMESH,1,50)
+      CALL MOVER(0,0,JLAND,1,50)
+      CALL MOVER(0.,0,R1,1,50)
+      CALL MOVER(0.,0,Z1,1,50)
+      CALL MOVER(0.,0,R2,1,50)
+      CALL MOVER(0.,0,Z2,1,50)
+      CALL MOVER(0.,0,RC,1,50)
+      CALL MOVER(0.,0,ZC,1,50)
+      CALL MOVER(0.,0,DR,1,50)
+      CALL MOVER(0.,0,DZ,1,50)
+      CALL MOVER(0.,0,NX,1,50)
+      CALL MOVER(0.,0,THICK,1,50)
+C
+      IF (INDX.EQ.0) THEN
+         PI = 3.1415927
+         R1(1) = RBEG
+         Z1(1) = 0.
+         R2(1) = RBEG
+         Z2(1) = 2.0*RADCYL
+         RC(1) = RBEG
+         ZC(1) = RADCYL
+         NX(1) = PX(ILOADX)/(2.0*PI*RADCYL) 
+         NSHAPE(1) = 2
+         THICK(1) = TSKIN
+         NMESH(1) = 91
+         NSEGS = 1
+C BEG FEB 2010
+C        WRITE(IFIL14,'(A)')
+C    1 ' general buckling, no weld land (INDIC=4)'
+         WRITE(IFIL14,'(A)')
+     1 ' general buckling, no weld land (INDIC=4) ixprism'
+         WRITE(IFIL14,'(1P,E14.6,A)') LENCYL,
+     1 ' $ AXIALL = axial length of cyl.'
+C END FEB 2010
+         WRITE(IFIL14,'(A,I3,A)')
+     1 ' 4, 1, 0, 0, ',NSEGS,' $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+         I = 1
+         WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+         WRITE(IFIL14,'(I4,A,I4,A)') NMESH(I),', 3, ',NSHAPE(I),
+     1 ' $ NMESH,NTYPEH,NSHAPE'
+         WRITE(IFIL14,'(1P,2E14.6,A)') R1(I),Z1(I),' $ R1,Z1'
+         WRITE(IFIL14,'(1P,2E14.6,A)') R2(I),Z2(I),' $ R2,Z2'
+         WRITE(IFIL14,'(1P,2E14.6,A)') RC(I),ZC(I),
+     1  ', -1.  $ RC,ZC,SUR'
+         WRITE(IFIL14, '(A,1P,E14.6,A)')' 0, 3, ',THICK(I)/2.,
+     1'  $ IMP,NTYPEZ,ZVAL'
+         WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+         WRITE(IFIL14,'(A)')
+     1 ' 0, 0., 2, 0, 2  $ NRINGS,K,NSTRES,NRLOAD,NTYPE'
+         WRITE(IFIL14,'(1P,2E14.6,A)') Z1(I),Z2(I),' $ Z1,Z2'
+         WRITE(IFIL14,'(A)')' 0., 0.  $ FN10(1), FN10(2)'
+         WRITE(IFIL14,'(1P,2E14.6,A)') NX(I),NX(I),' $ FN20(1),FN20(2)'
+C BEG JUL 2010
+         WRITE(IFIL14,'(A)')' 0., 0., 0., 0.  $ "fixed" prestress'
+C END JUL 2010
+         WRITE(IFIL14,'(A)')' N  $ do not print prestresses'
+         WRITE(IFIL14, '(A,1P,3E14.6,A)')' 2, ',EMOD,NU,DENS,
+     1 ' $ NWALL,EMOD,NU,DENS'
+         WRITE(IFIL14,'(A)')' 0.  $ ALPHA'
+         NRS = 1
+         WRITE(IFIL14,'(I3,A)') NRS,', 0  $ NRS,NSUR'
+         WRITE(IFIL14,'(A)')' N  $ do not print ref.surf.location'
+         WRITE(IFIL14,'(A)')' Y  $ are there stringers'
+         N1 = 2.*PI*R1(I)/BRNG
+         WRITE(IFIL14,'(I8,A)') N1,', 0  $ N1,K1'
+         WRITE(IFIL14, '(1P,3E14.6,A)') EMOD,NU,DENS,' $ EMOD,NU,DENS'
+         WRITE(IFIL14,'(A)')' Y  $ is stringer cross section constant'
+         WRITE(IFIL14,'(A)')' Y  $ is stringer cross section rectangu'
+         WRITE(IFIL14,'(1P,2E14.6,A)') TRNG,HRNG,' $ TRNG,HRNG'
+         WRITE(IFIL14,'(A)')' Y  $ are there rings'
+         WRITE(IFIL14,'(A)')' 0  $ K2'
+         WRITE(IFIL14, '(1P,3E14.6,A)') EMOD,NU,DENS,' $ EMOD,NU,DENS'
+         WRITE(IFIL14,'(A)')' Y  $ is ring cross section constant'
+         WRITE(IFIL14,'(A)')' Y  $ is ring cross section rectangular'
+         WRITE(IFIL14,'(1P,E14.6,A)') BSTR,'  $ BSTR'
+         WRITE(IFIL14,'(1P,2E14.6,A)') TSTR,HSTR,' $ TSTR,HSTR'
+         WRITE(IFIL14,'(A)')' N  $ do not print C(i,j)'
+         WRITE(IFIL14,'(A)')' N  $ do not print distributed loads'
+         WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+         WRITE(IFIL14,'(A)')' 0  $ NLAST'
+         WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+         NMINB = N0B
+C BEG FEB 2010
+C        INCRB = 100
+         INCRB = 1
+C END FEB 2010
+         NVEC  = 1
+         WRITE(IFIL14,'(5I6,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+         WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+         WRITE(IFIL14,'(I6,A)') NSEGS,'  $ how many segments?'
+         WRITE(IFIL14,'(A,4I6)')
+     1 ' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+         WRITE(IFIL14,'(A,A)')' 0, 2, 1, 0, 0, 1, 1',
+     1 ' $ poles,ground,etc.'
+         WRITE(IFIL14,'(A)')' 0., 0.  $ D1,D2'
+         WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+         WRITE(IFIL14,'(A,A)')' 91, 0, 0, 1, 1',
+     1 ' $ INODE,etc.'
+         WRITE(IFIL14,'(A)')' 0., 0.  $ D1,D2'
+         WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+         WRITE(IFIL14,'(A)')' N  $ joined to lower segs?'
+         WRITE(IFIL14,'(A)')' N  $ rigid body motion possible?'
+         WRITE(IFIL14,'(A)')' Y  $ do you want output for seg.?'
+         WRITE(IFIL14,'(A)')' N  $ descrete ring forces?'
+         RETURN
+      ENDIF
+C
+      PI = 3.1415927
+      R = RADCYL
+      RLAND = RADCYL - ECLAND
+      FLAND = FLOAT(NLAND)
+      DPHI = 2.*PI/FLAND
+      PHI0 = -DPHI
+      NLAND2 = NLAND/2 + 1
+      IADD = 2
+      IF (KLAND.EQ.1) IADD = 4
+      IF (KLAND.EQ.2) IADD = 6
+C
+      DO 100 ILAND = 1,NLAND2
+C
+      ISEG = (ILAND - 1)*IADD + 1
+      PHI0 = PHI0 + DPHI
+      PHIM = PHI0 -0.5*WLAND/RLAND
+      PHIP = PHI0 +0.5*WLAND/RLAND
+      SP   = SIN(PHIP)
+      CP   = COS(PHIP)
+      SM   = SIN(PHIM)
+      CM   = COS(PHIM)
+      IF (ABS(PHI0).LT.0.00001) THEN
+         PHI0 = 0.
+         SM = 0.
+         CM = 1.
+      ENDIF
+      DIFF = ABS(PI - PHI0)
+      IF (DIFF.LT.0.00001) THEN
+         PHI0 = PI
+         SP = 0.
+         CP = -1.
+      ENDIF
+      RPSKIN  = RBEG + R*SP
+      ZPSKIN  = R*(1. - CP)
+      RMSKIN  = RBEG + R*SM
+      ZMSKIN  = R*(1. - CM)
+      RPLAND  = RBEG + RLAND*SP
+      ZPLAND  = ECLAND + RLAND*(1. - CP)
+      RMLAND  = RBEG + RLAND*SM
+      ZMLAND  = ECLAND + RLAND*(1. - CM)
+      DMR = -ECLAND*SM
+      DMZ =  ECLAND*CM
+      DPR =  ECLAND*SP
+      DPZ = -ECLAND*CP 
+C
+      NSHAPE(ISEG) = 2
+      DR(ISEG) = DMR
+      DZ(ISEG) = DMZ
+      R1(ISEG) = RMLAND
+      Z1(ISEG) = ZMLAND
+      R2(ISEG) = RPLAND
+      Z2(ISEG) = ZPLAND
+      RC(ISEG) = RBEG
+      ZC(ISEG) = R
+      NX(ISEG) = NXLAND
+      THICK(ISEG) = TLAND
+      JLAND(ISEG) = 1
+      NSEGS = ISEG
+C
+      IF (PHI0.LT.0.9999*PI) THEN
+         ISEGP = ISEG + 1
+         IF (KLAND.EQ.1) ISEGP = ISEG + 2
+         IF (KLAND.EQ.2) ISEGP = ISEG + 3
+         NSHAPE(ISEGP) = 2
+         DR(ISEGP) = DPR
+         DZ(ISEGP) = DPZ
+         R1(ISEGP) = RPSKIN
+         Z1(ISEGP) = ZPSKIN
+         PHIM = PHI0  + DPHI -0.5*WLAND/RLAND
+         IF (PHIM.GT.PI) PHIM = PI
+         SMM  = SIN(PHIM)
+         CMM  = COS(PHIM)
+         RMSKIN  = RBEG + R*SMM
+         ZMSKIN  = R*(1. - CMM)
+         R2(ISEGP) = RMSKIN
+         Z2(ISEGP) = ZMSKIN
+         RC(ISEGP) = RBEG
+         ZC(ISEGP) = R
+         NX(ISEGP) = NXSMER
+         ISMEAR(ISEGP) = 1 
+         THICK(ISEGP) = TSKIN
+         NSEGS = ISEGP
+      ENDIF
+C
+      IF (KLAND.GT.0) THEN
+         RPWEB1 = RBEG + (R - 0.5*TSKIN)*SP
+         ZPWEB1 = R -(R -0.5*TSKIN)*CP
+         RMWEB1 = RBEG + (R - 0.5*TSKIN)*SM
+         ZMWEB1 = R -(R -0.5*TSKIN)*CM
+         RPWEB2 = RBEG + (R - 0.5*TSKIN -HWLAND)*SP
+         ZPWEB2 = R -(R -0.5*TSKIN -HWLAND)*CP
+         RMWEB2 = RBEG + (R - 0.5*TSKIN -HWLAND)*SM
+         ZMWEB2 = R -(R -0.5*TSKIN -HWLAND)*CM
+         DMR = -0.5*TSKIN*SM
+         DMZ =  0.5*TSKIN*CM
+         DPR =  (ECLAND -0.5*TSKIN)*SP
+         DPZ = -(ECLAND -0.5*TSKIN)*CP
+         IF (ISEG.GT.1) THEN
+            IF (KLAND.EQ.1) ISEGM = ISEG - 1
+            IF (KLAND.EQ.2) ISEGM = ISEG - 2
+            R1(ISEGM) = RMWEB1
+            Z1(ISEGM) = ZMWEB1
+            R2(ISEGM) = RMWEB2
+            Z2(ISEGM) = ZMWEB2
+            NSHAPE(ISEGM) = 1
+            DR(ISEGM) = DMR
+            DZ(ISEGM) = DMZ
+            NX(ISEGM) = NXWEB
+            THICK(ISEGM) = TWLAND
+         ENDIF
+C
+         IF (PHI0.LT.0.9999*PI) THEN
+            ISEGP = ISEG + 1
+            R1(ISEGP) = RPWEB1
+            Z1(ISEGP) = ZPWEB1
+            R2(ISEGP) = RPWEB2
+            Z2(ISEGP) = ZPWEB2
+            NSHAPE(ISEGP) = 1
+            DR(ISEGP) = DPR
+            DZ(ISEGP) = DPZ
+            NX(ISEGP) = NXWEB
+            THICK(ISEGP) = TWLAND
+         ENDIF
+C
+         IF (KLAND.GT.1) THEN
+            RPFLG2 = RPWEB2 +0.5*WFLAND*CP
+            ZPFLG2 = ZPWEB2 +0.5*WFLAND*SP
+            RPFLG1 = RPWEB2 -0.5*WFLAND*CP
+            ZPFLG1 = ZPWEB2 -0.5*WFLAND*SP
+            RMFLG2 = RMWEB2 +0.5*WFLAND*CM
+            ZMFLG2 = ZMWEB2 +0.5*WFLAND*SM
+            RMFLG1 = RMWEB2 -0.5*WFLAND*CM
+            ZMFLG1 = ZMWEB2 -0.5*WFLAND*SM
+C
+            IF (ISEG.GT.1) THEN
+               ISEG1M = ISEG - 1
+               R1(ISEG1M) = RMFLG1
+               Z1(ISEG1M) = ZMFLG1
+               R2(ISEG1M) = RMFLG2
+               Z2(ISEG1M) = ZMFLG2
+               NSHAPE(ISEG1M) = 1
+               NX(ISEG1M) = NXFLNG
+               THICK(ISEG1M) = TFLAND
+               IFLANG(ISEG1M) = 1
+            ENDIF
+            IF (PHI0.LT.0.9999*PI) THEN
+               ISEG2P = ISEG + 2
+               R1(ISEG2P) = RPFLG1
+               Z1(ISEG2P) = ZPFLG1
+               R2(ISEG2P) = RPFLG2
+               Z2(ISEG2P) = ZPFLG2
+               NSHAPE(ISEG2P) = 1
+               NX(ISEG2P) = NXFLNG
+               THICK(ISEG2P) = TFLAND
+               IFLANG(ISEG2P) = 1
+            ENDIF
+         ENDIF
+      ENDIF
+C
+  100 CONTINUE
+C
+      WRITE(IFILE4,'(/,A)')
+     1' NSHAPE,ISMEAR, R1,      Z1,      R2,      Z2,      RC,       ZC'
+      DO 200 I = 1,NSEGS
+         WRITE(IFILE4,'(2I5,1P,6E14.6)')
+     1 NSHAPE(I),ISMEAR(I),R1(I),Z1(I),R2(I),Z2(I),RC(I),ZC(I)
+  200 CONTINUE
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+      WRITE(IFILE4,'(/,A)')
+     1' NSHAPE,ISMEAR, DR,     DZ,     NX,     THICK     IFLANG   JLAND'
+      DO 300 I = 1,NSEGS
+         WRITE(IFILE4,'(2I5,1P,4E14.6,2I5)')
+     1 NSHAPE(I),ISMEAR(I),DR(I),DZ(I),NX(I),THICK(I),
+     1 IFLANG(I),JLAND(I)
+  300 CONTINUE
+C
+C BEG FEB 2010
+      IF (INDX.EQ.1) WRITE(IFIL14,'(A)')
+     1 ' general buckling (INDIC=4) ixprism'
+      IF (INDX.EQ.2) WRITE(IFIL14,'(A)')
+     1 ' inter-ring ("panel") buckling (INDIC=4) ixprism'
+      IF (INDX.EQ.1) WRITE(IFIL14,'(1P,E14.6,A)') LENCYL,
+     1 ' $ AXIALL = axial length of cyl.'
+      IF (INDX.EQ.2) WRITE(IFIL14,'(1P,E14.6,A)') BRNG,
+     1 ' $ AXIALL = axial length between acreage rings'
+C END FEB 2010
+      WRITE(IFIL14,'(A,I3,A)')
+     1' 4, 1, 0, 0, ',NSEGS,' $ INDIC,NPRT,ISTRESS,IPRE,NSEG'
+C
+      DO 500 I = 1,NSEGS
+C
+      WRITE(IFIL14,'(A,4I6)')' H   $ Segment number ',I,I,I,I
+      IF (JLAND(I).EQ.1) NMESH(I) = 21
+      IF (ISMEAR(I).EQ.1.AND.JLAND(I).EQ.0) NMESH(I) = 91
+      IF (ISMEAR(I).EQ.0.AND.JLAND(I).EQ.0) NMESH(I) = 11
+      WRITE(IFIL14,'(I4,A,I4,A)') NMESH(I),', 3, ',NSHAPE(I),
+     1' $ NMESH,NTYPEH,NSHAPE'
+      WRITE(IFIL14,'(1P,2E14.6,A)') R1(I),Z1(I),' $ R1,Z1'
+      WRITE(IFIL14,'(1P,2E14.6,A)') R2(I),Z2(I),' $ R2,Z2'
+      IF (NSHAPE(I).EQ.2)
+     1WRITE(IFIL14,'(1P,2E14.6,A)') RC(I),ZC(I),
+     1', -1.  $ RC,ZC,SUR'
+      WRITE(IFIL14, '(A,1P,E14.6,A)')' 0, 3, ',THICK(I)/2.,
+     1'  $ IMP,NTYPEZ,ZVAL'
+      WRITE(IFIL14,'(A)')' N  $ do not print r(s), etc.'
+      WRITE(IFIL14,'(A)')
+     1 ' 0, 0., 2, 0, 2  $ NRINGS,K,NSTRES,NRLOAD,NTYPE'
+      WRITE(IFIL14,'(1P,2E14.6,A)') Z1(I),Z2(I),' $ Z1,Z2'
+      WRITE(IFIL14,'(A)')' 0., 0.  $ FN10(1), FN10(2)'
+      WRITE(IFIL14,'(1P,2E14.6,A)') NX(I),NX(I),' $ FN20(1),FN20(2)'
+C BEG JUL 2010
+      WRITE(IFIL14,'(A)')' 0., 0., 0., 0.  $ "fixed" prestress'
+C END JUL 2010
+      WRITE(IFIL14,'(A)')' N  $ do not print prestresses'
+      WRITE(IFIL14, '(A,1P,3E14.6,A)')' 2, ',EMOD,NU,DENS,
+     1' $ NWALL,EMOD,NU,DENS'
+      WRITE(IFIL14,'(A)')' 0.  $ ALPHA'
+      NRS = 0
+      IF (ISMEAR(I).EQ.1) NRS = 1
+      WRITE(IFIL14,'(I3,A)') NRS,', 0  $ NRS,NSUR'
+      IF (ISMEAR(I).EQ.0) THEN
+        WRITE(IFIL14,'(A)')' N  $ do not print ref.surf.location'
+        WRITE(IFIL14,'(A)')' N  $ do not print C(i,j)'
+        WRITE(IFIL14,'(A)')' N  $ do not print distributed loads'
+      ELSE 
+        WRITE(IFIL14,'(A)')' N  $ do not print ref.surf.location'
+        IF (INDX.EQ.2) WRITE(IFIL14,'(A)')' N  $ are there stringers'
+C
+        IF (INDX.EQ.1) THEN
+          WRITE(IFIL14,'(A)')' Y  $ are there stringers'
+          N1 = 2.*PI*R1(I)/BRNG
+          WRITE(IFIL14,'(I8,A)') N1,', 0  $ N1,K1'
+          WRITE(IFIL14, '(1P,3E14.6,A)') EMOD,NU,DENS,' $ EMOD,NU,DENS'
+          WRITE(IFIL14,'(A)')' Y  $ is stringer cross section constant'
+          WRITE(IFIL14,'(A)')' Y  $ is stringer cross section rectangu'
+          WRITE(IFIL14,'(1P,2E14.6,A)') TRNG,HRNG,' $ TRNG,HRNG'
+        ENDIF
+C
+C23456789012345678901234567890123456789012345678901234567890123456789012
+        WRITE(IFIL14,'(A)')' Y  $ are there rings'
+        WRITE(IFIL14,'(A)')' 0  $ K2'
+        WRITE(IFIL14, '(1P,3E14.6,A)') EMOD,NU,DENS,' $ EMOD,NU,DENS'
+        WRITE(IFIL14,'(A)')' Y  $ is ring cross section constant'
+        WRITE(IFIL14,'(A)')' Y  $ is ring cross section rectangular'
+        WRITE(IFIL14,'(1P,E14.6,A)') BSTR,'  $ BSTR'
+        WRITE(IFIL14,'(1P,2E14.6,A)') TSTR,HSTR,' $ TSTR,HSTR'
+        WRITE(IFIL14,'(A)')' N  $ do not print C(i,j)'
+        WRITE(IFIL14,'(A)')' N  $ do not print distributed loads'
+      ENDIF
+C
+  500 CONTINUE
+C
+      WRITE(IFIL14,'(A)')' H  $ GLOBAL DATA BEGINS...'
+      WRITE(IFIL14,'(A)')' 0  $ NLAST'
+      WRITE(IFIL14,'(A)')' N  $ any expanded plots?'
+      NMINB = N0B
+C BEG FEB 2010
+C     INCRB = 100
+      INCRB = 1
+C END FEB 2010
+      NVEC  = 1
+      WRITE(IFIL14,'(5I6,A)') N0B,NMINB,NMAXB,INCRB,NVEC,
+     1 '  $ N0B,NMINB,NMAXB,INCRB,NVEC'
+      WRITE(IFIL14,'(A)')' H  $ CONSTRAINT CONDITIONS FOLLOW....'
+      WRITE(IFIL14,'(I6,A)') NSEGS,'  $ how many segments?'
+C
+      DO 800 I = 1,NSEGS
+C
+      WRITE(IFIL14,'(A,4I6)')
+     1' H  $ CONSTRAINT CONDITIONS FOR SEGMENT ',I,I,I,I
+      IF (I.EQ.1) THEN
+        WRITE(IFIL14,'(A,A)')' 0, 1, 1, 0, 0, 1, 1',
+     1' $ poles,ground,etc.'
+        WRITE(IFIL14,'(1P,2E14.6,A)') DR(I),DZ(I),'  $ D1,D2'
+        WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+        WRITE(IFIL14,'(A)')' N  $ joined to lower segs?'
+      ENDIF
+C
+      IF (I.GT.1.AND.I.LT.NSEGS) THEN
+        WRITE(IFIL14,'(A)')' 0, 0  $ poles,ground'
+        WRITE(IFIL14,'(A)')' Y  $ joined to lower segs?'
+        INODE = 1
+        IF (IFLANG(I).EQ.1) INODE = NMESH(I)/2 + 1
+        JSEG = I - 1
+        IF (ISMEAR(I).EQ.1.OR.JLAND(I).EQ.1)
+     1  JSEG = I - 1 - KLAND
+        JNODE = NMESH(JSEG)
+        WRITE(IFIL14,'(A,3I5,A)')' 1, ',INODE,JSEG,JNODE,
+     1' $ prev.seg.,INODE,JSEG,JNODE'
+        WRITE(IFIL14,'(A)')
+     1' 1, 1, 1, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+        WRITE(IFIL14,'(1P,2E14.6,A)') DR(I),DZ(I),'  $ D1,D2'
+        WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+      ENDIF
+C
+      IF (I.EQ.NSEGS) THEN
+        WRITE(IFIL14,'(A,I5,A,A)')
+     1' 0, 1, ',NMESH(I),' 0, 0, 1, 1',
+     1' $ poles,ground,etc'
+        WRITE(IFIL14,'(1P,2E14.6,A)') DR(I),DZ(I),'  $ D1,D2'
+        WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+        WRITE(IFIL14,'(A)')' Y  $ joined to lower segs?'
+        INODE = 1
+        JSEG = I - 1
+        IF (ISMEAR(I).EQ.1.OR.JLAND(I).EQ.1)
+     1  JSEG = I - 1 - KLAND
+        JNODE = NMESH(JSEG)
+        WRITE(IFIL14,'(A,3I5,A)')' 1, ',INODE,JSEG,JNODE,
+     1' $ prev.seg.,INODE,JSEG,JNODE'
+        WRITE(IFIL14,'(A)')
+     1' 1, 1, 1, 1  $ IUSTAR,IVSTAR,IWSTAR,ICHI'
+        WRITE(IFIL14,'(1P,2E14.6,A)') DR(I),DZ(I),'  $ D1,D2'
+        WRITE(IFIL14,'(A)')' Y  $ same for preb. & buck.'
+      ENDIF
+C
+  800 CONTINUE
+C
+      WRITE(IFIL14,'(A)')' N  $ rigid body motion possible?'
+C
+      DO 900 I = 1,NSEGS
+        WRITE(IFIL14,'(A)')' Y  $ do you want output for seg.?'
+  900 CONTINUE
+      WRITE(IFIL14,'(A)')' N  $ descrete ring forces?'
+C
+      RETURN
+      END
+
